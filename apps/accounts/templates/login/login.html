@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login - Cafeteria Premium{% endblock %}
+
+{% block content %}
+    <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+        <!-- Logo Section -->
+        <div class="bg-orange-100 hidden lg:flex items-center justify-center">
+            <div class="text-center">
+                <!-- Logo placeholder (você pode substituir pela imagem real depois) -->
+                <div class="w-64 h-64 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mb-8 shadow-2xl mx-auto">
+                    <div class="text-center">
+                        <div class="text-white text-6xl font-bold mb-2">CP</div>
+                        <div class="text-orange-100 text-lg font-medium">Cafeteria Premium</div>
+                    </div>
+                </div>
+                <!-- Se você tiver o logo, descomente e use esta linha:
+                <img src="{% static 'images/logos/cafeteriapremiumlogo.webp' %}"
+                     alt="Logo Cafeteria Premium"
+                     class="max-w-md max-h-96 object-contain">
+                -->
+            </div>
+        </div>
+        
+        <!-- Login Form Section -->
+        <div class="flex flex-col items-center justify-center p-4">
+            <form method="post" class="flex flex-col gap-4 w-80">
+                {% csrf_token %}
+                
+                <!-- Título -->
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Bem-vindo!</h2>
+                    <p class="text-gray-600">Faça login para acessar o sistema</p>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                    <div class="space-y-2">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} p-3 rounded-lg text-sm text-center
+                                {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700
+                                {% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700
+                                {% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700
+                                {% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Form Fields -->
+                <div class="flex flex-col gap-4">
+                    <!-- Username Field -->
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                            Usuário
+                        </label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            required 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 ease-in-out text-gray-900"
+                            placeholder="Digite seu usuário"
+                            value="{{ form.username.value|default:'' }}"
+                        >
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600 text-center">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password Field -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            Senha
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 ease-in-out text-gray-900"
+                            placeholder="Digite sua senha"
+                        >
+                        {% if form.password.errors %}
+                            <p class="mt-1 text-sm text-red-600 text-center">{{ form.password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Remember Me and Forgot Password -->
+                    <!-- <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <input 
+                                id="remember" 
+                                name="remember" 
+                                type="checkbox" 
+                                class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            >
+                            <label for="remember" class="ml-2 block text-sm text-gray-700">
+                                Lembrar de mim
+                            </label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-orange-600 hover:text-orange-700">
+                                Esqueci minha senha
+                            </a>
+                        </div>
+                    </div> -->
+
+                    <!-- Login Button -->
+                    <div class="flex justify-center w-full">
+                        <button type="submit" class="w-48 bg-gradient-to-r from-orange-500 to-amber-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-orange-600 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center gap-2 shadow-md">
+                            Entrar
+                        </button>
+                    </div>
+
+                    <!-- Error Messages -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Footer -->
+            <div class="mt-16 text-center text-sm text-gray-600">
+                <p>&copy; 2025 Cafeteria Premium. Todos os direitos reservados.</p>
+                <p class="mt-1 text-xs text-gray-500">Versão 1.0 | Desenvolvido com ❤️</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

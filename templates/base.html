@@ -1,0 +1,38 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Gestão para Cafeteria Premium">
+    <title>{% block title %}Cafeteria Premium{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    {% tailwind_css %}
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+</head>
+
+<body class="h-full bg-gray-50 font-sans antialiased">
+    <!-- Mensagens do Sistema -->
+    {% if messages %}
+        {% include 'components/messages.html' %}
+    {% endif %}
+
+    <!-- Navegação -->
+    {% if user.is_authenticated %}
+        {% include 'navbar.html' %}
+    {% endif %}
+
+    <!-- Conteúdo Principal -->
+    <main class="{% if user.is_authenticated %}pt-16{% else %}pt-0{% endif %} min-h-screen">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

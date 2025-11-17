@@ -1,0 +1,41 @@
+echo "# Django
+*.pyc
+__pycache__/
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+db.sqlite3
+*.db
+
+# Media files
+media/
+
+# Static files (compiled)
+staticfiles/
+static_collected/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Django secret key
+.env
+
+# Node modules (Tailwind)
+node_modules/
+npm-debug.log*" > .gitignore
