@@ -10,20 +10,24 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 # Gerencia as apps do projeto dentro da pasta apps
 sys.path.insert(0, str(BASE_DIR / 'apps'))
 
-# Configurações de Segurança
-SECRET_KEY = config('SECRET_KEY', default='django-insecure--!s=1+cc(#_izwaiqx4sj+q595$=r_$rx2j#_ki@!u9^v^-g=%')
-DEBUG = config('DEBUG', cast=bool)
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'sua-chave-de-desenvolvimento')
+DEBUG = config('DEBUG', cast=bool,)
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'zip2coxinhaspremiumcafe.com.br',  # Seu domínio futuro
-        'www.zip2coxinhaspremiumcafe.com.br',
-        '*.railway.app'  # Todos os subdomínios do Railway
+        'caferaizpilarense.com.br',
+        'www.caferaizpilarense.com.br',
+        'web-production-7ae3a.up.railway.app'
     ]
 
     SECURE_SSL_REDIRECT = True
@@ -31,13 +35,11 @@ else:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.railway.app',
-    'https://zip2coxinhaspremiumcafe.com.br',
-    'https://www.zip2coxinhaspremiumcafe.com.br'
-]
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://coxinhaspremiumcafe.zip2.com.br', 'https://www.coxinhaspremiumcafe.zip2.com.br']
+
 
 # Application definition
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -60,7 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,7 +80,6 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -88,6 +89,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database
 if DEBUG:
@@ -109,7 +114,10 @@ else:
         }
     }
 
+
 # Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -125,11 +133,20 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
 LANGUAGE_CODE = 'pt-br'
+
 TIME_ZONE = 'America/Sao_Paulo'
+
 USE_I18N = True
+
+USE_L10N = True
+
 USE_TZ = True
+
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -138,27 +155,6 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise configuration
-if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_AUTOREFRESH = True
-    WHITENOISE_MIMETYPES = {
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-    }
-else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-
-# Media files
-MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_URL = '/media/'
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Configuração do modelo de usuário customizado
-AUTH_USER_MODEL = 'accounts.User'
-
 # Configurações do Tailwind
 TAILWIND_APP_NAME = 'theme'
 
@@ -166,28 +162,31 @@ TAILWIND_APP_NAME = 'theme'
 if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
+# WhiteNoise configuration for better static file serving
+if not DEBUG:
+    # Configuração do WhiteNoise para produção
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Configurações adicionais do WhiteNoise
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    
+    # MIME types para JavaScript
+    WHITENOISE_MIMETYPES = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+    }
+else:
+    # Para desenvolvimento local
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuração do modelo de usuário customizado
+AUTH_USER_MODEL = 'accounts.User'
+
 # Configurações de autenticação
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
-
-# Logging para produção
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': False,
-        },
-    },
-}
