@@ -18,8 +18,8 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'sua-chave-de-desenvolvimento')
-DEBUG = config('DEBUG', cast=bool,)
+SECRET_KEY = config('SECRET_KEY', default='sua-chave-de-desenvolvimento')
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
@@ -27,7 +27,7 @@ else:
     ALLOWED_HOSTS = [
         'caferaizpilarense.com.br',
         'www.caferaizpilarense.com.br',
-        'web-production-7ae3a.up.railway.app'
+        '*.railway.app'
     ]
 
     SECURE_SSL_REDIRECT = True
