@@ -2,9 +2,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
+@csrf_exempt
 def health_check(request):
-    return HttpResponse("OK")
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
