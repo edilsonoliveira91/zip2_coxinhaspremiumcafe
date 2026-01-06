@@ -25,9 +25,9 @@ if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'caferaizpilarense.com.br',
-        'www.caferaizpilarense.com.br',
-        '*.railway.app'
+        'zip2coxinhaspremiumcafe-production.up.railway.app',
+        'coxinhaspremiumcafe.com.br',
+        'www.coxinhaspremiumcafe.com.br',
     ]
 
     SECURE_SSL_REDIRECT = True
@@ -35,7 +35,12 @@ else:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://coxinhaspremiumcafe.zip2.com.br', 'https://www.coxinhaspremiumcafe.zip2.com.br']
+CSRF_TRUSTED_ORIGINS = [
+    'https://zip2coxinhaspremiumcafe-production.up.railway.app',
+    'https://*.railway.app',
+    'https://coxinhaspremiumcafe.zip2.com.br',
+    'https://www.coxinhaspremiumcafe.zip2.com.br'
+]
 
 
 # Application definition
