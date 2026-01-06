@@ -7,6 +7,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from .forms import CustomUserCreationForm
 from .models import User
+from products.models import Product
+from orders.models import Order
+from django.utils import timezone
+from django.views import View
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+import json
 
 
 class CustomLoginView(LoginView):
@@ -33,8 +40,41 @@ class HomeView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Buscar produtos ativos que estão no cardápio
+        products = Product.objects.filter(
+            is_active=True, 
+            show_in_menu=True
+        ).order_by('category', 'name')
+        
+        # Buscar comandas abertas (não finalizadas) ordenadas por prioridade
+        hoje = timezone.now().date()
+        
+        # TESTE: Remover filtro de data
+        comandas_abertas = Order.objects.filter(
+            status__in=['aguardando', 'preparando', 'pronta']
+        ).select_related('created_by').prefetch_related('items__product').order_by('created_at')
+
+        # Debug: adicionar todas as comandas para teste
+        todas_comandas = Order.objects.all()
+        print(f"Debug: Total comandas: {todas_comandas.count()}")
+        for cmd in todas_comandas:
+            print(f"Debug: #{cmd.code} - {cmd.status} - {cmd.created_at}")
+
+        print(f"Debug: Comandas abertas encontradas: {comandas_abertas.count()}")
+        
+        # Estatísticas das comandas
+        stats_comandas = {
+            'abertas': Order.objects.filter(created_at__date=hoje, status='aguardando').count(),
+            'preparo': Order.objects.filter(created_at__date=hoje, status='preparando').count(),
+            'prontas': Order.objects.filter(created_at__date=hoje, status='pronta').count(),
+            'entregues': Order.objects.filter(created_at__date=hoje, status='entregue').count(),
+        }
+        
         context.update({
-            'comandas_abertas': [],  # Dados fictícios por enquanto
+            'products': products,
+            'comandas_abertas': comandas_abertas,
+            'stats_comandas': stats_comandas,
         })
         return context
 

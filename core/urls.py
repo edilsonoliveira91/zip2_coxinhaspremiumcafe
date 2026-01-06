@@ -9,4 +9,10 @@ urlpatterns = [
     path('accounts/', include('accounts.urls', namespace='accounts')),
     path('', RedirectView.as_view(pattern_name='accounts:login'), name='home'),
 
+    path('products/', include('products.urls', namespace='products')),
+
+    path('orders/', include('orders.urls', namespace='orders')),
+
+    path('checkouts/', include('checkouts.urls', namespace='checkouts')),
+
 ]

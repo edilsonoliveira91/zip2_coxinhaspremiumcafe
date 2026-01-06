@@ -26,7 +26,7 @@
                     
                     <div class="space-y-3">
                         <!-- Nova Comanda com hover moderno -->
-                        <button class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md">
+                        <button onclick="openOrderModal()" class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md">
                             <div class="flex items-center justify-center space-x-3">
                                 <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -165,180 +165,63 @@
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             
-                            <!-- Comanda moderna 1 -->
-                            <div class="group relative bg-white border-2 border-orange-100 rounded-2xl p-6 hover:border-orange-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1" 
-                                 data-comanda 
-                                 data-numero="001" 
-                                 data-mesa="Mesa 5" 
-                                 data-cliente="" 
-                                 data-itens="Coxinha de Frango Café Expresso Água">
-                                <div class="absolute top-4 right-4">
-                                    <div class="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                                </div>
+                            {% for comanda in comandas_abertas %}
+                                <!-- Comanda real com estilo simplificado -->
+                                <div onclick="openEditOrderModal('{{ comanda.code }}')" 
+                                    style="height: 160px !important;"
+                                    class="group relative bg-white border-2 cursor-pointer
+                                    {% if comanda.status == 'aguardando' %}border-orange-100 hover:border-orange-300{% endif %}
+                                    {% if comanda.status == 'preparando' %}border-yellow-100 hover:border-yellow-300{% endif %}
+                                    {% if comanda.status == 'pronta' %}border-green-100 hover:border-green-300{% endif %}
+                                    rounded-2xl p-3 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 "
+                                    data-comanda 
+                                    data-numero="{{ comanda.code }}" 
+                                    data-mesa="{{ comanda.name }}">
                                 
-                                <div class="flex items-center space-x-3 mb-4">
-                                    <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold">
-                                        #001
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Mesa 5</p>
-                                        <p class="text-xs text-gray-500">10:35 • Em preparo</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-2 mb-4">
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">2x Coxinha de Frango</span>
-                                        <span class="text-gray-500">R$ 16,00</span>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">1x Café Expresso</span>
-                                        <span class="text-gray-500">R$ 8,50</span>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">1x Água</span>
-                                        <span class="text-gray-500">R$ 4,00</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="border-t border-gray-100 pt-4 mb-4">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-lg font-bold text-gray-900">R$ 28,50</span>
-                                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                            <div class="w-3/4 h-full bg-gradient-to-r from-orange-500 to-pink-500 rounded-full"></div>
+                                    <!-- Header da comanda -->
+                                    <div class="flex items-center space-x-3 mb-2">
+                                        <div class="w-12 h-12 
+                                                    {% if comanda.status == 'aguardando' %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %}
+                                                    {% if comanda.status == 'preparando' %}bg-gradient-to-r from-yellow-500 to-orange-500{% endif %}
+                                                    {% if comanda.status == 'pronta' %}bg-gradient-to-r from-emerald-500 to-teal-500{% endif %}
+                                                    rounded-2xl flex items-center justify-center text-white font-bold">
+                                            #{{ comanda.id }}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">{{ comanda.name }}</p>
+                                            <p class="text-xs text-gray-500">
+                                                {{ comanda.created_at|time:"H:i" }} • 
+                                                {% if comanda.status == 'aguardando' %}Aguardando
+                                                {% elif comanda.status == 'preparando' %}Em preparo
+                                                {% elif comanda.status == 'pronta' %}Pronta
+                                                {% endif %}
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div class="flex space-x-2">
-                                    <button class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105">
-                                        Finalizar
-                                    </button>
-                                    <button class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Comanda moderna 2 -->
-                            <div class="group relative bg-white border-2 border-green-100 rounded-2xl p-6 hover:border-green-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1" 
-                                 data-comanda 
-                                 data-numero="002" 
-                                 data-mesa="Mesa 3" 
-                                 data-cliente="" 
-                                 data-itens="Coxinha Mista Cappuccino">
-                                <div class="absolute top-4 right-4">
-                                    <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                                </div>
-                                
-                                <div class="flex items-center space-x-3 mb-4">
-                                    <div class="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center text-white font-bold">
-                                        #002
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Mesa 3</p>
-                                        <p class="text-xs text-gray-500">10:15 • Pronta</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-2 mb-4">
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">3x Coxinha Mista</span>
-                                        <span class="text-gray-500">R$ 24,00</span>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">2x Cappuccino</span>
-                                        <span class="text-gray-500">R$ 16,00</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="border-t border-gray-100 pt-4 mb-4">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-lg font-bold text-gray-900">R$ 40,00</span>
-                                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                            <div class="w-full h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
+                                    
+                                    <!-- Valor centralizado -->
+                                    <div class="border-t border-gray-100 pt-2 mb-2">
+                                        <div class="text-center">
+                                            <span class="text-lg font-bold text-gray-900">R$ {{ comanda.total_amount }}</span>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div class="flex space-x-2">
-                                    <button class="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all transform hover:scale-105">
-                                        Servir
-                                    </button>
-                                    <button class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
+                                    
+                                    <!-- Botão Detalhes -->
+                                    <button onclick="event.stopPropagation(); openEditOrderModal('{{ comanda.code }}')" 
+                                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105">
+                                        Detalhes
                                     </button>
                                 </div>
-                            </div>
-
-                            <!-- Comanda moderna 3 -->
-                            <div class="group relative bg-white border-2 border-orange-100 rounded-2xl p-6 hover:border-orange-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1" 
-                                 data-comanda 
-                                 data-numero="003" 
-                                 data-mesa="Mesa 8" 
-                                 data-cliente="João Silva" 
-                                 data-itens="Coxinha de Catupiry Café Americano">
-                                <div class="absolute top-4 right-4">
-                                    <div class="w-3 h-3 bg-orange-400 rounded-full animate-pulse"></div>
-                                </div>
-                                
-                                <div class="flex items-center space-x-3 mb-4">
-                                    <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-white font-bold">
-                                        #003
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Mesa 8</p>
-                                        <p class="text-xs text-gray-500">10:42 • Aguardando</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-2 mb-4">
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">4x Coxinha de Catupiry</span>
-                                        <span class="text-gray-500">R$ 28,00</span>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-700">1x Café Americano</span>
-                                        <span class="text-gray-500">R$ 6,00</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="border-t border-gray-100 pt-4 mb-4">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-lg font-bold text-gray-900">R$ 34,00</span>
-                                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                            <div class="w-1/4 h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex space-x-2">
-                                    <button class="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-orange-600 hover:to-amber-600 transition-all transform hover:scale-105">
-                                        Iniciar
-                                    </button>
-                                    <button class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Card para adicionar nova comanda -->
-                            <div class="group border-2 border-dashed border-gray-300 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-orange-300 hover:bg-orange-50 transition-all duration-300 cursor-pointer min-h-[280px]">
-                                <div class="w-16 h-16 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            {% empty %}
+                                <!-- Quando não há comandas -->
+                                <div class="col-span-full text-center py-12">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma comanda aberta</h3>
+                                    <p class="text-gray-500">Todas as comandas foram finalizadas ou não há comandas criadas.</p>
                                 </div>
-                                <h3 class="font-semibold text-gray-900 mb-2">Nova Comanda</h3>
-                                <p class="text-gray-500 text-sm text-center">Clique para criar uma nova comanda presencial</p>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -347,6 +230,65 @@
     </div>
 </div>
 
-<!-- Carregamento do JS separado -->
+
+{% include 'home/order_modal.html' %}
+{% include 'home/detail_modal.html' %}
+
+<script>
+function openOrderModal() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        // Remover classes que escondem
+        modal.classList.remove('hidden', 'opacity-0');
+        
+        // Forçar propriedades do overlay
+        modal.style.cssText = `
+            display: flex !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 9999 !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px !important;
+        `;
+        
+        // REMOVER/COMENTAR ESTA SEÇÃO:
+        /*
+        const modalContainer = document.getElementById('modalContainer');
+        if (modalContainer) {
+            modalContainer.style.cssText = `
+                transform: scale(1) !important;
+                max-width: 1152px !important;
+                width: 100% !important;
+                max-height: 90vh !important;
+            `;
+        }
+        */
+        
+        document.body.style.overflow = 'hidden';
+        
+        // Inicializar funcionalidades do modal
+        initializeOrderModal();
+        
+        console.log('Modal centralizado!');
+    }
+}
+function closeOrderModal() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+</script>
+
+<!-- DEPOIS vem o JS externo -->
 <script src="{% static 'js/home/home.js' %}"></script>
+
 {% endblock %}

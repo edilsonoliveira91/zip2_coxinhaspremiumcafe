@@ -1,4 +1,4 @@
-echo "# Django
+# Python
 *.pyc
 __pycache__/
 *.so
@@ -8,17 +8,24 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.py[cod]
+*$py.class
 
-# Database
+# Django
+*.log
+local_settings.py
 db.sqlite3
-*.db
-
-# Media files
+db.sqlite3-journal
 media/
 
-# Static files (compiled)
+# Static files
 staticfiles/
-static_collected/
+static/
+
+# Environment variables
+.env
+.env.local
+.env.production
 
 # IDE
 .vscode/
@@ -26,16 +33,13 @@ static_collected/
 *.swp
 *.swo
 
+# Node modules (Tailwind)
+node_modules/
+package-lock.json
+
+# Railway
+.railway/
+
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Django secret key
-.env
-
-# Node modules (Tailwind)
-node_modules/
-npm-debug.log*" > .gitignore

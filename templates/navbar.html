@@ -1,3 +1,4 @@
+{% load static %}
 <nav class="fixed top-0 left-0 right-0 bg-white/5 backdrop-blur-sm shadow-lg border-b border-gray-200/50 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
@@ -6,11 +7,13 @@
                 <!-- Logo -->
                 <div class="flex-shrink-0">
                     <a href="/" class="flex items-center space-x-3 group">
-                        <div class="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-                            <span class="text-white font-bold text-lg">CP</span>
+                        <div class="w-10 h-10 rounded-xl transition-shadow overflow-hidden">
+                            <img src="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}" 
+                                alt="Coxinhas Premium Café" 
+                                class="w-full h-full object-cover">
                         </div>
                         <span class="font-bold text-xl text-gray-900 group-hover:text-orange-600 transition-colors">
-                            Cafeteria Premium
+                            Coxinhas Premium Café
                         </span>
                     </a>
                 </div>
@@ -34,7 +37,7 @@
                             <span>Comandas</span>
                         </div>
                     </a>
-                    <a href="#" class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                    <a href="{% url 'products:product_list' %}" class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all">
                         <div class="flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
@@ -48,6 +51,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
                             <span>Relatórios</span>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'checkouts:order_list' %}" class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <span>Caixa</span>
                         </div>
                     </a>
                 </div>

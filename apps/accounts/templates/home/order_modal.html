@@ -1,0 +1,575 @@
+<!-- Overlay do Modal -->
+<div id="orderModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden opacity-0 transition-all duration-300">
+    <div class="flex items-center justify-center min-h-screen p-2">
+        <!-- Container do Modal - QUASE TELA CHEIA -->
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 transform scale-95 transition-all duration-300 overflow-hidden" 
+             id="modalContainer" 
+             style="width: 95vw; height: 95vh; max-width: none; max-height: none;">
+            
+            <!-- Header do Modal -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-t-3xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold">Nova Comanda</h2>
+                    </div>
+                    <button onclick="closeOrderModal()" class="text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo do Modal -->
+            <div class="flex" style="height: calc(95vh - 160px);">
+                <!-- Lado Esquerdo - Informações da Comanda -->
+                <div class="w-1/4 bg-gray-50/80 backdrop-blur-sm p-6 border-r border-gray-200/50 flex flex-col">
+                    <!-- Formulário -->
+                    <form id="orderForm" class="flex flex-col flex-1 space-y-3">
+                        <!-- Nome da Comanda -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Comanda</label>
+                            <input type="text" id="orderName" placeholder="Ex: Mesa 5, João Silva..." 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/80 backdrop-blur-sm transition-all">
+                        </div>
+
+                        <!-- Observações (menor) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
+                            <textarea rows="2" id="orderObservations" placeholder="Observações especiais..."
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/80 backdrop-blur-sm resize-none text-sm">
+                            </textarea>
+                        </div>
+
+                        <!-- Resumo da Comanda (com altura fixa e scroll) -->
+                        <div class="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50 flex flex-col" style="height: 350px;">
+                            <div class="p-4 pb-0">
+                                <h4 class="font-semibold text-gray-800 mb-3">Resumo do Pedido</h4>
+                            </div>
+                            
+                            <!-- Container com scroll para os itens -->
+                            <div id="orderSummary" class="px-4 space-y-2 overflow-y-auto flex-1" 
+                                 style="max-height: 250px;">
+                                <p class="text-gray-500 text-sm" id="emptyCart">Nenhum item adicionado</p>
+                            </div>
+                            
+                            <!-- Total (sempre visível na parte inferior) -->
+                            <div class="border-t border-gray-200 p-4 bg-white/90 rounded-b-xl">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-lg text-gray-800">Total:</span>
+                                    <span class="font-bold text-xl text-orange-600" id="orderTotal">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lado Direito - Produtos -->
+                <div class="flex-1 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">Produtos Disponíveis</h3>
+                        
+                        <!-- Busca de Produtos -->
+                        <div class="relative w-64 flex items-center">
+                            <input type="text" id="productSearch" placeholder="Buscar produtos..."
+                                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/80 backdrop-blur-sm">
+                            <svg class="w-5 h-5 text-gray-400 absolute right-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Categorias -->
+                    <div class="flex space-x-2 mb-6 overflow-x-auto">
+                        <button class="category-btn active px-4 py-2 rounded-xl bg-orange-500 text-white font-medium whitespace-nowrap text-center" data-category="all">
+                            Todos
+                        </button>
+                        <button class="category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="bebidas">
+                            Bebidas
+                        </button>
+                        <button class="category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="salgados">
+                            Salgados
+                        </button>
+                        <button class="category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="doces">
+                            Doces
+                        </button>
+                        <button class="category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="lanches">
+                            Lanches
+                        </button>
+                    </div>
+
+                    <!-- Grid de Produtos -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 overflow-y-auto" 
+                         style="max-height: calc(95vh - 300px);" id="productsGrid">
+                        
+                        {% for product in products %}
+                            <div class="product-card bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 hover:shadow-lg transition-all" 
+                                data-category="{{ product.category }}" 
+                                data-product-id="{{ product.id }}"
+                                data-product-name="{{ product.name|escapejs }}"
+                                data-product-price="{{ product.price }}"
+                                data-product-category="{{ product.get_category_display }}">
+                                
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden
+                                        {% if product.category == 'bebidas' %}bg-blue-100{% elif product.category == 'salgados' %}bg-yellow-100{% elif product.category == 'doces' %}bg-purple-100{% elif product.category == 'lanches' %}bg-green-100{% else %}bg-gray-100{% endif %}">
+                                        
+                                        {% if product.image %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            <svg class="w-8 h-8 
+                                                {% if product.category == 'bebidas' %}text-blue-600{% elif product.category == 'salgados' %}text-yellow-600{% elif product.category == 'doces' %}text-purple-600{% elif product.category == 'lanches' %}text-green-600{% else %}text-gray-600{% endif %}" 
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-800">{{ product.name }}</h4>
+                                        {% if product.description %}
+                                            <p class="text-sm text-gray-600 truncate">{{ product.description }}</p>
+                                        {% else %}
+                                            <p class="text-sm text-gray-500 italic">{{ product.get_category_display }}</p>
+                                        {% endif %}
+                                        <p class="text-lg font-bold text-orange-600">R$ {{ product.price|floatformat:2 }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Controles de Quantidade -->
+                                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/50">
+                                    <!-- Botão de Adicionar (quando quantidade = 0) -->
+                                    <button onclick="addToCart({{ product.id }})" 
+                                            class="add-btn w-full bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:from-orange-600 hover:to-red-600 transition-all">
+                                        Adicionar
+                                    </button>
+                                    
+                                    <!-- Controles de Quantidade (escondidos inicialmente) -->
+                                    <div class="quantity-controls hidden w-full flex items-center justify-between">
+                                        <button onclick="decreaseQuantity({{ product.id }})" 
+                                                class="w-10 h-10 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                            </svg>
+                                        </button>
+                                        
+                                        <div class="text-center">
+                                            <span class="quantity-display text-lg font-bold text-gray-800">1</span>
+                                            <p class="text-xs text-gray-500">no carrinho</p>
+                                        </div>
+                                        
+                                        <button onclick="increaseQuantity({{ product.id }})" 
+                                                class="w-10 h-10 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors flex items-center justify-center">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <!-- Quando não há produtos -->
+                            <div class="col-span-full text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponível</h3>
+                                <p class="text-gray-500">Cadastre produtos no sistema para aparecerem aqui.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer do Modal -->
+            <div class="bg-gray-50/80 backdrop-blur-sm px-6 py-4 rounded-b-3xl border-t border-gray-200/50">
+                <div class="flex justify-between items-center">
+                    <button onclick="closeOrderModal()" class="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    
+                    <div class="flex space-x-4">
+                        <button onclick="clearCart()" class="px-8 py-4 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-medium">
+                            Limpar Carrinho
+                        </button>
+                        <button onclick="createOrder()" class="px-10 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all font-semibold shadow-lg">
+                            Criar Comanda
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Carrinho de produtos
+let orderCart = {};
+
+// Adicionar produto ao carrinho
+function addToCart(productId) {
+    const productCard = document.querySelector(`[data-product-id="${productId}"]`);
+    const productName = productCard.getAttribute('data-product-name');
+    const productPrice = parseFloat(productCard.getAttribute('data-product-price'));
+    const productCategory = productCard.getAttribute('data-product-category');
+    
+    // Adicionar ao carrinho
+    if (!orderCart[productId]) {
+        orderCart[productId] = {
+            id: productId,
+            name: productName,
+            price: productPrice,
+            category: productCategory,
+            quantity: 1
+        };
+    } else {
+        orderCart[productId].quantity++;
+    }
+    
+    updateProductDisplay(productId);
+    updateOrderSummary();
+}
+
+// Aumentar quantidade
+function increaseQuantity(productId) {
+    if (orderCart[productId]) {
+        orderCart[productId].quantity++;
+        updateProductDisplay(productId);
+        updateOrderSummary();
+    }
+}
+
+// Diminuir quantidade
+function decreaseQuantity(productId) {
+    if (orderCart[productId]) {
+        orderCart[productId].quantity--;
+        
+        if (orderCart[productId].quantity <= 0) {
+            delete orderCart[productId];
+        }
+        
+        updateProductDisplay(productId);
+        updateOrderSummary();
+    }
+}
+
+// Atualizar display do produto
+function updateProductDisplay(productId) {
+    const productCard = document.querySelector(`[data-product-id="${productId}"]`);
+    const addBtn = productCard.querySelector('.add-btn');
+    const quantityControls = productCard.querySelector('.quantity-controls');
+    const quantityDisplay = productCard.querySelector('.quantity-display');
+    
+    if (orderCart[productId] && orderCart[productId].quantity > 0) {
+        // Mostrar controles de quantidade
+        addBtn.classList.add('hidden');
+        quantityControls.classList.remove('hidden');
+        quantityDisplay.textContent = orderCart[productId].quantity;
+    } else {
+        // Mostrar botão adicionar
+        addBtn.classList.remove('hidden');
+        quantityControls.classList.add('hidden');
+    }
+}
+
+// Atualizar resumo do pedido
+function updateOrderSummary() {
+    const summaryContainer = document.getElementById('orderSummary');
+    const totalElement = document.getElementById('orderTotal');
+    
+    // Limpar conteúdo completamente
+    summaryContainer.innerHTML = '';
+    
+    const cartItems = Object.values(orderCart);
+    
+    if (cartItems.length === 0) {
+        // Criar novo elemento vazio toda vez
+        const emptyElement = document.createElement('p');
+        emptyElement.className = 'text-gray-500 text-sm';
+        emptyElement.id = 'emptyCart';
+        emptyElement.textContent = 'Nenhum item adicionado';
+        summaryContainer.appendChild(emptyElement);
+        totalElement.textContent = 'R$ 0,00';
+        return;
+    }
+    
+    let total = 0;
+    
+    cartItems.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'flex justify-between items-center text-sm py-1';
+        itemElement.innerHTML = `
+            <div>
+                <span class="text-gray-700">${item.quantity}x ${item.name}</span>
+                <span class="text-gray-500 text-xs block">${item.category}</span>
+            </div>
+            <div class="text-right">
+                <span class="text-gray-900 font-medium">R$ ${itemTotal.toFixed(2)}</span>
+                <button onclick="removeFromCart(${item.id})" class="block text-red-500 text-xs hover:text-red-700">
+                    Remover
+                </button>
+            </div>
+        `;
+        
+        summaryContainer.appendChild(itemElement);
+    });
+    
+    totalElement.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+// Remover item do carrinho
+function removeFromCart(productId) {
+    delete orderCart[productId];
+    updateProductDisplay(productId);
+    updateOrderSummary();
+}
+
+// Limpar carrinho
+function clearCart() {
+    orderCart = {};
+    
+    // Resetar todos os displays de produtos
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productId = card.getAttribute('data-product-id');
+        updateProductDisplay(productId);
+    });
+    
+    updateOrderSummary();
+}
+
+// Função para pegar CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Criar comanda
+async function createOrder() {
+    const orderName = document.getElementById('orderName').value.trim();
+    const observations = document.getElementById('orderObservations').value || '';
+    const cartItems = Object.values(orderCart);
+    
+    // Validações
+    if (!orderName) {
+        alert('Por favor, informe o nome da comanda!');
+        return;
+    }
+    
+    if (cartItems.length === 0) {
+        alert('Adicione pelo menos um produto à comanda!');
+        return;
+    }
+    
+    console.log('Dados que serão enviados:', {
+        name: orderName,
+        observations: observations,
+        items: cartItems
+    });
+    
+    try {
+        const csrfToken = getCookie('csrftoken');
+        console.log('CSRF Token:', csrfToken);
+        
+        const response = await fetch('/orders/api/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                name: orderName,
+                observations: observations,
+                items: cartItems
+            })
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Response data:', result);
+        
+        if (result.success) {
+            alert(`Comanda #${result.order_code} criada com sucesso!\nTotal: R$ ${result.order_total.toFixed(2)}`);
+            // Fechar modal e limpar carrinho
+            clearCart();
+            document.getElementById('orderName').value = '';
+            document.getElementById('orderObservations').value = '';
+            // Fechar modal
+            document.getElementById('orderModal').style.display = 'none';
+        } else {
+            alert(result.message || 'Erro ao criar comanda!');
+        }
+    } catch (error) {
+        console.error('Erro detalhado:', error);
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            alert('Erro de conectividade! Verifique se o servidor está rodando.');
+        } else {
+            alert(`Erro: ${error.message}`);
+        }
+    }
+}
+
+// Inicializar quando o modal abrir
+function initializeOrderModal() {
+    // Limpar carrinho ao abrir modal
+    clearCart();
+    
+    // Implementar filtros por categoria
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            filterProductsByCategory(category);
+            
+            // Atualizar botão ativo
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Implementar busca de produtos
+    const searchInput = document.getElementById('productSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterProductsBySearch(this.value);
+        });
+    }
+}
+
+// Filtrar produtos por categoria
+function filterProductsByCategory(category) {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productCategory = card.getAttribute('data-category');
+        
+        if (category === 'all' || productCategory === category) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Filtrar produtos por busca
+function filterProductsBySearch(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productName = card.getAttribute('data-product-name').toLowerCase();
+        const productCategory = card.getAttribute('data-product-category').toLowerCase();
+        
+        if (productName.includes(term) || productCategory.includes(term)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+
+<style>
+/* Forçar modal em tela cheia */
+#modalContainer {
+    width: 95vw !important;
+    height: 95vh !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+/* Animações do Modal */
+#orderModal.show {
+    opacity: 1 !important;
+}
+
+#orderModal.show #modalContainer {
+    transform: scale(1) !important;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+}
+
+.category-btn.active {
+    background: linear-gradient(to right, #f97316, #ef4444) !important;
+    color: white !important;
+}
+
+/* Animações suaves para os controles */
+.quantity-controls {
+    transition: all 0.3s ease;
+}
+
+.add-btn {
+    transition: all 0.3s ease;
+}
+
+/* Efeito hover nos botões de quantidade */
+.quantity-controls button:hover {
+    transform: scale(1.1);
+}
+
+/* Scrollbar customizada - webkit browsers */
+#orderSummary::-webkit-scrollbar {
+    width: 6px;
+}
+
+#orderSummary::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+#orderSummary::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+}
+
+#orderSummary::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Para Firefox */
+#orderSummary {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Garantir que o resumo tenha scroll funcionando */
+#orderSummary {
+    overflow-y: auto !important;
+    max-height: 250px !important;
+}
+
+/* Melhor espaçamento nos itens do resumo */
+#orderSummary > div {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+#orderSummary > p {
+    padding: 16px 8px;
+    text-align: center;
+}
+
+/* Grid responsivo para produtos */
+#productsGrid {
+    overflow-y: auto !important;
+}
+</style>

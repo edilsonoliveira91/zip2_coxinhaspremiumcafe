@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if product %}Editar Produto - {{ product.name }}{% else %}Novo Produto{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-6" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li>
+                    <a href="{% url 'products:product_list' %}" class="text-gray-500 hover:text-orange-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-500 ml-1 md:ml-2 text-sm font-medium">
+                            {% if product %}Editar{% else %}Novo Produto{% endif %}
+                        </span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-3 space-y-6">
+                
+                <!-- Header Info -->
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center">
+                            {% if product %}
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            {% else %}
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            {% endif %}
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            {% if product %}Editar Produto{% else %}Novo Produto{% endif %}
+                        </h2>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <p class="text-sm text-gray-600">
+                            {% if product %}
+                                Atualize as informações do produto no formulário ao lado.
+                            {% else %}
+                                Preencha todas as informações necessárias para criar um novo produto.
+                            {% endif %}
+                        </p>
+                        
+                        <div class="flex items-center space-x-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-sm text-blue-700 font-medium">Campos com * são obrigatórios</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                {% if product and product.image %}
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">Imagem Atual</h2>
+                    </div>
+                    
+                    <div class="text-center">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-48 object-cover rounded-2xl shadow-md">
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Ações Rápidas -->
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <!-- Voltar à Lista -->
+                        <a href="{% url 'products:product_list' %}" class="w-full group bg-gradient-to-r from-slate-500 to-gray-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                <span>Voltar à Lista</span>
+                            </div>
+                        </a>
+                        
+                        <!-- Criar Novo Produto (só aparece quando editando) -->
+                        {% if product %}
+                        <a href="{% url 'products:product_create' %}" class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span>Novo Produto</span>
+                            </div>
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Ver Produtos -->
+                        <a href="{% url 'products:product_list' %}" class="w-full group bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                <span>Ver Produtos</span>
+                            </div>
+                        </a>
+                        
+                        <!-- Relatórios -->
+                        <a href="#" class="w-full group bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                                </svg>
+                                <span>Relatórios</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-9">
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+                    
+                    <!-- Header -->
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {% if product %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    {% else %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    {% endif %}
+                                </svg>
+                            </div>
+                            {% if product %}Editar: {{ product.name }}{% else %}Cadastrar Novo Produto{% endif %}
+                        </h2>
+                    </div>
+
+                    <!-- Formulário -->
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                
+                                <!-- Nome -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                        </svg>
+                                        Nome do Produto <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <p class="text-red-500 text-sm flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ form.name.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Categoria -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        Categoria <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
+                                        <p class="text-red-500 text-sm flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ form.category.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Preço (usando o widget do form) -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                        </svg>
+                                        Preço (R$) <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.price }}
+                                    {% if form.price.errors %}
+                                        <p class="text-red-500 text-sm flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ form.price.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Imagem -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        Imagem do Produto
+                                    </label>
+                                    
+                                    <!-- Container para input + preview -->
+                                    <div class="space-y-3">
+                                        <!-- Input de arquivo com estilo padronizado -->
+                                        {{ form.image }}
+                                        
+                                        <!-- Preview da Imagem -->
+                                        {% if product and product.image %}
+                                        <div id="imagePreview" class="w-full h-32 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden">
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover rounded-xl">
+                                        </div>
+                                        {% else %}
+                                        <div id="imagePreview" class="w-full h-32 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
+                                            <div class="text-center">
+                                                <svg class="w-8 h-8 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <p class="text-gray-500 text-xs">Preview da imagem</p>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if form.image.errors %}
+                                        <p class="text-red-500 text-sm flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ form.image.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Descrição (span completo) -->
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Descrição
+                                    </label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                        <p class="text-red-500 text-sm flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ form.description.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Mostrar no Cardápio (span completo) -->
+                                <div class="md:col-span-2">
+                                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            {{ form.show_in_menu }}
+                                            <div class="flex-1">
+                                                <div class="flex items-center">
+                                                    <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                                    </svg>
+                                                    <span class="text-sm font-medium text-gray-900">Mostrar no Cardápio</span>
+                                                </div>
+                                                <p class="text-xs text-gray-600 ml-7">Este produto ficará visível para os clientes</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer com botões -->
+                        <div class="p-6 bg-gray-50 border-t border-gray-100">
+                            <div class="flex justify-center space-x-4">
+                                <a href="{% url 'products:product_list' %}" class="px-12 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium transition-colors">
+                                    Cancelar
+                                </a>
+                                
+                                <button type="submit" class="px-16 py-5 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                    {% if product %}
+                                        Salvar Alterações
+                                    {% else %}
+                                        Criar Produto
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Preview de imagem simplificado
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('id_image');
+    const preview = document.getElementById('imagePreview');
+    
+    if (imageInput && preview) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-full h-full object-cover rounded-xl">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Auto-focus no primeiro campo
+    const nameField = document.querySelector('input[name="name"]');
+    if (nameField) {
+        nameField.focus();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,670 @@
+<!-- Modal de Edição de Comanda -->
+<div id="editOrderModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden opacity-0 transition-all duration-300">
+    <div class="flex items-center justify-center min-h-screen p-2">
+        <!-- Container do Modal - MESMO ESTILO DO MODAL DE CRIAR -->
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 transform scale-95 transition-all duration-300 overflow-hidden" 
+             id="modalContainer" 
+             style="width: 95vw; height: 95vh; max-width: none; max-height: none;">
+            
+            <!-- Header do Modal - MESMAS CORES DO CRIAR (LARANJA/VERMELHO) -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-t-3xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold">Editar Comanda</h2>
+                        <p class="text-white/80 text-sm">
+                            #<span id="editOrderCode"></span> • 
+                            <span id="editOrderName"></span> • 
+                            <span id="editOrderStatus" class="font-semibold"></span>
+                        </p>
+                    </div>
+                    <button onclick="closeEditOrderModal()" class="text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo do Modal -->
+            <div class="flex" style="height: calc(95vh - 160px);">
+                
+                <!-- Lado Esquerdo - EXATAMENTE IGUAL AO MODAL DE CRIAR (SEM FORMULÁRIO) -->
+                <div class="w-1/4 bg-gray-50/80 backdrop-blur-sm p-6 border-r border-gray-200/50 flex flex-col">
+                    <!-- Resumo da Comanda (ESTRUTURA IDÊNTICA) -->
+                    <div class="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50 flex flex-col" style="height: 350px;">
+                        <div class="p-4 pb-0">
+                            <h4 class="font-semibold text-gray-800 mb-3">Resumo do Pedido</h4>
+                        </div>
+                        
+                        <!-- Container com scroll para os itens (IDÊNTICO AO MODAL DE CRIAR) -->
+                        <div id="editOrderSummary" class="px-4 space-y-2 overflow-y-auto flex-1" style="max-height: 250px;">
+                            <p class="text-gray-500 text-sm" id="editEmptyCart">Nenhum item adicionado</p>
+                        </div>
+                        
+                        <!-- Total (EXATAMENTE IGUAL) -->
+                        <div class="border-t border-gray-200 p-4 bg-white/90 rounded-b-xl">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-lg text-gray-800">Total:</span>
+                                <span class="font-bold text-xl text-orange-600" id="editOrderTotal">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Centro-Direito - Produtos Disponíveis (MESMO ESTILO) -->
+                <div class="flex-1 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">Produtos Disponíveis</h3>
+                        
+                        <!-- Busca de Produtos (IGUAL AO MODAL DE CRIAR) -->
+                        <div class="relative w-64 flex items-center">
+                            <input type="text" id="editProductSearch" placeholder="Buscar produtos..."
+                                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/80 backdrop-blur-sm">
+                            <svg class="w-5 h-5 text-gray-400 absolute right-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Categorias (MESMAS CORES LARANJA) -->
+                    <div class="flex space-x-2 mb-6 overflow-x-auto">
+                        <button class="edit-category-btn active px-4 py-2 rounded-xl bg-orange-500 text-white font-medium whitespace-nowrap text-center" data-category="all">
+                            Todos
+                        </button>
+                        <button class="edit-category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="bebidas">
+                            Bebidas
+                        </button>
+                        <button class="edit-category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="salgados">
+                            Salgados
+                        </button>
+                        <button class="edit-category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="doces">
+                            Doces
+                        </button>
+                        <button class="edit-category-btn px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap text-center" data-category="lanches">
+                            Lanches
+                        </button>
+                    </div>
+                    
+                    <!-- Grid de Produtos -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 overflow-y-auto" 
+                        style="max-height: calc(95vh - 300px);" id="editProductsGrid">
+                        
+                        {% for product in products %}
+                            <div class="edit-product-card bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 hover:shadow-lg transition-all" 
+                                data-category="{{ product.category }}" 
+                                data-product-id="{{ product.id }}"
+                                data-product-name="{{ product.name|escapejs }}"
+                                data-product-price="{{ product.price }}"
+                                data-product-category="{{ product.get_category_display }}">
+                                
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden
+                                        {% if product.category == 'bebidas' %}bg-blue-100{% elif product.category == 'salgados' %}bg-yellow-100{% elif product.category == 'doces' %}bg-purple-100{% elif product.category == 'lanches' %}bg-green-100{% else %}bg-gray-100{% endif %}">
+                                        
+                                        {% if product.image %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            <svg class="w-8 h-8 
+                                                {% if product.category == 'bebidas' %}text-blue-600{% elif product.category == 'salgados' %}text-yellow-600{% elif product.category == 'doces' %}text-purple-600{% elif product.category == 'lanches' %}text-green-600{% else %}text-gray-600{% endif %}" 
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-800">{{ product.name }}</h4>
+                                        {% if product.description %}
+                                            <p class="text-sm text-gray-600 truncate">{{ product.description }}</p>
+                                        {% else %}
+                                            <p class="text-sm text-gray-500 italic">{{ product.get_category_display }}</p>
+                                        {% endif %}
+                                        <p class="text-lg font-bold text-orange-600">R$ {{ product.price|floatformat:2 }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Controles de Quantidade (IDÊNTICOS AO MODAL DE CRIAR) -->
+                                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/50">
+                                    <!-- Botão de Adicionar (quando quantidade = 0) -->
+                                    <button onclick="editAddToCart({{ product.id }})" 
+                                            class="edit-add-btn w-full bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:from-orange-600 hover:to-red-600 transition-all">
+                                        Adicionar
+                                    </button>
+                                    
+                                    <!-- Controles de Quantidade (escondidos inicialmente) -->
+                                    <div class="edit-quantity-controls hidden w-full flex items-center justify-between">
+                                        <button onclick="editDecreaseQuantity({{ product.id }})" 
+                                                class="w-10 h-10 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                            </svg>
+                                        </button>
+                                        
+                                        <div class="text-center">
+                                            <span class="edit-quantity-display text-lg font-bold text-gray-800">1</span>
+                                            <p class="text-xs text-gray-500">no carrinho</p>
+                                        </div>
+                                        
+                                        <button onclick="editIncreaseQuantity({{ product.id }})" 
+                                                class="w-10 h-10 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors flex items-center justify-center">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <!-- Quando não há produtos -->
+                            <div class="col-span-full text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponível</h3>
+                                <p class="text-gray-500">Cadastre produtos no sistema para aparecerem aqui.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer do Modal (MESMO ESTILO) -->
+            <div class="bg-gray-50/80 backdrop-blur-sm px-6 py-4 rounded-b-3xl border-t border-gray-200/50">
+                <div class="flex justify-between items-center">
+                    <button onclick="closeEditOrderModal()" class="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    
+                    <div class="flex space-x-4">
+                        <button onclick="clearEditCart()" class="px-8 py-4 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-medium">
+                            Limpar Alterações
+                        </button>
+                        <button onclick="updateOrderStatus()" class="px-8 py-4 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium">
+                            Mudar Status
+                        </button>
+                        <button onclick="saveOrderChanges()" class="px-10 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all font-semibold shadow-lg">
+                            Salvar Comanda
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// VARIÁVEIS GLOBAIS (IGUAL AO MODAL DE CRIAR)
+let currentEditOrder = null;
+let editOrderCart = {}; // MUDANÇA: usar mesmo padrão do modal de criar
+
+// FUNÇÃO PRINCIPAL: ABRIR MODAL
+async function openEditOrderModal(orderCode) {
+    const modal = document.getElementById('editOrderModal');
+    if (!modal) return;
+    
+    try {
+        const response = await fetch(`/orders/api/${orderCode}/`);
+        const orderData = await response.json();
+        
+        if (response.ok && orderData.success) {
+            currentEditOrder = orderData.order;
+            editOrderCart = {}; // LIMPAR CARRINHO
+            
+            document.getElementById('editOrderCode').textContent = orderData.order.code;
+            document.getElementById('editOrderName').textContent = orderData.order.name;
+            document.getElementById('editOrderStatus').textContent = getStatusLabel(orderData.order.status);
+            
+            // CARREGAR ITENS NO FORMATO DO MODAL DE CRIAR
+            loadEditOrderCart(orderData.order.items);
+            
+            // FORÇAR POSICIONAMENTO CORRETO
+            modal.classList.remove('hidden', 'opacity-0');
+            modal.style.cssText = `
+                display: flex !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 9999 !important;
+                background-color: rgba(0, 0, 0, 0.5) !important;
+                backdrop-filter: blur(4px) !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 8px !important;
+            `;
+            
+            window.scrollTo(0, 0);
+            document.body.style.overflow = 'hidden';
+            
+        } else {
+            alert('Erro ao carregar dados da comanda!');
+        }
+    } catch (error) {
+        alert('Erro de conectividade ao carregar comanda!');
+    }
+}
+
+// FUNÇÃO: FECHAR MODAL
+function closeEditOrderModal() {
+    const modal = document.getElementById('editOrderModal');
+    modal.classList.add('hidden', 'opacity-0');
+    modal.style.cssText = 'display: none !important;';
+    document.body.style.overflow = '';
+    currentEditOrder = null;
+    editOrderCart = {};
+    
+    // Resetar todos os cards de produto
+    document.querySelectorAll('.edit-product-card').forEach(card => {
+        const productId = card.getAttribute('data-product-id');
+        updateEditProductDisplay(productId);
+    });
+}
+
+// FUNÇÃO: CARREGAR ITENS NO CARRINHO (FORMATO DO MODAL DE CRIAR)
+function loadEditOrderCart(items) {
+    // Limpar carrinho
+    editOrderCart = {};
+    
+    // Resetar displays dos cards primeiro
+    document.querySelectorAll('.edit-product-card').forEach(card => {
+        const productId = card.getAttribute('data-product-id');
+        updateEditProductDisplay(productId);
+    });
+    
+    // Adicionar cada item no formato do modal de criar
+    items.forEach(item => {
+        editOrderCart[item.product.id] = {
+            id: item.product.id,
+            name: item.product.name,
+            price: item.unit_price,
+            category: item.product.category,
+            quantity: item.quantity,
+            original_id: item.id // Manter ID original para edição
+        };
+        
+        // Atualizar display do card correspondente
+        updateEditProductDisplay(item.product.id);
+    });
+    
+    updateEditOrderSummary();
+}
+
+// FUNÇÃO: ADICIONAR PRODUTO (IGUAL AO MODAL DE CRIAR)
+function editAddToCart(productId) {
+    const productCard = document.querySelector(`[data-product-id="${productId}"].edit-product-card`);
+    const productName = productCard.getAttribute('data-product-name');
+    const productPrice = parseFloat(productCard.getAttribute('data-product-price'));
+    const productCategory = productCard.getAttribute('data-product-category');
+    
+    // Adicionar ao carrinho
+    if (!editOrderCart[productId]) {
+        editOrderCart[productId] = {
+            id: productId,
+            name: productName,
+            price: productPrice,
+            category: productCategory,
+            quantity: 1,
+            original_id: null // Novo item
+        };
+    } else {
+        editOrderCart[productId].quantity++;
+    }
+    
+    updateEditProductDisplay(productId);
+    updateEditOrderSummary();
+}
+
+// FUNÇÃO: AUMENTAR QUANTIDADE (IGUAL AO MODAL DE CRIAR)
+function editIncreaseQuantity(productId) {
+    if (editOrderCart[productId]) {
+        editOrderCart[productId].quantity++;
+        updateEditProductDisplay(productId);
+        updateEditOrderSummary();
+    }
+}
+
+// FUNÇÃO: DIMINUIR QUANTIDADE (IGUAL AO MODAL DE CRIAR)
+function editDecreaseQuantity(productId) {
+    if (editOrderCart[productId]) {
+        editOrderCart[productId].quantity--;
+        
+        if (editOrderCart[productId].quantity <= 0) {
+            delete editOrderCart[productId];
+        }
+        
+        updateEditProductDisplay(productId);
+        updateEditOrderSummary();
+    }
+}
+
+// FUNÇÃO: ATUALIZAR DISPLAY DO PRODUTO (IGUAL AO MODAL DE CRIAR)
+function updateEditProductDisplay(productId) {
+    const productCard = document.querySelector(`[data-product-id="${productId}"].edit-product-card`);
+    const addBtn = productCard.querySelector('.edit-add-btn');
+    const quantityControls = productCard.querySelector('.edit-quantity-controls');
+    const quantityDisplay = productCard.querySelector('.edit-quantity-display');
+    
+    if (editOrderCart[productId] && editOrderCart[productId].quantity > 0) {
+        // Mostrar controles de quantidade
+        addBtn.classList.add('hidden');
+        quantityControls.classList.remove('hidden');
+        quantityDisplay.textContent = editOrderCart[productId].quantity;
+    } else {
+        // Mostrar botão adicionar
+        addBtn.classList.remove('hidden');
+        quantityControls.classList.add('hidden');
+    }
+}
+
+// FUNÇÃO: ATUALIZAR RESUMO (EXATAMENTE IGUAL AO MODAL DE CRIAR)
+function updateEditOrderSummary() {
+    const summaryContainer = document.getElementById('editOrderSummary');
+    const totalElement = document.getElementById('editOrderTotal');
+    
+    // Limpar conteúdo completamente
+    summaryContainer.innerHTML = '';
+    
+    const cartItems = Object.values(editOrderCart);
+    
+    if (cartItems.length === 0) {
+        // Criar novo elemento vazio toda vez
+        const emptyElement = document.createElement('p');
+        emptyElement.className = 'text-gray-500 text-sm';
+        emptyElement.id = 'editEmptyCart';
+        emptyElement.textContent = 'Nenhum item adicionado';
+        summaryContainer.appendChild(emptyElement);
+        totalElement.textContent = 'R$ 0,00';
+        return;
+    }
+    
+    let total = 0;
+    
+    cartItems.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'flex justify-between items-center text-sm py-1';
+        itemElement.innerHTML = `
+            <div>
+                <span class="text-gray-700">${item.quantity}x ${item.name}</span>
+                <span class="text-gray-500 text-xs block">${item.category}</span>
+            </div>
+            <div class="text-right">
+                <span class="text-gray-900 font-medium">R$ ${itemTotal.toFixed(2)}</span>
+                <button onclick="editRemoveFromCart(${item.id})" class="block text-red-500 text-xs hover:text-red-700">
+                    Remover
+                </button>
+            </div>
+        `;
+        
+        summaryContainer.appendChild(itemElement);
+    });
+    
+    totalElement.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+// FUNÇÃO: REMOVER ITEM DO CARRINHO (IGUAL AO MODAL DE CRIAR)
+function editRemoveFromCart(productId) {
+    delete editOrderCart[productId];
+    updateEditProductDisplay(productId);
+    updateEditOrderSummary();
+}
+
+// FUNÇÃO: LIMPAR ALTERAÇÕES
+function clearEditCart() {
+    if (confirm('Limpar todas as alterações e voltar ao estado original?')) {
+        if (currentEditOrder) {
+            loadEditOrderCart(currentEditOrder.items);
+        } else {
+            editOrderCart = {};
+            updateEditOrderSummary();
+            
+            // Resetar todos os cards
+            document.querySelectorAll('.edit-product-card').forEach(card => {
+                const productId = card.getAttribute('data-product-id');
+                updateEditProductDisplay(productId);
+            });
+        }
+    }
+}
+
+// FUNCIONALIDADE DE CATEGORIAS E PESQUISA (IGUAL AO MODAL DE CRIAR)
+document.addEventListener('DOMContentLoaded', function() {
+    // Categorias
+    document.querySelectorAll('.edit-category-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            
+            // Atualizar botões ativos
+            document.querySelectorAll('.edit-category-btn').forEach(b => {
+                b.classList.remove('active', 'bg-orange-500', 'text-white');
+                b.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            this.classList.add('active', 'bg-orange-500', 'text-white');
+            this.classList.remove('bg-gray-200', 'text-gray-700');
+            
+            // Filtrar produtos
+            document.querySelectorAll('.edit-product-card').forEach(card => {
+                if (category === 'all' || card.getAttribute('data-category') === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Pesquisa
+    const searchInput = document.getElementById('editProductSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            document.querySelectorAll('.edit-product-card').forEach(card => {
+                const productName = card.getAttribute('data-product-name').toLowerCase();
+                const productCategory = card.getAttribute('data-product-category').toLowerCase();
+                
+                if (productName.includes(searchTerm) || productCategory.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+
+// FUNÇÃO: SALVAR ALTERAÇÕES (ADAPTADA PARA NOVO FORMATO)
+async function saveOrderChanges() {
+    if (!currentEditOrder) return;
+    
+    try {
+        const response = await fetch(`/orders/api/${currentEditOrder.code}/update/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                items: Object.values(editOrderCart).map(item => ({
+                    id: item.original_id,
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    unit_price: item.price
+                }))
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Alterações salvas com sucesso!');
+            closeEditOrderModal();
+            location.reload();
+        } else {
+            alert(result.message || 'Erro ao salvar alterações!');
+        }
+    } catch (error) {
+        alert('Erro de conectividade ao salvar!');
+    }
+}
+
+// FUNÇÃO: ATUALIZAR STATUS
+async function updateOrderStatus() {
+    if (!currentEditOrder) return;
+    
+    const newStatus = prompt('Novo status (aguardando/preparando/pronta/entregue):', currentEditOrder.status);
+    
+    if (newStatus && ['aguardando', 'preparando', 'pronta', 'entregue'].includes(newStatus)) {
+        try {
+            const response = await fetch(`/orders/api/${currentEditOrder.code}/status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Status atualizado com sucesso!');
+                currentEditOrder.status = newStatus;
+                document.getElementById('editOrderStatus').textContent = getStatusLabel(newStatus);
+            } else {
+                alert(result.message || 'Erro ao atualizar status!');
+            }
+        } catch (error) {
+            alert('Erro de conectividade!');
+        }
+    }
+}
+
+// UTILITÁRIOS
+function getStatusLabel(status) {
+    const labels = {
+        'aguardando': 'Aguardando',
+        'preparando': 'Em Preparo',
+        'pronta': 'Pronta',
+        'entregue': 'Entregue',
+        'cancelada': 'Cancelada'
+    };
+    return labels[status] || status;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+/* ESTILOS IDÊNTICOS AO MODAL DE CRIAR */
+#modalContainer {
+    width: 95vw !important;
+    height: 95vh !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+/* Animações do Modal */
+#editOrderModal.show {
+    opacity: 1 !important;
+}
+
+#editOrderModal.show #modalContainer {
+    transform: scale(1) !important;
+}
+
+.edit-product-card:hover {
+    transform: translateY(-2px);
+}
+
+.edit-category-btn.active {
+    background: linear-gradient(to right, #f97316, #ef4444) !important;
+    color: white !important;
+}
+
+/* Animações suaves para os controles */
+.edit-quantity-controls {
+    transition: all 0.3s ease;
+}
+
+.edit-add-btn {
+    transition: all 0.3s ease;
+}
+
+/* Efeito hover nos botões de quantidade */
+.edit-quantity-controls button:hover {
+    transform: scale(1.1);
+}
+
+/* Scrollbar customizada - webkit browsers */
+#editOrderSummary::-webkit-scrollbar {
+    width: 6px;
+    
+}
+
+#editOrderSummary::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+#editOrderSummary::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+}
+
+#editOrderSummary::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Para Firefox */
+#editOrderSummary {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Garantir que o resumo tenha scroll funcionando */
+#editOrderSummary {
+    overflow-y: auto !important;
+    max-height: 250px !important;
+}
+
+/* Melhor espaçamento nos itens do resumo (IGUAL AO MODAL DE CRIAR) */
+#editOrderSummary > div {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+#editOrderSummary > p {
+    padding: 16px 8px;
+    text-align: center;
+}
+
+/* Grid responsivo para produtos */
+#editProductsGrid {
+    overflow-y: auto !important;
+}
+</style>
