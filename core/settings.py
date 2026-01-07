@@ -26,8 +26,8 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = [
         'zip2coxinhaspremiumcafe-production.up.railway.app',
-        'coxinhaspremiumcafe.com.br',
-        'www.coxinhaspremiumcafe.com.br',
+        'coxinhaspremiumcafe.zip2.com.br',
+        'www.coxinhaspremiumcafe.zip2.com.br',
     ]
 
     SECURE_SSL_REDIRECT = True
@@ -37,9 +37,9 @@ else:
 
 CSRF_TRUSTED_ORIGINS = [
     'https://zip2coxinhaspremiumcafe-production.up.railway.app',
-    'https://*.railway.app',
     'https://coxinhaspremiumcafe.zip2.com.br',
-    'https://www.coxinhaspremiumcafe.zip2.com.br'
+    'https://www.coxinhaspremiumcafe.zip2.com.br',
+    'https://*.railway.app',
 ]
 
 
