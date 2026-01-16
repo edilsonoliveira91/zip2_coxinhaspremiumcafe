@@ -301,6 +301,240 @@ function closeOrderModal() {
 </script>
 
 <script>
+
+// Sistema de Polling Inteligente para comandas
+class OrderPolling {
+    constructor() {
+        this.lastKnownState = {
+            comandas_abertas: 0,
+            total_comandas_hoje: 0,
+            ultima_atualizacao: null
+        };
+        this.pollingInterval = null;
+        this.isPolling = false;
+        this.isPaused = false;
+        this.pendingChanges = false;
+        
+        // Inicializar com estado atual da página
+        this.initializeCurrentState();
+        
+        // Começar polling após 10 segundos
+        setTimeout(() => {
+            this.startPolling();
+        }, 10000);
+        
+        // Monitorar abertura/fechamento de modais
+        this.setupModalWatchers();
+    }
+    
+    setupModalWatchers() {
+        // Observador para detectar quando modais são abertos/fechados
+        const observer = new MutationObserver((mutations) => {
+            this.checkModalStatus();
+        });
+        
+        // Observar mudanças no DOM para detectar modais
+        observer.observe(document.body, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+            attributeFilter: ['style', 'class']
+        });
+        
+        // Verificação inicial
+        this.checkModalStatus();
+        
+        // Verificar a cada 2 segundos também (backup)
+        setInterval(() => {
+            this.checkModalStatus();
+        }, 2000);
+    }
+    
+    checkModalStatus() {
+        // Verificar se algum modal está visível
+        const modals = [
+            document.getElementById('orderModal'),
+            document.getElementById('editOrderModal'),
+            document.querySelector('[id*="modal"]'),
+        ];
+        
+        let modalAberto = false;
+        
+        modals.forEach(modal => {
+            if (modal) {
+                const isVisible = modal.style.display !== 'none' && 
+                                modal.style.display !== '' && 
+                                !modal.classList.contains('hidden');
+                if (isVisible) modalAberto = true;
+            }
+        });
+        
+        // Verificar se há overlay de modal
+        const overlays = document.querySelectorAll('.fixed.inset-0, [class*="modal"], [class*="overlay"]');
+        overlays.forEach(overlay => {
+            if (overlay.style.display !== 'none' && !overlay.classList.contains('hidden')) {
+                modalAberto = true;
+            }
+        });
+        
+        // Pausar/retomar polling baseado no status do modal
+        if (modalAberto && !this.isPaused) {
+            this.pausePolling();
+        } else if (!modalAberto && this.isPaused) {
+            this.resumePolling();
+        }
+    }
+    
+    pausePolling() {
+        this.isPaused = true;
+        console.log('⏸️ Polling pausado - Modal detectado aberto');
+        this.showPollingStatus('paused');
+    }
+    
+    resumePolling() {
+        this.isPaused = false;
+        console.log('▶️ Polling retomado - Modal fechado');
+        this.showPollingStatus('active');
+        
+        // Se há mudanças pendentes, verificar imediatamente
+        if (this.pendingChanges) {
+            console.log('🔄 Verificando mudanças pendentes...');
+            this.checkForChanges();
+            this.pendingChanges = false;
+        }
+    }
+    
+    showPollingStatus(status) {
+        // Mostrar indicador visual discreto (opcional)
+        let indicator = document.getElementById('polling-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'polling-indicator';
+            indicator.className = 'fixed bottom-4 left-4 z-50 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg transition-all duration-300';
+            document.body.appendChild(indicator);
+        }
+        
+        if (status === 'paused') {
+            indicator.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span>Sincronização pausada</span>
+                </div>
+            `;
+            indicator.style.opacity = '1';
+        } else if (status === 'active') {
+            indicator.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Sincronizando...</span>
+                </div>
+            `;
+            indicator.style.opacity = '0.7';
+            
+            // Esconder após 3 segundos
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+            }, 3000);
+        }
+    }
+    
+    initializeCurrentState() {
+        // Pegar estado atual das comandas na página
+        const comandaCards = document.querySelectorAll('[data-comanda]');
+        this.lastKnownState.comandas_abertas = comandaCards.length;
+        
+        console.log('🔄 Estado inicial das comandas:', this.lastKnownState.comandas_abertas);
+    }
+    
+    async checkForChanges() {
+        if (this.isPolling) return; // Evitar múltiplas chamadas simultâneas
+        if (this.isPaused) {
+            console.log('⏸️ Polling pausado - verificação adiada');
+            this.pendingChanges = true;
+            return;
+        }
+        
+        this.isPolling = true;
+        
+        try {
+            const response = await fetch('/accounts/api/check-orders-changes/');
+            const data = await response.json();
+            
+            if (data.success) {
+                const hasChanges = this.detectChanges(data);
+                
+                if (hasChanges) {
+                    console.log('🔄 Mudanças detectadas! Recarregando página...');
+                    
+                    // Salvar notificação se necessário
+                    if (data.comandas_abertas > this.lastKnownState.comandas_abertas) {
+                        localStorage.setItem('comandaNotificacao', JSON.stringify({
+                            message: 'NOVA COMANDA CRIADA! Página atualizada automaticamente.',
+                            type: 'sucesso'
+                        }));
+                    }
+                    
+                    window.location.reload();
+                } else {
+                    console.log('✅ Nenhuma mudança detectada');
+                }
+                
+                // Atualizar estado conhecido
+                this.lastKnownState = {
+                    comandas_abertas: data.comandas_abertas,
+                    total_comandas_hoje: data.total_comandas_hoje,
+                    ultima_atualizacao: data.ultima_atualizacao
+                };
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao verificar mudanças:', error);
+        } finally {
+            this.isPolling = false;
+        }
+    }
+    
+    detectChanges(newData) {
+        // Verificar se há novas comandas ou mudanças
+        const mudancas = {
+            novasComandas: newData.comandas_abertas !== this.lastKnownState.comandas_abertas,
+            totalMudou: newData.total_comandas_hoje !== this.lastKnownState.total_comandas_hoje,
+            atualizacaoMudou: newData.ultima_atualizacao !== this.lastKnownState.ultima_atualizacao
+        };
+        
+        const hasChanges = mudancas.novasComandas || mudancas.totalMudou || mudancas.atualizacaoMudou;
+        
+        if (hasChanges) {
+            console.log('📊 Mudanças detectadas:', {
+                'Comandas abertas': `${this.lastKnownState.comandas_abertas} → ${newData.comandas_abertas}`,
+                'Total hoje': `${this.lastKnownState.total_comandas_hoje} → ${newData.total_comandas_hoje}`,
+                'Última atualização mudou': mudancas.atualizacaoMudou
+            });
+        }
+        
+        return hasChanges;
+    }
+    
+    startPolling() {
+        console.log('🚀 Iniciando monitoramento automático de comandas (15s)');
+        
+        this.pollingInterval = setInterval(() => {
+            this.checkForChanges();
+        }, 15000); // 15 segundos
+        
+        // Verificação inicial
+        this.checkForChanges();
+    }
+    
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+            console.log('⏹️ Monitoramento automático parado');
+        }
+    }
+}
+
 // Focar automaticamente no campo de pesquisa quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-comandas');
@@ -342,5 +576,150 @@ document.addEventListener('click', function(e) {
 
 <!-- DEPOIS vem o JS externo -->
 <script src="{% static 'js/home/home.js' %}"></script>
+
+<script>
+// Função para mostrar notificação (padrão dos produtos)
+function mostrarNotificacao(mensagem, tipo = 'success') {
+    // Criar o container se não existir
+    let container = document.getElementById('notifications-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'fixed top-20 right-4 z-40 space-y-3';
+        container.id = 'notifications-container';
+        document.body.appendChild(container);
+    }
+
+    // Criar elemento da notificação seguindo EXATAMENTE o padrão dos produtos
+    const notification = document.createElement('div');
+    notification.className = `notification-toast transform translate-x-full opacity-0 bg-green-100/10 border border-green-100/10 text-green-800 backdrop-blur-xl backdrop-saturate-150 px-4 py-3 rounded-2xl shadow-2xl min-w-[320px] max-w-md`;
+    notification.setAttribute('data-notification', '');
+    
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <!-- Ícone -->
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Mensagem -->
+            <div class="flex-1 text-sm font-semibold">
+                ${mensagem}
+            </div>
+            
+            <!-- Botão fechar -->
+            <button onclick="closeNotification(this)" 
+                    class="flex-shrink-0 text-green-600/70 hover:text-green-700 hover:bg-green-500/20 transition-all duration-200 rounded-full p-1.5">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Barra de progresso -->
+        <div class="absolute bottom-0 left-0 h-1 bg-green-200/50 rounded-bl-2xl rounded-br-2xl">
+            <div class="h-full bg-green-500 rounded-bl-2xl rounded-br-2xl progress-bar" style="width: 100%;"></div>
+        </div>
+    `;
+    
+    // Adicionar à container
+    container.appendChild(notification);
+    
+    // Animar entrada
+    setTimeout(() => {
+        notification.classList.remove('translate-x-full', 'opacity-0');
+    }, 100);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        if (notification && notification.parentElement) {
+            notification.classList.add('hiding');
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Função para fechar notificação (necessária para o botão X)
+function closeNotification(button) {
+    const notification = button.closest('[data-notification]');
+    notification.classList.add('hiding');
+    setTimeout(() => {
+        notification.remove();
+    }, 300);
+}
+
+// Verificar se há notificação pendente no localStorage
+document.addEventListener('DOMContentLoaded', function() {
+    const notificacaoPendente = localStorage.getItem('comandaNotificacao');
+    if (notificacaoPendente) {
+        try {
+            const notif = JSON.parse(notificacaoPendente);
+            // Mostrar notificação após um pequeno delay
+            setTimeout(() => {
+                mostrarNotificacao(notif.message, notif.type);
+            }, 500);
+            
+            // Limpar do localStorage
+            localStorage.removeItem('comandaNotificacao');
+        } catch (e) {
+            console.error('Erro ao processar notificação:', e);
+            localStorage.removeItem('comandaNotificacao');
+        }
+    }
+});
+</script>
+
+<!-- Estilos CSS que acompanham o padrão dos produtos -->
+<style>
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes progressBar {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+.notification-toast {
+    animation: slideInRight 0.4s ease-out forwards;
+}
+
+.notification-toast.hiding {
+    animation: slideOutRight 0.3s ease-in forwards;
+}
+
+.progress-bar {
+    animation: progressBar 5s linear forwards;
+}
+</style>
 
 {% endblock %}

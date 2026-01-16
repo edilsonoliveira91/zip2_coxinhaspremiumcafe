@@ -225,3 +225,49 @@ def user_delete(request, user_id):
     return render(request, 'accounts/user_confirm_delete.html', {
         'user_to_delete': user_to_delete
     })
+
+
+# API para verificar mudanças nas comandas (polling inteligente)
+class CheckOrderChangesView(LoginRequiredMixin, View):
+    """
+    API que verifica se houve mudanças nas comandas abertas
+    Retorna JSON com informações sobre mudanças
+    """
+    
+    def get(self, request):
+        try:
+            hoje = timezone.localtime().date()
+            
+            # Contar comandas abertas de hoje
+            comandas_abertas = Order.objects.filter(
+                created_at__date=hoje,
+                status__in=['aguardando', 'preparando', 'pronta']
+            ).count()
+            
+            # Pegar total de comandas de hoje (para detectar finalizações)
+            total_comandas_hoje = Order.objects.filter(
+                created_at__date=hoje
+            ).count()
+            
+            # Pegar timestamp da última modificação
+            ultima_comanda = Order.objects.filter(
+                created_at__date=hoje
+            ).order_by('-updated_at').first()
+            
+            ultima_atualizacao = None
+            if ultima_comanda:
+                ultima_atualizacao = ultima_comanda.updated_at.timestamp()
+            
+            return JsonResponse({
+                'success': True,
+                'comandas_abertas': comandas_abertas,
+                'total_comandas_hoje': total_comandas_hoje,
+                'ultima_atualizacao': ultima_atualizacao,
+                'timestamp': timezone.now().timestamp()
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })

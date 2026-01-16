@@ -406,16 +406,24 @@ async function createOrder() {
         console.log('Response data:', result);
         
         if (result.success) {
-            alert(`Comanda #${result.order_code} criada com sucesso!\nTotal: R$ ${result.order_total.toFixed(2)}`);
+            // Salvar notificação no localStorage
+            localStorage.setItem('comandaNotificacao', JSON.stringify({
+                message: `COMANDA #${result.order_code} CRIADA COM SUCESSO`,
+                type: 'sucesso'
+            }));
+            
             // Fechar modal e limpar carrinho
             clearCart();
             document.getElementById('orderName').value = '';
             document.getElementById('orderObservations').value = '';
-            // Fechar modal
             document.getElementById('orderModal').style.display = 'none';
+            
+            // Recarregar a página para mostrar a nova comanda e a notificação
+            window.location.reload();
         } else {
             alert(result.message || 'Erro ao criar comanda!');
         }
+        
     } catch (error) {
         console.error('Erro detalhado:', error);
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
