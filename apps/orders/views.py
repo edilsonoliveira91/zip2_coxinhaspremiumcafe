@@ -164,7 +164,25 @@ class OrderCreateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
             if not name:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Nome da comanda é obrigatório!'
+                    'message': 'Número da comanda é obrigatório!'
+                }, status=400)
+
+            # Validar se é apenas números
+            if not name.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Número da comanda deve conter apenas dígitos!'
+                }, status=400)
+
+            # Verificar se já existe comanda ABERTA com esse número
+            comandas_abertas = Order.objects.filter(
+                name=name,
+                status__in=['aguardando', 'preparando', 'pronta']
+            )
+            if comandas_abertas.exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Já existe uma comanda aberta com o número {name}!'
                 }, status=400)
             
             # Criar comanda
