@@ -53,6 +53,12 @@
                             id="username" 
                             name="username" 
                             required 
+                            autocomplete="username"
+                            inputmode="text"
+                            autocapitalize="none"
+                            autocorrect="off"
+                            spellcheck="false"
+                            tabindex="1"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 ease-in-out text-gray-900"
                             placeholder="Digite seu usuário"
                             value="{{ form.username.value|default:'' }}"
@@ -72,6 +78,9 @@
                             id="password" 
                             name="password" 
                             required 
+                            autocomplete="current-password"
+                            inputmode="text"
+                            tabindex="2"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200 ease-in-out text-gray-900"
                             placeholder="Digite sua senha"
                         >
@@ -126,4 +135,50 @@
             </div>
         </div>
     </div>
+
+    <script>
+// Forçar foco nos campos para tablets
+document.addEventListener('DOMContentLoaded', function() {
+    const usernameField = document.getElementById('username');
+    const passwordField = document.getElementById('password');
+    
+    // Adicionar listeners para garantir que o teclado apareça
+    [usernameField, passwordField].forEach(field => {
+        if (field) {
+            field.addEventListener('touchstart', function(e) {
+                // Forçar foco no campo tocado
+                setTimeout(() => {
+                    this.focus();
+                    this.click();
+                }, 100);
+            });
+            
+            field.addEventListener('click', function(e) {
+                // Garantir foco
+                this.focus();
+            });
+        }
+    });
+});
+</script>
+
+<style>
+/* Garantir que campos de input sejam focáveis em dispositivos touch */
+input[type="text"], 
+input[type="password"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    touch-action: manipulation;
+}
+
+/* Remover zoom no iOS quando focado */
+@media screen and (max-device-width: 768px) {
+    input[type="text"], 
+    input[type="password"] {
+        font-size: 16px !important;
+    }
+}
+</style>
+
 {% endblock %}
