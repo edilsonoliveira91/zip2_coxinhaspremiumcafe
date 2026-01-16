@@ -1,0 +1,813 @@
+<!-- MODAL 1: SELEÇÃO DE MÉTODO DE PAGAMENTO -->
+<div id="paymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] hidden opacity-0 transition-all duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 transform scale-95 transition-all duration-300 w-full max-w-md overflow-hidden mx-auto my-auto">
+            
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-gray-800 p-6 rounded-t-3xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Finalizar Comanda</h2>
+                        <p class="text-gray-700 text-sm mt-1" id="paymentOrderInfo"></p>
+                    </div>
+                    <button onclick="closePaymentModal()" class="text-gray-700 hover:text-gray-900 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="p-6">
+                <!-- Valor da Comanda -->
+                <div class="bg-gray-50 rounded-2xl p-4 mb-6">
+                    <div class="text-center">
+                        <p class="text-gray-600 text-sm">Total da Comanda</p>
+                        <p class="text-2xl font-bold text-gray-900" id="paymentTotal">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- Métodos de Pagamento -->
+                <div class="space-y-3">
+                    <p class="font-semibold text-gray-800 mb-4">Selecione o método de pagamento:</p>
+                    
+                    <!-- Dinheiro -->
+                    <button onclick="selectPaymentMethod('dinheiro')" class="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200">
+                                <span class="text-2xl">💵</span>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-semibold text-gray-800">Dinheiro</p>
+                                <p class="text-sm text-gray-500">Pagamento em espécie</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Cartão de Débito -->
+                    <button onclick="selectPaymentMethod('cartao_debito')" class="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200">
+                                <span class="text-2xl">💳</span>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-semibold text-gray-800">Cartão de Débito</p>
+                                <p class="text-sm text-gray-500">Débito na conta</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Cartão de Crédito -->
+                    <button onclick="selectPaymentMethod('cartao_credito')" class="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200">
+                                <span class="text-2xl">💎</span>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-semibold text-gray-800">Cartão de Crédito</p>
+                                <p class="text-sm text-gray-500">Pagamento parcelado</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- PIX -->
+                    <button onclick="selectPaymentMethod('pix')" class="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200">
+                                <span class="text-2xl">🚀</span>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-semibold text-gray-800">PIX</p>
+                                <p class="text-sm text-gray-500">Transferência instantânea</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: PAGAMENTO EM DINHEIRO -->
+<div id="cashPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] hidden opacity-0 transition-all duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 transform scale-95 transition-all duration-300 w-full max-w-md overflow-hidden mx-auto my-auto">
+            
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-gray-800 p-6 rounded-t-3xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Pagamento em Dinheiro</h2>
+                        <p class="text-gray-700 text-sm mt-1" id="cashOrderInfo"></p>
+                    </div>
+                    <button onclick="closeCashModal()" class="text-gray-700 hover:text-gray-900 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="p-6">
+                <!-- Total da Comanda -->
+                <div class="bg-green-50 border-2 border-green-200 rounded-2xl p-4 mb-6">
+                    <div class="text-center">
+                        <p class="text-green-600 text-sm font-medium">Total da Comanda</p>
+                        <p class="text-2xl font-bold text-green-700" id="cashTotal">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- Valor Recebido -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Valor recebido do cliente:</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">R$</span>
+                        <input type="text" 
+                            id="receivedAmount" 
+                            placeholder="0,00"
+                            oninput="calculateChange()"
+                            class="w-full pl-12 pr-4 py-4 text-xl font-semibold border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80 backdrop-blur-sm transition-all text-center">
+                    </div>
+                </div>
+
+                <!-- Aviso de valor insuficiente -->
+                <div id="insufficientAmount" class="hidden bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <p class="text-red-700 font-medium">Valor insuficiente!</p>
+                            <p class="text-red-600 text-sm">O valor recebido deve ser maior ou igual ao total da comanda.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Troco -->
+                <div id="changeInfo" class="hidden bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+                    <div class="text-center">
+                        <p class="text-blue-600 text-sm font-medium">Troco para o cliente</p>
+                        <p class="text-xl font-bold text-blue-700" id="changeAmount">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex space-x-4">
+                    <button onclick="closeCashModal()" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                        Voltar
+                    </button>
+                    <button onclick="finalizeCashPayment()" 
+                            id="finalizeCashBtn"
+                            disabled 
+                            class="flex-1 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        Finalizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: CONFIRMAÇÃO DE FINALIZAÇÃO -->
+<div id="#" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] hidden opacity-0 transition-all duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 transform scale-95 transition-all duration-300 w-full max-w-md overflow-hidden mx-auto my-auto">
+            
+            <!-- Conteúdo -->
+            <div class="p-8 text-center">
+                <!-- Ícone de sucesso -->
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Comanda Finalizada!</h3>
+                <p class="text-gray-600 mb-6" id="successMessage">Pagamento processado com sucesso.</p>
+                
+                <button onclick="closeSuccessModal()" class="w-full px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Pagamento Aprovado -->
+<div id="paymentSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0" 
+         id="modalContent">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white text-center p-6 rounded-t-2xl">
+            <div class="text-6xl mb-4 animate-bounce">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">PAGAMENTO APROVADO!</h2>
+            <p class="text-green-100 opacity-90">Transação realizada com sucesso</p>
+        </div>
+        
+        <!-- Detalhes do Pagamento -->
+        <div class="p-6 border-b border-gray-200">
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 font-medium">Comanda:</span>
+                    <span class="text-gray-900 font-semibold" id="orderCode">#0001</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 font-medium">Cliente:</span>
+                    <span class="text-gray-900 font-semibold" id="customerName">Mesa 5</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 font-medium">Método:</span>
+                    <span class="text-gray-900 font-semibold" id="paymentMethod">Cartão de Crédito</span>
+                </div>
+                <div class="flex justify-between items-center pt-3 border-t-2 border-gray-200">
+                    <span class="text-gray-600 font-medium">Total Pago:</span>
+                    <span class="text-green-600 font-bold text-xl" id="totalAmount">R$ 45,90</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resumo dos Itens -->
+        <div class="p-6 border-b border-gray-200 max-h-48 overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Itens do Pedido</h3>
+            <div id="itemsList" class="space-y-2">
+                <!-- Preenchido via JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="p-6 flex flex-col sm:flex-row gap-3 justify-end">
+            <button type="button" 
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors duration-200"
+                    onclick="closeSuccessModal()">
+                <i class="fas fa-times"></i>
+                <span>Fechar</span>
+            </button>
+            
+            <button type="button" 
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors duration-200"
+                    onclick="printReceipt()">
+                <i class="fas fa-print"></i>
+                <span>Imprimir Cupom</span>
+            </button>
+            
+            <button type="button" 
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors duration-200"
+                    onclick="newOrder()">
+                <i class="fas fa-plus"></i>
+                <span>Nova Comanda</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Template para Item da Lista (usado pelo JavaScript) -->
+<template id="itemTemplate">
+    <div class="flex justify-between items-center py-2 border-b border-dotted border-gray-300 last:border-b-0">
+        <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900 item-name"></div>
+            <div class="text-xs text-gray-600 item-details"></div>
+        </div>
+        <div class="font-semibold text-gray-900 item-price"></div>
+    </div>
+</template>
+
+<script>
+let currentOrderForPayment = null;
+let currentOrderTotal = 0;
+
+// FUNÇÃO: Abrir modal de pagamento
+function openPaymentModal() {
+    if (!currentEditOrder) {
+        alert('Erro: Nenhuma comanda selecionada!');
+        return;
+    }
+
+    // PASSO 1: Fechar modal de edição com animação
+    const editModal = document.getElementById('editOrderModal');
+    editModal.classList.add('opacity-0');
+    editModal.querySelector('div > div').classList.remove('scale-100');
+    editModal.querySelector('div > div').classList.add('scale-95');
+
+    // PASSO 2: Aguardar fechamento e abrir modal de pagamento
+    setTimeout(() => {
+        // Esconder modal de edição
+        editModal.classList.add('hidden');
+        editModal.style.display = 'none';
+
+        // Preparar dados do pagamento
+        currentOrderForPayment = currentEditOrder;
+        currentOrderTotal = currentEditOrder.total_amount;
+
+        // Atualizar informações no modal de pagamento
+        document.getElementById('paymentOrderInfo').textContent = `Comanda #${currentEditOrder.code} - ${currentEditOrder.name}`;
+        document.getElementById('paymentTotal').textContent = `R$ ${currentOrderTotal.toFixed(2).replace('.', ',')}`;
+
+        // PASSO 3: Mostrar modal de pagamento
+        const paymentModal = document.getElementById('paymentModal');
+        paymentModal.classList.remove('hidden', 'opacity-0');
+        paymentModal.style.display = 'flex';
+        
+        setTimeout(() => {
+            paymentModal.classList.add('opacity-100');
+            paymentModal.querySelector('div > div').classList.remove('scale-95');
+            paymentModal.querySelector('div > div').classList.add('scale-100');
+        }, 10);
+
+        // Manter body sem scroll
+        document.body.style.overflow = 'hidden';
+    }, 300);
+}
+
+// FUNÇÃO: Fechar modal de pagamento
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    modal.classList.add('opacity-0');
+    modal.querySelector('div > div').classList.remove('scale-100');
+    modal.querySelector('div > div').classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        
+        // REABRIR o modal de edição
+        setTimeout(() => {
+            const editModal = document.getElementById('editOrderModal');
+            editModal.classList.remove('hidden', 'opacity-0');
+            editModal.style.display = 'flex';
+            
+            setTimeout(() => {
+                editModal.classList.add('opacity-100');
+                editModal.querySelector('div > div').classList.remove('scale-95');
+                editModal.querySelector('div > div').classList.add('scale-100');
+            }, 10);
+            
+            // Manter body sem scroll
+            document.body.style.overflow = 'hidden';
+        }, 100);
+        
+        currentOrderForPayment = null;
+    }, 300);
+}
+
+// FUNÇÃO GENÉRICA: Finalizar qualquer tipo de pagamento
+function finalizarPagamentoGenerico(paymentMethod, extraData = {}) {
+    // Preparar dados para envio
+    const data = {
+        payment_method: paymentMethod,
+        received_amount: extraData.receivedAmount || currentOrderTotal,
+        change_amount: extraData.change || 0
+    };
+    
+    // Fazer requisição para a API
+    fetch(`/checkouts/finalize/${currentOrderForPayment.code}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Fechar todos os modais
+            const modals = ['paymentModal', 'cashPaymentModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                }
+            });
+            
+            document.body.style.overflow = '';
+            
+            // Recarregar página
+            window.location.reload();
+        } else {
+            alert(`Erro: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar pagamento!');
+    });
+}
+
+// FUNÇÃO: Selecionar método de pagamento - ATUALIZADA
+function selectPaymentMethod(method) {
+    if (method === 'dinheiro') {
+        // Abrir modal específico do dinheiro
+        closePaymentModalOnly();
+        setTimeout(() => {
+            openCashModal();
+        }, 350);
+    } else {
+        // Para outros métodos: finalizar diretamente
+        const methodName = method === 'pix' ? 'PIX' : 
+                          method === 'cartao_debito' ? 'Cartão de Débito' : 
+                          method === 'cartao_credito' ? 'Cartão de Crédito' : method;
+        
+        finalizarPagamentoGenerico(method);
+    }
+}
+
+// FUNÇÃO: Fechar modal de pagamento sem reabrir modal de edição
+function closePaymentModalOnly() {
+    const modal = document.getElementById('paymentModal');
+    modal.classList.add('opacity-0');
+    modal.querySelector('div > div').classList.remove('scale-100');
+    modal.querySelector('div > div').classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        // NÃO reabrir modal de edição aqui
+    }, 300);
+}
+
+// FUNÇÃO: Abrir modal de dinheiro
+function openCashModal() {
+    // Atualizar informações
+    document.getElementById('cashOrderInfo').textContent = `Comanda #${currentOrderForPayment.code} - ${currentOrderForPayment.name}`;
+    document.getElementById('cashTotal').textContent = `R$ ${currentOrderTotal.toFixed(2).replace('.', ',')}`;
+    
+    // Limpar campos
+    const receivedAmountInput = document.getElementById('receivedAmount');
+    receivedAmountInput.value = '';
+    document.getElementById('changeInfo').classList.add('hidden');
+    document.getElementById('insufficientAmount').classList.add('hidden');
+    document.getElementById('finalizeCashBtn').disabled = true;
+
+    // APLICAR MÁSCARA DE DINHEIRO ESPECÍFICA
+    applyPaymentMoneyMask(receivedAmountInput);
+
+    // Mostrar modal
+    const modal = document.getElementById('cashPaymentModal');
+    modal.classList.remove('hidden', 'opacity-0');
+    modal.style.display = 'flex';
+    
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('div > div').classList.remove('scale-95');
+        modal.querySelector('div > div').classList.add('scale-100');
+        
+        // Focar no campo de valor
+        receivedAmountInput.focus();
+    }, 10);
+
+    document.body.style.overflow = 'hidden';
+}
+
+// FUNÇÃO: Fechar modal de dinheiro
+function closeCashModal() {
+    const modal = document.getElementById('cashPaymentModal');
+    modal.classList.add('opacity-0');
+    modal.querySelector('div > div').classList.remove('scale-100');
+    modal.querySelector('div > div').classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        
+        // Reabrir modal de seleção de pagamento (não o de edição)
+        setTimeout(() => {
+            const paymentModal = document.getElementById('paymentModal');
+            paymentModal.classList.remove('hidden', 'opacity-0');
+            paymentModal.style.display = 'flex';
+            
+            setTimeout(() => {
+                paymentModal.classList.add('opacity-100');
+                paymentModal.querySelector('div > div').classList.remove('scale-95');
+                paymentModal.querySelector('div > div').classList.add('scale-100');
+            }, 10);
+            
+            document.body.style.overflow = 'hidden';
+        }, 100);
+    }, 300);
+}
+
+// FUNÇÃO: Calcular troco
+function calculateChange() {
+    const receivedAmountText = document.getElementById('receivedAmount').value || '0';
+    const receivedAmount = parsePaymentCurrency(receivedAmountText);
+    const orderTotal = currentOrderTotal;
+    
+    const changeInfoDiv = document.getElementById('changeInfo');
+    const insufficientDiv = document.getElementById('insufficientAmount');
+    const finalizeBtn = document.getElementById('finalizeCashBtn');
+
+    if (receivedAmount < orderTotal) {
+        // Valor insuficiente
+        changeInfoDiv.classList.add('hidden');
+        insufficientDiv.classList.remove('hidden');
+        finalizeBtn.disabled = true;
+    } else {
+        // Valor suficiente
+        insufficientDiv.classList.add('hidden');
+        finalizeBtn.disabled = false;
+        
+        const change = receivedAmount - orderTotal;
+        if (change > 0) {
+            // Há troco
+            document.getElementById('changeAmount').textContent = `R$ ${change.toFixed(2).replace('.', ',')}`;
+            changeInfoDiv.classList.remove('hidden');
+        } else {
+            // Valor exato
+            changeInfoDiv.classList.add('hidden');
+        }
+    }
+}
+
+// FUNÇÃO: Finalizar pagamento em dinheiro - ATUALIZADA
+async function finalizeCashPayment() {
+    const receivedAmountText = document.getElementById('receivedAmount').value;
+    const receivedAmount = parsePaymentCurrency(receivedAmountText);
+    const orderTotal = currentOrderTotal;
+    const change = receivedAmount - orderTotal;
+
+    if (receivedAmount < orderTotal) {
+        alert('Valor recebido é insuficiente!');
+        return;
+    }
+
+    // Usar função genérica
+    finalizarPagamentoGenerico('dinheiro', { receivedAmount, change });
+}
+
+// Função auxiliar para CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// FUNÇÃO: Aplicar máscara de dinheiro específica para o modal
+function applyPaymentMoneyMask(input) {
+    if (!input) return;
+    
+    input.addEventListener('input', function(e) {
+        let value = e.target.value;
+        
+        // Remove todos os caracteres não numéricos
+        value = value.replace(/\D/g, '');
+        
+        // Converte para número e divide por 100 para ter centavos
+        value = (parseInt(value) || 0) / 100;
+        
+        // Formata como moeda brasileira sem o R$
+        const formatted = value.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        // Atualiza o valor do campo
+        e.target.value = formatted;
+        
+        // Chama calculateChange após formatar
+        calculateChange();
+    });
+}
+
+// FUNÇÃO: Converter valor formatado brasileiro para número
+function parsePaymentCurrency(formattedValue) {
+    if (!formattedValue || formattedValue === '') return 0;
+    
+    // Remove pontos e substitui vírgula por ponto
+    const numericValue = formattedValue
+        .replace(/\./g, '')  // Remove pontos de milhares
+        .replace(',', '.');  // Troca vírgula por ponto decimal
+    
+    return parseFloat(numericValue) || 0;
+}
+
+// Modal de Pagamento Aprovado
+class PaymentSuccessModal {
+    constructor() {
+        this.modal = document.getElementById('paymentSuccessModal');
+        this.modalContent = document.getElementById('modalContent');
+        this.itemTemplate = document.getElementById('itemTemplate');
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Fechar modal clicando no overlay
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.close();
+            }
+        });
+        
+        // Fechar modal com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.modal.classList.contains('hidden')) {
+                this.close();
+            }
+        });
+    }
+    
+    show(paymentData) {
+        this.updateContent(paymentData);
+        this.modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Animar entrada do modal
+        setTimeout(() => {
+            this.modalContent.classList.remove('scale-95', 'opacity-0');
+            this.modalContent.classList.add('scale-100', 'opacity-100');
+        }, 50);
+        
+        // Auto-focus no botão de impressão
+        setTimeout(() => {
+            document.querySelector('[onclick="printReceipt()"]')?.focus();
+        }, 300);
+    }
+    
+    close() {
+        // Animar saída
+        this.modalContent.classList.add('scale-95', 'opacity-0');
+        this.modalContent.classList.remove('scale-100', 'opacity-100');
+        
+        setTimeout(() => {
+            this.modal.classList.add('hidden');
+            document.body.style.overflow = '';
+            
+            // Fechar modal de detalhes e recarregar página
+            closeEditOrderModal();
+            location.reload();
+        }, 200);
+    }
+    
+    updateContent(data) {
+        // Atualizar informações do pagamento
+        document.getElementById('orderCode').textContent = `#${data.orderCode}`;
+        document.getElementById('customerName').textContent = data.customerName;
+        document.getElementById('paymentMethod').textContent = this.getPaymentMethodName(data.paymentMethod);
+        document.getElementById('totalAmount').textContent = `R$ ${data.totalAmount.toFixed(2).replace('.', ',')}`;
+        
+        // Atualizar lista de itens
+        this.updateItemsList(data.items || []);
+    }
+    
+    updateItemsList(items) {
+        const itemsList = document.getElementById('itemsList');
+        itemsList.innerHTML = '';
+        
+        if (items.length === 0) {
+            itemsList.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum item encontrado</p>';
+            return;
+        }
+        
+        items.forEach(item => {
+            // Clonar template
+            const template = this.itemTemplate.content.cloneNode(true);
+            
+            // Preencher dados
+            template.querySelector('.item-name').textContent = item.name;
+            template.querySelector('.item-details').textContent = 
+                `${item.quantity}x R$ ${item.unitPrice.toFixed(2).replace('.', ',')}`;
+            template.querySelector('.item-price').textContent = 
+                `R$ ${item.subtotal.toFixed(2).replace('.', ',')}`;
+            
+            itemsList.appendChild(template);
+        });
+    }
+    
+    getPaymentMethodName(method) {
+        const methods = {
+            'dinheiro': 'Dinheiro',
+            'cartao_debito': 'Cartão de Débito', 
+            'cartao_credito': 'Cartão de Crédito',
+            'pix': 'PIX',
+            'voucher': 'Voucher',
+            'credit': 'Cartão de Crédito',
+            'debit': 'Cartão de Débito'
+        };
+        return methods[method] || method;
+    }
+}
+
+// Inicializar modal
+const paymentSuccessModal = new PaymentSuccessModal();
+
+// Funções globais para os botões do modal de sucesso
+function closeSuccessModal() {
+    paymentSuccessModal.close();
+}
+
+function printReceipt() {
+    const orderData = getCurrentOrderData();
+    openPrintWindow(orderData);
+}
+
+function newOrder() {
+    paymentSuccessModal.close();
+    // Implementar lógica para nova comanda
+    if (typeof startNewOrder === 'function') {
+        startNewOrder();
+    } else {
+        window.location.reload();
+    }
+}
+
+function openPrintWindow(orderData) {
+    // URL para a página de impressão baseada no template existente
+    const printUrl = `/checkouts/print/${orderData.orderId || orderData.checkoutId}/`;
+    
+    // Abrir janela de impressão
+    const printWindow = window.open(printUrl, 'print', 'width=300,height=600,scrollbars=yes');
+    
+    if (printWindow) {
+        printWindow.onload = function() {
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        };
+    } else {
+        // Fallback se popup foi bloqueado
+        window.open(printUrl, '_blank');
+    }
+}
+
+// Função auxiliar para obter dados da comanda atual
+function getCurrentOrderData() {
+    return {
+        orderId: currentEditOrder?.id || null,
+        checkoutId: null, // Será preenchido após criar checkout
+        orderCode: currentEditOrder?.code || 'N/A'
+    };
+}
+
+// Função principal para mostrar o modal após pagamento aprovado
+function showPaymentSuccess(paymentData) {
+    // Validar dados obrigatórios
+    const requiredData = {
+        orderCode: paymentData.orderCode || 'N/A',
+        customerName: paymentData.customerName || 'Cliente',
+        paymentMethod: paymentData.paymentMethod || 'N/A',
+        totalAmount: paymentData.totalAmount || 0,
+        items: paymentData.items || []
+    };
+    
+    paymentSuccessModal.show(requiredData);
+}
+
+// Função para usar em outros tipos de pagamento
+function onPaymentCompleted(paymentResult) {
+    const paymentData = {
+        orderCode: currentEditOrder?.code || 'N/A',
+        customerName: currentEditOrder?.name || 'Cliente',
+        paymentMethod: paymentResult.method,
+        totalAmount: currentOrderTotal,
+        orderId: currentEditOrder?.id,
+        items: currentEditOrder?.items || []
+    };
+    
+    showPaymentSuccess(paymentData);
+}
+
+// Função de teste (remover em produção)
+function testPaymentModal() {
+    const mockData = {
+        orderCode: '0001',
+        customerName: 'Mesa 5',
+        paymentMethod: 'cartao_credito',
+        totalAmount: 45.90,
+        orderId: 123,
+        items: [
+            {
+                name: 'Coxinha de Frango',
+                quantity: 2,
+                unitPrice: 8.50,
+                subtotal: 17.00
+            },
+            {
+                name: 'Café Expresso',
+                quantity: 1,
+                unitPrice: 5.90,
+                subtotal: 5.90
+            }
+        ]
+    };
+    
+    showPaymentSuccess(mockData);
+}
+
+</script>

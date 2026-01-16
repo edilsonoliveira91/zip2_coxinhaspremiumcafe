@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if object %}Editar Pinpad{% else %}Novo Pinpad{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+    <div class="h-full overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+            <div class="px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">
+                            {% if object %}
+                                Editar Pinpad
+                            {% else %}
+                                Novo Pinpad
+                            {% endif %}
+                        </h1>
+                        <p class="mt-1 text-sm text-gray-600">Configure sua maquininha de cartão</p>
+                    </div>
+                    
+                    <!-- Voltar -->
+                    <a href="{% url 'pinpads:pinpad_list' %}" 
+                       class="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span>Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 p-6">
+            <div class="max-w-4xl mx-auto">
+                <form method="post" class="space-y-8">
+                    {% csrf_token %}
+                    
+                    <!-- Seção: Informações Básicas -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Informações Básicas</h2>
+                            <p class="text-gray-600 text-sm">Dados de identificação do pinpad</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Nome -->
+                            <div class="md:col-span-2">
+                                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.name.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.name.help_text }}</p>
+                                {% endif %}
+                                {% if form.name.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Provedor -->
+                            <div>
+                                <label for="{{ form.provider.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.provider.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.provider }}
+                                {% if form.provider.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.provider.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Status -->
+                            <div>
+                                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.status.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.status.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Descrição -->
+                            <div class="md:col-span-2">
+                                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.description.label }}
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.description.help_text }}</p>
+                                {% endif %}
+                                {% if form.description.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção: Configurações da API -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Configurações da API</h2>
+                            <p class="text-gray-600 text-sm">Dados de conexão com a operadora</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- URL da API -->
+                            <div class="md:col-span-2">
+                                <label for="{{ form.api_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.api_url.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.api_url }}
+                                {% if form.api_url.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.api_url.help_text }}</p>
+                                {% endif %}
+                                {% if form.api_url.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.api_url.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- API Key -->
+                            <div>
+                                <label for="{{ form.api_key.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.api_key.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.api_key }}
+                                {% if form.api_key.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.api_key.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- API Secret -->
+                            <div>
+                                <label for="{{ form.api_secret.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.api_secret.label }}
+                                </label>
+                                {{ form.api_secret }}
+                                {% if form.api_secret.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.api_secret.help_text }}</p>
+                                {% endif %}
+                                {% if form.api_secret.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.api_secret.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Merchant ID -->
+                            <div>
+                                <label for="{{ form.merchant_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.merchant_id.label }}
+                                </label>
+                                {{ form.merchant_id }}
+                                {% if form.merchant_id.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.merchant_id.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Terminal ID -->
+                            <div>
+                                <label for="{{ form.terminal_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.terminal_id.label }}
+                                </label>
+                                {{ form.terminal_id }}
+                                {% if form.terminal_id.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.terminal_id.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção: Tipos de Pagamento Suportados -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Tipos de Pagamento</h2>
+                            <p class="text-gray-600 text-sm">Modalidades aceitas pelo pinpad</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Suporta Crédito -->
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    {{ form.supports_credit }}
+                                </div>
+                                <div class="ml-3">
+                                    <label for="{{ form.supports_credit.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                        {{ form.supports_credit.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Suporta Débito -->
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    {{ form.supports_debit }}
+                                </div>
+                                <div class="ml-3">
+                                    <label for="{{ form.supports_debit.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                        {{ form.supports_debit.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Suporta Contactless -->
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    {{ form.supports_contactless }}
+                                </div>
+                                <div class="ml-3">
+                                    <label for="{{ form.supports_contactless.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                        {{ form.supports_contactless.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Suporte PIX -->
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    {{ form.supports_pix }}
+                                </div>
+                                <div class="ml-3">
+                                    <label for="{{ form.supports_pix.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                        {{ form.supports_pix.label }}
+                                    </label>
+                                    {% if form.supports_pix.help_text %}
+                                    <p class="text-sm text-gray-500">{{ form.supports_pix.help_text }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção: Configuração PIX -->
+                    <div id="pix-section" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Configuração PIX</h2>
+                            <p class="text-gray-600 text-sm">Configurações para pagamentos via PIX</p>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-2xl p-4">
+                            <h3 class="text-lg font-medium text-purple-900 mb-4">Dados PIX</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Taxa PIX -->
+                                <div>
+                                    <label for="{{ form.pix_fee_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ form.pix_fee_percentage.label }}
+                                    </label>
+                                    {{ form.pix_fee_percentage }}
+                                    {% if form.pix_fee_percentage.help_text %}
+                                    <p class="text-sm text-gray-500 mt-1">{{ form.pix_fee_percentage.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.pix_fee_percentage.errors %}
+                                    <p class="text-sm text-red-500 mt-1">{{ form.pix_fee_percentage.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Chave PIX -->
+                                <div>
+                                    <label for="{{ form.pix_key.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ form.pix_key.label }}
+                                    </label>
+                                    {{ form.pix_key }}
+                                    {% if form.pix_key.help_text %}
+                                    <p class="text-sm text-gray-500 mt-1">{{ form.pix_key.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.pix_key.errors %}
+                                    <p class="text-sm text-red-500 mt-1">{{ form.pix_key.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Webhook URL -->
+                                <div class="md:col-span-2">
+                                    <label for="{{ form.webhook_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ form.webhook_url.label }}
+                                    </label>
+                                    {{ form.webhook_url }}
+                                    {% if form.webhook_url.help_text %}
+                                    <p class="text-sm text-gray-500 mt-1">{{ form.webhook_url.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.webhook_url.errors %}
+                                    <p class="text-sm text-red-500 mt-1">{{ form.webhook_url.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção: Taxas -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Configuração de Taxas</h2>
+                            <p class="text-gray-600 text-sm">Taxas cobradas pela operadora</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Taxas do Crédito -->
+                            <div id="credit-section" class="bg-blue-50 rounded-2xl p-4">
+                                <h3 class="text-lg font-medium text-blue-900 mb-4">Taxas do Crédito</h3>
+                                
+                                <div class="space-y-4">
+                                    <!-- Taxa Percentual Crédito -->
+                                    <div>
+                                        <label for="{{ form.credit_fee_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            {{ form.credit_fee_percentage.label }}
+                                        </label>
+                                        {{ form.credit_fee_percentage }}
+                                        {% if form.credit_fee_percentage.help_text %}
+                                        <p class="text-sm text-gray-500 mt-1">{{ form.credit_fee_percentage.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.credit_fee_percentage.errors %}
+                                        <p class="text-sm text-red-500 mt-1">{{ form.credit_fee_percentage.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Taxa Fixa Crédito -->
+                                    <div>
+                                        <label for="{{ form.credit_fee_fixed.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            {{ form.credit_fee_fixed.label }}
+                                        </label>
+                                        {{ form.credit_fee_fixed }}
+                                        {% if form.credit_fee_fixed.help_text %}
+                                        <p class="text-sm text-gray-500 mt-1">{{ form.credit_fee_fixed.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.credit_fee_fixed.errors %}
+                                        <p class="text-sm text-red-500 mt-1">{{ form.credit_fee_fixed.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Taxas do Débito -->
+                            <div id="debit-section" class="bg-green-50 rounded-2xl p-4">
+                                <h3 class="text-lg font-medium text-green-900 mb-4">Taxas do Débito</h3>
+                                
+                                <div class="space-y-4">
+                                    <!-- Taxa Percentual Débito -->
+                                    <div>
+                                        <label for="{{ form.debit_fee_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            {{ form.debit_fee_percentage.label }}
+                                        </label>
+                                        {{ form.debit_fee_percentage }}
+                                        {% if form.debit_fee_percentage.help_text %}
+                                        <p class="text-sm text-gray-500 mt-1">{{ form.debit_fee_percentage.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.debit_fee_percentage.errors %}
+                                        <p class="text-sm text-red-500 mt-1">{{ form.debit_fee_percentage.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Taxa Fixa Débito -->
+                                    <div>
+                                        <label for="{{ form.debit_fee_fixed.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            {{ form.debit_fee_fixed.label }}
+                                        </label>
+                                        {{ form.debit_fee_fixed }}
+                                        {% if form.debit_fee_fixed.help_text %}
+                                        <p class="text-sm text-gray-500 mt-1">{{ form.debit_fee_fixed.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.debit_fee_fixed.errors %}
+                                        <p class="text-sm text-red-500 mt-1">{{ form.debit_fee_fixed.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção: Configurações Avançadas -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="border-b border-gray-200 pb-4 mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Configurações Avançadas</h2>
+                            <p class="text-gray-600 text-sm">Parâmetros técnicos e controles</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Timeout -->
+                            <div>
+                                <label for="{{ form.timeout.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.timeout.label }}
+                                </label>
+                                {{ form.timeout }}
+                                {% if form.timeout.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.timeout.help_text }}</p>
+                                {% endif %}
+                                {% if form.timeout.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.timeout.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Valor Máximo -->
+                            <div>
+                                <label for="{{ form.max_amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.max_amount.label }}
+                                </label>
+                                {{ form.max_amount }}
+                                {% if form.max_amount.help_text %}
+                                <p class="text-sm text-gray-500 mt-1">{{ form.max_amount.help_text }}</p>
+                                {% endif %}
+                                {% if form.max_amount.errors %}
+                                <p class="text-sm text-red-500 mt-1">{{ form.max_amount.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Controles -->
+                            <div class="md:col-span-2">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Pinpad Padrão -->
+                                    <div class="flex items-center">
+                                        <div class="flex items-center h-5">
+                                            {{ form.is_default }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.is_default.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                                {{ form.is_default.label }}
+                                            </label>
+                                            {% if form.is_default.help_text %}
+                                            <p class="text-sm text-gray-500">{{ form.is_default.help_text }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Ativo -->
+                                    <div class="flex items-center">
+                                        <div class="flex items-center h-5">
+                                            {{ form.is_active }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-gray-700">
+                                                {{ form.is_active.label }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Erros Gerais do Formulário -->
+                    {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                {% for error in form.non_field_errors %}
+                                <p class="text-sm text-red-800">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Botões de Ação -->
+                    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex space-x-4">
+                                <a href="{% url 'pinpads:pinpad_list' %}" 
+                                   class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                                    Cancelar
+                                </a>
+                                
+                                {% if object %}
+                                <button type="button" onclick="testConnection()" 
+                                        class="px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium">
+                                    Testar Conexão
+                                </button>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="px-8 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium">
+                                {% if object %}Salvar Alterações{% else %}Cadastrar Pinpad{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função para testar conexão
+function testConnection() {
+    // Implementar teste de conexão
+    alert('Função de teste será implementada');
+}
+
+// Validações em tempo real
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos de controle
+    const creditSupport = document.getElementById('{{ form.supports_credit.id_for_label }}');
+    const debitSupport = document.getElementById('{{ form.supports_debit.id_for_label }}');
+    const pixSupport = document.getElementById('{{ form.supports_pix.id_for_label }}');
+    
+    // Seções
+    const creditSection = document.getElementById('credit-section');
+    const debitSection = document.getElementById('debit-section');
+    const pixSection = document.getElementById('pix-section');
+    
+    function toggleSections() {
+        // Controlar visibilidade das seções de taxa
+        if (creditSection) {
+            creditSection.style.display = creditSupport.checked ? 'block' : 'none';
+        }
+        
+        if (debitSection) {
+            debitSection.style.display = debitSupport.checked ? 'block' : 'none';
+        }
+        
+        if (pixSection) {
+            pixSection.style.display = pixSupport.checked ? 'block' : 'none';
+        }
+    }
+    
+    // Event listeners
+    if (creditSupport) creditSupport.addEventListener('change', toggleSections);
+    if (debitSupport) debitSupport.addEventListener('change', toggleSections);
+    if (pixSupport) pixSupport.addEventListener('change', toggleSections);
+    
+    // Executar na inicialização
+    toggleSections();
+});
+</script>
+{% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% csrf_token %}
 
 {% block title %}Checkout - Sistema de Pagamento{% endblock %}
 
@@ -355,10 +356,78 @@ function printOrder(orderCode) {
 }
 
 function finalizeOrder(orderCode) {
-    if (confirm(`Finalizar comanda #${orderCode} e processar pagamento?`)) {
-        alert(`Comanda #${orderCode} finalizada com sucesso!`);
-        location.reload();
+    // Remover o confirm que você não quer
+    // Abrir modal de pagamento ao invés de finalizar diretamente
+    openPaymentModal(orderCode);
+}
+
+function openPaymentModal(orderCode) {
+    // Aqui você pode criar um modal de seleção de pagamento
+    // Por enquanto, vou fazer uma versão simples
+    const paymentMethod = prompt(`Escolha o método de pagamento para comanda #${orderCode}:\n1 - Dinheiro\n2 - Cartão de Débito\n3 - Cartão de Crédito\n4 - PIX\n\nDigite o número:`);
+    
+    let method;
+    switch(paymentMethod) {
+        case '1':
+            method = 'dinheiro';
+            break;
+        case '2':
+            method = 'cartao_debito';
+            break;
+        case '3':
+            method = 'cartao_credito';
+            break;
+        case '4':
+            method = 'pix';
+            break;
+        default:
+            alert('Método de pagamento inválido!');
+            return;
     }
+    
+    processPayment(orderCode, method);
+}
+
+function processPayment(orderCode, paymentMethod) {
+    const data = {
+        payment_method: paymentMethod,
+        received_amount: 0,
+        change_amount: 0
+    };
+    
+    // Se for dinheiro, pedir valor recebido
+    if (paymentMethod === 'dinheiro') {
+        const receivedAmount = parseFloat(prompt('Valor recebido:'));
+        if (isNaN(receivedAmount)) {
+            alert('Valor inválido!');
+            return;
+        }
+        data.received_amount = receivedAmount;
+        // O cálculo do troco será feito no backend
+    }
+    
+    // Fazer requisição para a API
+    fetch(`/checkouts/finalize/${orderCode}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Comanda #${orderCode} finalizada com sucesso!`);
+            location.reload();
+        } else {
+            alert(`Erro: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar pagamento!');
+    });
 }
 </script>
 {% endblock %}

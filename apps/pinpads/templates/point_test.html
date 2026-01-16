@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Teste Integração Point{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+    <div class="h-full overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+            <div class="px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">🏪 Teste Point Integration</h1>
+                        <p class="mt-1 text-sm text-gray-600">Simulador de pagamentos com Mercado Pago Point</p>
+                    </div>
+                    
+                    <a href="{% url 'pinpads:pinpad_list' %}" 
+                       class="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <span>← Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="flex-1 p-6">
+            <div class="max-w-4xl mx-auto space-y-8">
+                
+                <!-- Seleção do Pinpad -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">📱 Selecionar Pinpad</h2>
+                    <select id="pinpadSelect" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                        <option value="">Carregando pinpads...</option>
+                    </select>
+                </div>
+
+                <!-- Dispositivos Point -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-900">🔌 Dispositivos Point</h2>
+                        <button id="refreshDevices" class="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">
+                            🔄 Atualizar
+                        </button>
+                    </div>
+                    <div id="devicesContainer" class="space-y-3">
+                        <p class="text-gray-500">Selecione um pinpad para listar dispositivos</p>
+                    </div>
+                </div>
+
+                <!-- Simulador de Venda -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">💰 Simulador de Venda</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Valor -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$)</label>
+                            <input type="number" id="amount" step="0.01" value="10.50" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <!-- Descrição -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                            <input type="text" id="description" value="Coxinha Premium" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Botões de Pagamento -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Crédito -->
+                        <button id="payCredit" class="w-full py-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors text-lg font-semibold">
+                            💳 Pagar Crédito
+                        </button>
+                        
+                        <!-- Débito -->
+                        <button id="payDebit" class="w-full py-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors text-lg font-semibold">
+                            💳 Pagar Débito
+                        </button>
+                        
+                        <!-- PIX -->
+                        <button id="payPix" class="w-full py-4 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors text-lg font-semibold">
+                            📱 Pagar PIX
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status/Log -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">📋 Status & Log</h2>
+                    <div id="statusContainer" class="bg-gray-50 rounded-xl p-4 min-h-32 max-h-64 overflow-y-auto">
+                        <p class="text-gray-500">Aguardando ação...</p>
+                    </div>
+                    <button id="clearLog" class="mt-3 px-4 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors">
+                        🗑️ Limpar Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+class PointTester {
+    constructor() {
+        this.selectedPinpad = null;
+        this.selectedDevice = null;
+        this.currentPaymentIntent = null;
+        
+        this.init();
+    }
+    
+    init() {
+        this.loadPinpads();
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Seleção de pinpad
+        document.getElementById('pinpadSelect').addEventListener('change', (e) => {
+            this.selectedPinpad = e.target.value;
+            if (this.selectedPinpad) {
+                this.loadDevices();
+            }
+        });
+        
+        // Refresh dispositivos
+        document.getElementById('refreshDevices').addEventListener('click', () => {
+            this.loadDevices();
+        });
+        
+        // Botões de pagamento
+        document.getElementById('payCredit').addEventListener('click', () => {
+            this.processPayment('credit');
+        });
+        
+        document.getElementById('payDebit').addEventListener('click', () => {
+            this.processPayment('debit');
+        });
+        
+        document.getElementById('payPix').addEventListener('click', () => {
+            this.processPayment('pix');
+        });
+        
+        // Limpar log
+        document.getElementById('clearLog').addEventListener('click', () => {
+            document.getElementById('statusContainer').innerHTML = '<p class="text-gray-500">Log limpo...</p>';
+        });
+    }
+    
+    async loadPinpads() {
+        try {
+            const response = await fetch('/pinpads/stats/');
+            const data = await response.json();
+            
+            // Simular lista de pinpads (você pode criar um endpoint específico)
+            const pinpads = [
+                { id: 1, name: 'Mercado Pago - Teste' },
+                { id: 2, name: 'Stone - Principal' }
+            ];
+            
+            const select = document.getElementById('pinpadSelect');
+            select.innerHTML = '<option value="">Selecione um pinpad...</option>';
+            
+            pinpads.forEach(pinpad => {
+                const option = document.createElement('option');
+                option.value = pinpad.id;
+                option.textContent = pinpad.name;
+                select.appendChild(option);
+            });
+            
+            this.log('✅ Pinpads carregados');
+            
+        } catch (error) {
+            this.log(`❌ Erro ao carregar pinpads: ${error.message}`);
+        }
+    }
+    
+    async loadDevices() {
+        if (!this.selectedPinpad) return;
+        
+        this.log('🔄 Carregando dispositivos...');
+        
+        try {
+            const response = await fetch(`/pinpads/${this.selectedPinpad}/devices/`);
+            const data = await response.json();
+            
+            const container = document.getElementById('devicesContainer');
+            
+            if (data.success && data.devices.length > 0) {
+                container.innerHTML = data.devices.map(device => `
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:bg-blue-50 cursor-pointer device-item" 
+                         data-device-id="${device.id}">
+                        <div>
+                            <span class="font-medium">${device.name || device.id}</span>
+                            <span class="text-sm text-gray-500 ml-2">(${device.status || 'unknown'})</span>
+                        </div>
+                        <span class="w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}"></span>
+                    </div>
+                `).join('');
+                
+                // Adicionar evento de clique nos dispositivos
+                container.querySelectorAll('.device-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        // Remover seleção anterior
+                        container.querySelectorAll('.device-item').forEach(i => i.classList.remove('bg-blue-100'));
+                        // Adicionar seleção atual
+                        item.classList.add('bg-blue-100');
+                        this.selectedDevice = item.dataset.deviceId;
+                        this.log(`📱 Dispositivo selecionado: ${this.selectedDevice}`);
+                    });
+                });
+                
+                this.log(`✅ ${data.devices.length} dispositivo(s) encontrado(s)`);
+            } else {
+                container.innerHTML = '<p class="text-orange-500">⚠️ Nenhum dispositivo encontrado</p>';
+                this.log('⚠️ Nenhum dispositivo Point encontrado');
+            }
+            
+        } catch (error) {
+            document.getElementById('devicesContainer').innerHTML = '<p class="text-red-500">❌ Erro ao carregar dispositivos</p>';
+            this.log(`❌ Erro ao carregar dispositivos: ${error.message}`);
+        }
+    }
+    
+    async processPayment(paymentType) {
+        if (!this.selectedPinpad) {
+            this.log('❌ Selecione um pinpad primeiro');
+            return;
+        }
+        
+        if (paymentType !== 'pix' && !this.selectedDevice) {
+            this.log('❌ Selecione um dispositivo primeiro (para cartão)');
+            return;
+        }
+        
+        const amount = parseFloat(document.getElementById('amount').value);
+        const description = document.getElementById('description').value;
+        
+        if (!amount || amount <= 0) {
+            this.log('❌ Valor deve ser maior que zero');
+            return;
+        }
+        
+        this.log(`🚀 Iniciando pagamento ${paymentType.toUpperCase()} - R$ ${amount.toFixed(2)}`);
+        
+        const payload = {
+            amount: amount,
+            description: description,
+            payment_type: paymentType
+        };
+        
+        if (paymentType !== 'pix') {
+            payload.device_id = this.selectedDevice;
+        }
+        
+        try {
+            const response = await fetch(`/pinpads/${this.selectedPinpad}/payment/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (paymentType === 'pix') {
+                    this.log('✅ PIX criado com sucesso!');
+                    this.log(`📱 QR Code: ${data.qr_code || 'Disponível'}`);
+                } else {
+                    this.currentPaymentIntent = data.payment_intent_id;
+                    this.log('✅ Pagamento enviado para a maquininha!');
+                    this.log('💳 Aguardando cartão na maquininha...');
+                    
+                    // Monitorar status
+                    this.monitorPaymentStatus();
+                }
+            } else {
+                this.log(`❌ Erro: ${data.message}`);
+            }
+            
+        } catch (error) {
+            this.log(`❌ Erro na requisição: ${error.message}`);
+        }
+    }
+    
+    async monitorPaymentStatus() {
+        if (!this.currentPaymentIntent) return;
+        
+        const maxAttempts = 30; // 30 segundos
+        let attempts = 0;
+        
+        const checkStatus = async () => {
+            try {
+                const response = await fetch(`/pinpads/${this.selectedPinpad}/payment/${this.currentPaymentIntent}/status/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const state = data.state;
+                    this.log(`📊 Status: ${state}`);
+                    
+                    if (state === 'FINISHED') {
+                        this.log('🎉 Pagamento aprovado!');
+                        return;
+                    } else if (state === 'ERROR' || state === 'CANCELED') {
+                        this.log('❌ Pagamento negado/cancelado');
+                        return;
+                    }
+                }
+                
+                attempts++;
+                if (attempts < maxAttempts) {
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    this.log('⏰ Timeout - Status não atualizado');
+                }
+                
+            } catch (error) {
+                this.log(`❌ Erro ao verificar status: ${error.message}`);
+            }
+        };
+        
+        checkStatus();
+    }
+    
+    log(message) {
+        const container = document.getElementById('statusContainer');
+        const time = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = 'text-sm mb-1';
+        logEntry.innerHTML = `<span class="text-gray-500">[${time}]</span> ${message}`;
+        container.appendChild(logEntry);
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// Inicializar quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    new PointTester();
+});
+</script>
+{% endblock %}

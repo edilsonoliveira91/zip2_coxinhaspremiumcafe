@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
@@ -12,10 +12,11 @@ from .forms import OrderForm, OrderItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product
 
 
-class OrderDashboardView(LoginRequiredMixin, TemplateView):
+class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
     Dashboard principal das comandas - substitui o dashboard da home
     """
+    permission_required = 'orders.view_order'
     template_name = 'orders/dashboard.html'
     login_url = reverse_lazy('accounts:login')
     
@@ -56,10 +57,11 @@ class OrderDashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class OrderListView(LoginRequiredMixin, ListView):
+class OrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """
     Lista todas as comandas
     """
+    permission_required = 'orders.view_order'
     model = Order
     template_name = 'orders/list.html'
     context_object_name = 'orders'
@@ -84,10 +86,11 @@ class OrderListView(LoginRequiredMixin, ListView):
         return queryset
 
 
-class OrderDetailView(LoginRequiredMixin, DetailView):
+class OrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
     Detalhes de uma comanda específica
     """
+    permission_required = 'orders.view_order'
     model = Order
     template_name = 'orders/detail.html'
     context_object_name = 'order'
@@ -96,10 +99,11 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     login_url = reverse_lazy('accounts:login')
 
 
-class OrderCreateView(LoginRequiredMixin, CreateView):
+class OrderCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """
     Criar nova comanda (página completa)
     """
+    permission_required = 'orders.add_order'
     model = Order
     form_class = OrderForm
     template_name = 'orders/create.html'
@@ -137,10 +141,11 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
 
-class OrderCreateAPIView(LoginRequiredMixin, View):
+class OrderCreateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     API para criar comanda via AJAX (do modal)
     """
+    permission_required = 'orders.add_order'
     
     def post(self, request):
         try:
@@ -205,10 +210,11 @@ class OrderCreateAPIView(LoginRequiredMixin, View):
             }, status=500)
 
 
-class OrderUpdateView(LoginRequiredMixin, UpdateView):
+class OrderUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Editar comanda existente
     """
+    permission_required = 'orders.change_order'
     model = Order
     form_class = OrderForm
     template_name = 'orders/edit.html'
@@ -251,10 +257,11 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
             return self.form_invalid(form)
 
 
-class OrderDeleteView(LoginRequiredMixin, DeleteView):
+class OrderDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """
     Deletar comanda
     """
+    permission_required = 'orders.delete_order'
     model = Order
     template_name = 'orders/delete.html'
     slug_field = 'code'
@@ -271,10 +278,11 @@ class OrderDeleteView(LoginRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-class OrderStatusUpdateView(LoginRequiredMixin, UpdateView):
+class OrderStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Atualizar apenas o status da comanda
     """
+    permission_required = 'orders.change_order'
     model = Order
     form_class = OrderStatusForm
     template_name = 'orders/status_update.html'
@@ -307,10 +315,11 @@ class OrderStatusUpdateView(LoginRequiredMixin, UpdateView):
         return reverse('orders:detail', kwargs={'code': self.object.code})
 
 
-class ScannerView(LoginRequiredMixin, TemplateView):
+class ScannerView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
     Tela do scanner de código de barras
     """
+    permission_required = 'orders.view_order'
     template_name = 'orders/scanner.html'
     login_url = reverse_lazy('accounts:login')
     
@@ -328,10 +337,11 @@ class ScannerView(LoginRequiredMixin, TemplateView):
         return render(request, self.template_name, {'form': form})
 
 
-class ScanResultView(LoginRequiredMixin, DetailView):
+class ScanResultView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
     Resultado do scan - mostra comanda e opções de ação
     """
+    permission_required = 'orders.view_order'
     model = Order
     template_name = 'orders/scan_result.html'
     context_object_name = 'order'
@@ -341,9 +351,10 @@ class ScanResultView(LoginRequiredMixin, DetailView):
 
 
 # Views para ações rápidas de status
-class OrderStartView(LoginRequiredMixin, TemplateView):
+class OrderStartView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Marcar como Em Preparo"""
-    
+    permission_required = 'orders.change_order'
+
     def post(self, request, code):
         order = get_object_or_404(Order, code=code)
         order.status = 'preparando'
@@ -355,9 +366,10 @@ class OrderStartView(LoginRequiredMixin, TemplateView):
         return redirect('orders:detail', code=code)
 
 
-class OrderFinishView(LoginRequiredMixin, TemplateView):
+class OrderFinishView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Marcar como Pronta"""
-    
+    permission_required = 'orders.change_order'
+
     def post(self, request, code):
         order = get_object_or_404(Order, code=code)
         order.status = 'pronta'
@@ -369,7 +381,7 @@ class OrderFinishView(LoginRequiredMixin, TemplateView):
         return redirect('orders:detail', code=code)
 
 
-class OrderDeliverView(LoginRequiredMixin, TemplateView):
+class OrderDeliverView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Marcar como Entregue"""
     
     def post(self, request, code):
@@ -383,7 +395,7 @@ class OrderDeliverView(LoginRequiredMixin, TemplateView):
         return redirect('orders:detail', code=code)
 
 
-class OrderCancelView(LoginRequiredMixin, TemplateView):
+class OrderCancelView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Cancelar comanda"""
     
     def post(self, request, code):
@@ -428,9 +440,11 @@ class ActiveOrdersView(OrderListView):
 
 
 # API Views
-class OrderStatusAPIView(LoginRequiredMixin, TemplateView):
+class OrderStatusAPIView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """API para atualizar status via AJAX"""
-    
+
+    permission_required = 'orders.change_order'
+
     def post(self, request, code):
         try:
             order = get_object_or_404(Order, code=code)
@@ -464,21 +478,24 @@ class OrderStatusAPIView(LoginRequiredMixin, TemplateView):
 
 
 # Views de relatório (básicas)
-class OrderReportsView(LoginRequiredMixin, TemplateView):
+class OrderReportsView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Dashboard de relatórios"""
+    permission_required = 'orders.view_order'
     template_name = 'orders/reports.html'
     login_url = reverse_lazy('accounts:login')
 
 
-class DailyReportView(LoginRequiredMixin, TemplateView):
+class DailyReportView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Relatório diário"""
+    permission_required = 'orders.view_order'
     template_name = 'orders/daily_report.html'
     login_url = reverse_lazy('accounts:login')
 
 
 # Views de impressão (básicas)
-class OrderPrintView(LoginRequiredMixin, DetailView):
+class OrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Versão para impressão da comanda"""
+    permission_required = 'orders.view_order'
     model = Order
     template_name = 'orders/print.html'
     context_object_name = 'order'
@@ -487,8 +504,9 @@ class OrderPrintView(LoginRequiredMixin, DetailView):
     login_url = reverse_lazy('accounts:login')
 
 
-class OrderBarcodeView(LoginRequiredMixin, DetailView):
+class OrderBarcodeView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Gerar código de barras para impressão"""
+    permission_required = 'orders.view_order'
     model = Order
     template_name = 'orders/barcode.html'
     context_object_name = 'order'
@@ -497,11 +515,12 @@ class OrderBarcodeView(LoginRequiredMixin, DetailView):
     login_url = reverse_lazy('accounts:login')
 
 
-class OrderDetailAPIView(LoginRequiredMixin, View):
+class OrderDetailAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     API para buscar detalhes de uma comanda específica
     """
-    
+    permission_required = 'orders.view_order'
+
     def get(self, request, code):
         try:
             order = get_object_or_404(Order, code=code)
@@ -544,11 +563,13 @@ class OrderDetailAPIView(LoginRequiredMixin, View):
             }, status=500)
 
 
-class OrderUpdateAPIView(LoginRequiredMixin, View):
+class OrderUpdateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     API para atualizar itens de uma comanda
     """
     
+    permission_required = 'orders.change_order'
+
     def put(self, request, code):
         try:
             order = get_object_or_404(Order, code=code)
@@ -657,3 +678,76 @@ class OrderFinalizeAPIView(LoginRequiredMixin, View):
                 'success': False,
                 'message': f'Erro ao finalizar comanda: {str(e)}'
             }, status=500)
+        
+# COMANDAS FINALIZADAS
+class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Lista de comandas finalizadas
+    """
+    permission_required = 'orders.view_order'
+    model = Order
+    template_name = 'orders/closed_orders_list.html'
+    context_object_name = 'orders'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        """Retorna apenas comandas finalizadas"""
+        return Order.objects.filter(
+            status='entregue'
+        ).select_related().prefetch_related('items__product').order_by('-delivered_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estatísticas das comandas finalizadas
+        finalized_orders = self.get_queryset()
+        
+        context.update({
+            'total_finalizadas': finalized_orders.count(),
+            'total_receita': finalized_orders.aggregate(
+                total=Sum('total_amount')
+            )['total'] or 0,
+        })
+        
+        return context
+
+
+class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    """
+    Detalhes de uma comanda finalizada específica
+    """
+    permission_required = 'orders.view_order'
+    model = Order
+    template_name = 'orders/closed_order_detail.html'
+    context_object_name = 'order'
+    slug_field = 'code'
+    slug_url_kwarg = 'code'
+    login_url = reverse_lazy('accounts:login')
+    
+    def get_queryset(self):
+        """Garante que só comandas finalizadas sejam acessadas"""
+        return Order.objects.filter(status='entregue')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estatísticas da comanda
+        order = self.get_object()
+        
+        # Tempo total de atendimento
+        if order.created_at and order.delivered_at:
+            duration = order.delivered_at - order.created_at
+            context['duration_minutes'] = duration.total_seconds() // 60
+        
+        # Próxima e anterior comanda finalizada (para navegação)
+        context['next_order'] = Order.objects.filter(
+            status='entregue',
+            delivered_at__gt=order.delivered_at
+        ).order_by('delivered_at').first()
+        
+        context['prev_order'] = Order.objects.filter(
+            status='entregue',
+            delivered_at__lt=order.delivered_at
+        ).order_by('-delivered_at').first()
+        
+        return context

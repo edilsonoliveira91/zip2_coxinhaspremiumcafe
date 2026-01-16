@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'orders',
     'products',
     'checkouts',
+    'pinpads',
+    'financials',
 ]
 
 MIDDLEWARE = [
@@ -160,6 +162,9 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Configurações do Tailwind
 TAILWIND_APP_NAME = 'theme'
 
@@ -195,3 +200,40 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+
+#====================================================
+# CONFIGURAÇOES DO PINPAD - REDE ITAÚ
+#====================================================
+# Configurações da REDE Itaú
+REDE_SANDBOX = config('REDE_SANDBOX', default=True, cast=bool)
+REDE_PV = config('REDE_PV', default='')  # Número de filiação
+REDE_INTEGRATION_KEY = config('REDE_INTEGRATION_KEY', default='')  # Chave de integração
+
+# Configurações de logging para payment providers
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'payment_providers.log',
+        },
+        'console': {
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'pinpads.services': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Criar diretório de logs se não existir
+import os
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)

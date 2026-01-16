@@ -7,11 +7,14 @@ urlpatterns = [
     # Listagem principal de comandas para checkout
     path('', views.CheckoutOrderListView.as_view(), name='order_list'),
 
+    # Impressão de comanda
     path('orders/<str:code>/print/', views.CheckoutOrderPrintView.as_view(), name='order_print'),
+    
+    # API de finalização - DESCOMENTADO e CORRIGIDO
+    path('finalize/<str:code>/', views.CheckoutFinalizeView.as_view(), name='finalize'),
     
     # URLs futuras para funcionalidades do checkout
     # path('orders/<str:code>/details/', views.CheckoutOrderDetailView.as_view(), name='order_detail'),
-    # path('orders/<str:code>/print/', views.CheckoutOrderPrintView.as_view(), name='order_print'),
     # path('orders/<str:code>/finalize/', views.CheckoutOrderFinalizeView.as_view(), name='order_finalize'),
     
     # APIs futuras para checkout

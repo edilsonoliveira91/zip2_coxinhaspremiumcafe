@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">{{ title }}</h1>
+                    <p class="text-gray-600 mt-1">Configure as informações e permissões do usuário</p>
+                </div>
+                <a href="{% url 'accounts:user_list' %}" 
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-xl font-semibold transition-colors duration-150">
+                    Voltar
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Mensagens de erro -->
+            {% if form.non_field_errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Coluna Esquerda - Informações do Usuário -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">1</span>
+                            Informações Básicas
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <!-- Username -->
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">
+                                    Nome de usuário *
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ form.username.errors.0 }}</p>
+                                {% endif %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.username.help_text }}</p>
+                            </div>
+
+                            <!-- Password -->
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">
+                                    Senha {% if not is_editing %}*{% endif %}
+                                </label>
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ form.password.errors.0 }}</p>
+                                {% endif %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.password.help_text }}</p>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">
+                                    Confirmar senha {% if not is_editing %}*{% endif %}
+                                </label>
+                                {{ form.confirm_password }}
+                                {% if form.confirm_password.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ form.confirm_password.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="mt-6 space-y-3">
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl">
+                                {% if is_editing %}Atualizar{% else %}Criar Usuário{% endif %}
+                            </button>
+                            <a href="{% url 'accounts:user_list' %}" 
+                               class="block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-4 rounded-xl font-bold text-lg text-center transition-colors duration-150">
+                                Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna Direita - Permissões -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                            <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
+                            Permissões do Sistema
+                        </h2>
+
+                        <div class="space-y-4">
+                            
+                            <!-- Produtos -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" 
+                                        onclick="togglePermission('products')"
+                                        class="w-full bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 px-6 py-4 flex items-center justify-between transition-colors">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="text-lg font-bold text-blue-900">Produtos</span>
+                                    </div>
+                                    <svg id="products-arrow" class="w-6 h-6 text-blue-900 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="products-permissions" class="hidden bg-white p-6">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200">
+                                            {{ form.products_view }}
+                                            <span class="text-gray-700 font-medium">Ver</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200">
+                                            {{ form.products_add }}
+                                            <span class="text-gray-700 font-medium">Adicionar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200">
+                                            {{ form.products_change }}
+                                            <span class="text-gray-700 font-medium">Editar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200">
+                                            {{ form.products_delete }}
+                                            <span class="text-gray-700 font-medium">Deletar</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pedidos -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" 
+                                        onclick="togglePermission('orders')"
+                                        class="w-full bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 px-6 py-4 flex items-center justify-between transition-colors">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-4">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="text-lg font-bold text-green-900">Pedidos</span>
+                                    </div>
+                                    <svg id="orders-arrow" class="w-6 h-6 text-green-900 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="orders-permissions" class="hidden bg-white p-6">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-green-50 transition-colors border border-gray-200">
+                                            {{ form.orders_view }}
+                                            <span class="text-gray-700 font-medium">Ver</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-green-50 transition-colors border border-gray-200">
+                                            {{ form.orders_add }}
+                                            <span class="text-gray-700 font-medium">Adicionar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-green-50 transition-colors border border-gray-200">
+                                            {{ form.orders_change }}
+                                            <span class="text-gray-700 font-medium">Editar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-green-50 transition-colors border border-gray-200">
+                                            {{ form.orders_delete }}
+                                            <span class="text-gray-700 font-medium">Deletar</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Checkouts -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" 
+                                        onclick="togglePermission('checkouts')"
+                                        class="w-full bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 px-6 py-4 flex items-center justify-between transition-colors">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mr-4">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="text-lg font-bold text-purple-900">Checkouts</span>
+                                    </div>
+                                    <svg id="checkouts-arrow" class="w-6 h-6 text-purple-900 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="checkouts-permissions" class="hidden bg-white p-6">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors border border-gray-200">
+                                            {{ form.checkouts_view }}
+                                            <span class="text-gray-700 font-medium">Ver</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors border border-gray-200">
+                                            {{ form.checkouts_add }}
+                                            <span class="text-gray-700 font-medium">Adicionar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors border border-gray-200">
+                                            {{ form.checkouts_change }}
+                                            <span class="text-gray-700 font-medium">Editar</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors border border-gray-200">
+                                            {{ form.checkouts_delete }}
+                                            <span class="text-gray-700 font-medium">Deletar</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function togglePermission(section) {
+    const permissionsDiv = document.getElementById(section + '-permissions');
+    const arrow = document.getElementById(section + '-arrow');
+    
+    if (permissionsDiv.classList.contains('hidden')) {
+        permissionsDiv.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+    } else {
+        permissionsDiv.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+    }
+}
+</script>
+{% endblock %}

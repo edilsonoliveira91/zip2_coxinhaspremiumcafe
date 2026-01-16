@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.db import transaction
 from .models import Product, Combo, ComboItem
@@ -10,8 +10,9 @@ from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, 
 
 # ==================== VIEWS DE PRODUTOS ====================
 
-class ProductListView(LoginRequiredMixin, ListView):
+class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Product
+    permission_required = 'products.view_product'
     template_name = 'products/product_list.html'
     context_object_name = 'products'
     paginate_by = 12
@@ -52,7 +53,7 @@ class ProductListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ProductDetailView(LoginRequiredMixin, DetailView):
+class ProductDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
     Detalhes de um produto específico
     """
@@ -60,6 +61,7 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
     template_name = 'products/product_detail.html'
     context_object_name = 'product'
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.view_product'
     
     def get_queryset(self):
         return Product.objects.filter(is_active=True)
@@ -77,7 +79,7 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ProductCreateView(LoginRequiredMixin, CreateView):
+class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """
     Criação de novo produto
     """
@@ -86,6 +88,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     template_name = 'products/product_form.html'
     success_url = reverse_lazy('products:product_list')
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.add_product'
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -107,7 +110,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class ProductUpdateView(LoginRequiredMixin, UpdateView):
+class ProductUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Edição de produto existente
     """
@@ -116,6 +119,7 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'products/product_form.html'
     success_url = reverse_lazy('products:product_list')
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.change_product' 
     
     def get_queryset(self):
         return Product.objects.filter(is_active=True)
@@ -139,7 +143,7 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class ProductDeleteView(LoginRequiredMixin, DeleteView):
+class ProductDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """
     Exclusão (soft delete) de produto
     """
@@ -147,6 +151,7 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'products/product_confirm_delete.html'
     success_url = reverse_lazy('products:product_list')
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.delete_product'
     
     def get_queryset(self):
         return Product.objects.filter(is_active=True)
@@ -194,7 +199,7 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
 
 # ==================== VIEWS DE COMBOS ====================
 
-class ComboListView(LoginRequiredMixin, ListView):
+class ComboListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """
     Lista todos os combos ativos
     """
@@ -203,6 +208,7 @@ class ComboListView(LoginRequiredMixin, ListView):
     context_object_name = 'combos'
     paginate_by = 12
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.view_combo'
     
     def get_queryset(self):
         queryset = Combo.objects.filter(is_active=True).prefetch_related(
@@ -236,7 +242,7 @@ class ComboListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ComboDetailView(LoginRequiredMixin, DetailView):
+class ComboDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
     Detalhes de um combo específico - mostra preços individuais customizados
     """
@@ -244,6 +250,7 @@ class ComboDetailView(LoginRequiredMixin, DetailView):
     template_name = 'products/combo_detail.html'
     context_object_name = 'combo'
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.view_combo'
     
     def get_queryset(self):
         return Combo.objects.filter(is_active=True).prefetch_related(
@@ -293,7 +300,7 @@ class ComboDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ComboCreateView(LoginRequiredMixin, CreateView):
+class ComboCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """
     Criação de novo combo com produtos e preços customizados
     """
@@ -302,7 +309,7 @@ class ComboCreateView(LoginRequiredMixin, CreateView):
     template_name = 'products/combo_form.html'
     success_url = reverse_lazy('products:combo_list')
     login_url = reverse_lazy('accounts:login')
-    
+    permission_required = 'products.add_combo'
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
@@ -364,7 +371,7 @@ class ComboCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class ComboUpdateView(LoginRequiredMixin, UpdateView):
+class ComboUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Edição de combo existente - permite alterar preços individuais
     """
@@ -373,7 +380,7 @@ class ComboUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'products/combo_form.html'
     success_url = reverse_lazy('products:combo_list')
     login_url = reverse_lazy('accounts:login')
-    
+    permission_required = 'products.change_combo'
     def get_queryset(self):
         return Combo.objects.filter(is_active=True)
     
@@ -443,7 +450,7 @@ class ComboUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class ComboDeleteView(LoginRequiredMixin, DeleteView):
+class ComboDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """
     Exclusão (soft delete) de combo
     """
@@ -451,6 +458,7 @@ class ComboDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'products/combo_confirm_delete.html'
     success_url = reverse_lazy('products:combo_list')
     login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.delete_combo'
     
     def get_queryset(self):
         return Combo.objects.filter(is_active=True)

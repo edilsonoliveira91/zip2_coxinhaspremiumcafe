@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comanda #{{ order.code }} - Finalizada{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+    <div class="h-full overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 text-gray-900">
+            <div class="px-6 py-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold">Comanda #{{ order.code }}</h1>
+                                <p class="text-gray-600">{{ order.name }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex items-center space-x-6 text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Finalizada em {{ order.delivered_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            {% if duration_minutes %}
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span>{{ duration_minutes|floatformat:0 }} minutos de atendimento</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Valor total destacado -->
+                    <div class="text-right">
+                        <div class="text-4xl font-bold">R$ {{ order.total_amount|floatformat:2 }}</div>
+                        <div class="text-gray-600">Total da comanda</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegação -->
+        <div class="bg-white border-b border-gray-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Voltar -->
+                <a href="{% url 'orders:closed_orders' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Comandas Finalizadas
+                </a>
+
+                <!-- Navegação entre comandas -->
+                <div class="flex items-center space-x-2">
+                    {% if prev_order %}
+                    <a href="{% url 'orders:closed_order_detail' prev_order.code %}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                       title="Comanda anterior: #{{ prev_order.code }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    {% if next_order %}
+                    <a href="{% url 'orders:closed_order_detail' next_order.code %}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                       title="Próxima comanda: #{{ next_order.code }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Ações -->
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'orders:print' order.code %}" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                        </svg>
+                        Imprimir
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 p-6 space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Informações da Comanda -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- Itens da Comanda -->
+                    <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Itens da Comanda
+                                <span class="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    {{ order.items.count }} {% if order.items.count == 1 %}item{% else %}itens{% endif %}
+                                </span>
+                            </h2>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                {% for item in order.items.all %}
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                                    <div class="flex items-center space-x-4">
+                                        {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" 
+                                             alt="{{ item.product.name }}" 
+                                             class="w-12 h-12 object-cover rounded-xl">
+                                        {% else %}
+                                        <div class="w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-400 rounded-xl flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                            </svg>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">{{ item.product.name }}</h3>
+                                            <p class="text-sm text-gray-500">{{ item.product.get_category_display }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-right">
+                                        <div class="text-lg font-semibold text-gray-900">
+                                            {{ item.quantity }}x R$ {{ item.unit_price|floatformat:2 }}
+                                        </div>
+                                        <div class="text-sm font-medium text-orange-600">
+                                            = R$ {{ item.total_price|floatformat:2 }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Total -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-lg font-medium text-gray-900">Total da Comanda</div>
+                                    <div class="text-2xl font-bold text-green-600">
+                                        R$ {{ order.total_amount|floatformat:2 }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observações -->
+                    {% if order.observations %}
+                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                            </svg>
+                            Observações
+                        </h2>
+                        <div class="p-4 bg-blue-50 rounded-2xl">
+                            <p class="text-gray-700">{{ order.observations }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar com Informações -->
+                <div class="space-y-6">
+                    
+                    <!-- Status e Timeline -->
+                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Timeline da Comanda
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <!-- Criada -->
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Comanda Criada</div>
+                                    <div class="text-sm text-gray-500">{{ order.created_at|date:"d/m/Y H:i" }}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Iniciada -->
+                            {% if order.started_at %}
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Preparo Iniciado</div>
+                                    <div class="text-sm text-gray-500">{{ order.started_at|date:"d/m/Y H:i" }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Finalizada -->
+                            {% if order.finished_at %}
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Comanda Pronta</div>
+                                    <div class="text-sm text-gray-500">{{ order.finished_at|date:"d/m/Y H:i" }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Entregue -->
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Comanda Entregue</div>
+                                    <div class="text-sm text-gray-500">{{ order.delivered_at|date:"d/m/Y H:i" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações de Pagamento -->
+                    {% if order.checkout %}
+                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            Informações de Pagamento
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <!-- Forma de Pagamento -->
+                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-xl">
+                                <span class="text-gray-700 font-medium">Forma de Pagamento:</span>
+                                <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                    {% if order.checkout.payment_method == 'dinheiro' %}
+                                        💵 Dinheiro
+                                    {% elif order.checkout.payment_method == 'cartao_credito' %}
+                                        💳 Cartão de Crédito
+                                    {% elif order.checkout.payment_method == 'cartao_debito' %}
+                                        💳 Cartão de Débito
+                                    {% elif order.checkout.payment_method == 'pix' %}
+                                        📱 PIX
+                                    {% elif order.checkout.payment_method == 'voucher' %}
+                                        🎫 Voucher
+                                    {% else %}
+                                        {{ order.checkout.get_payment_method_display }}
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <!-- Status do Pagamento -->
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Status do Pagamento:</span>
+                                <span class="inline-flex px-2 py-1 
+                                    {% if order.checkout.status == 'aprovado' %}bg-green-100 text-green-800
+                                    {% elif order.checkout.status == 'pendente' %}bg-yellow-100 text-yellow-800
+                                    {% elif order.checkout.status == 'cancelado' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}
+                                    rounded-full text-xs font-medium">
+                                    {{ order.checkout.get_status_display }}
+                                </span>
+                            </div>
+
+                            <!-- Valores do Checkout -->
+                            <div class="space-y-2 pt-2 border-t border-gray-200">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Subtotal:</span>
+                                    <span class="font-medium">R$ {{ order.checkout.subtotal|floatformat:2 }}</span>
+                                </div>
+                                
+                                {% if order.checkout.desconto > 0 %}
+                                <div class="flex justify-between text-red-600">
+                                    <span>Desconto:</span>
+                                    <span class="font-medium">- R$ {{ order.checkout.desconto|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if order.checkout.taxa_servico > 0 %}
+                                <div class="flex justify-between text-blue-600">
+                                    <span>Taxa de Serviço:</span>
+                                    <span class="font-medium">+ R$ {{ order.checkout.taxa_servico|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="flex justify-between text-lg font-bold text-green-600 pt-2 border-t border-gray-200">
+                                    <span>Total Pago:</span>
+                                    <span>R$ {{ order.checkout.total|floatformat:2 }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Informações específicas do pagamento em dinheiro -->
+                            {% if order.checkout.payment_method == 'dinheiro' and order.checkout.received_amount %}
+                            <div class="p-3 bg-blue-50 rounded-xl space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Valor Recebido:</span>
+                                    <span class="font-medium text-blue-700">R$ {{ order.checkout.received_amount|floatformat:2 }}</span>
+                                </div>
+                                {% if order.checkout.change_amount > 0 %}
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Troco:</span>
+                                    <span class="font-medium text-blue-700">R$ {{ order.checkout.change_amount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Data do pagamento -->
+                            {% if order.checkout.created_at %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Pago em:</span>
+                                <span class="font-medium">{{ order.checkout.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Caso não tenha checkout registrado -->
+                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            Informações de Pagamento
+                        </h2>
+                        <div class="p-4 bg-orange-50 rounded-2xl text-center">
+                            <p class="text-orange-700">Informações de pagamento não registradas</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Informações Adicionais -->
+                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Informações
+                        </h2>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Código:</span>
+                                <span class="font-medium">#{{ order.code }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">ID:</span>
+                                <span class="font-medium">{{ order.id }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Status:</span>
+                                <span class="inline-flex px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                    Entregue
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Criado por:</span>
+                                <span class="font-medium">{{ order.created_by.username|default:"Sistema" }}</span>
+                            </div>
+                            
+                            {% if order.updated_by %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Atualizado por:</span>
+                                <span class="font-medium">{{ order.updated_by.username }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

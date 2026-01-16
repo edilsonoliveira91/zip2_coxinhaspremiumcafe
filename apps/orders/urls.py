@@ -10,6 +10,11 @@ urlpatterns = [
     # CRUD de comandas
     path('list/', views.OrderListView.as_view(), name='list'),
     path('create/', views.OrderCreateView.as_view(), name='create'),
+
+    # Comandas finalizadas
+    path('finalizadas/', views.ClosedOrdersListView.as_view(), name='closed_orders'),
+    path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
+
     path('<str:code>/', views.OrderDetailView.as_view(), name='detail'),
     path('<str:code>/edit/', views.OrderUpdateView.as_view(), name='edit'),
     path('<str:code>/delete/', views.OrderDeleteView.as_view(), name='delete'),

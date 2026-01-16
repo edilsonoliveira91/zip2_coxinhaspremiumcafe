@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Usuários{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">👥 Gerenciar Usuários</h1>
+                    <p class="text-gray-600">Crie e gerencie permissões de usuários do sistema</p>
+                </div>
+                <a href="{% url 'accounts:user_create' %}" 
+                   class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg">
+                    ➕ Novo Usuário
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabela de Usuários -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
+                        <tr>
+                            <th class="px-6 py-4 text-left font-semibold">Usuário</th>
+                            <th class="px-6 py-4 text-left font-semibold">Email</th>
+                            <th class="px-6 py-4 text-left font-semibold">Tipo</th>
+                            <th class="px-6 py-4 text-left font-semibold">Status</th>
+                            <th class="px-6 py-4 text-left font-semibold">Data de Criação</th>
+                            <th class="px-6 py-4 text-center font-semibold">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-orange-50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                        {{ user.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">{{ user.username }}</div>
+                                        <div class="text-sm text-gray-500">{{ user.get_full_name|default:"Sem nome" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-700">{{ user.email|default:"Sem email" }}</td>
+                            <td class="px-6 py-4">
+                                {% if user.is_superuser %}
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                                        👑 Admin Master
+                                    </span>
+                                {% elif user.is_staff %}
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                                        👤 Usuário
+                                    </span>
+                                {% else %}
+                                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">
+                                        Sem acesso
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if user.is_active %}
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                                        ✓ Ativo
+                                    </span>
+                                {% else %}
+                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
+                                        ✗ Inativo
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-gray-700">{{ user.date_joined|date:"d/m/Y H:i" }}</td>
+                            <td class="px-6 py-4">
+                                <div class="flex justify-center space-x-2">
+                                    <a href="{% url 'accounts:user_edit' user.id %}" 
+                                       class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150">
+                                        ✏️ Editar
+                                    </a>
+                                    {% if user.id != request.user.id %}
+                                    <form method="post" action="{% url 'accounts:user_delete' user.id %}" style="display: inline;"
+                                          onsubmit="return confirm('⚠️ Tem certeza que deseja deletar o usuário {{ user.username }}? Esta ação não pode ser desfeita!');">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150">
+                                            🗑️ Deletar
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                Nenhum usuário encontrado
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Botão Voltar -->
+        <div class="mt-6">
+            <a href="{% url 'accounts:dashboard' %}" 
+               class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-xl font-semibold transition-colors duration-150">
+                ← Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

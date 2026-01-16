@@ -233,6 +233,9 @@
 
 {% include 'home/order_modal.html' %}
 {% include 'home/detail_modal.html' %}
+{% include 'home/payment_modal.html' %}
+
+<script src="{% static 'js/utils.js' %}"></script>
 
 <script>
 function openOrderModal() {
@@ -258,23 +261,18 @@ function openOrderModal() {
             padding: 16px !important;
         `;
         
-        // REMOVER/COMENTAR ESTA SEÇÃO:
-        /*
-        const modalContainer = document.getElementById('modalContainer');
-        if (modalContainer) {
-            modalContainer.style.cssText = `
-                transform: scale(1) !important;
-                max-width: 1152px !important;
-                width: 100% !important;
-                max-height: 90vh !important;
-            `;
-        }
-        */
-        
         document.body.style.overflow = 'hidden';
         
         // Inicializar funcionalidades do modal
         initializeOrderModal();
+        
+        // Focar no campo de nome da comanda após o modal ser exibido
+        setTimeout(() => {
+            const orderNameField = document.getElementById('orderName');
+            if (orderNameField) {
+                orderNameField.focus();
+            }
+        }, 100);
         
         console.log('Modal centralizado!');
     }
@@ -282,10 +280,64 @@ function openOrderModal() {
 function closeOrderModal() {
     const modal = document.getElementById('orderModal');
     if (modal) {
+        // Adicionar classes para esconder
+        modal.classList.add('hidden', 'opacity-0');
+        
+        // Resetar o estilo
         modal.style.display = 'none';
+        
+        // Restaurar scroll do body
         document.body.style.overflow = '';
+        
+        // Limpar o formulário
+        const form = document.getElementById('orderForm');
+        if (form) {
+            form.reset();
+        }
+        
+        console.log('Modal fechado!');
     }
 }
+</script>
+
+<script>
+// Focar automaticamente no campo de pesquisa quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-comandas');
+    if (searchInput) {
+        // Dar foco no campo
+        searchInput.focus();
+        
+        // Posicionar cursor no final do texto (caso tenha algum valor)
+        searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        
+        console.log('Foco automático aplicado no campo de pesquisa');
+    }
+});
+
+// Também focar quando a página ficar visível novamente (quando voltar de outra aba/aplicativo)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        const searchInput = document.getElementById('search-comandas');
+        if (searchInput) {
+            // Pequeno delay para garantir que a página está totalmente carregada
+            setTimeout(() => {
+                searchInput.focus();
+            }, 100);
+        }
+    }
+});
+
+// Focar novamente quando clicar em qualquer lugar da página (útil para leitores de código)
+document.addEventListener('click', function(e) {
+    // Não focar se clicou em um input, button ou link
+    if (!e.target.matches('input, button, a, select, textarea')) {
+        const searchInput = document.getElementById('search-comandas');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+});
 </script>
 
 <!-- DEPOIS vem o JS externo -->

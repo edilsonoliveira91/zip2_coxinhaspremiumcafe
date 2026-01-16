@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sangrias - Coxinhas Premium Café{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"></path>
+                        </svg>
+                    </div>
+                    Sangrias
+                </h1>
+                <p class="text-gray-600 mt-2">Histórico de retiradas do caixa</p>
+            </div>
+            
+            <!-- Botão Nova Sangria e Total do período -->
+            <div class="flex items-center gap-4">
+                <!-- Botão Nova Sangria -->
+                <button onclick="abrirModalSangria()" 
+                        class="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:from-red-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    SANGRIA
+                </button>
+                
+                <!-- Total do período -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg border border-white/20">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-red-600">{{ total_periodo }}</p>
+                        <p class="text-sm text-gray-600">Total do período</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                    <label for="data_inicio" class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                    <input type="date" 
+                           id="data_inicio" 
+                           name="data_inicio"
+                           value="{{ data_inicio }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div>
+                    <label for="data_fim" class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                    <input type="date" 
+                           id="data_fim" 
+                           name="data_fim"
+                           value="{{ data_fim }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div>
+                    <button type="submit" 
+                            class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium rounded-xl hover:from-red-600 hover:to-pink-600 transition-all shadow-lg">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Sangrias -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+            
+            <!-- Cabeçalho -->
+            <div class="bg-gradient-to-r from-red-500 to-pink-500 px-6 py-4">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    Listagem de Sangrias
+                    <span class="ml-3 px-3 py-1 bg-white/20 rounded-full text-sm font-medium">{{ sangrias.count }} registros</span>
+                </h2>
+            </div>
+            
+            <!-- Tabela -->
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table class="w-full table-fixed">
+                    <!-- Cabeçalho -->
+                    <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide" style="width: 20%;">ID</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide" style="width: 20%;">Usuário</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide" style="width: 20%;">Data/Hora</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wide" style="width: 20%;">Valor</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide" style="width: 20%;">Observação</th>
+                            <th class="w-24 px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">Ações</th>
+                        </tr>
+                    </thead>
+                    
+                    <!-- Corpo -->
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        {% if sangrias %}
+                            {% for sangria in sangrias %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-center font-bold text-gray-900">#{{ sangria.id }}</td>
+                                <td class="px-6 py-4 text-left text-gray-700 font-medium">{{ sangria.usuario.get_full_name|default:sangria.usuario.username }}</td>
+                                <td class="px-6 py-4 text-left text-gray-600 text-sm">{{ sangria.created_at|date:"d/m/Y H:i" }}</td>
+                                <td class="px-6 py-4 text-right font-bold text-lg text-red-600">{{ sangria.valor_formatado }}</td>
+                                <td class="px-6 py-4 text-left text-gray-600">
+                                    {% if sangria.observacao %}
+                                        <span class="bg-gray-100 px-2 py-1 rounded-lg text-xs">{{ sangria.observacao }}</span>
+                                    {% else %}
+                                        <span class="text-gray-400 italic">-</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- ACOES -->
+                                <td class="w-24 px-6 py-4">
+                                  {% if request.user.is_superuser %}
+                                      <div class="flex items-center justify-center space-x-1">
+                                          <!-- Editar -->
+                                          <button class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                  title="Editar"
+                                                  onclick="abrirModalEditarSangria({{ sangria.id }})">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                              </svg>
+                                          </button>
+                                          <!-- Excluir -->
+                                          <button class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                  title="Excluir"
+                                                  onclick="confirmarExcluirSangria({{ sangria.id }})">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                              </svg>
+                                          </button>
+                                      </div>
+                                  {% else %}
+                                      <span class="text-gray-400 italic">-</span>
+                                  {% endif %}
+                              </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="p-12 text-center text-gray-500">
+                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma sangria encontrada</h3>
+                                    <p class="text-sm text-gray-600">Para o período selecionado</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Sangria -->
+<div id="modalSangria" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden opacity-0 transition-all duration-300 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-white/20 w-full max-w-md transform scale-95 transition-all duration-300" id="modalContent">
+        
+        <!-- Header do Modal -->
+        <div class="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-t-3xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"></path>
+                    </svg>
+                    Nova Sangria
+                </h3>
+                <button onclick="fecharModalSangria()" class="text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Conteúdo do Modal -->
+        <form id="formNovaSangria" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Valor Disponível em Caixa -->
+            <div class="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+                <div class="flex items-center justify-center mb-2">
+                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-green-800">Dinheiro Disponível Hoje</span>
+                </div>
+                <p class="text-2xl font-bold text-green-700" id="dinheiroDisponivel">{{ dinheiro_disponivel_formatado }}</p>
+                <p class="text-xs text-green-600 mt-1">Valor Inicial + Dinheiro Recebido - Sangrias</p>
+            </div>
+            
+            <!-- Campo Valor -->
+            <div>
+                <label for="modalValor" class="block text-sm font-medium text-gray-700 mb-2">
+                    Valor da Sangria *
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-lg font-medium">R$</span>
+                    </div>
+                    <input type="text" 
+                          id="modalValor" 
+                          name="valor" 
+                          required
+                          placeholder="0,00"
+                          data-valor-max="{{ dinheiro_disponivel }}"
+                          class="block w-full pl-12 pr-4 py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-xl font-bold text-center text-gray-900"
+                          autocomplete="off">
+                </div>
+                <p id="avisoValor" class="text-xs text-red-500 mt-1 hidden">Valor não pode ser maior que o disponível em caixa</p>
+            </div>
+
+            <!-- Campo Observação -->
+            <div>
+                <label for="modalObservacao" class="block text-sm font-medium text-gray-700 mb-2">
+                    Observação
+                </label>
+                <textarea id="modalObservacao" 
+                          name="observacao" 
+                          rows="3" 
+                          placeholder="Motivo da retirada..."
+                          class="block w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"></textarea>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex gap-3">
+                <button type="button" 
+                        onclick="fecharModalSangria()"
+                        class="flex-1 bg-gray-100 text-gray-700 font-medium py-3 px-6 rounded-2xl hover:bg-gray-200 transition-all">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        id="btnConfirmarSangria"
+                        class="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold py-3 px-6 rounded-2xl hover:from-red-600 hover:to-pink-600 transition-all shadow-lg">
+                    Confirmar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Variáveis globais
+let modalAberto = false;
+
+// Função para mostrar notificação igual aos produtos
+function mostrarNotificacao(mensagem, tipo = 'success') {
+    // Criar o container se não existir
+    let container = document.getElementById('notifications-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'fixed top-20 right-4 z-40 space-y-3';
+        container.id = 'notifications-container';
+        document.body.appendChild(container);
+    }
+
+    // Criar elemento da notificação seguindo o padrão dos produtos
+    const notification = document.createElement('div');
+    
+    // Classes base
+    let bgClass = 'bg-green-100/10 border-green-100/10 text-green-800';
+    let iconBg = 'bg-green-500/20';
+    let iconColor = 'text-green-600';
+    let progressBg = 'bg-green-200/50';
+    let progressBar = 'bg-green-500/60';
+    let buttonColors = 'text-green-600/70 hover:text-green-700 hover:bg-green-500/20';
+    
+    if (tipo === 'erro' || tipo === 'error') {
+        bgClass = 'bg-red-100/10 border-red-100/10 text-red-800';
+        iconBg = 'bg-red-500/20';
+        iconColor = 'text-red-600';
+        progressBg = 'bg-red-200/50';
+        progressBar = 'bg-red-500/60';
+        buttonColors = 'text-red-600/70 hover:text-red-700 hover:bg-red-500/20';
+    }
+    
+    notification.className = `notification-toast transform translate-x-full opacity-0 ${bgClass} backdrop-blur-xl backdrop-saturate-150 px-4 py-3 rounded-2xl shadow-2xl min-w-[320px] max-w-md`;
+    notification.setAttribute('data-notification', '');
+    
+    // Ícone baseado no tipo
+    let icon = '';
+    if (tipo === 'success' || tipo === 'sucesso') {
+        icon = `<svg class="w-5 h-5 ${iconColor}" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>`;
+    } else {
+        icon = `<svg class="w-5 h-5 ${iconColor}" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>`;
+    }
+    
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <!-- Ícone -->
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 ${iconBg} rounded-full flex items-center justify-center">
+                    ${icon}
+                </div>
+            </div>
+            
+            <!-- Mensagem -->
+            <div class="flex-1 text-sm font-semibold">
+                ${mensagem}
+            </div>
+            
+            <!-- Botão fechar -->
+            <button onclick="closeNotification(this)" 
+                    class="flex-shrink-0 ${buttonColors} transition-all duration-200 rounded-full p-1.5">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Barra de progresso -->
+        <div class="absolute bottom-0 left-0 h-1 ${progressBg} rounded-bl-2xl rounded-br-2xl">
+            <div class="h-full ${progressBar} rounded-bl-2xl rounded-br-2xl progress-bar" style="width: 100%;"></div>
+        </div>
+    `;
+    
+    // Adicionar ao container
+    container.appendChild(notification);
+    
+    // Animar entrada
+    setTimeout(() => {
+        notification.classList.remove('translate-x-full', 'opacity-0');
+    }, 100);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        if (notification && notification.parentElement) {
+            notification.classList.add('hiding');
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Função para fechar notificação (necessária para o botão X)
+function closeNotification(button) {
+    const notification = button.closest('[data-notification]');
+    notification.classList.add('hiding');
+    setTimeout(() => {
+        notification.remove();
+    }, 300);
+}
+
+// Função para abrir modal
+function abrirModalSangria() {
+    const modal = document.getElementById('modalSangria');
+    const content = document.getElementById('modalContent');
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+        
+        // Focar no campo valor
+        document.getElementById('modalValor').focus();
+    }, 10);
+    
+    modalAberto = true;
+}
+
+// Função para fechar modal (modificada para resetar modo)
+function fecharModalSangria() {
+    const modal = document.getElementById('modalSangria');
+    const content = document.getElementById('modalContent');
+    const form = document.getElementById('formNovaSangria');
+    
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        
+        // Limpar formulário e resetar modo
+        form.reset();
+        form.removeAttribute('data-mode');
+        form.removeAttribute('data-sangria-id');
+        
+        // Restaurar título original
+        document.querySelector('#modalSangria h3').innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"></path>
+            </svg>
+            Nova Sangria
+        `;
+    }, 300);
+    
+    modalAberto = false;
+}
+
+// Máscara de valor com validação
+document.getElementById('modalValor').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    value = (value / 100).toFixed(2) + '';
+    value = value.replace('.', ',');
+    value = value.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+    value = value.replace(/(\d)(\d{3}),/g, "$1.$2,");
+    e.target.value = value;
+    
+    // Validar valor máximo
+    validarValorMaximo();
+});
+
+// Função para validar valor máximo
+function validarValorMaximo() {
+    const input = document.getElementById('modalValor');
+    const aviso = document.getElementById('avisoValor');
+    const btnConfirmar = document.getElementById('btnConfirmarSangria');
+    
+    // Converter valor digitado para decimal
+    const valorDigitado = input.value.replace(/\./g, '').replace(',', '.');
+    const valorMaximo = parseFloat(input.dataset.valorMax);
+    
+    if (valorDigitado && parseFloat(valorDigitado) > valorMaximo) {
+        // Valor maior que o disponível
+        aviso.classList.remove('hidden');
+        input.classList.add('border-red-500', 'focus:ring-red-500');
+        input.classList.remove('border-gray-300', 'focus:ring-red-500');
+        btnConfirmar.disabled = true;
+        btnConfirmar.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        // Valor válido
+        aviso.classList.add('hidden');
+        input.classList.remove('border-red-500', 'focus:ring-red-500');
+        input.classList.add('border-gray-300');
+        btnConfirmar.disabled = false;
+        btnConfirmar.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Submit do formulário (modificado para suportar edição)
+document.getElementById('formNovaSangria').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const valor = document.getElementById('modalValor').value;
+    const observacao = document.getElementById('modalObservacao').value;
+    const mode = this.getAttribute('data-mode') || 'criar';
+    const sangriaId = this.getAttribute('data-sangria-id');
+    
+    if (!valor || valor === '0,00') {
+        mostrarNotificacao('Por favor, informe um valor para a sangria', 'erro');
+        document.getElementById('modalValor').focus();
+        return;
+    }
+    
+    // Validar valor máximo apenas para criação
+    if (mode === 'criar') {
+        const valorDigitado = valor.replace(/\./g, '').replace(',', '.');
+        const valorMaximo = parseFloat(document.getElementById('modalValor').dataset.valorMax);
+        
+        if (parseFloat(valorDigitado) > valorMaximo) {
+            mostrarNotificacao('Valor da sangria não pode ser maior que o disponível em caixa', 'erro');
+            return;
+        }
+    }
+    
+    // Desabilitar botão durante o envio
+    const btnConfirmar = document.getElementById('btnConfirmarSangria');
+    const textoOriginal = btnConfirmar.innerHTML;
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = `
+        <svg class="animate-spin w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    `;
+    
+    // Definir URL conforme modo
+    let url;
+    if (mode === 'editar') {
+        url = `/financials/api/sangria/${sangriaId}/editar/`;
+    } else {
+        url = '/financials/api/sangria/criar/';
+    }
+    
+    // AJAX para criar/editar sangria
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            valor: valor,
+            observacao: observacao
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const acao = mode === 'editar' ? 'atualizada' : 'registrada';
+            
+            // Salvar mensagem no localStorage para mostrar após reload
+            localStorage.setItem('sangriaNotificacao', JSON.stringify({
+                message: `Sangria ${acao} com sucesso`,
+                type: 'sucesso'
+            }));
+            
+            fecharModalSangria();
+            
+            // Recarregar imediatamente
+            window.location.reload();
+        } else {
+            mostrarNotificacao(data.message || `Erro ao ${mode === 'editar' ? 'atualizar' : 'registrar'} sangria`, 'erro');
+            // Restaurar botão
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = textoOriginal;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarNotificacao('Erro de conexão. Tente novamente', 'erro');
+        // Restaurar botão
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = textoOriginal;
+    });
+});
+
+// Função para confirmar exclusão de sangria
+function confirmarExcluirSangria(sangriaId) {
+    // Buscar o valor da sangria na linha da tabela
+    const linha = event.target.closest('tr');
+    const valorElement = linha.querySelector('td:nth-child(4)'); // Coluna do valor
+    const valor = valorElement.textContent.trim();
+    
+    if (confirm(`Tem certeza que deseja excluir a sangria de ${valor}?\n\nEsta ação não pode ser desfeita.`)) {
+        excluirSangria(sangriaId);
+    }
+}
+
+// Função para excluir sangria
+function excluirSangria(sangriaId) {
+    fetch(`/financials/api/sangria/${sangriaId}/excluir/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Salvar mensagem no localStorage para mostrar após reload
+            localStorage.setItem('sangriaNotificacao', JSON.stringify({
+                message: data.message,
+                type: 'sucesso'
+            }));
+            
+            // Recarregar imediatamente
+            window.location.reload();
+        } else {
+            mostrarNotificacao(data.message || 'Erro ao excluir sangria', 'erro');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarNotificacao('Erro de conexão. Tente novamente', 'erro');
+    });
+}
+
+// Fechar modal clicando fora
+document.getElementById('modalSangria').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalSangria();
+    }
+});
+
+// Fechar modal com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modalAberto) {
+        fecharModalSangria();
+    }
+});
+
+// Verificar se há notificação pendente no localStorage
+document.addEventListener('DOMContentLoaded', function() {
+    const notificacaoPendente = localStorage.getItem('sangriaNotificacao');
+    if (notificacaoPendente) {
+        try {
+            const notif = JSON.parse(notificacaoPendente);
+            // Mostrar notificação após um pequeno delay
+            setTimeout(() => {
+                mostrarNotificacao(notif.message, notif.type);
+            }, 500);
+            
+            // Limpar do localStorage
+            localStorage.removeItem('sangriaNotificacao');
+        } catch (e) {
+            console.error('Erro ao processar notificação:', e);
+            localStorage.removeItem('sangriaNotificacao');
+        }
+    }
+});
+</script>
+
+<style>
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes progressBar {
+        from {
+            width: 100%;
+        }
+        to {
+            width: 0%;
+        }
+    }
+    
+    .notification-toast {
+        animation: slideInRight 0.4s ease-out forwards;
+    }
+    
+    .notification-toast.hiding {
+        animation: slideOutRight 0.3s ease-in forwards;
+    }
+    
+    .progress-bar {
+        animation: progressBar 5s linear forwards;
+    }
+</style>
+
+{% endblock %}

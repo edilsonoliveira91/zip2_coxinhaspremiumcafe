@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            <!-- Footer do Modal (MESMO ESTILO) -->
+            <!-- Footer do Modal -->
             <div class="bg-gray-50/80 backdrop-blur-sm px-6 py-4 rounded-b-3xl border-t border-gray-200/50">
                 <div class="flex justify-between items-center">
                     <button onclick="closeEditOrderModal()" class="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
@@ -181,6 +181,14 @@
                         <button onclick="updateOrderStatus()" class="px-8 py-4 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium">
                             Mudar Status
                         </button>
+                        
+                        <!-- BOTÃO FINALIZAR COMANDA - APENAS COM PERMISSÃO -->
+                        {% if perms.checkouts.add_checkout %}
+                        <button onclick="openPaymentModal()" class="px-8 py-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium">
+                            💳 Finalizar Comanda
+                        </button>
+                        {% endif %}
+                        
                         <button onclick="saveOrderChanges()" class="px-10 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all font-semibold shadow-lg">
                             Salvar Comanda
                         </button>
