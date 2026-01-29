@@ -1,0 +1,743 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if object %}Editar Empresa{% else %}Nova Empresa{% endif %} - Coxinhas Premium Café
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-6" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li>
+                    <a href="{% url 'companys:company_list' %}" class="text-gray-500 hover:text-orange-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h4a1 1 0 011 1v5m-6 0V9a1 1 0 011-1h4a1 1 0 011 1v13"></path>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-500 ml-1 md:ml-2 text-sm font-medium">
+                            {% if object %}Editar{% else %}Nova Empresa{% endif %}
+                        </span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-3 space-y-6">
+                
+                <!-- Header Info -->
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center">
+                            {% if object %}
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            {% else %}
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            {% endif %}
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            {% if object %}Editar Empresa{% else %}Nova Empresa{% endif %}
+                        </h2>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <p class="text-sm text-gray-600">
+                            {% if object %}
+                                Atualize as informações da empresa no formulário ao lado.
+                            {% else %}
+                                Preencha todas as informações necessárias para criar uma nova empresa.
+                            {% endif %}
+                        </p>
+                        
+                        <div class="flex items-center space-x-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-sm text-blue-700 font-medium">Campos com * são obrigatórios</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações Rápidas -->
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <!-- Voltar à Lista -->
+                        <a href="{% url 'companys:company_list' %}" class="w-full group bg-gradient-to-r from-slate-500 to-gray-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                <span>Voltar à Lista</span>
+                            </div>
+                        </a>
+                        
+                        <!-- Nova Empresa (só aparece quando editando) -->
+                        {% if object %}
+                        <a href="{% url 'companys:company_create' %}" class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span>Nova Empresa</span>
+                            </div>
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Ver Empresas -->
+                        <a href="{% url 'companys:company_list' %}" class="w-full group bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg block">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h4a1 1 0 011 1v5m-6 0V9a1 1 0 011-1h4a1 1 0 011 1v13"></path>
+                                </svg>
+                                <span>Ver Empresas</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-9">
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+                    
+                    <!-- Header -->
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {% if object %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    {% else %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    {% endif %}
+                                </svg>
+                            </div>
+                            {% if object %}Editar: {{ object.razao_social }}{% else %}Cadastrar Nova Empresa{% endif %}
+                        </h2>
+                    </div>
+
+                    <!-- Formulário -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="p-6">
+                            <div class="space-y-8">
+                                
+                                <!-- Dados Básicos -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
+                                        <svg class="w-5 h-5 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h4a1 1 0 011 1v5m-6 0V9a1 1 0 011-1h4a1 1 0 011 1v13"></path>
+                                        </svg>
+                                        Dados Básicos
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- CNPJ -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                                                </svg>
+                                                CNPJ <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.cnpj }}
+                                            {% if form.cnpj.errors %}
+                                                <p class="text-red-500 text-sm flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    {{ form.cnpj.errors.0 }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-xs text-gray-500">Formato: 00.000.000/0000-00</p>
+                                            {% endif %}
+                                        </div>
+                                        <!-- Inscrição Estadual -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                                Inscrição Estadual
+                                            </label>
+                                            {{ form.inscricao_estadual }}
+                                            {% if form.inscricao_estadual.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.inscricao_estadual.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Razão Social -->
+                                        <div class="md:col-span-2 space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h4a1 1 0 011 1v5m-6 0V9a1 1 0 011-1h4a1 1 0 011 1v13"></path>
+                                                </svg>
+                                                Razão Social <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.razao_social }}
+                                            {% if form.razao_social.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.razao_social.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Nome Fantasia -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                                </svg>
+                                                Nome Fantasia
+                                            </label>
+                                            {{ form.nome_fantasia }}
+                                            {% if form.nome_fantasia.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.nome_fantasia.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Regime Tributário -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                </svg>
+                                                Regime Tributário
+                                            </label>
+                                            {{ form.regime_tributario }}
+                                            {% if form.regime_tributario.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.regime_tributario.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Endereço -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
+                                        <svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        Endereço
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                                        <!-- CEP -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                CEP <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.cep }}
+                                            {% if form.cep.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.cep.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Endereço -->
+                                        <div class="md:col-span-2 space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Logradouro <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.logradouro }}
+                                            {% if form.logradouro.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.logradouro.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Número -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Número <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.numero }}
+                                            {% if form.numero.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.numero.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Complemento -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Complemento
+                                            </label>
+                                            {{ form.complemento }}
+                                            {% if form.complemento.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.complemento.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Bairro -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Bairro <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.bairro }}
+                                            {% if form.bairro.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.bairro.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Cidade -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Cidade <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.cidade }}
+                                            {% if form.cidade.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.cidade.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Estado -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Estado <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.uf }}
+                                            {% if form.uf.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.uf.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contato -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
+                                        <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                        </svg>
+                                        Contato
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Telefone -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Telefone
+                                            </label>
+                                            {{ form.telefone }}
+                                            {% if form.telefone.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.telefone.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Email -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Email
+                                            </label>
+                                            {{ form.email }}
+                                            {% if form.email.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.email.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Configurações NFCe -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
+                                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Configurações NFCe
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <!-- CSC ID -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                CSC ID <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.csc_id }}
+                                            {% if form.csc_id.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.csc_id.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Código CSC -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Código CSC <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.csc_codigo }}
+                                            {% if form.csc_codigo.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.csc_codigo.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Série NFCe -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Série NFCe
+                                            </label>
+                                            {{ form.serie_nfce }}
+                                            {% if form.serie_nfce.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.serie_nfce.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Próximo Número NFCe -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Próximo Número NFCe
+                                                <span class="ml-1 text-xs text-blue-600">(Somente leitura)</span>
+                                            </label>
+                                            {{ form.proximo_numero_nfce }}
+                                            <p class="text-xs text-gray-500 flex items-center">
+                                                <svg class="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Este número é controlado automaticamente pelo sistema a cada emissão de NFCe
+                                            </p>
+                                            {% if form.proximo_numero_nfce.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.proximo_numero_nfce.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Configurações -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
+                                        <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        Configurações
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Ambiente NFCe -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                Ambiente NFCe
+                                            </label>
+                                            {{ form.ambiente_nfce }}
+                                            {% if form.ambiente_nfce.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.ambiente_nfce.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- CFOP Padrão -->
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-gray-700">
+                                                CFOP Padrão <span class="text-red-500">*</span>
+                                            </label>
+                                            {{ form.cfop_padrao }}
+                                            {% if form.cfop_padrao.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.cfop_padrao.errors.0 }}</p>
+                                            {% else %}
+                                                <p class="text-xs text-gray-500">CFOP padrão para vendas (5102 - Venda no Estado)</p>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Empresa Ativa -->
+                                        <div class="flex items-center space-x-3">
+                                            {{ form.ativa }}
+                                            <label class="text-sm font-medium text-gray-700">
+                                                Empresa Ativa
+                                            </label>
+                                            {% if form.ativa.errors %}
+                                                <p class="text-red-500 text-sm">{{ form.ativa.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-4">
+                            <a href="{% url 'companys:company_list' %}" 
+                               class="bg-gradient-to-r from-slate-500 to-gray-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-md">
+                                Cancelar
+                            </a>
+                            
+                            <button type="submit" 
+                                    class="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-md">
+                                {% if object %}💾 Atualizar Empresa{% else %}✨ Criar Empresa{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Máscara para CNPJ
+document.addEventListener('DOMContentLoaded', function() {
+    const cnpjInput = document.getElementById('{{ form.cnpj.id_for_label }}');
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Máscara para CEP
+    const cepInput = document.getElementById('{{ form.cep.id_for_label }}');
+    if (cepInput) {
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Máscara para telefone
+    const telefoneInput = document.getElementById('{{ form.telefone.id_for_label }}');
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '($1) $2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara para CNPJ
+    const cnpjInput = document.getElementById('{{ form.cnpj.id_for_label }}');
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Máscara para CEP e busca automática
+    const cepInput = document.getElementById('{{ form.cep.id_for_label }}');
+    if (cepInput) {
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = value;
+            
+            // Se CEP tem 9 caracteres (00000-000), busca o endereço
+            if (value.length === 9) {
+                buscarCEP(value.replace('-', ''));
+            }
+        });
+        
+        // Também busca quando sair do campo (blur)
+        cepInput.addEventListener('blur', function(e) {
+            let cep = e.target.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                buscarCEP(cep);
+            }
+        });
+    }
+
+    // Máscara para telefone
+    const telefoneInput = document.getElementById('{{ form.telefone.id_for_label }}');
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '($1) $2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Função para buscar CEP
+    function buscarCEP(cep) {
+        // Limpa CEP de caracteres não numéricos
+        const cepLimpo = cep.replace(/\D/g, '');
+        
+        // Verifica se CEP tem 8 dígitos
+        if (cepLimpo.length !== 8) {
+            return;
+        }
+
+        // Adiciona indicador de carregamento
+        adicionarIndicadorCarregamento();
+
+        // Faz a requisição para a API do ViaCEP
+        fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+            .then(response => response.json())
+            .then(data => {
+                removerIndicadorCarregamento();
+                
+                if (data.erro) {
+                    mostrarErro('CEP não encontrado. Verifique o CEP digitado.');
+                    return;
+                }
+
+                // Preenche os campos automaticamente
+                preencherEndereco(data);
+                mostrarSucesso('Endereço encontrado e preenchido automaticamente!');
+            })
+            .catch(error => {
+                removerIndicadorCarregamento();
+                console.error('Erro ao buscar CEP:', error);
+                mostrarErro('Erro ao buscar CEP. Tente novamente.');
+            });
+    }
+
+    // Função para preencher os campos de endereço
+    function preencherEndereco(data) {
+        const campos = {
+            '{{ form.logradouro.id_for_label }}': data.logradouro,
+            '{{ form.bairro.id_for_label }}': data.bairro,
+            '{{ form.cidade.id_for_label }}': data.localidade
+        };
+
+        // Preenche cada campo se não estiver vazio na resposta da API
+        Object.entries(campos).forEach(([fieldId, value]) => {
+            const field = document.getElementById(fieldId);
+            if (field && value) {
+                field.value = value;
+                
+                // Adiciona efeito visual
+                field.style.backgroundColor = '#f0f9ff';
+                setTimeout(() => {
+                    field.style.backgroundColor = '';
+                }, 2000);
+            }
+        });
+
+        // Preenche o estado usando o select
+        const estadoSelect = document.getElementById('{{ form.uf.id_for_label }}');
+        if (estadoSelect && data.uf) {
+            // Mapeia UFs para nomes completos se necessário
+            const ufMap = {
+                'AC': 'AC', 'AL': 'AL', 'AP': 'AP', 'AM': 'AM', 'BA': 'BA',
+                'CE': 'CE', 'DF': 'DF', 'ES': 'ES', 'GO': 'GO', 'MA': 'MA',
+                'MT': 'MT', 'MS': 'MS', 'MG': 'MG', 'PA': 'PA', 'PB': 'PB',
+                'PR': 'PR', 'PE': 'PE', 'PI': 'PI', 'RJ': 'RJ', 'RN': 'RN',
+                'RS': 'RS', 'RO': 'RO', 'RR': 'RR', 'SC': 'SC', 'SP': 'SP',
+                'SE': 'SE', 'TO': 'TO'
+            };
+            
+            // Procura pela opção correspondente
+            for (let option of estadoSelect.options) {
+                if (option.value === data.uf || option.text === data.uf) {
+                    option.selected = true;
+                    estadoSelect.style.backgroundColor = '#f0f9ff';
+                    setTimeout(() => {
+                        estadoSelect.style.backgroundColor = '';
+                    }, 2000);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Função para adicionar indicador de carregamento
+    function adicionarIndicadorCarregamento() {
+        const cepField = document.getElementById('{{ form.cep.id_for_label }}');
+        if (cepField) {
+            cepField.style.backgroundColor = '#fef3c7';
+            cepField.setAttribute('placeholder', 'Buscando endereço...');
+        }
+    }
+
+    // Função para remover indicador de carregamento
+    function removerIndicadorCarregamento() {
+        const cepField = document.getElementById('{{ form.cep.id_for_label }}');
+        if (cepField) {
+            cepField.style.backgroundColor = '';
+            cepField.setAttribute('placeholder', '00000-000');
+        }
+    }
+
+    // Função para mostrar mensagem de sucesso
+    function mostrarSucesso(mensagem) {
+        mostrarNotificacao(mensagem, 'success');
+    }
+
+    // Função para mostrar mensagem de erro
+    function mostrarErro(mensagem) {
+        mostrarNotificacao(mensagem, 'error');
+    }
+
+    // Função para mostrar notificações
+    function mostrarNotificacao(mensagem, tipo) {
+        // Remove notificação existente
+        const notificacaoExistente = document.querySelector('.cep-notification');
+        if (notificacaoExistente) {
+            notificacaoExistente.remove();
+        }
+
+        // Cria nova notificação
+        const notificacao = document.createElement('div');
+        notificacao.className = `cep-notification fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+            tipo === 'success' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-red-500 text-white'
+        }`;
+        notificacao.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${tipo === 'success' 
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                    }
+                </svg>
+                <span>${mensagem}</span>
+            </div>
+        `;
+
+        // Adiciona ao documento
+        document.body.appendChild(notificacao);
+
+        // Remove após 4 segundos
+        setTimeout(() => {
+            notificacao.style.opacity = '0';
+            notificacao.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notificacao.parentNode) {
+                    notificacao.parentNode.removeChild(notificacao);
+                }
+            }, 300);
+        }, 4000);
+    }
+});
+</script>
+{% endblock %}

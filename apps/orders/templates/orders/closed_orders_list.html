@@ -3,7 +3,18 @@
 
 {% block title %}Comandas Finalizadas{% endblock %}
 
+{% csrf_token %}
 {% block content %}
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+</style>
 <div class="flex-1 overflow-hidden">
     <div class="h-full overflow-y-auto">
         <!-- Header -->
@@ -197,16 +208,36 @@
                                                 </svg>
                                             </a>
 
+                                            <!-- Cupom NFCe -->
+                                            {% if order.tem_nfce %}
+                                                <!-- NFCe já emitida - Ícone de recibo fiscal verde -->
+                                                <span class="p-2 text-green-600 bg-green-100 rounded-lg border border-green-200" 
+                                                    title="NFCe #{{ order.nfce_numero }} emitida com sucesso">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                        <path d="M8,12V14H16V12H8M8,16V18H13V16H8Z"/>
+                                                    </svg>
+                                                </span>
+                                            {% else %}
+                                                <!-- Botão para emitir -->
+                                                <button onclick="emitirNFCe('{{ order.code }}')" 
+                                                        class="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                                        title="Emitir NFCe">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                </button>
+                                            {% endif %}
+
                                             <!-- Imprimir -->
-                                            <button onclick="printOrder('{{ order.code }}')" 
+                                            <button onclick="printOrderSilent('{{ order.code }}', {{ order.tem_nfce|yesno:'true,false' }})" 
                                                     class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                                                    title="Imprimir">
+                                                    title="{% if order.tem_nfce %}Imprimir Cupom Fiscal{% else %}Imprimir Cupom{% endif %}">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                                                 </svg>
                                             </button>
                                         </div>
-                                       
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -256,7 +287,80 @@
     </div>
 </div>
 
+<!-- Modal para CPF do Cliente -->
+<div id="cpfModal" class="fixed inset-0 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+        <!-- Header do Modal -->
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Dados do Cliente
+                </h3>
+                <button onclick="fecharModalCPF()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Corpo do Modal -->
+        <div class="px-6 py-4">
+            <p class="text-gray-600 text-sm mb-4">
+                Informe o CPF do cliente para incluir na NFCe (opcional)
+            </p>
+            
+            <!-- Campo CPF -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    CPF do Cliente
+                </label>
+                <input type="text" 
+                       id="cpfCliente"
+                       placeholder="000.000.000-00"
+                       maxlength="14"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150 ease-in-out">
+                <p class="text-xs text-gray-500 mt-1">
+                    ⚠️ Deixe em branco se não quiser incluir CPF na NFCe
+                </p>
+            </div>
+            
+            <!-- Comanda Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div class="text-sm">
+                    <span class="font-medium text-blue-800">Comanda:</span> 
+                    <span class="text-blue-600" id="modalOrderCode">#0000</span>
+                </div>
+                <div class="text-sm mt-1">
+                    <span class="font-medium text-blue-800">Cliente:</span> 
+                    <span class="text-blue-600" id="modalOrderName">Nome</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer do Modal -->
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            <div class="flex justify-end space-x-3">
+                <button onclick="fecharModalCPF()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button onclick="confirmarEmissaoNFCe()" 
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                    Emitir NFCe
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Variável global para armazenar dados da comanda
+let currentOrderData = null;
+
 // Aplicar todos os filtros
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -318,23 +422,6 @@ function updateResultsCounter() {
     console.log(`Mostrando ${visibleRows.length} de ${totalRows} comandas`);
 }
 
-// Event listeners para filtros em tempo real
-document.addEventListener('DOMContentLoaded', function() {
-    // Busca em tempo real
-    document.getElementById('searchInput').addEventListener('input', applyFilters);
-    
-    // Filtros de data em tempo real
-    document.getElementById('dateStart').addEventListener('change', applyFilters);
-    document.getElementById('dateEnd').addEventListener('change', applyFilters);
-    
-    // Enter no campo de busca aplica filtros
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            applyFilters();
-        }
-    });
-});
-
 // Ações das comandas
 function viewOrderDetails(orderCode) {
     // Redirecionar para detalhes da comanda finalizada
@@ -342,23 +429,242 @@ function viewOrderDetails(orderCode) {
     window.location.href = detailUrl;
 }
 
-function printOrder(orderCode) {
-    // URL para impressão
-    const printUrl = `/checkouts/orders/${orderCode}/print/`;
+function printOrder(orderCode, temNFCe = false) {
+    // Usar a mesma URL do detalhe da comanda, mas com parâmetro fiscal se necessário
+    let printUrl = `/orders/${orderCode}/print/`;
     
-    // Abrir em nova janela otimizada para impressão
+    if (temNFCe) {
+        printUrl += '?fiscal=true';
+    }
+    
+    // Abrir em nova janela como no detalhe da comanda
     const printWindow = window.open(
         printUrl, 
         'printWindow', 
         'width=400,height=700,scrollbars=yes,resizable=yes'
     );
     
-    // Focar na nova janela
     if (printWindow) {
         printWindow.focus();
     } else {
         alert('Por favor, permita pop-ups para imprimir comandas.');
     }
+}
+// Função para impressão direta usando iframe invisível
+function printDirectly(htmlContent) {
+    // Remover iframe anterior se existir
+    const existingFrame = document.getElementById('printFrame');
+    if (existingFrame) {
+        existingFrame.remove();
+    }
+    
+    // Criar novo iframe invisível
+    const printFrame = document.createElement('iframe');
+    printFrame.id = 'printFrame';
+    printFrame.style.position = 'absolute';
+    printFrame.style.top = '-9999px';
+    printFrame.style.left = '-9999px';
+    printFrame.style.width = '0px';
+    printFrame.style.height = '0px';
+    printFrame.style.border = 'none';
+    
+    // Adicionar ao body
+    document.body.appendChild(printFrame);
+    
+    // Aguardar iframe carregar
+    printFrame.onload = function() {
+        try {
+            // Imprimir conteúdo
+            printFrame.contentWindow.print();
+            
+            // Remover iframe após impressão
+            setTimeout(() => {
+                printFrame.remove();
+            }, 1000);
+        } catch (error) {
+            console.error('Erro ao imprimir:', error);
+            printFrame.remove();
+        }
+    };
+    
+    // Escrever conteúdo no iframe
+    const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+}
+// Função modificada para emitir NFCe (agora abre modal)
+function emitirNFCe(orderCode) {
+    // Armazenar dados da comanda
+    currentOrderData = {
+        code: orderCode
+    };
+    
+    // Buscar dados da comanda para exibir no modal
+    const orderRow = document.querySelector(`[data-search*="${orderCode.toLowerCase()}"]`);
+    const orderName = orderRow ? orderRow.querySelector('td:nth-child(2) .text-sm').textContent : 'N/A';
+    
+    // Preencher modal com dados da comanda
+    document.getElementById('modalOrderCode').textContent = `#${orderCode}`;
+    document.getElementById('modalOrderName').textContent = orderName;
+    
+    // Limpar campo CPF
+    document.getElementById('cpfCliente').value = '';
+    
+    // Mostrar modal
+    document.getElementById('cpfModal').classList.remove('hidden');
+    
+    // Focar no campo CPF
+    setTimeout(() => {
+        document.getElementById('cpfCliente').focus();
+    }, 300);
+}
+
+// Função para fechar modal
+function fecharModalCPF() {
+    document.getElementById('cpfModal').classList.add('hidden');
+    currentOrderData = null;
+}
+
+// Função para confirmar emissão com CPF
+function confirmarEmissaoNFCe() {
+    if (!currentOrderData) {
+        alert('Erro: Dados da comanda não encontrados');
+        return;
+    }
+    
+    const cpf = document.getElementById('cpfCliente').value.trim();
+    const orderCode = currentOrderData.code;
+    
+    // Validar CPF se foi informado
+    if (cpf && !validarCPF(cpf)) {
+        alert('CPF inválido! Verifique o formato: 000.000.000-00');
+        return;
+    }
+    
+    // Fechar modal
+    fecharModalCPF();
+    
+    // Confirmar emissão
+    if (!confirm(`Deseja emitir NFCe para a comanda ${orderCode}?${cpf ? `\nCPF: ${cpf}` : '\nSem CPF'}`)) {
+        return;
+    }
+    
+    // Mostrar loading
+    showToast('Processando emissão de NFCe...', 'info');
+    
+    // Fazer requisição com CPF
+    fetch(`/orders/${orderCode}/emitir-nfce/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            order_code: orderCode,
+            cpf_cliente: cpf || null  // Enviar null se vazio
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`✅ NFCe emitida com sucesso! Número: ${data.numero_nfce}`, 'success');
+            
+            // Recarregar página para atualizar status
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showToast(`❌ Erro ao emitir NFCe: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showToast('❌ Erro de conexão ao emitir NFCe', 'error');
+    });
+}
+
+// Função para validar CPF
+function validarCPF(cpf) {
+    // Remove formatação
+    cpf = cpf.replace(/[^\d]/g, '');
+    
+    // Verifica se tem 11 dígitos
+    if (cpf.length !== 11) return false;
+    
+    // Verifica se não são todos iguais
+    if (/^(.)\1+$/.test(cpf)) return false;
+    
+    // Validação completa do CPF
+    let soma = 0;
+    let resto;
+    
+    // Primeiro dígito verificador
+    for (let i = 1; i <= 9; i++) {
+        soma = soma + parseInt(cpf.substring(i-1, i)) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    
+    if ((resto == 10) || (resto == 11)) resto = 0;
+    if (resto != parseInt(cpf.substring(9, 10))) return false;
+    
+    // Segundo dígito verificador
+    soma = 0;
+    for (let i = 1; i <= 10; i++) {
+        soma = soma + parseInt(cpf.substring(i-1, i)) * (12 - i);
+    }
+    resto = (soma * 10) % 11;
+    
+    if ((resto == 10) || (resto == 11)) resto = 0;
+    if (resto != parseInt(cpf.substring(10, 11))) return false;
+    
+    return true;
+}
+
+// Função para mostrar notificações toast
+// Função para mostrar notificações toast (se não existir)
+function showToast(message, type = 'info') {
+    // Criar elemento toast
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white text-sm font-medium transform transition-all duration-300 translate-x-full`;
+    
+    // Definir cor baseada no tipo
+    if (type === 'success') {
+        toast.classList.add('bg-green-500');
+    } else if (type === 'error') {
+        toast.classList.add('bg-red-500');
+    } else {
+        toast.classList.add('bg-blue-500');
+    }
+    
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animar entrada
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Remover após 3 segundos
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+// Função para pegar cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 // Função auxiliar para formatar data (se precisar)
@@ -430,6 +736,60 @@ function selectPeriod(period) {
     applyFilters();
 }
 
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Busca em tempo real
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    
+    // Filtros de data em tempo real
+    document.getElementById('dateStart').addEventListener('change', applyFilters);
+    document.getElementById('dateEnd').addEventListener('change', applyFilters);
+    
+    // Enter no campo de busca aplica filtros
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+    
+    // Event listeners para o modal CPF
+    const cpfInput = document.getElementById('cpfCliente');
+    if (cpfInput) {
+        // Máscara CPF
+        cpfInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+        
+        // Enter para confirmar
+        cpfInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmarEmissaoNFCe();
+            }
+        });
+    }
+    
+    // Fechar modal com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharModalCPF();
+        }
+    });
+    
+    // Fechar modal clicando fora
+    const cpfModal = document.getElementById('cpfModal');
+    if (cpfModal) {
+        cpfModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalCPF();
+            }
+        });
+    }
+});
+
 // Função para debug (remover em produção)
 function debugFilters() {
     console.log('Search:', document.getElementById('searchInput').value);
@@ -437,25 +797,54 @@ function debugFilters() {
     console.log('End Date:', document.getElementById('dateEnd').value);
     console.log('Visible rows:', document.querySelectorAll('.order-row:not([style*="none"])').length);
 }
-</script>
 
-<script>
-function printOrder(orderCode) {
-    // URL para impressão do checkout (recibo bonito)
-    const printUrl = `/checkouts/orders/${orderCode}/print/`;
+// Função para impressão silenciosa (versão segura)
+function printOrderSilent(orderCode, temNFCe = false) {
+    // Mostrar loading no botão
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
-    // Abrir em nova janela otimizada para impressão
-    const printWindow = window.open(
-        printUrl, 
-        'printWindow', 
-        'width=400,height=700,scrollbars=yes,resizable=yes'
-    );
-    
-    // Focar na nova janela
-    if (printWindow) {
-        printWindow.focus();
-    } else {
-        alert('Por favor, permita pop-ups para imprimir comandas.');
+    try {
+        // URL para impressão
+        let printUrl = `/orders/${orderCode}/print/`;
+        if (temNFCe) {
+            printUrl += '?fiscal=true';
+        }
+        
+        // Tentar abrir janela normal primeiro
+        const printWindow = window.open(printUrl, '_blank');
+        
+        if (printWindow) {
+            // Sucesso - janela aberta
+            button.innerHTML = originalContent;
+            showToast('✓ Abrindo impressão...', 'success');
+        } else {
+            // Pop-up bloqueado - usar navegação direta
+            button.innerHTML = originalContent;
+            
+            // Criar link temporário e clicar
+            const link = document.createElement('a');
+            link.href = printUrl;
+            link.target = '_blank';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('✓ Redirecionando para impressão...', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        button.innerHTML = originalContent;
+        
+        // Fallback: navegação direta na mesma aba
+        let printUrl = `/orders/${orderCode}/print/`;
+        if (temNFCe) {
+            printUrl += '?fiscal=true';
+        }
+        window.location.href = printUrl;
     }
 }
 </script>

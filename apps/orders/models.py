@@ -75,6 +75,47 @@ class Order(TimeStampedModel):
         verbose_name="Entregue em"
     )
 
+    # Campos para NFCe
+    nfce_numero = models.IntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="Número NFCe"
+    )
+    nfce_chave = models.CharField(
+        max_length=44, 
+        null=True, 
+        blank=True, 
+        verbose_name="Chave de Acesso NFCe"
+    )
+    nfce_protocolo = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True, 
+        verbose_name="Protocolo NFCe"
+    )
+    nfce_emitida_em = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="NFCe Emitida em"
+    )
+
+    @property
+    def tem_nfce(self):
+        """Verifica se a comanda já tem NFCe emitida"""
+        return self.nfce_numero is not None
+
+    @property
+    def nfce_info(self):
+        """Retorna informações da NFCe se existir"""
+        if self.tem_nfce:
+            return {
+                'numero': self.nfce_numero,
+                'chave': self.nfce_chave,
+                'protocolo': self.nfce_protocolo,
+                'emitida_em': self.nfce_emitida_em
+            }
+        return None
+
     class Meta:
         verbose_name = "Comanda"
         verbose_name_plural = "Comandas"
@@ -139,6 +180,7 @@ class Order(TimeStampedModel):
         if self.created_at and self.delivered_at:
             return (self.delivered_at - self.created_at).total_seconds() / 60
         return None
+
 
 class OrderItem(TimeStampedModel):
     """

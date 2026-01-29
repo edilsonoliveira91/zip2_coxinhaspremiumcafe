@@ -5,6 +5,24 @@
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <!-- Botão fullscreen - esconder para usuário balcao -->
+    {% if not user.username == 'balcao' or user.is_superuser %}
+    <div class="fixed top-20 right-4 z-50">
+        <button 
+            onclick="toggleFullscreen()" 
+            class="w-12 h-12 md:w-14 md:h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <!-- Ícone Expand -->
+            <svg id="expand-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+            
+            <!-- Ícone Compress -->
+            <svg id="compress-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 hidden">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+            </svg>
+        </button>
+    </div>
+    {% endif %}
 
     <!-- Main Content com layout mais fluido -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -120,6 +138,8 @@
                                             class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105">
                                         Detalhes
                                     </button>
+
+            
                                 </div>
                             {% empty %}
                                 <!-- Quando não há comandas -->
@@ -138,6 +158,58 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Adicionar ao seu CSS */
+    .fullscreen-controls {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+    }
+
+    .fullscreen-controls button {
+        margin-left: 5px;
+        border-radius: 25px;
+        padding: 8px 15px;
+    }
+
+    /* Quando estiver em fullscreen */
+    :fullscreen {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+    }
+
+    :fullscreen .navbar,
+    :fullscreen .sidebar,
+    :fullscreen .header {
+        display: none !important;
+    }
+
+    :fullscreen #mainContent {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        padding: 20px;
+        margin: 0;
+    }
+
+    /* Para webkit browsers */
+    :-webkit-full-screen {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+    }
+
+    :-webkit-full-screen #mainContent {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        padding: 20px;
+        margin: 0;
+    }
+</style>
 
 
 {% include 'home/order_modal.html' %}
@@ -630,5 +702,152 @@ document.addEventListener('DOMContentLoaded', function() {
     animation: progressBar 5s linear forwards;
 }
 </style>
+
+// Adicionar ao final da sua home.html ou em arquivo JS separado
+<script>
+function toggleFullscreen() {
+    const expandIcon = document.getElementById('expand-icon');
+    const compressIcon = document.getElementById('compress-icon');
+    
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+            expandIcon.classList.add('hidden');
+            compressIcon.classList.remove('hidden');
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            expandIcon.classList.remove('hidden');
+            compressIcon.classList.add('hidden');
+        });
+    }
+}
+
+// Detectar mudanças de fullscreen (ESC, F11, etc)
+document.addEventListener('fullscreenchange', function() {
+    const expandIcon = document.getElementById('expand-icon');
+    const compressIcon = document.getElementById('compress-icon');
+    
+    if (document.fullscreenElement) {
+        expandIcon.classList.add('hidden');
+        compressIcon.classList.remove('hidden');
+    } else {
+        expandIcon.classList.remove('hidden');
+        compressIcon.classList.add('hidden');
+    }
+});
+
+// Para diferentes browsers
+['webkitfullscreenchange', 'mozfullscreenchange', 'msfullscreenchange'].forEach(event => {
+    document.addEventListener(event, function() {
+        const expandIcon = document.getElementById('expand-icon');
+        const compressIcon = document.getElementById('compress-icon');
+        
+        const isFullscreen = document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement;
+        
+        if (isFullscreen) {
+            expandIcon.classList.add('hidden');
+            compressIcon.classList.remove('hidden');
+        } else {
+            expandIcon.classList.remove('hidden');
+            compressIcon.classList.add('hidden');
+        }
+    });
+});
+
+</script>
+
+<script>
+function imprimirComanda(comandaCode) {
+    console.log('🖨️ Iniciando impressão para comanda:', comandaCode);
+    
+    // Buscar o botão através do evento ou do código da comanda
+    const btn = event.target.closest('button');
+    if (!btn) {
+        console.error('❌ Botão não encontrado');
+        mostrarNotificacao('❌ Erro: botão não encontrado', 'error');
+        return;
+    }
+    
+    const originalText = btn.innerHTML;
+    console.log('⏳ Alterando estado do botão...');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Imprimindo...';
+    btn.disabled = true;
+    
+    // Verificar CSRF token
+    const csrfToken = getCookie('csrftoken');
+    console.log('🔑 CSRF Token:', csrfToken ? 'OK' : 'NÃO ENCONTRADO');
+    
+    if (!csrfToken) {
+        mostrarNotificacao('❌ Erro: token CSRF não encontrado', 'error');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        return;
+    }
+    
+    console.log('📡 Fazendo requisição para:', `/comandas/${comandaCode}/imprimir/`);
+    
+    // Fazer requisição de impressão
+    fetch(`/accounts/comandas/${comandaCode}/imprimir/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('📥 Resposta recebida:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('📋 Dados recebidos:', data);
+        if (data.success) {
+            mostrarNotificacao('🖨️ ' + data.message, 'success');
+        } else {
+            mostrarNotificacao('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Erro na requisição:', error);
+        mostrarNotificacao('❌ Erro na comunicação', 'error');
+    })
+    .finally(() => {
+        console.log('🔄 Restaurando botão...');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+</script>
+
+<!-- Auto fullscreen para usuário balcao -->
+{% if user.username == 'balcao' and not user.is_superuser %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Aguardar 500ms para garantir que a página carregou completamente
+    setTimeout(function() {
+        console.log('🖥️ Usuário balcão detectado - Expandindo tela automaticamente...');
+        
+        // Entrar em fullscreen automaticamente
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().then(() => {
+                console.log('✅ Tela expandida automaticamente para usuário balcão');
+                
+                // Atualizar os ícones
+                const expandIcon = document.getElementById('expand-icon');
+                const compressIcon = document.getElementById('compress-icon');
+                if (expandIcon && compressIcon) {
+                    expandIcon.classList.add('hidden');
+                    compressIcon.classList.remove('hidden');
+                }
+            }).catch(err => {
+                console.log('❌ Erro ao expandir automaticamente:', err);
+            });
+        }
+    }, 500);
+});
+</script>
+
+{% endif %}
 
 {% endblock %}

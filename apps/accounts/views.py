@@ -17,6 +17,8 @@ import json
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, get_object_or_404
 from .forms import UserPermissionForm
+from apps.impressao.services import epson_service
+from django.http import JsonResponse
 
 
 class CustomLoginView(LoginView):
@@ -271,3 +273,114 @@ class CheckOrderChangesView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             })
+
+
+def imprimir_comanda_view(request, comanda_code):
+    """View para imprimir comanda"""
+    if request.method == 'POST':
+        try:
+            # Buscar a comanda pelo código
+            comanda = Order.objects.get(code=comanda_code)
+            
+            # Preparar dados para impressão
+            dados_impressao = {
+                'id': comanda.id,
+                'mesa': comanda.name,
+                'data': comanda.created_at.strftime('%d/%m/%Y %H:%M'),
+                'itens': []
+            }
+            
+            # Adicionar itens da comanda
+            for item in comanda.items.all():
+                dados_impressao['itens'].append({
+                    'nome': item.product.name,
+                    'qtd': item.quantity,
+                    'preco': float(item.unit_price),
+                    'subtotal': float(item.total_price)
+                })
+            
+            # Imprimir
+            sucesso = epson_service.imprimir_comanda(dados_impressao)
+            
+            if sucesso:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Comanda impressa com sucesso!'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro na impressão. Verifique a impressora.'
+                })
+                
+        except Order.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Comanda não encontrada.'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método não permitido'})
+
+def imprimir_cupom_view(request, comanda_code):
+    """View para imprimir cupom fiscal/recibo"""
+    if request.method == 'POST':
+        try:
+            import json
+            
+            # Buscar a comanda pelo código
+            comanda = Order.objects.get(code=comanda_code)
+            
+            # Obter dados do corpo da requisição
+            body_data = json.loads(request.body)
+            
+            # Preparar dados para impressão de cupom
+            dados_cupom = {
+                'tipo': 'cupom',
+                'codigo': comanda.code,
+                'cliente': comanda.name,
+                'data': comanda.created_at.strftime('%d/%m/%Y %H:%M'),
+                'metodo_pagamento': body_data.get('metodo_pagamento', 'Não informado'),
+                'total': body_data.get('total', f'R$ {float(comanda.total_amount):.2f}'),
+                'itens': []
+            }
+            
+            # Adicionar itens da comanda
+            for item in comanda.items.all():
+                dados_cupom['itens'].append({
+                    'nome': item.product.name,
+                    'qtd': item.quantity,
+                    'preco': float(item.unit_price),
+                    'subtotal': float(item.unit_price * item.quantity)
+                })
+            
+            # Imprimir usando o serviço
+            sucesso = epson_service.imprimir_cupom(dados_cupom)
+            
+            if sucesso:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Cupom impresso com sucesso!'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro na impressão. Verifique a impressora.'
+                })
+                
+        except Order.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Comanda não encontrada.'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método não permitido'})

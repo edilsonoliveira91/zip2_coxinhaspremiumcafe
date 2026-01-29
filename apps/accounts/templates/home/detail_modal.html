@@ -178,6 +178,11 @@
                         <button onclick="clearEditCart()" class="px-8 py-4 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-medium">
                             Limpar Alterações
                         </button>
+
+                        <button onclick="imprimirCupomModal()" class="px-8 py-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium">
+                            🖨️ Imprimir Cupom
+                        </button>
+
                         <button onclick="updateOrderStatus()" class="px-8 py-4 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium">
                             Mudar Status
                         </button>
@@ -581,6 +586,44 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+
+function imprimirCupomModal() {
+    const orderCode = document.getElementById('editOrderCode').textContent;
+    const orderName = document.getElementById('editOrderName').textContent;
+    
+    console.log('🖨️ Imprimindo cupom do modal para comanda:', orderCode);
+    
+    // Dados para impressão
+    const cupomData = {
+        codigo: orderCode,
+        cliente: orderName,
+        metodo_pagamento: 'Balcão', // Pode ser customizado
+        total: document.getElementById('editOrderTotal').textContent
+    };
+    
+    // Fazer requisição para impressão
+    fetch(`/accounts/comandas/${orderCode}/imprimir-cupom/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cupomData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarNotificacao('🖨️ Cupom impresso com sucesso!', 'success');
+        } else {
+            mostrarNotificacao('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarNotificacao('❌ Erro na comunicação', 'error');
+    });
 }
 </script>
 

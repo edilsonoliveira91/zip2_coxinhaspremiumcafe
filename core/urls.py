@@ -22,6 +22,7 @@ urlpatterns = [
     path('checkouts/', include('checkouts.urls', namespace='checkouts')),
     path('pinpads/', include('pinpads.urls', namespace='pinpads')),
     path('financials/', include('financials.urls', namespace='financials')),
+    path('companys/', include('companys.urls', namespace='companys')),
     
     # Webhook Mercado Pago - APENAS ESTA LINHA
     path('webhook/mercadopago/payment/', mercadopago_webhook, name='mercadopago_webhook'),

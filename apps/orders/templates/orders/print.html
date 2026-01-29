@@ -200,7 +200,7 @@
             margin: 6px 0;
         }
 
-                /* Tipo do cupom fiscal */
+        /* Tipo do cupom fiscal */
         .fiscal-type {
             text-align: center;
             border: 1px solid #000;
@@ -272,7 +272,7 @@
                 </div>
             </div>
             <div class="item-right">
-                    <div class="item-price">R$ {{ item.subtotal|floatformat:2 }}</div>
+                <div class="item-price">R$ {{ item.subtotal|floatformat:2 }}</div>
             </div>
         </div>
         {% empty %}
@@ -319,24 +319,29 @@
             Impresso em: {{ print_time|date:"d/m/Y H:i" }}
         </div>
     </div>
+
     <script>
-        // Detectar se foi chamada para impressão automática
-        const urlParams = new URLSearchParams(window.location.search);
-        const autoPrint = urlParams.get('auto_print') === 'true';
-        
-        if (autoPrint) {
-            // Aguardar um pouco para a página carregar completamente
+        // Auto-imprimir quando carregar
+        window.addEventListener('load', function() {
+            // Aguardar um pouco mais para garantir que tudo carregou
             setTimeout(() => {
-                window.print();
-                
-                // Opcional: fechar a janela após a impressão (pode ser removido se não desejar)
-                setTimeout(() => {
-                    if (window.opener) {
-                        window.close();
-                    }
-                }, 1000);
-            }, 500);
-        }
+                try {
+                    window.print();
+                    
+                    // Fechar após impressão se veio de pop-up
+                    window.addEventListener('afterprint', function() {
+                        setTimeout(() => {
+                            if (window.opener) {
+                                window.close();
+                            }
+                        }, 1000);
+                    });
+                    
+                } catch (e) {
+                    console.log('Erro na impressão automática:', e);
+                }
+            }, 1000);
+        });
     </script>
 </body>
 </html>

@@ -713,8 +713,69 @@ function closeSuccessModal() {
 }
 
 function printReceipt() {
-    const orderData = getCurrentOrderData();
-    openPrintWindow(orderData);
+    console.log('🖨️ Iniciando impressão de cupom...');
+    
+    // Obter dados da comanda do modal
+    const orderCode = document.getElementById('orderCode').textContent.replace('#', '');
+    const customerName = document.getElementById('customerName').textContent;
+    const paymentMethod = document.getElementById('paymentMethod').textContent;
+    const totalAmount = document.getElementById('totalAmount').textContent;
+    
+    // Dados para impressão
+    const cupomData = {
+        codigo: orderCode,
+        cliente: customerName,
+        metodo_pagamento: paymentMethod,
+        total: totalAmount,
+        itens: getItemsFromModal()
+    };
+    
+    console.log('📋 Dados do cupom:', cupomData);
+    
+    // Fazer requisição para impressão de cupom
+    fetch(`/accounts/comandas/${orderCode}/imprimir-cupom/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cupomData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarNotificacao('🖨️ Cupom impresso com sucesso!', 'success');
+        } else {
+            mostrarNotificacao('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarNotificacao('❌ Erro na comunicação', 'error');
+    });
+}
+
+// Função auxiliar para extrair itens do modal
+function getItemsFromModal() {
+    const itens = [];
+    const itemsContainer = document.getElementById('itemsList');
+    const itemElements = itemsContainer.querySelectorAll('.item-name');
+    
+    itemElements.forEach((item, index) => {
+        const nameElement = item;
+        const detailsElement = item.parentElement.querySelector('.item-details');
+        const priceElement = item.parentElement.parentElement.querySelector('.item-price');
+        
+        if (nameElement && priceElement) {
+            itens.push({
+                nome: nameElement.textContent,
+                detalhes: detailsElement ? detailsElement.textContent : '',
+                preco: priceElement.textContent
+            });
+        }
+    });
+    
+    return itens;
 }
 
 function newOrder() {

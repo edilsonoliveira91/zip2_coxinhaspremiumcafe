@@ -520,7 +520,26 @@ class OrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     slug_field = 'code'
     slug_url_kwarg = 'code'
     login_url = reverse_lazy('accounts:login')
-
+    
+    def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        context = super().get_context_data(**kwargs)
+        
+        # Detectar se é impressão fiscal
+        is_fiscal = self.request.GET.get('fiscal') == 'true'
+        
+        # Calcular subtotal para cada item
+        order = context['order']
+        for item in order.items.all():
+            item.subtotal = item.quantity * item.unit_price
+        
+        context.update({
+            'is_fiscal': is_fiscal,
+            'tem_nfce': order.tem_nfce,
+            'print_time': timezone.now()
+        })
+        
+        return context
 
 class OrderBarcodeView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Gerar código de barras para impressão"""
@@ -769,3 +788,380 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
         ).order_by('-delivered_at').first()
         
         return context
+
+
+# Adicione estes imports no início do arquivo (se não existirem):
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+import logging
+
+# Adicione no final do arquivo views.py:
+
+class EmitirNFCeView(LoginRequiredMixin, View):
+    """
+    View para emissão de NFCe de uma comanda finalizada
+    """
+    
+    def post(self, request, code):
+        """
+        Processa a emissão de NFCe para uma comanda
+        """
+        try:
+            # Busca a comanda
+            order = get_object_or_404(
+                Order,
+                code=code,
+                status='entregue'  # Só permite NFCe de comandas entregues
+            )
+            
+            # Verifica se já foi emitida NFCe
+            if hasattr(order, 'nfce') and order.nfce:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'NFCe já foi emitida para esta comanda. Número: {order.nfce.numero}'
+                })
+            
+            # Busca empresa ativa para emissão
+            from companys.models import Company
+            try:
+                empresa = Company.objects.filter(ativa=True).first()
+                if not empresa:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Nenhuma empresa ativa encontrada para emissão de NFCe'
+                    })
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro ao buscar configuração da empresa'
+                })
+            
+            # Valida se empresa tem configurações necessárias
+            validacao_result = self._validar_configuracao_empresa_detalhada(empresa)
+            if not validacao_result['valida']:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Empresa incompleta. Campos obrigatórios faltando: {", ".join(validacao_result["campos_faltando"])}'
+                })
+            
+            # Emite a NFCe
+            resultado = self._processar_emissao_nfce(order, empresa)
+            
+            if resultado['success']:
+                # Salva dados da NFCe na comanda
+                self._salvar_nfce_na_comanda(order, resultado['dados_nfce'])
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'NFCe emitida com sucesso!',
+                    'numero_nfce': resultado['dados_nfce']['numero'],
+                    'chave_acesso': resultado['dados_nfce']['chave_acesso']
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': f"Erro na emissão: {resultado['erro']}"
+                })
+                
+        except Order.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Comanda não encontrada ou não está finalizada'
+            })
+        except Exception as e:
+            # Log do erro para debugging
+            logging.error(f"Erro ao emitir NFCe para comanda {code}: {str(e)}")
+            
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro interno do servidor: {str(e)}'
+            })
+    
+    def _validar_configuracao_empresa(self, empresa):
+        """
+        Valida se a empresa tem todas as configurações necessárias
+        """
+        campos_obrigatorios = [
+            'cnpj', 'razao_social', 'logradouro', 'numero',
+            'bairro', 'cidade', 'uf', 'cep', 'csc_id', 'csc_codigo'
+        ]
+        
+        campos_faltando = []
+        
+        for campo in campos_obrigatorios:
+            valor = getattr(empresa, campo, None)
+            if not valor:
+                campos_faltando.append(campo)
+        
+        if campos_faltando:
+            print(f"DEBUG: Campos faltando na empresa: {campos_faltando}")
+            return False
+        
+        return True
+
+    def _validar_configuracao_empresa_detalhada(self, empresa):
+        """
+        Valida empresa e retorna detalhes dos campos faltando
+        """
+        campos_obrigatorios = {
+            'cnpj': 'CNPJ',
+            'razao_social': 'Razão Social', 
+            'logradouro': 'Logradouro',
+            'numero': 'Número',
+            'bairro': 'Bairro',
+            'cidade': 'Cidade',
+            'uf': 'UF',
+            'cep': 'CEP',
+            'csc_id': 'CSC ID',
+            'csc_codigo': 'CSC Código'
+        }
+        
+        campos_faltando = []
+        
+        for campo, nome_amigavel in campos_obrigatorios.items():
+            valor = getattr(empresa, campo, None)
+            if not valor:
+                campos_faltando.append(nome_amigavel)
+        
+        return {
+            'valida': len(campos_faltando) == 0,
+            'campos_faltando': campos_faltando
+        }
+    
+    def _processar_emissao_nfce(self, order, empresa):
+        """
+        Processa a emissão da NFCe usando a biblioteca PyNFe
+        """
+        try:
+            # Importa a biblioteca de NFCe (PyNFe será implementada depois)
+            # Por enquanto, simula a emissão
+            
+            # Gera próximo número da NFCe
+            proximo_numero = empresa.proximo_numero_nfce
+            
+            # Monta dados da NFCe
+            dados_nfce = self._montar_dados_nfce(order, empresa, proximo_numero)
+            
+            # Simula emissão (substituir pela integração real com PyNFe)
+            if self._simular_emissao_nfce(dados_nfce):
+                # Incrementa número da empresa
+                empresa.proximo_numero_nfce = proximo_numero + 1
+                empresa.save()
+                
+                return {
+                    'success': True,
+                    'dados_nfce': {
+                        'numero': proximo_numero,
+                        'serie': empresa.serie_nfce,
+                        'chave_acesso': f"2026{empresa.cnpj.replace('.', '').replace('/', '').replace('-', '')}{proximo_numero:09d}",
+                        'protocolo': f"PRO{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                        'data_emissao': timezone.now(),
+                        'valor_total': order.total_amount
+                    }
+                }
+            else:
+                return {
+                    'success': False,
+                    'erro': 'Falha na comunicação com a SEFAZ'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'erro': str(e)
+            }
+    
+    def _montar_dados_nfce(self, order, empresa, numero):
+        """
+        Monta estrutura de dados da NFCe
+        """
+        return {
+            'empresa': {
+                'cnpj': empresa.cnpj,
+                'razao_social': empresa.razao_social,
+                'nome_fantasia': empresa.nome_fantasia,
+                'endereco': {
+                    'logradouro': empresa.logradouro,
+                    'numero': empresa.numero,
+                    'complemento': empresa.complemento,
+                    'bairro': empresa.bairro,
+                    'cidade': empresa.cidade,
+                    'uf': empresa.uf,
+                    'cep': empresa.cep,
+                }
+            },
+            'nfce': {
+                'numero': numero,
+                'serie': empresa.serie_nfce,
+                'data_emissao': timezone.now(),
+                'ambiente': empresa.ambiente_nfce,
+            },
+            'cliente': {
+                'nome': order.name,  # Campo correto é 'name'
+                'cpf': '',  # Por enquanto vazio, implementar depois se necessário
+            },
+            'itens': [
+                {
+                    'codigo': getattr(item.product, 'code', str(item.product.id)),
+                    'descricao': item.product.name,
+                    'quantidade': item.quantity,
+                    'valor_unitario': item.unit_price,
+                    'valor_total': item.total_price,
+                    'cfop': '5102',  # CFOP padrão para venda
+                    'ncm': getattr(item.product, 'ncm', ''),
+                }
+                for item in order.items.all()
+            ],
+            'totais': {
+                'valor_produtos': order.total_amount,
+                'valor_total': order.total_amount,
+            }
+        }
+    
+    def _simular_emissao_nfce(self, dados_nfce):
+        """
+        Simula a emissão da NFCe
+        TODO: Substituir pela integração real com PyNFe
+        """
+        # Por enquanto sempre retorna sucesso para testar
+        # Aqui será implementada a integração com PyNFe
+        import time
+        time.sleep(1)  # Simula tempo de processamento
+        return True
+    
+    def _salvar_nfce_na_comanda(self, order, dados_nfce):
+        """
+        Salva os dados da NFCe na comanda
+        TODO: Criar modelo NFCe relacionado com Order
+        """
+        # Por enquanto salva em campos simples na Order
+        # Depois criar um modelo NFCe separado
+        order.nfce_numero = dados_nfce['numero']
+        order.nfce_chave = dados_nfce['chave_acesso']
+        order.nfce_protocolo = dados_nfce['protocolo']
+        order.nfce_emitida_em = dados_nfce['data_emissao']
+        order.save()
+
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CheckoutDirectPrintView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    View para impressão direta na impressora
+    """
+    permission_required = 'checkouts.view_checkout'
+    
+    def post(self, request, *args, **kwargs):
+        code = self.kwargs.get('code')
+        is_fiscal = request.POST.get('fiscal') == 'true'
+        
+        try:
+            order = Order.objects.prefetch_related('items__product').get(code=code)
+            
+            # Gerar conteúdo do cupom
+            cupom_content = self._gerar_cupom_content(order, is_fiscal)
+            
+            # Enviar para impressora (implementar conforme sua impressora)
+            success = self._enviar_para_impressora(cupom_content)
+            
+            if success:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Cupom impresso com sucesso!'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Falha ao enviar para impressora'
+                })
+                
+        except Order.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': f'Comanda #{code} não encontrada'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro: {str(e)}'
+            })
+    
+    def _gerar_cupom_content(self, order, is_fiscal):
+        """Gera o conteúdo do cupom em formato texto"""
+        
+        lines = []
+        lines.append("=" * 40)
+        lines.append("      COXINHAS PREMIUM CAFÉ")
+        lines.append("       Cafeteria & Salgados")
+        lines.append("       Tel: (11) 9999-9999")
+        lines.append("=" * 40)
+        
+        if is_fiscal and order.tem_nfce:
+            lines.append("")
+            lines.append("      ** CUPOM FISCAL **")
+            lines.append(f"      NFCe N° {order.nfce_numero}")
+            lines.append("")
+        
+        lines.append(f"COMANDA #{order.code}")
+        lines.append(f"Cliente: {order.name}")
+        lines.append(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}")
+        lines.append("-" * 40)
+        lines.append("ITENS:")
+        
+        for item in order.items.all():
+            subtotal = item.quantity * item.unit_price
+            lines.append(f"{item.quantity}x {item.product.name}")
+            lines.append(f"   R$ {item.unit_price:.2f} = R$ {subtotal:.2f}")
+        
+        lines.append("-" * 40)
+        lines.append(f"TOTAL: R$ {order.total_amount:.2f}")
+        lines.append("=" * 40)
+        lines.append("   Obrigado pela preferência!")
+        lines.append("     ★★★ Volte sempre! ★★★")
+        lines.append("")
+        
+        return "\n".join(lines)
+    
+    def _enviar_para_impressora(self, content):
+        """
+        Enviar conteúdo para impressora
+        Implementar conforme o tipo de impressora que você tem
+        """
+        
+        try:
+            # OPÇÃO 1: Para impressora de rede/IP
+            # import socket
+            # printer_ip = "192.168.1.100"  # IP da sua impressora
+            # printer_port = 9100
+            # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # sock.connect((printer_ip, printer_port))
+            # sock.send(content.encode('utf-8'))
+            # sock.close()
+            
+            # OPÇÃO 2: Para impressora USB/Serial no Windows
+            # import win32print
+            # printer_name = win32print.GetDefaultPrinter()
+            # win32print.StartDocPrinter(printer_name, 1, ("Cupom", None, "RAW"))
+            # win32print.WritePrinter(printer_name, content.encode('utf-8'))
+            # win32print.EndDocPrinter(printer_name)
+            
+            # OPÇÃO 3: Para Linux (lp command)
+            # import subprocess
+            # subprocess.run(['lp', '-d', 'nome_impressora'], input=content.encode('utf-8'))
+            
+            # TEMPORÁRIO: Apenas log para teste
+            print("CUPOM PARA IMPRESSÃO:")
+            print(content)
+            print("=" * 50)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Erro ao imprimir: {e}")
+            return False

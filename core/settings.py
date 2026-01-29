@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'checkouts',
     'pinpads',
     'financials',
+    'companys',
 ]
 
 MIDDLEWARE = [

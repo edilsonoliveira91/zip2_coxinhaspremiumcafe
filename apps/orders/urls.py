@@ -13,6 +13,7 @@ urlpatterns = [
 
     # Comandas finalizadas
     path('finalizadas/', views.ClosedOrdersListView.as_view(), name='closed_orders'),
+    path('<str:code>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce'),
     path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
 
     path('<str:code>/', views.OrderDetailView.as_view(), name='detail'),
@@ -50,4 +51,5 @@ urlpatterns = [
     path('today/', views.TodayOrdersView.as_view(), name='today'),
     path('active/', views.ActiveOrdersView.as_view(), name='active'),
 
+    path('<str:code>/print-direct/', views.CheckoutDirectPrintView.as_view(), name='print_direct'),
 ]

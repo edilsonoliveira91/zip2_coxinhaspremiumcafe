@@ -3,6 +3,7 @@ from .rede import RedeItauService
 from .base import PaymentProviderService
 
 PROVIDER_SERVICES = {
+    'mercado_pago': MercadoPagoPointService,
     'mercadopago': MercadoPagoPointService,
     'rede': RedeItauService,
     # 'stone': StoneService,  # Futuro

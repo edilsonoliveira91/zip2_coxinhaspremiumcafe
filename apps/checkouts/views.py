@@ -96,6 +96,7 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
     
     def get(self, request, *args, **kwargs):
         code = self.kwargs.get('code')
+        is_fiscal = request.GET.get('fiscal') == 'true'
         
         try:
             order = Order.objects.prefetch_related('items__product').get(code=code)
@@ -106,7 +107,9 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             
             context = {
                 'order': order,
-                'print_time': datetime.now()
+                'print_time': datetime.now(),
+                'is_fiscal': is_fiscal,
+                'tem_nfce': order.tem_nfce
             }
             
             return render(request, self.template_name, context)
@@ -115,7 +118,6 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             return HttpResponse(f"<h1>Comanda #{code} não encontrada</h1><p>Verifique se o código está correto.</p>")
         except Exception as e:
             return HttpResponse(f"<h1>Erro ao carregar comanda</h1><p>Erro: {str(e)}</p>")
-
 
 class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
