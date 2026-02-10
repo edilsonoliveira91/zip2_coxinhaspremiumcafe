@@ -932,41 +932,22 @@ class EmitirNFCeView(LoginRequiredMixin, View):
     
     def _processar_emissao_nfce(self, order, empresa):
         """
-        Processa a emissão da NFCe usando a biblioteca PyNFe
+        Processa a emissão da NFCe usando o NFCeService
         """
         try:
-            # Importa a biblioteca de NFCe (PyNFe será implementada depois)
-            # Por enquanto, simula a emissão
+            from apps.utils.nfce_service import NFCeService
             
-            # Gera próximo número da NFCe
-            proximo_numero = empresa.proximo_numero_nfce
+            # Pega CPF do cliente se foi fornecido
+            cpf_cliente = self.request.POST.get('cpf_cliente')
             
-            # Monta dados da NFCe
-            dados_nfce = self._montar_dados_nfce(order, empresa, proximo_numero)
+            # Cria serviço de NFCe
+            nfce_service = NFCeService(empresa)
             
-            # Simula emissão (substituir pela integração real com PyNFe)
-            if self._simular_emissao_nfce(dados_nfce):
-                # Incrementa número da empresa
-                empresa.proximo_numero_nfce = proximo_numero + 1
-                empresa.save()
-                
-                return {
-                    'success': True,
-                    'dados_nfce': {
-                        'numero': proximo_numero,
-                        'serie': empresa.serie_nfce,
-                        'chave_acesso': f"2026{empresa.cnpj.replace('.', '').replace('/', '').replace('-', '')}{proximo_numero:09d}",
-                        'protocolo': f"PRO{timezone.now().strftime('%Y%m%d%H%M%S')}",
-                        'data_emissao': timezone.now(),
-                        'valor_total': order.total_amount
-                    }
-                }
-            else:
-                return {
-                    'success': False,
-                    'erro': 'Falha na comunicação com a SEFAZ'
-                }
-                
+            # Emite NFCe
+            resultado = nfce_service.emitir_nfce(order, cpf_cliente)
+            
+            return resultado
+                    
         except Exception as e:
             return {
                 'success': False,
