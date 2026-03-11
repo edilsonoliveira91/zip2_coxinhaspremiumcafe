@@ -429,26 +429,55 @@ function viewOrderDetails(orderCode) {
     window.location.href = detailUrl;
 }
 
-function printOrder(orderCode, temNFCe = false) {
-    // Usar a mesma URL do detalhe da comanda, mas com parâmetro fiscal se necessário
-    let printUrl = `/orders/${orderCode}/print/`;
+// NOVA função unificada (substitui a atual)
+function printOrderSilent(orderCode, temNFCe = false) {
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
-    if (temNFCe) {
-        printUrl += '?fiscal=true';
+    try {
+        let printUrl;
+        
+        if (temNFCe) {
+            // Cupom fiscal - usar URL especializada
+            printUrl = `/orders/${orderCode}/cupom-fiscal/?auto_print=true`;
+        } else {
+            // Cupom normal - usar URL padrão
+            printUrl = `/orders/${orderCode}/print/?auto_print=true`;
+        }
+        
+        // Abrir em nova janela (igual ao modal)
+        const printWindow = window.open(printUrl, '_blank', 'width=400,height=700');
+        
+        button.innerHTML = originalContent;
+        
+        if (printWindow) {
+            showToast('🖨️ Abrindo impressão...', 'success');
+        } else {
+            showToast('❌ Bloqueador de pop-up ativo. Permita pop-ups.', 'warning');
+        }
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        button.innerHTML = originalContent;
+        showToast('❌ Erro na impressão', 'error');
     }
-    
-    // Abrir em nova janela como no detalhe da comanda
-    const printWindow = window.open(
-        printUrl, 
-        'printWindow', 
-        'width=400,height=700,scrollbars=yes,resizable=yes'
-    );
-    
-    if (printWindow) {
-        printWindow.focus();
-    } else {
-        alert('Por favor, permita pop-ups para imprimir comandas.');
+}
+
+// Função auxiliar para CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
     }
+    return cookieValue;
 }
 // Função para impressão direta usando iframe invisível
 function printDirectly(htmlContent) {
@@ -798,53 +827,72 @@ function debugFilters() {
     console.log('Visible rows:', document.querySelectorAll('.order-row:not([style*="none"])').length);
 }
 
-// Função para impressão silenciosa (versão segura)
+// SUBSTITUA a função printOrderSilent (linhas ~433-478) por esta:
 function printOrderSilent(orderCode, temNFCe = false) {
-    // Mostrar loading no botão
     const button = event.target.closest('button');
     const originalContent = button.innerHTML;
     button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
     try {
-        // URL para impressão
-        let printUrl = `/orders/${orderCode}/print/`;
         if (temNFCe) {
-            printUrl += '?fiscal=true';
-        }
-        
-        // Tentar abrir janela normal primeiro
-        const printWindow = window.open(printUrl, '_blank');
-        
-        if (printWindow) {
-            // Sucesso - janela aberta
-            button.innerHTML = originalContent;
-            showToast('✓ Abrindo impressão...', 'success');
+            // CUPOM FISCAL - IMPRESSÃO DIRETA EPSON
+            showToast('🖨️ Imprimindo cupom fiscal na Epson...', 'info');
+            
+            fetch(`/orders/${orderCode}/cupom-fiscal-direto/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.innerHTML = originalContent;
+                
+                if (data.success) {
+                    showToast(`✅ ${data.message}`, 'success');
+                } else {
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                button.innerHTML = originalContent;
+                showToast('❌ Erro na comunicação com a impressora', 'error');
+            });
+            
         } else {
-            // Pop-up bloqueado - usar navegação direta
-            button.innerHTML = originalContent;
+            // CUPOM NORMAL - IMPRESSÃO DIRETA EPSON
+            showToast('🖨️ Imprimindo cupom normal na Epson...', 'info');
             
-            // Criar link temporário e clicar
-            const link = document.createElement('a');
-            link.href = printUrl;
-            link.target = '_blank';
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showToast('✓ Redirecionando para impressão...', 'info');
+            fetch(`/orders/${orderCode}/print-direct/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.innerHTML = originalContent;
+                
+                if (data.success) {
+                    showToast(`✅ ${data.message}`, 'success');
+                } else {
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                button.innerHTML = originalContent;
+                showToast('❌ Erro na comunicação com a impressora', 'error');
+            });
         }
         
     } catch (error) {
         console.error('Erro:', error);
         button.innerHTML = originalContent;
-        
-        // Fallback: navegação direta na mesma aba
-        let printUrl = `/orders/${orderCode}/print/`;
-        if (temNFCe) {
-            printUrl += '?fiscal=true';
-        }
-        window.location.href = printUrl;
+        showToast('❌ Erro na impressão', 'error');
     }
 }
 </script>

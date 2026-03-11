@@ -188,7 +188,9 @@ class CertificadoDigital(TimeStampedModel):
     
     valido_ate = models.DateTimeField(
         verbose_name="Válido até",
-        help_text="Data de expiração do certificado"
+        help_text="Data de expiração do certificado",
+        blank=True,
+        null=True
     )
     
     emissor = models.CharField(
@@ -207,4 +209,5 @@ class CertificadoDigital(TimeStampedModel):
         verbose_name_plural = "Certificados Digitais"
 
     def __str__(self):
-        return f"Certificado {self.company.razao_social} - Válido até {self.valido_ate.strftime('%d/%m/%Y')}"
+        validade = f" - Válido até {self.valido_ate.strftime('%d/%m/%Y')}" if self.valido_ate else ""
+        return f"Certificado {self.company.razao_social}{validade}"

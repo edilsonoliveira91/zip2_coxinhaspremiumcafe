@@ -52,4 +52,10 @@ urlpatterns = [
     path('active/', views.ActiveOrdersView.as_view(), name='active'),
 
     path('<str:code>/print-direct/', views.CheckoutDirectPrintView.as_view(), name='print_direct'),
+
+    # Adicionar ao urlpatterns
+    path('<str:code>/cupom-fiscal/', views.CupomFiscalPrintView.as_view(), name='cupom_fiscal'),
+    # Adicionar esta linha
+    path('<str:code>/cupom-fiscal-direto/', views.CupomFiscalDirectPrintView.as_view(), name='cupom_fiscal_direto'),
+    path('teste-impressao-automatica/', views.TesteImpressaoAutomaticaView.as_view(), name='teste_impressao_automatica'),
 ]

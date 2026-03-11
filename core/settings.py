@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'pinpads',
     'financials',
     'companys',
+    'reports',
 ]
 
 MIDDLEWARE = [

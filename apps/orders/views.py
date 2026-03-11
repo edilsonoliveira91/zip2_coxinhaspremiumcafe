@@ -3,7 +3,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
 import json
@@ -849,15 +849,15 @@ class EmitirNFCeView(LoginRequiredMixin, View):
             # Emite a NFCe
             resultado = self._processar_emissao_nfce(order, empresa)
             
-            if resultado['success']:
+            if resultado['sucesso']:
                 # Salva dados da NFCe na comanda
-                self._salvar_nfce_na_comanda(order, resultado['dados_nfce'])
+                self._salvar_nfce_na_comanda(order, resultado)
                 
                 return JsonResponse({
                     'success': True,
                     'message': 'NFCe emitida com sucesso!',
-                    'numero_nfce': resultado['dados_nfce']['numero'],
-                    'chave_acesso': resultado['dados_nfce']['chave_acesso']
+                    'numero_nfce': resultado['numero_nfce'],
+                    'chave_acesso': resultado['chave_acesso']
                 })
             else:
                 return JsonResponse({
@@ -950,7 +950,7 @@ class EmitirNFCeView(LoginRequiredMixin, View):
                     
         except Exception as e:
             return {
-                'success': False,
+                'sucesso': False,  # CORRIGIDO: 'sucesso' em vez de 'success'
                 'erro': str(e)
             }
     
@@ -1019,10 +1019,10 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         """
         # Por enquanto salva em campos simples na Order
         # Depois criar um modelo NFCe separado
-        order.nfce_numero = dados_nfce['numero']
+        order.nfce_numero = dados_nfce['numero_nfce']
         order.nfce_chave = dados_nfce['chave_acesso']
         order.nfce_protocolo = dados_nfce['protocolo']
-        order.nfce_emitida_em = dados_nfce['data_emissao']
+        order.nfce_emitida_em = timezone.now()
         order.save()
 
 
@@ -1031,46 +1031,50 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+# Substituir a CheckoutDirectPrintView completa (linha ~1035-1135)
 @method_decorator(csrf_exempt, name='dispatch')
-class CheckoutDirectPrintView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class CheckoutDirectPrintView(LoginRequiredMixin, View):
     """
-    View para impressão direta na impressora
+    View para impressão direta automática na Epson TM-T20X II
     """
-    permission_required = 'checkouts.view_checkout'
     
     def post(self, request, *args, **kwargs):
         code = self.kwargs.get('code')
-        is_fiscal = request.POST.get('fiscal') == 'true'
         
         try:
-            order = Order.objects.prefetch_related('items__product').get(code=code)
+            # Buscar a comanda
+            order = get_object_or_404(
+                Order.objects.prefetch_related('items__product'),
+                code=code
+            )
             
-            # Gerar conteúdo do cupom
-            cupom_content = self._gerar_cupom_content(order, is_fiscal)
+            # Usar serviço Epson para impressão direta
+            from apps.utils.epson_service import EpsonTMT20XService
             
-            # Enviar para impressora (implementar conforme sua impressora)
-            success = self._enviar_para_impressora(cupom_content)
+            epson = EpsonTMT20XService(
+                printer_name="EPSON_TM_T20X_II",
+                connection_type="usb"
+            )
             
-            if success:
+            # Imprimir cupom normal diretamente
+            resultado = epson.imprimir_cupom_normal_direto(order)
+            
+            if resultado['sucesso']:
                 return JsonResponse({
                     'success': True,
-                    'message': 'Cupom impresso com sucesso!'
+                    'message': f'✅ Cupom impresso na {resultado["impressora"]}!',
+                    'tipo': resultado['tipo']
                 })
             else:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Falha ao enviar para impressora'
+                    'message': f'❌ Erro: {resultado["erro"]}'
                 })
                 
-        except Order.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': f'Comanda #{code} não encontrada'
-            })
         except Exception as e:
             return JsonResponse({
                 'success': False,
-                'message': f'Erro: {str(e)}'
+                'message': f'❌ Erro interno: {str(e)}'
             })
     
     def _gerar_cupom_content(self, order, is_fiscal):
@@ -1111,38 +1115,275 @@ class CheckoutDirectPrintView(LoginRequiredMixin, PermissionRequiredMixin, View)
     
     def _enviar_para_impressora(self, content):
         """
-        Enviar conteúdo para impressora
-        Implementar conforme o tipo de impressora que você tem
+        Enviar conteúdo para impressora Epson TM-T20X II
         """
-        
         try:
-            # OPÇÃO 1: Para impressora de rede/IP
-            # import socket
-            # printer_ip = "192.168.1.100"  # IP da sua impressora
-            # printer_port = 9100
-            # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # sock.connect((printer_ip, printer_port))
-            # sock.send(content.encode('utf-8'))
-            # sock.close()
+            from apps.utils.epson_service import EpsonTMT20XService
             
-            # OPÇÃO 2: Para impressora USB/Serial no Windows
-            # import win32print
-            # printer_name = win32print.GetDefaultPrinter()
-            # win32print.StartDocPrinter(printer_name, 1, ("Cupom", None, "RAW"))
-            # win32print.WritePrinter(printer_name, content.encode('utf-8'))
-            # win32print.EndDocPrinter(printer_name)
+            # Configurar impressora  
+            epson = EpsonTMT20XService(
+                printer_name="TM-T20X",  # Ajuste conforme sua instalação
+                connection_type="usb"    # ou "network"
+            )
             
-            # OPÇÃO 3: Para Linux (lp command)
-            # import subprocess
-            # subprocess.run(['lp', '-d', 'nome_impressora'], input=content.encode('utf-8'))
+            # Testar conexão
+            if not epson.testar_conexao():
+                print("[EPSON] Impressora não encontrada")
+                return False
             
-            # TEMPORÁRIO: Apenas log para teste
-            print("CUPOM PARA IMPRESSÃO:")
-            print(content)
-            print("=" * 50)
-            
-            return True
+            # Enviar conteúdo direto (adaptar para cupom normal)
+            return epson._enviar_para_epson(content)
             
         except Exception as e:
-            print(f"Erro ao imprimir: {e}")
+            print(f"[EPSON] Erro: {e}")
             return False
+
+
+# Adicionar ao final do arquivo views.py
+
+class CupomFiscalPrintView(LoginRequiredMixin, View):
+    """
+    View para impressão do cupom fiscal NFCe
+    """
+    
+    def get(self, request, code):
+        """
+        Gera e exibe o cupom fiscal para impressão
+        """
+        try:
+            from companys.models import Company
+            
+            # Busca a comanda
+            order = get_object_or_404(
+                Order.objects.select_related().prefetch_related('items__product'),
+                code=code,
+                status='entregue'
+            )
+            
+            # Verifica se tem NFCe emitida
+            if not order.tem_nfce:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Esta comanda não possui NFCe emitida'
+                })
+            
+            # Busca empresa ativa
+            empresa = Company.objects.filter(ativa=True).first()
+            if not empresa:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Nenhuma empresa ativa encontrada'
+                })
+            
+            # Criar dados para o cupom
+            dados_nfce = {
+                'numero': order.nfce_numero,
+                'chave_acesso': order.nfce_chave,
+                'order': order,
+                'qr_code': f"{order.nfce_chave}|2|2|1|HASH_AQUI"  # Simplificado
+            }
+            
+            resultado_emissao = {
+                'sucesso': True,
+                'protocolo': order.nfce_protocolo,
+                'modo': 'autorizada'
+            }
+            
+            # Gerar HTML do cupom
+            from apps.utils.nfce_service import NFCeService
+            nfce_service = NFCeService(empresa)
+            cupom_html = nfce_service.gerar_cupom_fiscal_html(dados_nfce, resultado_emissao)
+            
+            # Auto-impressão se solicitado
+            auto_print = request.GET.get('print') == 'auto'
+            if auto_print:
+                cupom_html = cupom_html.replace('window.location.search.includes(\'print=auto\')', 'true')
+            
+            return HttpResponse(cupom_html, content_type='text/html')
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao gerar cupom: {str(e)}'
+            })
+
+
+class CupomFiscalDirectPrintView(LoginRequiredMixin, View):
+    """
+    View para impressão DIRETA do cupom fiscal na Epson TM-T20X II
+    """
+    
+    def post(self, request, code):
+        """
+        Imprime cupom fiscal direto na impressora
+        """
+        try:
+            # Busca a comanda
+            order = get_object_or_404(
+                Order.objects.select_related().prefetch_related('items__product'),
+                code=code,
+                status='entregue'
+            )
+            
+            # Verifica se tem NFCe emitida
+            if not order.tem_nfce:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Esta comanda não possui NFCe emitida'
+                })
+            
+            # Configurar impressora (IGUAL À QUE FUNCIONA)
+            from apps.utils.epson_service import EpsonTMT20XService
+            epson = EpsonTMT20XService(
+                printer_name="EPSON_TM_T20X_II",  # NOME CORRETO
+                connection_type="usb"
+            )
+            
+            # Preparar dados NFCe
+            dados_nfce = {
+                'numero': order.nfce_numero,
+                'chave_acesso': order.nfce_chave,
+                'order': order,
+                'qr_code': f"{order.nfce_chave}|2|2|1|HASH_AQUI"
+            }
+            
+            resultado_emissao = {
+                'sucesso': True,  
+                'protocolo': order.nfce_protocolo,
+                'modo': 'autorizada'
+            }
+            
+            # IMPRIMIR DIRETO (SEM TESTE DE CONEXÃO)
+            resultado_impressao = epson.imprimir_cupom_fiscal_direto(dados_nfce, resultado_emissao)
+            
+            if resultado_impressao['sucesso']:
+                return JsonResponse({
+                    'success': True,
+                    'message': f'✅ Cupom fiscal impresso na {resultado_impressao["impressora"]}!',
+                    'impressora': resultado_impressao['impressora']
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'❌ Erro: {resultado_impressao["erro"]}'
+                })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'❌ Erro interno: {str(e)}'
+            })
+
+
+class TesteImpressaoAutomaticaView(LoginRequiredMixin, View):
+    """
+    View de teste para impressão automática
+    """
+    
+    def get(self, request):
+        # Buscar uma comanda para teste
+        try:
+            # Comanda com NFCe
+            comanda_fiscal = Order.objects.filter(
+                status='entregue',
+                nfce_numero__isnull=False
+            ).first()
+            
+            # Comanda sem NFCe  
+            comanda_normal = Order.objects.filter(
+                status='entregue',
+                nfce_numero__isnull=True
+            ).first()
+            
+            # Botões condicionais
+            btn_normal = ""
+            btn_fiscal = ""
+            
+            if comanda_normal:
+                btn_normal = f'<button onclick="testarNormal(\'{comanda_normal.code}\')" style="padding:10px; margin:10px; background:blue; color:white;">📄 Testar Cupom Normal - {comanda_normal.code}</button>'
+            else:
+                btn_normal = '<p>❌ Nenhuma comanda normal encontrada</p>'
+                
+            if comanda_fiscal:
+                btn_fiscal = f'<button onclick="testarFiscal(\'{comanda_fiscal.code}\')" style="padding:10px; margin:10px; background:green; color:white;">🧾 Testar Cupom Fiscal - {comanda_fiscal.code}</button>'
+            else:
+                btn_fiscal = '<p>❌ Nenhuma comanda com NFCe encontrada</p>'
+            
+            html = f'''<!DOCTYPE html>
+<html><head><title>Teste Impressão Automática</title></head><body>
+<h1>🖨️ Teste Impressão Automática Epson</h1>
+
+<div style="margin: 20px 0;">
+    <h3>Comandas Disponíveis para Teste:</h3>
+    
+    {btn_normal}
+    
+    {btn_fiscal}
+</div>
+
+<div id="resultado" style="margin-top:20px; padding:10px; border:1px solid #ccc; background:#f9f9f9;"></div>
+
+<script>
+function testarNormal(code) {{
+    mostrarResultado('⏳ Testando impressão normal...');
+    
+    fetch('/orders/' + code + '/print-direct/', {{
+        method: 'POST',
+        headers: {{
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }}
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        mostrarResultado('📄 CUPOM NORMAL: ' + (data.success ? '✅' : '❌') + ' ' + data.message);
+    }})
+    .catch(error => {{
+        mostrarResultado('❌ Erro: ' + error);
+    }});
+}}
+
+function testarFiscal(code) {{
+    mostrarResultado('⏳ Testando impressão fiscal...');
+    
+    fetch('/orders/' + code + '/cupom-fiscal-direto/', {{
+        method: 'POST',
+        headers: {{
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }}
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        mostrarResultado('🧾 CUPOM FISCAL: ' + (data.success ? '✅' : '❌') + ' ' + data.message);
+    }})
+    .catch(error => {{
+        mostrarResultado('❌ Erro: ' + error);
+    }});
+}}
+
+function mostrarResultado(msg) {{
+    document.getElementById('resultado').innerHTML = '<strong>' + new Date().toLocaleTimeString() + '</strong> - ' + msg;
+}}
+
+function getCookie(name) {{
+    let v = null; 
+    if (document.cookie !== '') {{
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {{
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {{
+                v = decodeURIComponent(cookie.substring(name.length + 1)); 
+                break;
+            }}
+        }} 
+    }} 
+    return v;
+}}
+</script>
+</body></html>'''
+            
+            return HttpResponse(html)
+            
+        except Exception as e:
+            return HttpResponse(f"<h1>Erro: {e}</h1>")
