@@ -431,34 +431,82 @@ function viewOrderDetails(orderCode) {
 
 // NOVA função unificada (substitui a atual)
 function printOrderSilent(orderCode, temNFCe = false) {
+    console.log('🖨️ [DEBUG] Iniciando impressão:', {orderCode, temNFCe});
+    
     const button = event.target.closest('button');
     const originalContent = button.innerHTML;
-    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 0 14 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     
     try {
-        let printUrl;
-        
         if (temNFCe) {
-            // Cupom fiscal - usar URL especializada
-            printUrl = `/orders/${orderCode}/cupom-fiscal/?auto_print=true`;
+            console.log('📄 [DEBUG] Cupom FISCAL - fazendo requisição...');
+            showToast('🖨️ Imprimindo cupom fiscal na Epson...', 'info');
+            
+            fetch(`/orders/${orderCode}/cupom-fiscal-direto/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => {
+                console.log('📡 [DEBUG] Resposta recebida:', response.status, response.statusText);
+                return response.json();
+            })
+            .then(data => {
+                console.log('📊 [DEBUG] Dados da resposta:', data);
+                button.innerHTML = originalContent;
+                
+                if (data.success) {
+                    console.log('✅ [DEBUG] Impressão fiscal SUCESSO');
+                    showToast(`✅ ${data.message}`, 'success');
+                } else {
+                    console.log('❌ [DEBUG] Impressão fiscal FALHOU:', data.message);
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('🚨 [DEBUG] Erro na requisição fiscal:', error);
+                button.innerHTML = originalContent;
+                showToast('❌ Erro na comunicação com a impressora', 'error');
+            });
+            
         } else {
-            // Cupom normal - usar URL padrão
-            printUrl = `/orders/${orderCode}/print/?auto_print=true`;
-        }
-        
-        // Abrir em nova janela (igual ao modal)
-        const printWindow = window.open(printUrl, '_blank', 'width=400,height=700');
-        
-        button.innerHTML = originalContent;
-        
-        if (printWindow) {
-            showToast('🖨️ Abrindo impressão...', 'success');
-        } else {
-            showToast('❌ Bloqueador de pop-up ativo. Permita pop-ups.', 'warning');
+            console.log('📝 [DEBUG] Cupom NORMAL - fazendo requisição...');
+            showToast('🖨️ Imprimindo cupom normal na Epson...', 'info');
+            
+            fetch(`/orders/${orderCode}/print-direct/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => {
+                console.log('📡 [DEBUG] Resposta recebida:', response.status, response.statusText);
+                return response.json();
+            })
+            .then(data => {
+                console.log('📊 [DEBUG] Dados da resposta:', data);
+                button.innerHTML = originalContent;
+                
+                if (data.success) {
+                    console.log('✅ [DEBUG] Impressão normal SUCESSO');
+                    showToast(`✅ ${data.message}`, 'success');
+                } else {
+                    console.log('❌ [DEBUG] Impressão normal FALHOU:', data.message);
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('🚨 [DEBUG] Erro na requisição normal:', error);
+                button.innerHTML = originalContent;
+                showToast('❌ Erro na comunicação com a impressora', 'error');
+            });
         }
         
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('💥 [DEBUG] Erro geral na função:', error);
         button.innerHTML = originalContent;
         showToast('❌ Erro na impressão', 'error');
     }
