@@ -242,27 +242,76 @@ class EpsonTMT20XService:
     
     def _enviar_para_epson(self, conteudo):
         """
-        Método simplificado para Windows
+        Envio multiplataforma sem dependências extras
         """
         try:
             import subprocess
+            import platform
+            import tempfile
+            import os
             
-            # Usar PowerShell para enviar direto para impressora
-            ps_command = f'Out-Printer -Name "{self.printer_name}" -InputObject @"{conteudo}"@'
+            sistema = platform.system()
+            print(f"[DEBUG] Sistema: {sistema}, Impressora: {self.printer_name}")
             
-            result = subprocess.run([
-                'powershell', '-Command', ps_command
-            ], capture_output=True, text=True)
-            
-            if result.returncode == 0:
-                print(f"[EPSON] ✓ Enviado via PowerShell para {self.printer_name}")
-                return True
+            if sistema == "Windows":
+                # WINDOWS - Método sem pywin32
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='utf-8') as f:
+                    f.write(conteudo)
+                    temp_file = f.name
+                
+                success = False
+                
+                # Tentar múltiplos métodos Windows
+                methods = [
+                    # Método 1: PowerShell Out-Printer
+                    ['powershell', '-Command', f'Get-Content "{temp_file}" | Out-Printer -Name "{self.printer_name}"'],
+                    
+                    # Método 2: Copy direto
+                    ['copy', '/B', temp_file, self.printer_name],
+                    
+                    # Método 3: Print command
+                    ['print', '/D:' + self.printer_name, temp_file]
+                ]
+                
+                for i, cmd in enumerate(methods, 1):
+                    try:
+                        print(f"[EPSON] Tentando método {i}: {cmd[0]}")
+                        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                        
+                        if result.returncode == 0:
+                            print(f"[EPSON] ✓ Sucesso com método {i}")
+                            success = True
+                            break
+                        else:
+                            print(f"[EPSON] ✗ Método {i} falhou: {result.stderr}")
+                            
+                    except Exception as e:
+                        print(f"[EPSON] ✗ Método {i} erro: {e}")
+                        continue
+                
+                # Limpar arquivo
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
+                    
+                return success
+                
             else:
-                print(f"[EPSON] ✗ Erro PowerShell: {result.stderr}")
-                return False
+                # MACOS/LINUX (método original que funciona)
+                result = subprocess.run([
+                    'lp', '-d', self.printer_name
+                ], input=conteudo, text=True, capture_output=True)
+                
+                if result.returncode == 0:
+                    print(f"[EPSON] ✓ Enviado via lp para {self.printer_name}")
+                    return True
+                else:
+                    print(f"[EPSON] ✗ Erro lp: {result.stderr}")
+                    return False
                 
         except Exception as e:
-            print(f"[EPSON] ✗ Erro: {e}")
+            print(f"[EPSON] ✗ Erro geral: {e}")
             return False
     
     def _enviar_usb(self, conteudo):
