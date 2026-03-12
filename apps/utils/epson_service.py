@@ -242,48 +242,27 @@ class EpsonTMT20XService:
     
     def _enviar_para_epson(self, conteudo):
         """
-        Envia conteúdo para Epson TM-T20X II (Windows + macOS)
+        Método simplificado para Windows
         """
         try:
             import subprocess
-            import platform
             
-            if platform.system() == "Windows":
-                # MÉTODO WINDOWS
-                # Criar arquivo temporário
-                import tempfile
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='utf-8') as f:
-                    f.write(conteudo)
-                    temp_file = f.name
-                
-                # Usar comando COPY do Windows para enviar direto para impressora
-                result = subprocess.run([
-                    'copy', '/B', temp_file, f'\\\\localhost\\{self.printer_name}'
-                ], shell=True, capture_output=True, text=True)
-                
-                # Limpar arquivo temporário
-                import os
-                os.unlink(temp_file)
-                
-                success = result.returncode == 0
-                
-            else:
-                # MÉTODO MACOS/LINUX (que já funcionava)
-                result = subprocess.run([
-                    'lp', '-d', self.printer_name
-                ], input=conteudo, text=True, capture_output=True)
-                
-                success = result.returncode == 0
+            # Usar PowerShell para enviar direto para impressora
+            ps_command = f'Out-Printer -Name "{self.printer_name}" -InputObject @"{conteudo}"@'
             
-            if success:
-                print(f"[EPSON] ✓ Enviado com sucesso para {self.printer_name}")
+            result = subprocess.run([
+                'powershell', '-Command', ps_command
+            ], capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                print(f"[EPSON] ✓ Enviado via PowerShell para {self.printer_name}")
                 return True
             else:
-                print(f"[EPSON] ✗ Erro: {result.stderr if hasattr(result, 'stderr') else 'Falha no envio'}")
+                print(f"[EPSON] ✗ Erro PowerShell: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"[EPSON] ✗ Erro no envio: {e}")
+            print(f"[EPSON] ✗ Erro: {e}")
             return False
     
     def _enviar_usb(self, conteudo):
