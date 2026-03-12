@@ -242,21 +242,44 @@ class EpsonTMT20XService:
     
     def _enviar_para_epson(self, conteudo):
         """
-        Envia conteúdo diretamente para Epson TM-T20X II via lp
+        Envia conteúdo para Epson TM-T20X II (Windows + macOS)
         """
         try:
             import subprocess
+            import platform
             
-            # Usar lp direto - método que funcionou no teste
-            result = subprocess.run([
-                'lp', '-d', self.printer_name
-            ], input=conteudo, text=True, capture_output=True)
+            if platform.system() == "Windows":
+                # MÉTODO WINDOWS
+                # Criar arquivo temporário
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='utf-8') as f:
+                    f.write(conteudo)
+                    temp_file = f.name
+                
+                # Usar comando COPY do Windows para enviar direto para impressora
+                result = subprocess.run([
+                    'copy', '/B', temp_file, f'\\\\localhost\\{self.printer_name}'
+                ], shell=True, capture_output=True, text=True)
+                
+                # Limpar arquivo temporário
+                import os
+                os.unlink(temp_file)
+                
+                success = result.returncode == 0
+                
+            else:
+                # MÉTODO MACOS/LINUX (que já funcionava)
+                result = subprocess.run([
+                    'lp', '-d', self.printer_name
+                ], input=conteudo, text=True, capture_output=True)
+                
+                success = result.returncode == 0
             
-            if result.returncode == 0:
-                print(f"[EPSON] ✓ Enviado com sucesso: {result.stdout.strip()}")
+            if success:
+                print(f"[EPSON] ✓ Enviado com sucesso para {self.printer_name}")
                 return True
             else:
-                print(f"[EPSON] ✗ Erro: {result.stderr.strip()}")
+                print(f"[EPSON] ✗ Erro: {result.stderr if hasattr(result, 'stderr') else 'Falha no envio'}")
                 return False
                 
         except Exception as e:
