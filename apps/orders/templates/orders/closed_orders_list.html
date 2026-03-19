@@ -429,88 +429,6 @@ function viewOrderDetails(orderCode) {
     window.location.href = detailUrl;
 }
 
-// NOVA função unificada (substitui a atual)
-function printOrderSilent(orderCode, temNFCe = false) {
-    console.log('🖨️ [DEBUG] Iniciando impressão:', {orderCode, temNFCe});
-    
-    const button = event.target.closest('button');
-    const originalContent = button.innerHTML;
-    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 0 14 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-    
-    try {
-        if (temNFCe) {
-            console.log('📄 [DEBUG] Cupom FISCAL - fazendo requisição...');
-            showToast('🖨️ Imprimindo cupom fiscal na Epson...', 'info');
-            
-            fetch(`/orders/${orderCode}/cupom-fiscal-direto/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => {
-                console.log('📡 [DEBUG] Resposta recebida:', response.status, response.statusText);
-                return response.json();
-            })
-            .then(data => {
-                console.log('📊 [DEBUG] Dados da resposta:', data);
-                button.innerHTML = originalContent;
-                
-                if (data.success) {
-                    console.log('✅ [DEBUG] Impressão fiscal SUCESSO');
-                    showToast(`✅ ${data.message}`, 'success');
-                } else {
-                    console.log('❌ [DEBUG] Impressão fiscal FALHOU:', data.message);
-                    showToast(`❌ ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('🚨 [DEBUG] Erro na requisição fiscal:', error);
-                button.innerHTML = originalContent;
-                showToast('❌ Erro na comunicação com a impressora', 'error');
-            });
-            
-        } else {
-            console.log('📝 [DEBUG] Cupom NORMAL - fazendo requisição...');
-            showToast('🖨️ Imprimindo cupom normal na Epson...', 'info');
-            
-            fetch(`/orders/${orderCode}/print-direct/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => {
-                console.log('📡 [DEBUG] Resposta recebida:', response.status, response.statusText);
-                return response.json();
-            })
-            .then(data => {
-                console.log('📊 [DEBUG] Dados da resposta:', data);
-                button.innerHTML = originalContent;
-                
-                if (data.success) {
-                    console.log('✅ [DEBUG] Impressão normal SUCESSO');
-                    showToast(`✅ ${data.message}`, 'success');
-                } else {
-                    console.log('❌ [DEBUG] Impressão normal FALHOU:', data.message);
-                    showToast(`❌ ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('🚨 [DEBUG] Erro na requisição normal:', error);
-                button.innerHTML = originalContent;
-                showToast('❌ Erro na comunicação com a impressora', 'error');
-            });
-        }
-        
-    } catch (error) {
-        console.error('💥 [DEBUG] Erro geral na função:', error);
-        button.innerHTML = originalContent;
-        showToast('❌ Erro na impressão', 'error');
-    }
-}
 
 // Função auxiliar para CSRF token
 function getCookie(name) {
@@ -875,73 +793,54 @@ function debugFilters() {
     console.log('Visible rows:', document.querySelectorAll('.order-row:not([style*="none"])').length);
 }
 
-// SUBSTITUA a função printOrderSilent (linhas ~433-478) por esta:
+const LOCAL_BRIDGE_URL = 'https://localhost:5001/print';
+
+async function buscarConteudoCupom(orderCode, temNFCe) {
+    const resp = await fetch(`/orders/${orderCode}/cupom-content/?fiscal=${temNFCe ? 1 : 0}`, {
+        method: 'GET',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    });
+    const data = await resp.json();
+    if (!data.success) {
+        throw new Error(data.message || 'Erro ao gerar cupom');
+    }
+    return data;
+}
+
+async function enviarParaBridgeLocal(content, tipo) {
+    const resp = await fetch(LOCAL_BRIDGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, tipo })
+    });
+    const data = await resp.json();
+    if (!data.success) {
+        throw new Error(data.message || 'Falha no bridge local');
+    }
+    return data;
+}
+
 function printOrderSilent(orderCode, temNFCe = false) {
     const button = event.target.closest('button');
     const originalContent = button.innerHTML;
-    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-    
-    try {
-        if (temNFCe) {
-            // CUPOM FISCAL - IMPRESSÃO DIRETA EPSON
-            showToast('🖨️ Imprimindo cupom fiscal na Epson...', 'info');
-            
-            fetch(`/orders/${orderCode}/cupom-fiscal-direto/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                button.innerHTML = originalContent;
-                
-                if (data.success) {
-                    showToast(`✅ ${data.message}`, 'success');
-                } else {
-                    showToast(`❌ ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                button.innerHTML = originalContent;
-                showToast('❌ Erro na comunicação com a impressora', 'error');
-            });
-            
-        } else {
-            // CUPOM NORMAL - IMPRESSÃO DIRETA EPSON
-            showToast('🖨️ Imprimindo cupom normal na Epson...', 'info');
-            
-            fetch(`/orders/${orderCode}/print-direct/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                button.innerHTML = originalContent;
-                
-                if (data.success) {
-                    showToast(`✅ ${data.message}`, 'success');
-                } else {
-                    showToast(`❌ ${data.message}`, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                button.innerHTML = originalContent;
-                showToast('❌ Erro na comunicação com a impressora', 'error');
-            });
+    button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 0 14 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+    (async () => {
+        try {
+            showToast('🖨️ Gerando cupom...', 'info');
+            const data = await buscarConteudoCupom(orderCode, temNFCe);
+
+            showToast('🖨️ Enviando para a impressora local...', 'info');
+            const result = await enviarParaBridgeLocal(data.content, data.tipo);
+
+            showToast(`✅ ${result.message || 'Impresso com sucesso'}`, 'success');
+        } catch (error) {
+            console.error('Erro ao imprimir:', error);
+            showToast(`❌ ${error.message || 'Erro na impressão'}`, 'error');
+        } finally {
+            button.innerHTML = originalContent;
         }
-        
-    } catch (error) {
-        console.error('Erro:', error);
-        button.innerHTML = originalContent;
-        showToast('❌ Erro na impressão', 'error');
-    }
+    })();
 }
 </script>
 {% endblock %}

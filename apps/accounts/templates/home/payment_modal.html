@@ -732,26 +732,34 @@ function printReceipt() {
     
     console.log('📋 Dados do cupom:', cupomData);
     
-    // Fazer requisição para impressão de cupom
-    fetch(`/accounts/comandas/${orderCode}/imprimir-cupom/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cupomData)
+    const LOCAL_BRIDGE_URL = 'https://localhost:5001/print';
+
+    fetch(`/orders/${orderCode}/cupom-content/?fiscal=0`, {
+        method: 'GET',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        if (!data.success) {
+            throw new Error(data.message || 'Erro ao gerar cupom');
+        }
+        return fetch(LOCAL_BRIDGE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: data.content, tipo: data.tipo })
+        });
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
             mostrarNotificacao('🖨️ Cupom impresso com sucesso!', 'success');
         } else {
-            mostrarNotificacao('❌ ' + data.message, 'error');
+            mostrarNotificacao('❌ ' + result.message, 'error');
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        mostrarNotificacao('❌ Erro na comunicação', 'error');
+        mostrarNotificacao('❌ Erro na comunicação com a impressora', 'error');
     });
 }
 

@@ -1031,6 +1031,40 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+def gerar_cupom_texto(order, is_fiscal):
+    """Gera o conteúdo do cupom em formato texto"""
+    lines = []
+    lines.append("=" * 40)
+    lines.append("      COXINHAS PREMIUM CAFÉ")
+    lines.append("       Cafeteria & Salgados")
+    lines.append("       Tel: (11) 9999-9999")
+    lines.append("=" * 40)
+
+    if is_fiscal and order.tem_nfce:
+        lines.append("")
+        lines.append("      ** CUPOM FISCAL **")
+        lines.append(f"      NFCe N° {order.nfce_numero}")
+        lines.append("")
+
+    lines.append(f"COMANDA #{order.code}")
+    lines.append(f"Cliente: {order.name}")
+    lines.append(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}")
+    lines.append("-" * 40)
+    lines.append("ITENS:")
+
+    for item in order.items.all():
+        subtotal = item.quantity * item.unit_price
+        lines.append(f"{item.quantity}x {item.product.name}")
+        lines.append(f"   R$ {item.unit_price:.2f} = R$ {subtotal:.2f}")
+
+    lines.append("-" * 40)
+    lines.append(f"TOTAL: R$ {order.total_amount:.2f}")
+    lines.append("=" * 40)
+    lines.append("   Obrigado pela preferência!")
+    lines.append("     ★★★ Volte sempre! ★★★")
+    lines.append("")
+    return "\n".join(lines)
+
 # Substituir a CheckoutDirectPrintView completa (linha ~1035-1135)
 @method_decorator(csrf_exempt, name='dispatch')
 class CheckoutDirectPrintView(LoginRequiredMixin, View):
@@ -1076,42 +1110,7 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
                 'success': False,
                 'message': f'❌ Erro interno: {str(e)}'
             })
-    
-    def _gerar_cupom_content(self, order, is_fiscal):
-        """Gera o conteúdo do cupom em formato texto"""
-        
-        lines = []
-        lines.append("=" * 40)
-        lines.append("      COXINHAS PREMIUM CAFÉ")
-        lines.append("       Cafeteria & Salgados")
-        lines.append("       Tel: (11) 9999-9999")
-        lines.append("=" * 40)
-        
-        if is_fiscal and order.tem_nfce:
-            lines.append("")
-            lines.append("      ** CUPOM FISCAL **")
-            lines.append(f"      NFCe N° {order.nfce_numero}")
-            lines.append("")
-        
-        lines.append(f"COMANDA #{order.code}")
-        lines.append(f"Cliente: {order.name}")
-        lines.append(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}")
-        lines.append("-" * 40)
-        lines.append("ITENS:")
-        
-        for item in order.items.all():
-            subtotal = item.quantity * item.unit_price
-            lines.append(f"{item.quantity}x {item.product.name}")
-            lines.append(f"   R$ {item.unit_price:.2f} = R$ {subtotal:.2f}")
-        
-        lines.append("-" * 40)
-        lines.append(f"TOTAL: R$ {order.total_amount:.2f}")
-        lines.append("=" * 40)
-        lines.append("   Obrigado pela preferência!")
-        lines.append("     ★★★ Volte sempre! ★★★")
-        lines.append("")
-        
-        return "\n".join(lines)
+
     
     def _enviar_para_impressora(self, content):
         """
@@ -1139,7 +1138,27 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
             return False
 
 
-# Adicionar ao final do arquivo views.py
+class OrderCupomContentView(LoginRequiredMixin, View):
+    def get(self, request, code):
+        order = get_object_or_404(
+            Order.objects.prefetch_related('items__product'),
+            code=code
+        )
+
+        is_fiscal = request.GET.get('fiscal') in ['1', 'true', 'True']
+        if is_fiscal and not order.tem_nfce:
+            return JsonResponse({
+                'success': False,
+                'message': 'Esta comanda não possui NFCe emitida'
+            })
+
+        content = gerar_cupom_texto(order, is_fiscal)
+        return JsonResponse({
+            'success': True,
+            'content': content,
+            'tipo': 'cupom_fiscal' if is_fiscal else 'cupom_normal'
+        })
+
 
 class CupomFiscalPrintView(LoginRequiredMixin, View):
     """
