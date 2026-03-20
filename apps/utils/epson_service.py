@@ -337,7 +337,7 @@ class EpsonTMT20XService:
                 
             elif sistema == "Windows":
                 # WINDOWS (método anterior)
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='utf-8') as f:
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='cp860') as f:
                     f.write(conteudo)
                     temp_file = f.name
                 
@@ -403,7 +403,7 @@ class EpsonTMT20XService:
         """Envio via comando lp (Linux/macOS)"""
         try:
             # Criar arquivo temporário
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='cp860') as f:
                 f.write(conteudo)
                 temp_file = f.name
             
