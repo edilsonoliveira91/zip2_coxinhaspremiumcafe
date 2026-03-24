@@ -1032,37 +1032,55 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 def gerar_cupom_texto(order, is_fiscal):
-    """Gera o conteúdo do cupom em formato texto"""
+    """Gera o conteúdo do cupom em formato texto (80mm / 48 colunas)"""
+    width = 48
+
+    def cut(text):
+        return text[:width]
+
+    def line(ch="="):
+        return ch * width
+
+    def center(text):
+        return cut(text).center(width)
+
     lines = []
-    lines.append("=" * 40)
-    lines.append("      COXINHAS PREMIUM CAFÉ")
-    lines.append("       Cafeteria & Salgados")
-    lines.append("       Tel: (11) 9999-9999")
-    lines.append("=" * 40)
+    lines.append(line("="))
+    lines.append(center("COXINHAS PREMIUM CAFÉ"))
+    lines.append(center("Cafeteria & Salgados"))
+    lines.append(center("Tel: (11) 9999-9999"))
+    lines.append(line("="))
 
     if is_fiscal and order.tem_nfce:
         lines.append("")
-        lines.append("      ** CUPOM FISCAL **")
-        lines.append(f"      NFCe N° {order.nfce_numero}")
+        lines.append(center("** CUPOM FISCAL **"))
+        lines.append(center(f"NFCe N° {order.nfce_numero}"))
         lines.append("")
 
-    lines.append(f"COMANDA #{order.code}")
-    lines.append(f"Cliente: {order.name}")
-    lines.append(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}")
-    lines.append("-" * 40)
-    lines.append("ITENS:")
+    lines.append(cut(f"COMANDA #{order.code}"))
+    lines.append(cut(f"Cliente: {order.name}"))
+    lines.append(cut(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}"))
+    lines.append(line("-"))
+    lines.append(cut("ITENS:"))
 
     for item in order.items.all():
         subtotal = item.quantity * item.unit_price
-        lines.append(f"{item.quantity}x {item.product.name}")
-        lines.append(f"   R$ {item.unit_price:.2f} = R$ {subtotal:.2f}")
+        item_line = f"{item.quantity}x {item.product.name}"
+        lines.append(cut(item_line))
 
-    lines.append("-" * 40)
-    lines.append(f"TOTAL: R$ {order.total_amount:.2f}")
-    lines.append("=" * 40)
-    lines.append("   Obrigado pela preferência!")
-    lines.append("     ★★★ Volte sempre! ★★★")
+        price_left = f"R$ {item.unit_price:.2f}"
+        price_right = f"R$ {subtotal:.2f}"
+        space = max(1, width - len(price_left) - len(price_right))
+        lines.append(cut(f"{price_left}{' ' * space}{price_right}"))
+
+    lines.append(line("-"))
+    total_text = f"TOTAL: R$ {order.total_amount:.2f}"
+    lines.append(total_text.rjust(width))
+    lines.append(line("="))
+    lines.append(center("Obrigado pela preferência!"))
+    lines.append(center("★★★ Volte sempre! ★★★"))
     lines.append("")
+
     return "\n".join(lines)
 
 # Substituir a CheckoutDirectPrintView completa (linha ~1035-1135)
