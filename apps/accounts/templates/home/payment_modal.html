@@ -734,7 +734,9 @@ function printReceipt() {
     
     const LOCAL_BRIDGE_URL = 'https://localhost:5001/print';
 
-    fetch(`/orders/${orderCode}/cupom-content/?fiscal=0`, {
+    const fiscal = currentEditOrder && currentEditOrder.tem_nfce ? 1 : 0;
+
+    fetch(`/orders/${orderCode}/cupom-content/?fiscal=${fiscal}`, {
         method: 'GET',
         headers: { 'X-CSRFToken': getCookie('csrftoken') }
     })
@@ -743,10 +745,14 @@ function printReceipt() {
         if (!data.success) {
             throw new Error(data.message || 'Erro ao gerar cupom');
         }
+        const payload = data.raw_base64
+            ? { raw_base64: data.raw_base64, is_raw: true, tipo: data.tipo }
+            : { content: data.content, tipo: data.tipo };
+
         return fetch(LOCAL_BRIDGE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: data.content, tipo: data.tipo })
+            body: JSON.stringify(payload)
         });
     })
     .then(response => response.json())

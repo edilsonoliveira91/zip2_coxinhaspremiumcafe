@@ -10,6 +10,7 @@ import json
 from .models import Order, OrderItem
 from .forms import OrderForm, OrderItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product
+import base64
 
 
 class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
@@ -1174,13 +1175,40 @@ class OrderCupomContentView(LoginRequiredMixin, View):
                 'message': 'Esta comanda não possui NFCe emitida'
             })
 
+        if is_fiscal:
+            from apps.utils.epson_service import EpsonTMT20XService
+
+            dados_nfce = {
+                'numero': order.nfce_numero,
+                'chave_acesso': order.nfce_chave,
+                'order': order,
+                'qr_code': f"{order.nfce_chave}|2|2|1|HASH_AQUI"
+            }
+            resultado_emissao = {
+                'sucesso': True,
+                'protocolo': order.nfce_protocolo,
+                'modo': 'autorizada'
+            }
+
+            epson = EpsonTMT20XService(printer_name="EPSON_TM_T20X_II")
+            escpos_text = epson._gerar_escpos_cupom_fiscal(dados_nfce, resultado_emissao)
+
+            raw_bytes = escpos_text.encode('latin-1', errors='replace')
+            raw_base64 = base64.b64encode(raw_bytes).decode('ascii')
+
+            return JsonResponse({
+                'success': True,
+                'raw_base64': raw_base64,
+                'is_raw': True,
+                'tipo': 'cupom_fiscal'
+            })
+
         content = gerar_cupom_texto(order, is_fiscal)
         return JsonResponse({
             'success': True,
             'content': content,
-            'tipo': 'cupom_fiscal' if is_fiscal else 'cupom_normal'
+            'tipo': 'cupom_normal'
         })
-
 
 class CupomFiscalPrintView(LoginRequiredMixin, View):
     """

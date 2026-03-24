@@ -807,11 +807,11 @@ async function buscarConteudoCupom(orderCode, temNFCe) {
     return data;
 }
 
-async function enviarParaBridgeLocal(content, tipo) {
+async function enviarParaBridgeLocal(payload) {
     const resp = await fetch(LOCAL_BRIDGE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, tipo })
+        body: JSON.stringify(payload)
     });
     const data = await resp.json();
     if (!data.success) {
@@ -831,7 +831,11 @@ function printOrderSilent(orderCode, temNFCe = false) {
             const data = await buscarConteudoCupom(orderCode, temNFCe);
 
             showToast('🖨️ Enviando para a impressora local...', 'info');
-            const result = await enviarParaBridgeLocal(data.content, data.tipo);
+            const payload = data.raw_base64
+                ? { raw_base64: data.raw_base64, is_raw: true, tipo: data.tipo }
+                : { content: data.content, tipo: data.tipo };
+
+            const result = await enviarParaBridgeLocal(payload);
 
             showToast(`✅ ${result.message || 'Impresso com sucesso'}`, 'success');
         } catch (error) {
