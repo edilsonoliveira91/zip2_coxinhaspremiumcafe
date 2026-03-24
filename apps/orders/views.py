@@ -1044,6 +1044,12 @@ def gerar_cupom_texto(order, is_fiscal):
     def center(text):
         return cut(text).center(width)
 
+    def fill(left, right=""):
+        left = cut(left)
+        right = cut(right)
+        space = max(1, width - len(left) - len(right))
+        return f"{left}{' ' * space}{right}"
+
     lines = []
     lines.append(line("="))
     lines.append(center("COXINHAS PREMIUM CAFÉ"))
@@ -1065,17 +1071,15 @@ def gerar_cupom_texto(order, is_fiscal):
 
     for item in order.items.all():
         subtotal = item.quantity * item.unit_price
-        item_line = f"{item.quantity}x {item.product.name}"
-        lines.append(cut(item_line))
+        item_name = f"{item.quantity}x {item.product.name}"
+        subtotal_text = f"R$ {subtotal:.2f}"
+        lines.append(fill(item_name, subtotal_text))
 
-        price_left = f"R$ {item.unit_price:.2f}"
-        price_right = f"R$ {subtotal:.2f}"
-        space = max(1, width - len(price_left) - len(price_right))
-        lines.append(cut(f"{price_left}{' ' * space}{price_right}"))
+        unit_text = f"un: R$ {item.unit_price:.2f}"
+        lines.append(unit_text.rjust(width))
 
     lines.append(line("-"))
-    total_text = f"TOTAL: R$ {order.total_amount:.2f}"
-    lines.append(total_text.rjust(width))
+    lines.append(fill("TOTAL:", f"R$ {order.total_amount:.2f}"))
     lines.append(line("="))
     lines.append(center("Obrigado pela preferência!"))
     lines.append(center("★★★ Volte sempre! ★★★"))
