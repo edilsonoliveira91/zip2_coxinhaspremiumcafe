@@ -741,484 +741,484 @@ class NFCeService:
         print(f"[INFO] Cancelaria NFCe: {chave_acesso} - Motivo: {justificativa}")
 
 
-# =============== VISTA DE GERAÇÃO DE CUPOM FISCAL (HTML) ===============
-def gerar_cupom_fiscal_html(self, dados_nfce, resultado_emissao):
-    """
-    Gera HTML do cupom fiscal NFCe seguindo conformidades brasileiras
-    """
-    order = dados_nfce['order']
-    chave_acesso = dados_nfce['chave_acesso']
-    qr_code = dados_nfce['qr_code']
-    numero_nfce = dados_nfce['numero']
-    
-    # Data de emissão formatada
-    agora = datetime.now()
-    data_emissao = agora.strftime('%d/%m/%Y %H:%M:%S')
-    
-    # Valor aproximado dos tributos (estimativa de 20% sobre o total)
-    valor_total = float(order.total_amount)
-    tributos_aproximados = valor_total * 0.20
-    
-    html_cupom = f'''
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cupom Fiscal NFCe #{numero_nfce}</title>
-    <style>
-        /* === CONFIGURAÇÃO PARA IMPRESSORA TÉRMICA 80MM === */
-        @page {{
-            size: 80mm auto;
-            margin: 0;
-        }}
+    # =============== VISTA DE GERAÇÃO DE CUPOM FISCAL (HTML) ===============
+    def gerar_cupom_fiscal_html(self, dados_nfce, resultado_emissao):
+        """
+        Gera HTML do cupom fiscal NFCe seguindo conformidades brasileiras
+        """
+        order = dados_nfce['order']
+        chave_acesso = dados_nfce['chave_acesso']
+        qr_code = dados_nfce['qr_code']
+        numero_nfce = dados_nfce['numero']
+        
+        # Data de emissão formatada
+        agora = datetime.now()
+        data_emissao = agora.strftime('%d/%m/%Y %H:%M:%S')
+        
+        # Valor aproximado dos tributos (estimativa de 20% sobre o total)
+        valor_total = float(order.total_amount)
+        tributos_aproximados = valor_total * 0.20
+        
+        html_cupom = f'''
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Cupom Fiscal NFCe #{numero_nfce}</title>
+        <style>
+            /* === CONFIGURAÇÃO PARA IMPRESSORA TÉRMICA 80MM === */
+            @page {{
+                size: 80mm auto;
+                margin: 0;
+            }}
 
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
 
-        body {{
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.2;
-            color: #000;
-            background: #fff;
-            width: 80mm;
-            margin: 0 auto;
-            padding: 4mm;
-        }}
-
-        @media print {{
             body {{
-                background: white;
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                line-height: 1.2;
+                color: #000;
+                background: #fff;
+                width: 80mm;
+                margin: 0 auto;
+                padding: 4mm;
+            }}
+
+            @media print {{
+                body {{
+                    background: white;
+                    font-size: 10px;
+                }}
+                .no-print {{
+                    display: none;
+                }}
+            }}
+
+            /* === ESTILOS DO CUPOM FISCAL === */
+            .center {{
+                text-align: center;
+            }}
+
+            .bold {{
+                font-weight: bold;
+            }}
+
+            .line {{
+                border-bottom: 1px dashed #000;
+                margin: 3px 0;
+                height: 1px;
+            }}
+
+            .double-line {{
+                border-bottom: 2px solid #000;
+                margin: 4px 0;
+                height: 2px;
+            }}
+
+            .empresa-header {{
+                text-align: center;
+                margin-bottom: 8px;
+            }}
+
+            .empresa-nome {{
+                font-size: 13px;
+                font-weight: bold;
+                margin-bottom: 2px;
+            }}
+
+            .empresa-dados {{
+                font-size: 9px;
+                line-height: 1.3;
+            }}
+
+            .nfce-header {{
+                text-align: center;
+                border: 2px solid #000;
+                padding: 4px;
+                margin: 6px 0;
+                font-size: 12px;
+                font-weight: bold;
+            }}
+
+            .dados-nfce {{
+                font-size: 9px;
+                margin: 6px 0;
+            }}
+
+            .consumidor {{
+                font-size: 10px;
+                margin: 4px 0;
+                padding: 2px 0;
+                border-top: 1px dashed #000;
+                border-bottom: 1px dashed #000;
+            }}
+
+            .item {{
+                margin: 2px 0;
+                font-size: 9px;
+            }}
+
+            .item-desc {{
+                font-weight: bold;
+            }}
+
+            .item-valores {{
+                display: flex;
+                justify-content: space-between;
+                font-size: 8px;
+            }}
+
+            .totais {{
+                margin: 6px 0;
                 font-size: 10px;
             }}
-            .no-print {{
-                display: none;
+
+            .total-final {{
+                font-size: 12px;
+                font-weight: bold;
+                text-align: center;
+                border: 1px solid #000;
+                padding: 3px;
+                margin: 4px 0;
             }}
-        }}
 
-        /* === ESTILOS DO CUPOM FISCAL === */
-        .center {{
-            text-align: center;
-        }}
+            .pagamento {{
+                margin: 4px 0;
+                font-size: 9px;
+                text-align: center;
+            }}
 
-        .bold {{
-            font-weight: bold;
-        }}
+            .tributos {{
+                font-size: 8px;
+                margin: 4px 0;
+                padding: 2px 0;
+                border: 1px dashed #000;
+                text-align: center;
+            }}
 
-        .line {{
-            border-bottom: 1px dashed #000;
-            margin: 3px 0;
-            height: 1px;
-        }}
+            .qrcode-section {{
+                text-align: center;
+                margin: 8px 0;
+            }}
 
-        .double-line {{
-            border-bottom: 2px solid #000;
-            margin: 4px 0;
-            height: 2px;
-        }}
+            .qrcode-box {{
+                border: 2px solid #000;
+                padding: 8px;
+                margin: 4px 0;
+                display: inline-block;
+            }}
 
-        .empresa-header {{
-            text-align: center;
-            margin-bottom: 8px;
-        }}
+            .consulta-info {{
+                font-size: 8px;
+                text-align: center;
+                margin: 4px 0;
+            }}
 
-        .empresa-nome {{
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 2px;
-        }}
+            .protocolo {{
+                font-size: 9px;
+                margin: 4px 0;
+                text-align: center;
+            }}
 
-        .empresa-dados {{
-            font-size: 9px;
-            line-height: 1.3;
-        }}
+            .mensagens-legais {{
+                font-size: 7px;
+                text-align: center;
+                margin: 6px 0;
+                padding: 3px 0;
+                border-top: 1px dashed #000;
+            }}
 
-        .nfce-header {{
-            text-align: center;
-            border: 2px solid #000;
-            padding: 4px;
-            margin: 6px 0;
-            font-size: 12px;
-            font-weight: bold;
-        }}
+            .footer {{
+                text-align: center;
+                font-size: 8px;
+                margin-top: 8px;
+            }}
 
-        .dados-nfce {{
-            font-size: 9px;
-            margin: 6px 0;
-        }}
+            /* Controles de impressão */
+            .print-controls {{
+                text-align: center;
+                margin: 10px 0;
+                background: #f0f0f0;
+                padding: 10px;
+                border-radius: 4px;
+            }}
 
-        .consumidor {{
-            font-size: 10px;
-            margin: 4px 0;
-            padding: 2px 0;
-            border-top: 1px dashed #000;
-            border-bottom: 1px dashed #000;
-        }}
+            .btn {{
+                display: inline-block;
+                padding: 8px 16px;
+                margin: 0 4px;
+                background: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-size: 12px;
+                border: none;
+                cursor: pointer;
+            }}
 
-        .item {{
-            margin: 2px 0;
-            font-size: 9px;
-        }}
+            .btn:hover {{
+                background: #0056b3;
+            }}
 
-        .item-desc {{
-            font-weight: bold;
-        }}
-
-        .item-valores {{
-            display: flex;
-            justify-content: space-between;
-            font-size: 8px;
-        }}
-
-        .totais {{
-            margin: 6px 0;
-            font-size: 10px;
-        }}
-
-        .total-final {{
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            border: 1px solid #000;
-            padding: 3px;
-            margin: 4px 0;
-        }}
-
-        .pagamento {{
-            margin: 4px 0;
-            font-size: 9px;
-            text-align: center;
-        }}
-
-        .tributos {{
-            font-size: 8px;
-            margin: 4px 0;
-            padding: 2px 0;
-            border: 1px dashed #000;
-            text-align: center;
-        }}
-
-        .qrcode-section {{
-            text-align: center;
-            margin: 8px 0;
-        }}
-
-        .qrcode-box {{
-            border: 2px solid #000;
-            padding: 8px;
-            margin: 4px 0;
-            display: inline-block;
-        }}
-
-        .consulta-info {{
-            font-size: 8px;
-            text-align: center;
-            margin: 4px 0;
-        }}
-
-        .protocolo {{
-            font-size: 9px;
-            margin: 4px 0;
-            text-align: center;
-        }}
-
-        .mensagens-legais {{
-            font-size: 7px;
-            text-align: center;
-            margin: 6px 0;
-            padding: 3px 0;
-            border-top: 1px dashed #000;
-        }}
-
-        .footer {{
-            text-align: center;
-            font-size: 8px;
-            margin-top: 8px;
-        }}
-
-        /* Controles de impressão */
-        .print-controls {{
-            text-align: center;
-            margin: 10px 0;
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 4px;
-        }}
-
-        .btn {{
-            display: inline-block;
-            padding: 8px 16px;
-            margin: 0 4px;
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 12px;
-            border: none;
-            cursor: pointer;
-        }}
-
-        .btn:hover {{
-            background: #0056b3;
-        }}
-
-        .btn-success {{
-            background: #28a745;
-        }}
-    </style>
-</head>
-<body>
-    <!-- Controles de Impressão -->
-    <div class="print-controls no-print">
-        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
-        <button class="btn btn-success" onclick="window.close()">✕ Fechar</button>
-    </div>
-
-    <!-- === CABEÇALHO DA EMPRESA === -->
-    <div class="empresa-header">
-        <div class="empresa-nome">COXINHAS PREMIUM LTDA</div>
-        <div class="empresa-dados">
-            Rua Coronel Fernando Prestes, 898<br>
-            Centro - Itapetininga/SP<br>
-            CEP: 18200-230<br>
-            CNPJ: 10.361.831/0001-23<br>
-            IE: 371.468.833.110
+            .btn-success {{
+                background: #28a745;
+            }}
+        </style>
+    </head>
+    <body>
+        <!-- Controles de Impressão -->
+        <div class="print-controls no-print">
+            <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-success" onclick="window.close()">✕ Fechar</button>
         </div>
-    </div>
 
-    <!-- === IDENTIFICAÇÃO NFCe === -->
-    <div class="nfce-header">
-        DOCUMENTO AUXILIAR DA<br>
-        NOTA FISCAL DE CONSUMIDOR<br>
-        ELETRÔNICA
-    </div>
-
-    <div class="dados-nfce center">
-        <div class="bold">NFCe Nº {numero_nfce:09d} - Série 001</div>
-        <div>Emissão: {data_emissao}</div>
-        <div style="font-size: 8px; margin-top: 2px;">
-            Ambiente: Homologação
-        </div>
-    </div>
-
-    <div class="line"></div>
-
-    <!-- === CONSUMIDOR === -->
-    <div class="consumidor center">
-        <div class="bold">CONSUMIDOR NÃO IDENTIFICADO</div>
-    </div>
-
-    <!-- === DISCRIMINAÇÃO DOS ITENS === -->
-    <div class="bold center" style="margin: 6px 0;">ITENS</div>
-    <div class="line"></div>
-'''
-
-    # Adicionar itens
-    for i, item in enumerate(order.items.all(), 1):
-        subtotal = float(item.quantity) * float(item.unit_price)
-        html_cupom += f'''
-    <div class="item">
-        <div class="item-desc">{i:03d} {item.product.name}</div>
-        <div class="item-valores">
-            <span>Qtd: {item.quantity} UN</span>
-            <span>Unit: R$ {item.unit_price:.2f}</span>
-        </div>
-        <div class="item-valores">
-            <span>Cód: {getattr(item.product, 'id', '000001')}</span>
-            <span>Total: R$ {subtotal:.2f}</span>
-        </div>
-    </div>
-    <div class="line"></div>
-'''
-
-    # Continuar HTML com totais, pagamento, etc.
-    html_cupom += f'''
-    <!-- === TOTALIZADORES === -->
-    <div class="totais">
-        <div style="display: flex; justify-content: space-between;">
-            <span>Qtd. total de itens:</span>
-            <span>{order.items.count()}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Valor total R$:</span>
-            <span>{valor_total:.2f}</span>
-        </div>
-    </div>
-
-    <div class="total-final">
-        TOTAL R$ {valor_total:.2f}
-    </div>
-
-    <!-- === FORMA DE PAGAMENTO === -->
-    <div class="pagamento">
-        <div class="bold">FORMA PAGAMENTO</div>
-        <div>Dinheiro - Valor R$ {valor_total:.2f}</div>
-    </div>
-
-    <div class="line"></div>
-
-    <!-- === TRIBUTOS APROXIMADOS === -->
-    <div class="tributos">
-        Valor aprox. tributos R$ {tributos_aproximados:.2f} ({(tributos_aproximados/valor_total)*100:.1f}%)<br>
-        Fonte: IBPT/empresometro.com.br
-    </div>
-
-    <!-- === CONSULTA VIA QR CODE === -->
-    <div class="qrcode-section">
-        <div class="bold">Consulte pela chave de acesso em:</div>
-        <div style="font-size: 8px;">fazenda.sp.gov.br/nfe/qrcode</div>
-        
-        <div class="qrcode-box">
-            <div style="font-size: 8px;">QR CODE</div>
-            <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 4px auto; display: flex; align-items: center; justify-content: center; font-size: 6px;">
-                {qr_code[:20]}...<br>
-                (QR Code aqui)
+        <!-- === CABEÇALHO DA EMPRESA === -->
+        <div class="empresa-header">
+            <div class="empresa-nome">COXINHAS PREMIUM LTDA</div>
+            <div class="empresa-dados">
+                Rua Coronel Fernando Prestes, 898<br>
+                Centro - Itapetininga/SP<br>
+                CEP: 18200-230<br>
+                CNPJ: 10.361.831/0001-23<br>
+                IE: 371.468.833.110
             </div>
         </div>
-    </div>
 
-    <!-- === CHAVE DE ACESSO === -->
-    <div class="center" style="font-size: 8px; word-break: break-all; margin: 4px 0;">
-        <div class="bold">CHAVE DE ACESSO:</div>
-        {chave_acesso}
-    </div>
-
-    <!-- === PROTOCOLO (SE AUTORIZADA) === -->
-    {f'<div class="protocolo"><div class="bold">PROTOCOLO DE AUTORIZAÇÃO:</div>{resultado_emissao.get("protocolo", "PENDENTE")}<br>{data_emissao}</div>' if resultado_emissao.get('sucesso') else ''}
-
-    <div class="line"></div>
-
-    <!-- === INFORMAÇÕES LEGAIS === -->
-    <div class="mensagens-legais">
-        Esta NFCe foi emitida nos termos da<br>
-        Resolução CGSN nº 140/2018 e<br>
-        condições descritas em<br>
-        fazenda.sp.gov.br/nfe
-    </div>
-
-    <div class="mensagens-legais">
-        Não permite aproveitamento de crédito de ICMS
-    </div>
-
-    <!-- === FOOTER === -->
-    <div class="footer">
-        <div style="margin: 8px 0;">
-            ★★★ OBRIGADO PELA PREFERÊNCIA! ★★★
+        <!-- === IDENTIFICAÇÃO NFCe === -->
+        <div class="nfce-header">
+            DOCUMENTO AUXILIAR DA<br>
+            NOTA FISCAL DE CONSUMIDOR<br>
+            ELETRÔNICA
         </div>
-        <div style="margin: 4px 0;">
-            Volte sempre!
+
+        <div class="dados-nfce center">
+            <div class="bold">NFCe Nº {numero_nfce:09d} - Série 001</div>
+            <div>Emissão: {data_emissao}</div>
+            <div style="font-size: 8px; margin-top: 2px;">
+                Ambiente: Homologação
+            </div>
         </div>
-        <div style="font-size: 6px; margin-top: 8px;">
-            Cupom gerado em {data_emissao}
+
+        <div class="line"></div>
+
+        <!-- === CONSUMIDOR === -->
+        <div class="consumidor center">
+            <div class="bold">CONSUMIDOR NÃO IDENTIFICADO</div>
         </div>
-    </div>
 
-    <!-- Espaço para corte -->
-    <div style="height: 20mm;"></div>
+        <!-- === DISCRIMINAÇÃO DOS ITENS === -->
+        <div class="bold center" style="margin: 6px 0;">ITENS</div>
+        <div class="line"></div>
+    '''
 
-    <script>
-        // Auto-impressão quando solicitado
-        if (window.location.search.includes('print=auto')) {{
-            setTimeout(() => {{
-                window.print();
-                setTimeout(() => window.close(), 1000);
-            }}, 500);
-        }}
-    </script>
+        # Adicionar itens
+        for i, item in enumerate(order.items.all(), 1):
+            subtotal = float(item.quantity) * float(item.unit_price)
+            html_cupom += f'''
+        <div class="item">
+            <div class="item-desc">{i:03d} {item.product.name}</div>
+            <div class="item-valores">
+                <span>Qtd: {item.quantity} UN</span>
+                <span>Unit: R$ {item.unit_price:.2f}</span>
+            </div>
+            <div class="item-valores">
+                <span>Cód: {getattr(item.product, 'id', '000001')}</span>
+                <span>Total: R$ {subtotal:.2f}</span>
+            </div>
+        </div>
+        <div class="line"></div>
+    '''
 
-</body>
-</html>
-'''
-    
-    return html_cupom
+        # Continuar HTML com totais, pagamento, etc.
+        html_cupom += f'''
+        <!-- === TOTALIZADORES === -->
+        <div class="totais">
+            <div style="display: flex; justify-content: space-between;">
+                <span>Qtd. total de itens:</span>
+                <span>{order.items.count()}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>Valor total R$:</span>
+                <span>{valor_total:.2f}</span>
+            </div>
+        </div>
 
-def salvar_cupom_fiscal(self, dados_nfce, resultado_emissao):
-    """
-    Salva o cupom fiscal em arquivo HTML para impressão
-    """
-    try:
-        cupom_html = self.gerar_cupom_fiscal_html(dados_nfce, resultado_emissao)
-        
-        # Criar diretório se não existir
-        cupons_dir = os.path.join(settings.MEDIA_ROOT, 'cupons_fiscais')
-        os.makedirs(cupons_dir, exist_ok=True)
-        
-        # Nome do arquivo
-        numero_nfce = dados_nfce['numero']
-        chave_acesso = dados_nfce['chave_acesso']
-        filename = f"cupom_nfce_{numero_nfce}_{chave_acesso}.html"
-        filepath = os.path.join(cupons_dir, filename)
-        
-        # Salvar arquivo
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(cupom_html)
-        
-        print(f"[INFO] Cupom fiscal salvo: {filepath}")
-        
-        return {
-            'arquivo_salvo': True,
-            'caminho': filepath,
-            'url_impressao': f'/media/cupons_fiscais/{filename}',
-            'html_content': cupom_html
-        }
-        
-    except Exception as e:
-        print(f"[ERROR] Erro ao salvar cupom fiscal: {e}")
-        return {
-            'arquivo_salvo': False,
-            'erro': str(e),
-            'html_content': cupom_html  # Retorna HTML mesmo se não conseguir salvar
-        }
+        <div class="total-final">
+            TOTAL R$ {valor_total:.2f}
+        </div>
 
+        <!-- === FORMA DE PAGAMENTO === -->
+        <div class="pagamento">
+            <div class="bold">FORMA PAGAMENTO</div>
+            <div>Dinheiro - Valor R$ {valor_total:.2f}</div>
+        </div>
 
-def emitir_nfce(self, order, cpf_cliente=None):
-    """
-    Método principal para emissão de NFCe com cupom fiscal
-    """
-    try:
-        # Pega próximo número da NFCe
-        numero = self._obter_proximo_numero_nfce()
-        
-        # Monta dados da NFCe
-        dados_nfce = self._montar_dados_nfce(order, numero, cpf_cliente)
-        
-        # Se tem certificado, tenta emissão real primeiro
-        if self.certificado:
-            try:
-                print("[INFO] Tentando emissão real em HOMOLOGAÇÃO...")
-                resultado = self._emitir_nfce_real(dados_nfce)
-                
-                # Gerar cupom fiscal após emissão bem-sucedida
-                if resultado['sucesso']:
-                    cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
-                    resultado['cupom_fiscal'] = cupom_info
-                    print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
-                
-                return resultado
-            except Exception as e:
-                print(f"[ERROR] Falha na emissão real: {e}")
-                print("[FALLBACK] Tentando simulação após falha na emissão real...")
-                resultado = self._emitir_nfce_simulado(dados_nfce)
-        else:
-            print("[INFO] Emissão apenas em modo simulação")
-            resultado = self._emitir_nfce_simulado(dados_nfce)
-        
-        # Gerar cupom fiscal mesmo em simulação
-        if resultado['sucesso']:
-            cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
-            resultado['cupom_fiscal'] = cupom_info
-            print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
+        <div class="line"></div>
+
+        <!-- === TRIBUTOS APROXIMADOS === -->
+        <div class="tributos">
+            Valor aprox. tributos R$ {tributos_aproximados:.2f} ({(tributos_aproximados/valor_total)*100:.1f}%)<br>
+            Fonte: IBPT/empresometro.com.br
+        </div>
+
+        <!-- === CONSULTA VIA QR CODE === -->
+        <div class="qrcode-section">
+            <div class="bold">Consulte pela chave de acesso em:</div>
+            <div style="font-size: 8px;">fazenda.sp.gov.br/nfe/qrcode</div>
             
-        return resultado
+            <div class="qrcode-box">
+                <div style="font-size: 8px;">QR CODE</div>
+                <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 4px auto; display: flex; align-items: center; justify-content: center; font-size: 6px;">
+                    {qr_code[:20]}...<br>
+                    (QR Code aqui)
+                </div>
+            </div>
+        </div>
+
+        <!-- === CHAVE DE ACESSO === -->
+        <div class="center" style="font-size: 8px; word-break: break-all; margin: 4px 0;">
+            <div class="bold">CHAVE DE ACESSO:</div>
+            {chave_acesso}
+        </div>
+
+        <!-- === PROTOCOLO (SE AUTORIZADA) === -->
+        {f'<div class="protocolo"><div class="bold">PROTOCOLO DE AUTORIZAÇÃO:</div>{resultado_emissao.get("protocolo", "PENDENTE")}<br>{data_emissao}</div>' if resultado_emissao.get('sucesso') else ''}
+
+        <div class="line"></div>
+
+        <!-- === INFORMAÇÕES LEGAIS === -->
+        <div class="mensagens-legais">
+            Esta NFCe foi emitida nos termos da<br>
+            Resolução CGSN nº 140/2018 e<br>
+            condições descritas em<br>
+            fazenda.sp.gov.br/nfe
+        </div>
+
+        <div class="mensagens-legais">
+            Não permite aproveitamento de crédito de ICMS
+        </div>
+
+        <!-- === FOOTER === -->
+        <div class="footer">
+            <div style="margin: 8px 0;">
+                ★★★ OBRIGADO PELA PREFERÊNCIA! ★★★
+            </div>
+            <div style="margin: 4px 0;">
+                Volte sempre!
+            </div>
+            <div style="font-size: 6px; margin-top: 8px;">
+                Cupom gerado em {data_emissao}
+            </div>
+        </div>
+
+        <!-- Espaço para corte -->
+        <div style="height: 20mm;"></div>
+
+        <script>
+            // Auto-impressão quando solicitado
+            if (window.location.search.includes('print=auto')) {{
+                setTimeout(() => {{
+                    window.print();
+                    setTimeout(() => window.close(), 1000);
+                }}, 500);
+            }}
+        </script>
+
+    </body>
+    </html>
+    '''
         
-    except Exception as e:
-        print(f"[ERROR] Erro geral na emissão de NFCe: {e}")
-        return {
-            'sucesso': False,
-            'erro': f'Erro na emissão: {str(e)}',
-            'modo': 'erro'
-        }
+        return html_cupom
+
+    def salvar_cupom_fiscal(self, dados_nfce, resultado_emissao):
+        """
+        Salva o cupom fiscal em arquivo HTML para impressão
+        """
+        try:
+            cupom_html = self.gerar_cupom_fiscal_html(dados_nfce, resultado_emissao)
+            
+            # Criar diretório se não existir
+            cupons_dir = os.path.join(settings.MEDIA_ROOT, 'cupons_fiscais')
+            os.makedirs(cupons_dir, exist_ok=True)
+            
+            # Nome do arquivo
+            numero_nfce = dados_nfce['numero']
+            chave_acesso = dados_nfce['chave_acesso']
+            filename = f"cupom_nfce_{numero_nfce}_{chave_acesso}.html"
+            filepath = os.path.join(cupons_dir, filename)
+            
+            # Salvar arquivo
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(cupom_html)
+            
+            print(f"[INFO] Cupom fiscal salvo: {filepath}")
+            
+            return {
+                'arquivo_salvo': True,
+                'caminho': filepath,
+                'url_impressao': f'/media/cupons_fiscais/{filename}',
+                'html_content': cupom_html
+            }
+            
+        except Exception as e:
+            print(f"[ERROR] Erro ao salvar cupom fiscal: {e}")
+            return {
+                'arquivo_salvo': False,
+                'erro': str(e),
+                'html_content': cupom_html  # Retorna HTML mesmo se não conseguir salvar
+            }
+
+
+    def emitir_nfce(self, order, cpf_cliente=None):
+        """
+        Método principal para emissão de NFCe com cupom fiscal
+        """
+        try:
+            # Pega próximo número da NFCe
+            numero = self._obter_proximo_numero_nfce()
+            
+            # Monta dados da NFCe
+            dados_nfce = self._montar_dados_nfce(order, numero, cpf_cliente)
+            
+            # Se tem certificado, tenta emissão real primeiro
+            if self.certificado:
+                try:
+                    print("[INFO] Tentando emissão real em HOMOLOGAÇÃO...")
+                    resultado = self._emitir_nfce_real(dados_nfce)
+                    
+                    # Gerar cupom fiscal após emissão bem-sucedida
+                    if resultado['sucesso']:
+                        cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
+                        resultado['cupom_fiscal'] = cupom_info
+                        print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
+                    
+                    return resultado
+                except Exception as e:
+                    print(f"[ERROR] Falha na emissão real: {e}")
+                    print("[FALLBACK] Tentando simulação após falha na emissão real...")
+                    resultado = self._emitir_nfce_simulado(dados_nfce)
+            else:
+                print("[INFO] Emissão apenas em modo simulação")
+                resultado = self._emitir_nfce_simulado(dados_nfce)
+            
+            # Gerar cupom fiscal mesmo em simulação
+            if resultado['sucesso']:
+                cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
+                resultado['cupom_fiscal'] = cupom_info
+                print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
+                
+            return resultado
+            
+        except Exception as e:
+            print(f"[ERROR] Erro geral na emissão de NFCe: {e}")
+            return {
+                'sucesso': False,
+                'erro': f'Erro na emissão: {str(e)}',
+                'modo': 'erro'
+            }
