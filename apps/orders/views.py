@@ -1033,59 +1033,51 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 def gerar_cupom_texto(order, is_fiscal):
-    """Gera o conteúdo do cupom em formato texto (80mm / 48 colunas)"""
+    """Gera o conteúdo do cupom normal com layout compacto (igual ao fiscal)"""
     width = 48
+
+    def line(ch="-"):
+        return ch * width
+
+    def center(text):
+        text = text[:width]
+        return text.center(width)
 
     def cut(text):
         return text[:width]
 
-    def line(ch="="):
-        return ch * width
-
-    def center(text):
-        return cut(text).center(width)
-
-    def fill(left, right=""):
-        left = cut(left)
-        right = cut(right)
-        space = max(1, width - len(left) - len(right))
-        return f"{left}{' ' * space}{right}"
-
     lines = []
     lines.append(line("="))
-    lines.append(center("COXINHAS PREMIUM CAFÉ"))
-    lines.append(center("Cafeteria & Salgados"))
-    lines.append(center("Tel: (11) 9999-9999"))
+    lines.append(center("COXINHAS PREMIUM LTDA"))
+    lines.append(center("R.Cel.F.Prestes,898-Centro"))
+    lines.append(center("Itapetininga/SP CEP:18200-230"))
+    lines.append(center("CNPJ:10.361.831/0001-23"))
+    lines.append(center("IE:371.468.833.110"))
     lines.append(line("="))
 
-    if is_fiscal and order.tem_nfce:
-        lines.append("")
-        lines.append(center("** CUPOM FISCAL **"))
-        lines.append(center(f"NFCe N° {order.nfce_numero}"))
-        lines.append("")
-
-    lines.append(cut(f"COMANDA #{order.code}"))
-    lines.append(cut(f"Cliente: {order.name}"))
-    lines.append(cut(f"Data: {order.created_at.strftime('%d/%m/%Y %H:%M')}"))
+    lines.append(center("CUPOM NAO FISCAL"))
+    lines.append(f"COMANDA {order.code}  {order.created_at.strftime('%d/%m/%y %H:%M')}")
+    lines.append("CONSUMIDOR NAO IDENTIFICADO")
     lines.append(line("-"))
-    lines.append(cut("ITENS:"))
 
-    for item in order.items.all():
-        subtotal = item.quantity * item.unit_price
-        item_name = f"{item.quantity}x {item.product.name}"
-        subtotal_text = f"R$ {subtotal:.2f}"
-        lines.append(fill(item_name, subtotal_text))
+    total_geral = 0
+    for i, item in enumerate(order.items.all(), 1):
+        subtotal = float(item.quantity) * float(item.unit_price)
+        total_geral += subtotal
 
-        unit_text = f"un: R$ {item.unit_price:.2f}"
-        lines.append(unit_text.rjust(width))
+        nome = item.product.name[:25]
+        lines.append(f"{i:03d} {nome}")
+        lines.append(f"{item.quantity:.0f}x{item.unit_price:.2f}     {subtotal:>8.2f}")
 
     lines.append(line("-"))
-    lines.append(fill("TOTAL:", f"R$ {order.total_amount:.2f}"))
-    lines.append(line("="))
-    lines.append(center("Obrigado pela preferência!"))
-    lines.append(center("★★★ Volte sempre! ★★★"))
+    lines.append(f"TOTAL          R$ {total_geral:>10.2f}")
+    lines.append(f"Dinheiro       R$ {total_geral:>10.2f}")
+    lines.append(f"Troco          R$ {'0.00':>10}")
+    lines.append(line("-"))
+
+    lines.append(center("*** OBRIGADO! ***"))
+    lines.append(center("Volte sempre!"))
     lines.append("")
-
     return "\n".join(lines)
 
 # Substituir a CheckoutDirectPrintView completa (linha ~1035-1135)
