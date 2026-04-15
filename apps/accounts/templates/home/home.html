@@ -4,28 +4,23 @@
 {% block title %}Dashboard - Cafeteria Premium{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-    <!-- Botão fullscreen - esconder para usuário balcao -->
-    {% if not user.username == 'balcao' or user.is_superuser %}
-    <div class="fixed top-20 right-4 z-50">
-        <button 
-            onclick="toggleFullscreen()" 
-            class="w-12 h-12 md:w-14 md:h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <!-- Ícone Expand -->
-            <svg id="expand-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-            </svg>
-            
-            <!-- Ícone Compress -->
-            <svg id="compress-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 hidden">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-            </svg>
-        </button>
-    </div>
-    {% endif %}
+
+<!-- Trava a rolagem da página para se comportar como App -->
+<style>
+    html, body { 
+        overflow: hidden !important; 
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overscroll-behavior: none; 
+    }
+</style>
+
+<div class="w-full bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col overflow-hidden" style="height: calc(100vh - 64px); height: calc(100dvh - 64px);">
+    
 
     <!-- Main Content com layout mais fluido -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 overflow-y-auto w-full no-scrollbar">
         <div class="w-full">
 
             <!-- Main Grid modernizado -->
@@ -705,15 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Adicionar ao final da sua home.html ou em arquivo JS separado
 <script>
-function toggleFullscreen() {
-    const expandIcon = document.getElementById('expand-icon');
-    const compressIcon = document.getElementById('compress-icon');
-    
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().then(() => {
-            expandIcon.classList.add('hidden');
-            compressIcon.classList.remove('hidden');
-        });
+);
     } else {
         document.exitFullscreen().then(() => {
             expandIcon.classList.remove('hidden');

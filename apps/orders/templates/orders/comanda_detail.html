@@ -207,7 +207,7 @@
                 <p class="text-lg text-gray-500 max-w-md text-center mb-6">
                     Clique em "Novo Pedido" no menu lateral para adicionar itens a esta comanda.
                 </p>
-                <button onclick="openPedidoComandaModalNovo()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform transform hover:scale-105">
+                <button onclick="openPedidoComandaModalNovo()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform transform hover:scale-105">
                     + Adicionar Primeiro Pedido
                 </button>
             </div>
@@ -264,6 +264,22 @@
             atualizarVisualCarrinho();
             openPedidoComandaModal();
         };
+
+    // Capturar query param "?modal=open" e abrir modal dinamicamente quando vier redirecionado
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('modal') === 'open') {
+            if (typeof window.openPedidoComandaModalNovo === 'function') {
+                window.openPedidoComandaModalNovo();
+            } else if (typeof openPedidoComandaModal === 'function') {
+                openPedidoComandaModal();
+            }
+            
+            // Limpar URL para não reabrir em refresh
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({path:newUrl}, '', newUrl);
+        }
+    });
     </script>
 {% endblock %}
 

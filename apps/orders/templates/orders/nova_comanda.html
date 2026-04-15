@@ -31,8 +31,9 @@
 
         <!-- Área de Formulário (Preenchimento) -->
         <div class="p-6 flex-grow flex flex-col">
-            <form action="{% url 'orders:nova_comanda' %}" method="POST" class="flex flex-col h-full space-y-6">
+            <form id="formNovaComanda" action="{% url 'orders:nova_comanda' %}" method="POST" class="flex flex-col h-full space-y-6">
                 {% csrf_token %}
+                <input type="hidden" name="auto_open_modal" id="autoOpenModalInput" value="false">
                 
                 <div>
                     <label for="numero" class="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
@@ -51,18 +52,18 @@
 
                 <!-- Espaçador para jogar os botões para o final se necessário, ou deixá-los juntos do campo -->
                 <div class="pt-4 space-y-3 mt-auto">
-                    <!-- Botão de Iniciar -->
-                    <button type="submit" 
+                                        <!-- Botão de Iniciar -->
+                    <button type="submit" id="btnAcessarHtml" 
                         class="w-full flex items-center justify-center py-4 px-4 rounded-xl shadow text-lg font-bold text-white bg-green-500 hover:bg-green-600 transition-all hover:scale-[1.02] active:scale-[0.98]">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         Acessar Comanda
                     </button>
                     
-                    <!-- Botões Desabilitados (Aguardando Comanda) -->
-                    <button type="button" disabled
-                        class="w-full flex items-center justify-center py-4 px-4 rounded-xl shadow-sm text-lg font-bold text-gray-400 bg-gray-100 cursor-not-allowed">
+                                        <!-- Botões (Novo Pedido) -->
+                    <button type="button" id="btnNovoPedidoHtml" disabled onclick="submitAndOpenModal()"
+                        class="w-full flex items-center justify-center py-4 px-4 rounded-xl shadow-sm text-lg font-bold text-gray-400 bg-gray-200 cursor-not-allowed transition-all">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        Novo Pedido
+                        + Novo Pedido
                     </button>
                     
                     <a href="{% url 'accounts:dashboard' %}" class="w-full flex justify-center py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 text-center transition-colors">
@@ -114,5 +115,59 @@
             input.focus();
         }
     };
+    
+    // Funcão para submeter form dizendo para abrir o modal direto
+    function submitAndOpenModal() {
+        document.getElementById('autoOpenModalInput').value = 'true';
+        document.getElementById('formNovaComanda').submit();
+    }
+    
+    // Checagem em tempo real
+    let timeoutId;
+    document.getElementById('numero').addEventListener('input', function(e) {
+        let numero = e.target.value.trim();
+        
+        const btnAcessar = document.getElementById('btnAcessarHtml');
+        const btnNovo = document.getElementById('btnNovoPedidoHtml');
+        
+        if (numero.length === 0) {
+            // Reset to defaults
+            btnAcessar.disabled = false;
+            btnAcessar.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow text-lg font-bold text-white bg-green-500 hover:bg-green-600 transition-all hover:scale-[1.02] active:scale-[0.98]";
+            
+            btnNovo.disabled = true;
+            btnNovo.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow-sm text-lg font-bold text-gray-400 bg-gray-200 cursor-not-allowed transition-all";
+            return;
+        }
+        
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            fetch(`/orders/api/comanda/${numero}/check/`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.exists) {
+                    // Já existe. Bloqueia "Novo Pedido" instantâneo, deve acessar pra ver o saldo.
+                    btnNovo.disabled = true;
+                    btnNovo.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow-sm text-lg font-bold text-gray-400 bg-gray-200 cursor-not-allowed transition-all opacity-50";
+                    btnNovo.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Comanda em Uso`;
+                    
+                    // Acessar (Verde)
+                    btnAcessar.disabled = false;
+                    btnAcessar.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow text-lg font-bold text-white bg-green-500 hover:bg-green-600 transition-all hover:scale-[1.02] active:scale-[0.98]";
+                } else {
+                    // Está livre para usar / Não existe.
+                    // Libera criar novo pedido
+                    btnNovo.disabled = false;
+                    btnNovo.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow-md text-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all hover:scale-[1.02] active:scale-[0.98]";
+                    btnNovo.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> + Adicionar Pedido`;
+                    
+                    // Acessar Comanda fica secundário
+                    btnAcessar.disabled = false;
+                    btnAcessar.className = "w-full flex items-center justify-center py-4 px-4 rounded-xl shadow text-lg font-bold text-gray-700 bg-white border-2 border-gray-300 hover:bg-gray-50 transition-all";
+                }
+            })
+            .catch(err => console.log('Check API error', err));
+        }, 150); // small debounce
+    });
 </script>
 {% endblock %}

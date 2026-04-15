@@ -13,6 +13,7 @@ urlpatterns = [
     path('comanda/<str:numero>/', views.ComandaDetailView.as_view(), name='comanda_detail'),
     path('comanda/<str:numero>/novo-pedido/', views.NovoPedidoView.as_view(), name='novo_pedido'),
     path('api/comanda/<str:numero>/create-pedido/', views.ApiCreatePedidoView.as_view(), name='api_create_pedido'),
+    path('api/comanda/<str:numero>/check/', views.ApiCheckComandaView.as_view(), name='api_check_comanda'),
     path('api/pedido/<int:pk>/update/', views.ApiUpdatePedidoView.as_view(), name='api_update_pedido'),
 
     path('pedido/<int:pk>/marcar-entregue/', views.MarcarPedidoEntregueView.as_view(), name='marcar_entregue'),

@@ -1457,6 +1457,16 @@ function getCookie(name) {{
 # NOVAS VIEWS PARA O FLUXO DE MÚLTIPLOS PEDIDOS POR COMANDA
 # =====================================================================
 
+
+from django.http import JsonResponse
+
+class ApiCheckComandaView(View):
+    def get(self, request, numero):
+        comanda = Comanda.objects.filter(numero=numero).first()
+        if comanda:
+            return JsonResponse({'exists': True, 'status': comanda.status})
+        return JsonResponse({'exists': False, 'status': None})
+
 class NovaComandaView(LoginRequiredMixin, View):
     template_name = 'orders/nova_comanda.html'
 
@@ -1492,7 +1502,12 @@ class NovaComandaView(LoginRequiredMixin, View):
             )
 
         # Redireciona para a página de detalhes da comanda
-        return redirect('orders:comanda_detail', numero=comanda.numero)
+        auto_open = request.POST.get('auto_open_modal')
+        from django.urls import reverse
+        url = reverse('orders:comanda_detail', kwargs={'numero': comanda.numero})
+        if auto_open == 'true':
+            url += '?modal=open'
+        return redirect(url)
 
 class ComandaDetailView(LoginRequiredMixin, DetailView):
     model = Comanda
@@ -1600,7 +1615,12 @@ class NovoPedidoView(LoginRequiredMixin, View):
     def get(self, request, numero):
         comanda = get_object_or_404(Comanda, numero=numero)
         # TODO: renderizar form de pedido ou redirecionar para a interface de frente de caixa
-        return redirect('orders:comanda_detail', numero=comanda.numero)
+        auto_open = request.POST.get('auto_open_modal')
+        from django.urls import reverse
+        url = reverse('orders:comanda_detail', kwargs={'numero': comanda.numero})
+        if auto_open == 'true':
+            url += '?modal=open'
+        return redirect(url)
 
 class MarcarPedidoEntregueView(LoginRequiredMixin, View):
     def post(self, request, pk):
