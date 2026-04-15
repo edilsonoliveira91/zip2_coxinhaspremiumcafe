@@ -1,0 +1,17 @@
+{
+    "name": "Coxinhas Premium Café",
+    "short_name": "Premium Café",
+    "description": "Sistema de Gestão PDV Coxinhas Premium",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#f97316",
+    "orientation": "landscape",
+    "icons": [
+        {
+            "src": "/static/img/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        }
+    ]
+}

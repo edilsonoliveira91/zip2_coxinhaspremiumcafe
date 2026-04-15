@@ -10,6 +10,15 @@
     <!-- Tailwind CSS -->
     {% tailwind_css %}
     
+    
+    <!-- PWA / App Mode Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f97316">
+    <meta name="display" content="standalone">
+
+        <link rel="manifest" href="{% static 'manifest.json' %}">
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
 </head>
@@ -34,5 +43,20 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     {% block extra_js %}{% endblock %}
+
+    <script>
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Erro ao tentar modo tela cheia: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+
 </body>
 </html>
