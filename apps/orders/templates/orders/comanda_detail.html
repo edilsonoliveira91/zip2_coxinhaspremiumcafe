@@ -166,19 +166,17 @@
                     <!-- Linha de Visualizar Itens Expandida -->
                     <tr id="viewItens{{ pedido.id }}" class="hidden bg-gray-50 shadow-inner">
                         <td colspan="5" class="px-4 py-3 border-t border-gray-200">
-                            <!-- Payload de dados para edição -->
-                            <script type="application/json" id="pedido-data-{{ pedido.id }}">
-                                [
-                                    {% for item in pedido.items.all %}
-                                    {
-                                        "id": "{{ item.product.id }}",
-                                        "name": "{{ item.product.name|escapejs }}",
-                                        "price": parseFloat("{{ item.unit_price|stringformat:'f' }}"),
-                                        "quantity": parseInt("{{ item.quantity }}")
-                                    }{% if not forloop.last %},{% endif %}
-                                    {% endfor %}
-                                ]
-                            </script>
+                            <!-- Payload à prova de falhas: elementos HTML escondidos -->
+                            <div class="hidden" id="pedido-data-{{ pedido.id }}">
+                                {% for item in pedido.items.all %}
+                                <div class="pedido-item-data"
+                                     data-id="{{ item.product.id }}"
+                                     data-name="{{ item.product.name }}"
+                                     data-price="{{ item.unit_price|stringformat:'f'|default:0 }}"
+                                     data-quantity="{{ item.quantity }}">
+                                </div>
+                                {% endfor %}
+                            </div>
                             
                             <ul class="flex flex-wrap gap-2">
                                 {% for item in pedido.items.all %}
@@ -228,22 +226,31 @@
         let currentEditingPedidoId = null;
 
         function editarPedido(pedidoId) {
-            // Load existing items into cart
-            const dataScript = document.getElementById('pedido-data-' + pedidoId);
-            if(dataScript) {
-                const items = JSON.parse(dataScript.textContent);
-                comandaCart = {}; // reset cart
-                items.forEach(item => {
-                    comandaCart[item.id] = {
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        quantity: item.quantity
+            comandaCart = {}; // reset cart
+            
+            // Lemos os produtos a partir do HTML puro escondido, sem chances de quebrar!
+            const dataDiv = document.getElementById('pedido-data-' + pedidoId);
+            if(dataDiv) {
+                const lines = dataDiv.querySelectorAll('.pedido-item-data');
+                lines.forEach(row => {
+                    const id = row.getAttribute('data-id');
+                    const name = row.getAttribute('data-name');
+                    let price = row.getAttribute('data-price');
+                    const quantity = row.getAttribute('data-quantity');
+                    
+                    // Tratamento seguro para preços
+                    price = price ? price.replace(',', '.') : '0';
+
+                    comandaCart[id] = {
+                        id: id,
+                        name: name,
+                        price: parseFloat(price),
+                        quantity: parseInt(quantity)
                     };
                 });
             }
             
-            // Set flag
+            // Força a tela a atualizar com os produtos preenchidos
             currentEditingPedidoId = pedidoId;
             document.getElementById('btnSalvarPedido').innerText = "Atualizar Pedido";
             document.getElementById('modalTitle').innerText = "Editar Pedido #" + pedidoId;

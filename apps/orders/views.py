@@ -16,6 +16,7 @@ from .models import Comanda, Pedido, PedidoItem
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product
 import base64
+from decimal import Decimal
 
 
 class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
