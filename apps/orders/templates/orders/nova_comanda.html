@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Trava a rolagem da página para se comportar como App -->
+<style>
+    html, body { 
+        overflow: hidden !important; 
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overscroll-behavior: none; /* Trava o rubber-banding no mobile/tablet */
+    }
+</style>
+
 <!-- Layout de Tela Inteira -->
 <div class="w-full bg-gray-100 flex flex-row overflow-hidden" style="height: calc(100vh - 64px); height: calc(100dvh - 64px);">
     
