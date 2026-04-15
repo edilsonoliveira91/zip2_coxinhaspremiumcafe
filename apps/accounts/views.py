@@ -19,6 +19,7 @@ from django.shortcuts import render, get_object_or_404
 from .forms import UserPermissionForm
 from apps.impressao.services import epson_service
 from django.http import JsonResponse
+from config.models import SystemConfig
 
 
 class CustomLoginView(LoginView):
@@ -60,13 +61,30 @@ class HomeView(LoginRequiredMixin, TemplateView):
             status='em_uso'
         ).order_by('-created_at')
 
-        # Debug: adicionar todas as comandas para teste
-        todas_comandas = Comanda.objects.all()
-        print(f"Debug: Total comandas: {todas_comandas.count()}")
-        for cmd in todas_comandas:
-            print(f"Debug: #{cmd.numero} - {cmd.status} - {cmd.created_at}")
-
-        print(f"Debug: Comandas abertas encontradas: {comandas_abertas.count()}")
+                # ---> LÓGICA DE TEMPO DA CONFIGURAÇÃO <---
+        config = SystemConfig.get_settings()
+        limit_minutes = config.max_order_time_minutes
+        agora = timezone.now()
+        
+                # Analisaremos todas as comandas abertas para saber se estão atrasadas
+        for comanda in comandas_abertas:
+            comanda.is_delayed = False # Padrão: não está atrasada
+            comanda.has_pending = False # Padrão: tudo entregue ou vazia
+            
+            # Pega TODOS os pedidos que não estão finalizados/entregues
+            pedidos_pendentes = comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta'])
+            
+            # Se encontrou algum pedido não entregue, fica amarela!
+            if pedidos_pendentes.exists():
+                comanda.has_pending = True
+            
+            # Das pendentes, a gente checa se tem atraso (apenas as que tão aguardando/preparando entram no tempo crítico)
+            for pedido in pedidos_pendentes:
+                if pedido.status in ['aguardando', 'preparando']:
+                    espera_minutos = (agora - pedido.created_at).total_seconds() / 60
+                    if espera_minutos > limit_minutes:
+                        comanda.is_delayed = True
+                        break # Já achou um atrasado na comanda, vira vermelho e escapa do loop
         
         # Estatísticas das comandas
         stats_comandas = {
@@ -79,6 +97,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
             'comandas_abertas': comandas_abertas,
             'stats_comandas': stats_comandas,
         })
+        
         return context
 
 
@@ -89,7 +108,7 @@ def custom_logout_view(request):
     if request.user.is_authenticated:
         username = request.user.get_full_name() or request.user.username
         logout(request)
-    
+        messages.success(request, f'Até logo, {username}!')
     return redirect('accounts:login')
 
 

@@ -90,11 +90,15 @@
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
                                 <div onclick="window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
-                                    style="height: 160px !important;"
-                                    class="group relative bg-white border-2 cursor-pointer
-                                    {% if comanda.status == 'em_uso' %}border-orange-100 hover:border-orange-300{% endif %}
-                                    {% if False %}border-yellow-100 hover:border-yellow-300{% endif %}
-                                    {% if False %}border-green-100 hover:border-green-300{% endif %}
+                                    style="height: 160px !important; {% if comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
+                                    class="group relative border-2 cursor-pointer
+                                    {% if comanda.is_delayed %} 
+                                        bg-red-100 border-4 border-red-600 shadow-xl shadow-red-500/50 animate-pulse 
+                                    {% elif comanda.has_pending %} 
+                                        bg-yellow-100 border-yellow-400 shadow-md shadow-yellow-200/50
+                                    {% else %} 
+                                        bg-white border-gray-200 hover:border-gray-300 
+                                    {% endif %}
                                     rounded-2xl p-3 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 "
                                     data-comanda 
                                     data-numero="{{ comanda.numero }}" 
@@ -102,21 +106,14 @@
                                 
                                     <!-- Header da comanda -->
                                     <div class="flex items-center space-x-3 mb-2">
-                                        <div class="w-12 h-12 
-                                                    {% if comanda.status == 'em_uso' %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %}
-                                                    {% if False %}bg-gradient-to-r from-yellow-500 to-orange-500{% endif %}
-                                                    {% if False %}bg-gradient-to-r from-emerald-500 to-teal-500{% endif %}
-                                                    rounded-2xl flex items-center justify-center text-white font-bold">
-                                            #{{ comanda.id }}
+                                        <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
+                                            {{ comanda.numero }}
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">{{ comanda.cliente_nome }}</p>
-                                            <p class="text-xs text-gray-500">
-                                                {{ comanda.created_at|time:"H:i" }} • 
-                                                {% if comanda.status == 'em_uso' %}Aguardando
-                                                {% elif False %}Em preparo
-                                                {% elif False %}Pronta
-                                                {% endif %}
+                                            <p class="font-black text-gray-900 text-lg">Comanda {{ comanda.numero }}</p>
+                                            <p class="text-xs text-gray-500 font-medium">
+                                                <span class="text-gray-400 font-normal">Aberta às</span> 
+                                                {{ comanda.created_at|time:"H:i" }}
                                             </p>
                                         </div>
                                     </div>
@@ -206,10 +203,6 @@
     }
 </style>
 
-
-{% include 'home/order_modal.html' %}
-{% include 'home/detail_modal.html' %}
-{% include 'home/payment_modal.html' %}
 
 <script src="{% static 'js/utils.js' %}"></script>
 

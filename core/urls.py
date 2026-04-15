@@ -24,6 +24,7 @@ urlpatterns = [
     path('financials/', include('financials.urls', namespace='financials')),
     path('companys/', include('companys.urls', namespace='companys')),
     path('reports/', include('reports.urls', namespace='reports')),
+    path('config/', include('config.urls', namespace='config')),
     
     # Webhook Mercado Pago - APENAS ESTA LINHA
     path('webhook/mercadopago/payment/', mercadopago_webhook, name='mercadopago_webhook'),

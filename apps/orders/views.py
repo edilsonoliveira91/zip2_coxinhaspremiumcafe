@@ -1557,8 +1557,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                     pedido=pedido,
                     product=product,
                     quantity=quantity,
-                    unit_price=unit_price,
-                    subtotal=subtotal
+                    unit_price=unit_price
                 )
             
             pedido.total_amount = total_amount
@@ -1594,7 +1593,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                     pedido=pedido,
                     product=product,
                     quantity=item['quantity'],
-                    price=product.price
+                    unit_price=product.price
                 )
             
             # Atualizar total do pedido

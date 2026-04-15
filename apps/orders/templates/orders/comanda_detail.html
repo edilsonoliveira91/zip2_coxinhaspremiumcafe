@@ -138,7 +138,7 @@
                                 {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
                                 <button type="button" onclick="editarPedido('{{ pedido.id }}')" 
                                     class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
-                                    Visualizar (Editar)
+                                    Editar
                                 </button>
                                 {% else %}
                                 <button type="button" onclick="document.getElementById('viewItens{{ pedido.id }}').classList.toggle('hidden')" 

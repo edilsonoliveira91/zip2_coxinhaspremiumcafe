@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="p-6 max-w-md mx-auto mt-8 transition-all">
+    
+    <!-- Alertas -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-6 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-100 flex items-center gap-3 shadow-sm">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="font-medium text-sm">{{ message }}</span>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Card Principal -->
+    <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-md border border-gray-100 p-8">
+        
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8 pb-6 border-b border-gray-50">
+            <div class="w-14 h-14 bg-gradient-to-tr from-orange-100 to-pink-50 text-orange-500 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900 tracking-tight">Tempo de Espera</h1>
+                <p class="text-sm text-gray-500 mt-1">Alerta de atrasos.</p>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <form method="post" action="{% url 'config:time_config' %}" class="space-y-8">
+            {% csrf_token %}
+            
+            <div class="flex flex-col items-center justify-center space-y-3">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Limite Máximo (Minutos)
+                </label>
+                
+                <div class="relative transform hover:scale-105 transition-transform">
+                    {{ form.max_order_time_minutes }}
+                    <div class="absolute -right-12 top-1/2 -translate-y-1/2">
+                        <span class="text-sm font-semibold text-gray-400">min</span>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-400 text-center max-w-[250px] mt-4 leading-relaxed">
+                    Pedidos que ficarem abertos além deste tempo farão a comanda <b class="text-red-400">piscar em vermelho</b> na Tela Inicial.
+                </p>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex gap-3 pt-4">
+                <a href="{% url 'accounts:dashboard' %}" class="flex-1 py-3.5 text-center font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                    Voltar
+                </a>
+                <button type="submit" class="flex-1 py-3.5 text-center text-white font-bold bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl hover:from-orange-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'financials',
     'companys',
     'reports',
+    'config',
 ]
 
 MIDDLEWARE = [
