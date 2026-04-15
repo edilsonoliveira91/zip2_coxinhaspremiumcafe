@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from .forms import CustomUserCreationForm
 from .models import User
 from products.models import Product
-from orders.models import Order
+from orders.models import Pedido, Comanda
 from django.utils import timezone
 from django.views import View
 from django.http import JsonResponse
@@ -56,24 +56,22 @@ class HomeView(LoginRequiredMixin, TemplateView):
         hoje = timezone.now().date()
         
         # TESTE: Remover filtro de data
-        comandas_abertas = Order.objects.filter(
-            status__in=['aguardando', 'preparando', 'pronta']
-        ).select_related('created_by').prefetch_related('items__product').order_by('created_at')
+        comandas_abertas = Comanda.objects.filter(
+            status='em_uso'
+        ).order_by('-created_at')
 
         # Debug: adicionar todas as comandas para teste
-        todas_comandas = Order.objects.all()
+        todas_comandas = Comanda.objects.all()
         print(f"Debug: Total comandas: {todas_comandas.count()}")
         for cmd in todas_comandas:
-            print(f"Debug: #{cmd.code} - {cmd.status} - {cmd.created_at}")
+            print(f"Debug: #{cmd.numero} - {cmd.status} - {cmd.created_at}")
 
         print(f"Debug: Comandas abertas encontradas: {comandas_abertas.count()}")
         
         # Estatísticas das comandas
         stats_comandas = {
-            'abertas': Order.objects.filter(created_at__date=hoje, status='aguardando').count(),
-            'preparo': Order.objects.filter(created_at__date=hoje, status='preparando').count(),
-            'prontas': Order.objects.filter(created_at__date=hoje, status='pronta').count(),
-            'entregues': Order.objects.filter(created_at__date=hoje, status='entregue').count(),
+            'em_uso': Comanda.objects.filter(status='em_uso').count(),
+            'livres': Comanda.objects.filter(status='livre').count(),
         }
         
         context.update({
@@ -241,18 +239,18 @@ class CheckOrderChangesView(LoginRequiredMixin, View):
             hoje = timezone.localtime().date()
             
             # Contar comandas abertas de hoje
-            comandas_abertas = Order.objects.filter(
+            comandas_abertas = Comanda.objects.filter(
                 created_at__date=hoje,
                 status__in=['aguardando', 'preparando', 'pronta']
             ).count()
             
             # Pegar total de comandas de hoje (para detectar finalizações)
-            total_comandas_hoje = Order.objects.filter(
+            total_comandas_hoje = Comanda.objects.filter(
                 created_at__date=hoje
             ).count()
             
             # Pegar timestamp da última modificação
-            ultima_comanda = Order.objects.filter(
+            ultima_comanda = Comanda.objects.filter(
                 created_at__date=hoje
             ).order_by('-updated_at').first()
             
@@ -280,7 +278,7 @@ def imprimir_comanda_view(request, comanda_code):
     if request.method == 'POST':
         try:
             # Buscar a comanda pelo código
-            comanda = Order.objects.get(code=comanda_code)
+            comanda = Comanda.objects.get(code=comanda_code)
             
             # Preparar dados para impressão
             dados_impressao = {
@@ -313,7 +311,7 @@ def imprimir_comanda_view(request, comanda_code):
                     'message': 'Erro na impressão. Verifique a impressora.'
                 })
                 
-        except Order.DoesNotExist:
+        except Comanda.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'message': 'Comanda não encontrada.'
@@ -333,7 +331,7 @@ def imprimir_cupom_view(request, comanda_code):
             import json
             
             # Buscar a comanda pelo código
-            comanda = Order.objects.get(code=comanda_code)
+            comanda = Comanda.objects.get(code=comanda_code)
             
             # Obter dados do corpo da requisição
             body_data = json.loads(request.body)
@@ -372,7 +370,7 @@ def imprimir_cupom_view(request, comanda_code):
                     'message': 'Erro na impressão. Verifique a impressora.'
                 })
                 
-        except Order.DoesNotExist:
+        except Comanda.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'message': 'Comanda não encontrada.'

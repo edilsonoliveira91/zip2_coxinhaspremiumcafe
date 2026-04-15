@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from utils.models import TimeStampedModel
-from orders.models import Order
+from orders.models import Comanda
 
 
 class Checkout(TimeStampedModel):
@@ -25,8 +25,8 @@ class Checkout(TimeStampedModel):
     ]
     
     # Relacionamento com a comanda
-    order = models.OneToOneField(
-        Order,
+    comanda = models.OneToOneField(
+        Comanda,
         on_delete=models.CASCADE,
         related_name='checkout',
         verbose_name='Comanda'

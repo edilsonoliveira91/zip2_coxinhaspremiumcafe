@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Sum, Count, Q
-from orders.models import Order, OrderItem
+from orders.models import Comanda, Pedido, PedidoItem
 from products.models import Product
 
 
@@ -33,7 +33,7 @@ class NFCeReportView(BaseReportView):
             data_fim = timezone.now().strftime('%Y-%m-%d')
         
         # Busca comandas com NFCe
-        queryset = Order.objects.filter(
+        queryset = Comanda.objects.filter(
             status='entregue',
             nfce_numero__isnull=False,
             created_at__date__gte=data_inicio,
@@ -91,14 +91,14 @@ class SalesReportView(BaseReportView):
             data_fim = timezone.now().strftime('%Y-%m-%d')
         
         # Busca vendas
-        vendas_queryset = Order.objects.filter(
+        vendas_queryset = Comanda.objects.filter(
             status='DELIVERED',
             created_at__date__gte=data_inicio,
             created_at__date__lte=data_fim
         ).order_by('-created_at')
         
         # Produtos mais vendidos
-        produtos_vendidos = OrderItem.objects.filter(
+        produtos_vendidos = PedidoItem.objects.filter(
             order__in=vendas_queryset
         ).values(
             'product__name'

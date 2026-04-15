@@ -7,6 +7,17 @@ urlpatterns = [
     # Dashboard de comandas
     path('', views.OrderDashboardView.as_view(), name='dashboard'),
     
+    # ----- NOVAS ROTAS (Comanda -> Pedido) -----
+    # Devem vir ANTES das rotas genéricas como '<str:code>/'
+    path('nova-comanda/', views.NovaComandaView.as_view(), name='nova_comanda'),
+    path('comanda/<str:numero>/', views.ComandaDetailView.as_view(), name='comanda_detail'),
+    path('comanda/<str:numero>/novo-pedido/', views.NovoPedidoView.as_view(), name='novo_pedido'),
+    path('api/comanda/<str:numero>/create-pedido/', views.ApiCreatePedidoView.as_view(), name='api_create_pedido'),
+    path('api/pedido/<int:pk>/update/', views.ApiUpdatePedidoView.as_view(), name='api_update_pedido'),
+
+    path('pedido/<int:pk>/marcar-entregue/', views.MarcarPedidoEntregueView.as_view(), name='marcar_entregue'),
+    path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),
+    
     # CRUD de comandas
     path('list/', views.OrderListView.as_view(), name='list'),
     path('create/', views.OrderCreateView.as_view(), name='create'),
@@ -16,6 +27,7 @@ urlpatterns = [
     path('<str:code>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce'),
     path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
 
+    # Rotas baseadas no código do objeto
     path('<str:code>/', views.OrderDetailView.as_view(), name='detail'),
     path('<str:code>/edit/', views.OrderUpdateView.as_view(), name='edit'),
     path('<str:code>/delete/', views.OrderDeleteView.as_view(), name='delete'),
@@ -53,11 +65,8 @@ urlpatterns = [
 
     path('<str:code>/print-direct/', views.CheckoutDirectPrintView.as_view(), name='print_direct'),
 
-    # Adicionar ao urlpatterns
     path('<str:code>/cupom-fiscal/', views.CupomFiscalPrintView.as_view(), name='cupom_fiscal'),
-    # Adicionar esta linha
     path('<str:code>/cupom-fiscal-direto/', views.CupomFiscalDirectPrintView.as_view(), name='cupom_fiscal_direto'),
     path('teste-impressao-automatica/', views.TesteImpressaoAutomaticaView.as_view(), name='teste_impressao_automatica'),
-
     path('<str:code>/cupom-content/', views.OrderCupomContentView.as_view(), name='cupom_content'),
 ]

@@ -4,7 +4,7 @@ from .models import User
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from products.models import Product
-from orders.models import Order
+from orders.models import Pedido, Comanda
 from checkouts.models import Checkout
 
 

@@ -46,7 +46,7 @@
                             
                             <div class="flex items-center space-x-1 bg-gray-100 rounded-2xl p-1">
                                 <!-- Botão Nova Comanda -->
-                                <button onclick="openOrderModal()" class="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-3 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md">
+                                <button onclick="window.location.href='/orders/nova-comanda/'" class="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-3 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                     </svg>
@@ -94,33 +94,33 @@
                             
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
-                                <div onclick="openEditOrderModal('{{ comanda.code }}')" 
+                                <div onclick="window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
                                     style="height: 160px !important;"
                                     class="group relative bg-white border-2 cursor-pointer
-                                    {% if comanda.status == 'aguardando' %}border-orange-100 hover:border-orange-300{% endif %}
-                                    {% if comanda.status == 'preparando' %}border-yellow-100 hover:border-yellow-300{% endif %}
-                                    {% if comanda.status == 'pronta' %}border-green-100 hover:border-green-300{% endif %}
+                                    {% if comanda.status == 'em_uso' %}border-orange-100 hover:border-orange-300{% endif %}
+                                    {% if False %}border-yellow-100 hover:border-yellow-300{% endif %}
+                                    {% if False %}border-green-100 hover:border-green-300{% endif %}
                                     rounded-2xl p-3 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 "
                                     data-comanda 
-                                    data-numero="{{ comanda.code }}" 
-                                    data-mesa="{{ comanda.name }}">
+                                    data-numero="{{ comanda.numero }}" 
+                                    data-mesa="{{ comanda.cliente_nome }}">
                                 
                                     <!-- Header da comanda -->
                                     <div class="flex items-center space-x-3 mb-2">
                                         <div class="w-12 h-12 
-                                                    {% if comanda.status == 'aguardando' %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %}
-                                                    {% if comanda.status == 'preparando' %}bg-gradient-to-r from-yellow-500 to-orange-500{% endif %}
-                                                    {% if comanda.status == 'pronta' %}bg-gradient-to-r from-emerald-500 to-teal-500{% endif %}
+                                                    {% if comanda.status == 'em_uso' %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %}
+                                                    {% if False %}bg-gradient-to-r from-yellow-500 to-orange-500{% endif %}
+                                                    {% if False %}bg-gradient-to-r from-emerald-500 to-teal-500{% endif %}
                                                     rounded-2xl flex items-center justify-center text-white font-bold">
                                             #{{ comanda.id }}
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">{{ comanda.name }}</p>
+                                            <p class="font-semibold text-gray-900">{{ comanda.cliente_nome }}</p>
                                             <p class="text-xs text-gray-500">
                                                 {{ comanda.created_at|time:"H:i" }} • 
-                                                {% if comanda.status == 'aguardando' %}Aguardando
-                                                {% elif comanda.status == 'preparando' %}Em preparo
-                                                {% elif comanda.status == 'pronta' %}Pronta
+                                                {% if comanda.status == 'em_uso' %}Aguardando
+                                                {% elif False %}Em preparo
+                                                {% elif False %}Pronta
                                                 {% endif %}
                                             </p>
                                         </div>
@@ -134,7 +134,7 @@
                                     </div>
                                     
                                     <!-- Botão Detalhes -->
-                                    <button onclick="event.stopPropagation(); openEditOrderModal('{{ comanda.code }}')" 
+                                    <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
                                             class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105">
                                         Detalhes
                                     </button>

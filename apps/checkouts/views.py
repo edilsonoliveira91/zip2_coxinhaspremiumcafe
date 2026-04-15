@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime
 import json
-from orders.models import Order
+from orders.models import Comanda, Pedido
+Order = Comanda # temp fix
 from decimal import Decimal
 
 # Tente importar o modelo Checkout, se existir
@@ -23,7 +24,7 @@ class CheckoutOrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
     View para listagem de comandas no sistema de checkout
     """
     permission_required = 'checkouts.view_checkout'
-    model = Order
+    model = Comanda
     template_name = 'checkout_orderlist.html'
     context_object_name = 'orders'
     paginate_by = 50
@@ -33,7 +34,7 @@ class CheckoutOrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
         Retorna apenas comandas abertas (não entregues e não canceladas)
         Ordena por status (pronta primeiro, depois preparando, depois aguardando)
         """
-        queryset = Order.objects.filter(
+        queryset = Comanda.objects.filter(
             ~Q(status='entregue') & ~Q(status='cancelada')
         ).select_related().prefetch_related('items')
         
@@ -58,7 +59,7 @@ class CheckoutOrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
         context = super().get_context_data(**kwargs)
         
         # Comandas abertas (não entregues e não canceladas)
-        open_orders = Order.objects.filter(
+        open_orders = Comanda.objects.filter(
             ~Q(status='entregue') & ~Q(status='cancelada')
         )
         
@@ -99,7 +100,7 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         is_fiscal = request.GET.get('fiscal') == 'true'
         
         try:
-            order = Order.objects.prefetch_related('items__product').get(code=code)
+            order = Comanda.objects.prefetch_related('items__product').get(code=code)
             
             # Calcular subtotal para cada item
             for item in order.items.all():
@@ -114,7 +115,7 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             
             return render(request, self.template_name, context)
             
-        except Order.DoesNotExist:
+        except Comanda.DoesNotExist:
             return HttpResponse(f"<h1>Comanda #{code} não encontrada</h1><p>Verifique se o código está correto.</p>")
         except Exception as e:
             return HttpResponse(f"<h1>Erro ao carregar comanda</h1><p>Erro: {str(e)}</p>")
@@ -128,7 +129,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, code):
         try:
             # Buscar comanda
-            order = get_object_or_404(Order, code=code)
+            order = get_object_or_404(Comanda, code=code)
             
             # Validar se comanda pode ser finalizada
             if order.status in ['entregue', 'cancelada']:
@@ -197,7 +198,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     'change_amount': change_amount if payment_method == 'dinheiro' else 0
                 })
                 
-        except Order.DoesNotExist:
+        except Comanda.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'message': f'Comanda #{code} não encontrada!'

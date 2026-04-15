@@ -1,3 +1,8 @@
+from django.shortcuts import redirect
+from django.views.generic import DetailView
+from products.models import Product
+from django.http import JsonResponse
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -7,8 +12,8 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
 import json
-from .models import Order, OrderItem
-from .forms import OrderForm, OrderItemFormSet, ScannerForm, OrderStatusForm
+from .models import Comanda, Pedido, PedidoItem
+from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product
 import base64
 
@@ -27,7 +32,7 @@ class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         today = timezone.now().date()
         
         # Estatísticas do dia
-        orders_today = Order.objects.filter(created_at__date=today)
+        orders_today = Comanda.objects.filter(created_at__date=today)
         
         context.update({
             # Comandas por status
@@ -39,13 +44,13 @@ class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             # Comandas ativas para exibir no dashboard
             'comandas_ativas': orders_today.exclude(
                 status__in=['entregue', 'cancelada']
-            ).order_by('-created_at')[:10],
+            ).comanda_by('-created_at')[:10],
             
             # Produtos para o modal (mantendo compatibilidade)
             'products': Product.objects.filter(
                 is_active=True,
                 show_in_menu=True
-            ).order_by('category', 'name'),
+            ).comanda_by('category', 'name'),
             
             # Estatísticas
             'total_vendas': orders_today.aggregate(
@@ -63,14 +68,14 @@ class OrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     Lista todas as comandas
     """
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/list.html'
     context_object_name = 'orders'
     paginate_by = 20
     login_url = reverse_lazy('accounts:login')
     
     def get_queryset(self):
-        queryset = Order.objects.all().order_by('-created_at')
+        queryset = Comanda.objects.all().comanda_by('-created_at')
         
         # Filtros opcionais
         status = self.request.GET.get('status')
@@ -92,7 +97,7 @@ class OrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     Detalhes de uma comanda específica
     """
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/detail.html'
     context_object_name = 'order'
     slug_field = 'code'
@@ -105,8 +110,8 @@ class OrderCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     Criar nova comanda (página completa)
     """
     permission_required = 'orders.add_order'
-    model = Order
-    form_class = OrderForm
+    model = Comanda
+    form_class = PedidoForm
     template_name = 'orders/create.html'
     login_url = reverse_lazy('accounts:login')
     
@@ -114,9 +119,9 @@ class OrderCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         
         if self.request.POST:
-            context['formset'] = OrderItemFormSet(self.request.POST)
+            context['formset'] = PedidoItemFormSet(self.request.POST)
         else:
-            context['formset'] = OrderItemFormSet()
+            context['formset'] = PedidoItemFormSet()
         
         return context
     
@@ -176,7 +181,7 @@ class OrderCreateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 }, status=400)
 
             # Verificar se já existe comanda ABERTA com esse número
-            comandas_abertas = Order.objects.filter(
+            comandas_abertas = Comanda.objects.filter(
                 name=name,
                 status__in=['aguardando', 'preparando', 'pronta']
             )
@@ -187,7 +192,7 @@ class OrderCreateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 }, status=400)
             
             # Criar comanda
-            order = Order.objects.create(
+            comanda = Comanda.objects.create(
                 name=name,
                 observations=data.get('observations', ''),
                 created_by=request.user
@@ -197,7 +202,7 @@ class OrderCreateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
             for item_data in items:
                 try:
                     product = Product.objects.get(id=item_data['id'])
-                    OrderItem.objects.create(
+                    PedidoItem.objects.create(
                         order=order,
                         product=product,
                         quantity=item_data['quantity'],
@@ -234,8 +239,8 @@ class OrderUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     Editar comanda existente
     """
     permission_required = 'orders.change_order'
-    model = Order
-    form_class = OrderForm
+    model = Comanda
+    form_class = PedidoForm
     template_name = 'orders/edit.html'
     slug_field = 'code'
     slug_url_kwarg = 'code'
@@ -245,12 +250,12 @@ class OrderUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         
         if self.request.POST:
-            context['formset'] = OrderItemFormSet(
+            context['formset'] = PedidoItemFormSet(
                 self.request.POST,
                 instance=self.object
             )
         else:
-            context['formset'] = OrderItemFormSet(instance=self.object)
+            context['formset'] = PedidoItemFormSet(instance=self.object)
         
         return context
     
@@ -281,7 +286,7 @@ class OrderDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     Deletar comanda
     """
     permission_required = 'orders.delete_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/delete.html'
     slug_field = 'code'
     slug_url_kwarg = 'code'
@@ -302,7 +307,7 @@ class OrderStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
     Atualizar apenas o status da comanda
     """
     permission_required = 'orders.change_order'
-    model = Order
+    model = Comanda
     form_class = OrderStatusForm
     template_name = 'orders/status_update.html'
     slug_field = 'code'
@@ -361,7 +366,7 @@ class ScanResultView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     Resultado do scan - mostra comanda e opções de ação
     """
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/scan_result.html'
     context_object_name = 'order'
     slug_field = 'code'
@@ -375,7 +380,7 @@ class OrderStartView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     permission_required = 'orders.change_order'
 
     def post(self, request, code):
-        order = get_object_or_404(Order, code=code)
+        comanda = get_object_or_404(Comanda, code=code)
         order.status = 'preparando'
         order.started_at = timezone.now()
         order.updated_by = request.user
@@ -390,7 +395,7 @@ class OrderFinishView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
     permission_required = 'orders.change_order'
 
     def post(self, request, code):
-        order = get_object_or_404(Order, code=code)
+        comanda = get_object_or_404(Comanda, code=code)
         order.status = 'pronta'
         order.finished_at = timezone.now()
         order.updated_by = request.user
@@ -404,7 +409,7 @@ class OrderDeliverView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
     """Marcar como Entregue"""
     
     def post(self, request, code):
-        order = get_object_or_404(Order, code=code)
+        comanda = get_object_or_404(Comanda, code=code)
         order.status = 'entregue'
         order.delivered_at = timezone.now()
         order.updated_by = request.user
@@ -418,7 +423,7 @@ class OrderCancelView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
     """Cancelar comanda"""
     
     def post(self, request, code):
-        order = get_object_or_404(Order, code=code)
+        comanda = get_object_or_404(Comanda, code=code)
         order.status = 'cancelada'
         order.updated_by = request.user
         order.save()
@@ -433,7 +438,7 @@ class OrdersByStatusView(OrderListView):
     
     def get_queryset(self):
         status = self.kwargs['status']
-        return Order.objects.filter(status=status).order_by('-created_at')
+        return Comanda.objects.filter(status=status).comanda_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -446,16 +451,16 @@ class TodayOrdersView(OrderListView):
     
     def get_queryset(self):
         today = timezone.now().date()
-        return Order.objects.filter(created_at__date=today).order_by('-created_at')
+        return Comanda.objects.filter(created_at__date=today).comanda_by('-created_at')
 
 
 class ActiveOrdersView(OrderListView):
     """Comandas ativas (não entregues nem canceladas)"""
     
     def get_queryset(self):
-        return Order.objects.exclude(
+        return Comanda.objects.exclude(
             status__in=['entregue', 'cancelada']
-        ).order_by('-created_at')
+        ).comanda_by('-created_at')
 
 
 # API Views
@@ -466,7 +471,7 @@ class OrderStatusAPIView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
 
     def post(self, request, code):
         try:
-            order = get_object_or_404(Order, code=code)
+            comanda = get_object_or_404(Comanda, code=code)
             data = json.loads(request.body)
             new_status = data.get('status')
             
@@ -515,7 +520,7 @@ class DailyReportView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
 class OrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Versão para impressão da comanda"""
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/print.html'
     context_object_name = 'order'
     slug_field = 'code'
@@ -530,7 +535,7 @@ class OrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         is_fiscal = self.request.GET.get('fiscal') == 'true'
         
         # Calcular subtotal para cada item
-        order = context['order']
+        comanda = context['order']
         for item in order.items.all():
             item.subtotal = item.quantity * item.unit_price
         
@@ -545,7 +550,7 @@ class OrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
 class OrderBarcodeView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Gerar código de barras para impressão"""
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/barcode.html'
     context_object_name = 'order'
     slug_field = 'code'
@@ -561,7 +566,7 @@ class OrderDetailAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     def get(self, request, code):
         try:
-            order = get_object_or_404(Order, code=code)
+            comanda = get_object_or_404(Comanda, code=code)
             
             # Serializar dados da comanda
             order_data = {
@@ -610,7 +615,7 @@ class OrderUpdateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     def put(self, request, code):
         try:
-            order = get_object_or_404(Order, code=code)
+            comanda = get_object_or_404(Comanda, code=code)
             data = json.loads(request.body)
             
             # Limpar itens existentes
@@ -621,7 +626,7 @@ class OrderUpdateAPIView(LoginRequiredMixin, PermissionRequiredMixin, View):
             for item_data in data.get('items', []):
                 product = Product.objects.get(id=item_data['product_id'])
                 
-                OrderItem.objects.create(
+                PedidoItem.objects.create(
                     order=order,
                     product=product,
                     quantity=item_data['quantity'],
@@ -655,11 +660,11 @@ class OrderStatusUpdateAPIView(LoginRequiredMixin, View):
     
     def patch(self, request, code):
         try:
-            order = get_object_or_404(Order, code=code)
+            comanda = get_object_or_404(Comanda, code=code)
             data = json.loads(request.body)
             
             new_status = data.get('status')
-            if new_status not in dict(Order.STATUS_CHOICES):
+            if new_status not in dict(Comanda.STATUS_CHOICES):
                 return JsonResponse({
                     'success': False,
                     'message': 'Status inválido!'
@@ -698,7 +703,7 @@ class OrderFinalizeAPIView(LoginRequiredMixin, View):
     
     def post(self, request, code):
         try:
-            order = get_object_or_404(Order, code=code)
+            comanda = get_object_or_404(Comanda, code=code)
             
             # Finalizar comanda
             order.status = 'entregue'
@@ -723,22 +728,22 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     Lista de comandas finalizadas
     """
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/closed_orders_list.html'
     context_object_name = 'orders'
     paginate_by = 20
     
     def get_queryset(self):
         """Retorna apenas comandas finalizadas"""
-        return Order.objects.filter(
+        return Comanda.objects.filter(
             status='entregue'
-        ).select_related().prefetch_related('items__product').order_by('-delivered_at')
+        ).select_related().prefetch_related('items__product').comanda_by('-delivered_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
         # Estatísticas das comandas finalizadas
-        finalized_orders = self.get_queryset()
+        finalized_comandas = self.get_queryset()
         
         context.update({
             'total_finalizadas': finalized_orders.count(),
@@ -755,7 +760,7 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
     Detalhes de uma comanda finalizada específica
     """
     permission_required = 'orders.view_order'
-    model = Order
+    model = Comanda
     template_name = 'orders/closed_order_detail.html'
     context_object_name = 'order'
     slug_field = 'code'
@@ -764,13 +769,13 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
     
     def get_queryset(self):
         """Garante que só comandas finalizadas sejam acessadas"""
-        return Order.objects.filter(status='entregue')
+        return Comanda.objects.filter(status='entregue')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
         # Estatísticas da comanda
-        order = self.get_object()
+        comanda = self.get_object()
         
         # Tempo total de atendimento
         if order.created_at and order.delivered_at:
@@ -778,15 +783,15 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
             context['duration_minutes'] = duration.total_seconds() // 60
         
         # Próxima e anterior comanda finalizada (para navegação)
-        context['next_order'] = Order.objects.filter(
+        context['next_order'] = Comanda.objects.filter(
             status='entregue',
             delivered_at__gt=order.delivered_at
-        ).order_by('delivered_at').first()
+        ).comanda_by('delivered_at').first()
         
-        context['prev_order'] = Order.objects.filter(
+        context['prev_order'] = Comanda.objects.filter(
             status='entregue',
             delivered_at__lt=order.delivered_at
-        ).order_by('-delivered_at').first()
+        ).comanda_by('-delivered_at').first()
         
         return context
 
@@ -811,8 +816,8 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         """
         try:
             # Busca a comanda
-            order = get_object_or_404(
-                Order,
+            comanda = get_object_or_404(
+                Comanda,
                 code=code,
                 status='entregue'  # Só permite NFCe de comandas entregues
             )
@@ -866,7 +871,7 @@ class EmitirNFCeView(LoginRequiredMixin, View):
                     'message': f"Erro na emissão: {resultado['erro']}"
                 })
                 
-        except Order.DoesNotExist:
+        except Comanda.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'message': 'Comanda não encontrada ou não está finalizada'
@@ -1016,9 +1021,9 @@ class EmitirNFCeView(LoginRequiredMixin, View):
     def _salvar_nfce_na_comanda(self, order, dados_nfce):
         """
         Salva os dados da NFCe na comanda
-        TODO: Criar modelo NFCe relacionado com Order
+        TODO: Criar modelo NFCe relacionado com Comanda
         """
-        # Por enquanto salva em campos simples na Order
+        # Por enquanto salva em campos simples na Comanda
         # Depois criar um modelo NFCe separado
         order.nfce_numero = dados_nfce['numero_nfce']
         order.nfce_chave = dados_nfce['chave_acesso']
@@ -1092,8 +1097,8 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
         
         try:
             # Buscar a comanda
-            order = get_object_or_404(
-                Order.objects.prefetch_related('items__product'),
+            comanda = get_object_or_404(
+                Comanda.objects.prefetch_related('items__product'),
                 code=code
             )
             
@@ -1155,8 +1160,8 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
 
 class OrderCupomContentView(LoginRequiredMixin, View):
     def get(self, request, code):
-        order = get_object_or_404(
-            Order.objects.prefetch_related('items__product'),
+        comanda = get_object_or_404(
+            Comanda.objects.prefetch_related('items__product'),
             code=code
         )
 
@@ -1215,8 +1220,8 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
             from companys.models import Company
             
             # Busca a comanda
-            order = get_object_or_404(
-                Order.objects.select_related().prefetch_related('items__product'),
+            comanda = get_object_or_404(
+                Comanda.objects.select_related().prefetch_related('items__product'),
                 code=code,
                 status='entregue'
             )
@@ -1280,8 +1285,8 @@ class CupomFiscalDirectPrintView(LoginRequiredMixin, View):
         """
         try:
             # Busca a comanda
-            order = get_object_or_404(
-                Order.objects.select_related().prefetch_related('items__product'),
+            comanda = get_object_or_404(
+                Comanda.objects.select_related().prefetch_related('items__product'),
                 code=code,
                 status='entregue'
             )
@@ -1345,13 +1350,13 @@ class TesteImpressaoAutomaticaView(LoginRequiredMixin, View):
         # Buscar uma comanda para teste
         try:
             # Comanda com NFCe
-            comanda_fiscal = Order.objects.filter(
+            comanda_fiscal = Comanda.objects.filter(
                 status='entregue',
                 nfce_numero__isnull=False
             ).first()
             
             # Comanda sem NFCe  
-            comanda_normal = Order.objects.filter(
+            comanda_normal = Comanda.objects.filter(
                 status='entregue',
                 nfce_numero__isnull=True
             ).first()
@@ -1448,3 +1453,167 @@ function getCookie(name) {{
             
         except Exception as e:
             return HttpResponse(f"<h1>Erro: {e}</h1>")
+# =====================================================================
+# NOVAS VIEWS PARA O FLUXO DE MÚLTIPLOS PEDIDOS POR COMANDA
+# =====================================================================
+
+class NovaComandaView(LoginRequiredMixin, View):
+    template_name = 'orders/nova_comanda.html'
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        numero = request.POST.get('numero')
+        cliente_nome = request.POST.get('cliente_nome')
+
+        if not numero:
+            return render(request, self.template_name, {'error': 'O número da comanda é obrigatório.'})
+
+        # Verifica se já existe essa comanda e se está aberta
+        comanda = Comanda.objects.filter(numero=numero).first()
+        
+        if comanda and comanda.status == 'fechada':
+            # Reabrir comanda ou criar nova? Em geral, pager reusa. Vamos "reabrir"
+            comanda.status = 'em_uso'
+            comanda.cliente_nome = cliente_nome
+            comanda.total_amount = 0.00
+            comanda.pedidos.all().delete() # Ou criar novo histórico, depende da regra do negócio. Aqui estamos reusando.
+            comanda.save()
+        elif comanda and comanda.status == 'livre':
+            comanda.status = 'em_uso'
+            comanda.cliente_nome = cliente_nome
+            comanda.save()
+        elif not comanda:
+            comanda = Comanda.objects.create(
+                numero=numero,
+                cliente_nome=cliente_nome,
+                status='em_uso'
+            )
+
+        # Redireciona para a página de detalhes da comanda
+        return redirect('orders:comanda_detail', numero=comanda.numero)
+
+class ComandaDetailView(LoginRequiredMixin, DetailView):
+    model = Comanda
+    template_name = 'orders/comanda_detail.html'
+    context_object_name = 'comanda'
+
+    def get_object(self):
+        return get_object_or_404(Comanda, numero=self.kwargs.get('numero'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Buscar Categorias ativas a partir do CATEGORY_CHOICES
+        categories = [{'id': k, 'name': v} for k, v in Product.CATEGORY_CHOICES]
+        
+        # Buscar Todos os Produtos ativos
+        products = Product.objects.filter(show_in_menu=True)
+        
+        context['categories'] = categories
+        context['products'] = products
+        return context
+
+
+
+class ApiUpdatePedidoView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            pedido = get_object_or_404(Pedido, pk=pk)
+            data = json.loads(request.body)
+            items = data.get('items', [])
+            
+            if not items:
+                return JsonResponse({'success': False, 'message': 'O pedido não pode ficar vazio.'})
+            
+            # Remove itens antigos
+            pedido.items.all().delete()
+            
+            total_amount = Decimal('0.00')
+            for item_data in items:
+                product = get_object_or_404(Product, id=item_data['product_id'])
+                quantity = int(item_data['quantity'])
+                unit_price = product.price
+                subtotal = unit_price * quantity
+                total_amount += subtotal
+                
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    subtotal=subtotal
+                )
+            
+            pedido.total_amount = total_amount
+            pedido.save()
+            pedido.comanda.update_total()
+            
+            return JsonResponse({'success': True, 'message': 'Pedido atualizado com sucesso!'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+
+class ApiCreatePedidoView(LoginRequiredMixin, View):
+    def post(self, request, numero):
+        try:
+            data = json.loads(request.body)
+            items = data.get('items', [])
+            
+            if not items:
+                return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
+
+            comanda = get_object_or_404(Comanda, numero=numero)
+            
+            # Criar um novo Pedido na comanda
+            pedido = Pedido.objects.create(
+                comanda=comanda,
+                status='preparando'
+            )
+            
+            # Adicionar itens
+            for item in items:
+                product = get_object_or_404(Product, id=item['product_id'])
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    product=product,
+                    quantity=item['quantity'],
+                    price=product.price
+                )
+            
+            # Atualizar total do pedido
+            pedido.update_total()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Pedido adicionado com sucesso!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+class NovoPedidoView(LoginRequiredMixin, View):
+    # Em breve podemos usar o mesmo modal ou formulário
+    def get(self, request, numero):
+        comanda = get_object_or_404(Comanda, numero=numero)
+        # TODO: renderizar form de pedido ou redirecionar para a interface de frente de caixa
+        return redirect('orders:comanda_detail', numero=comanda.numero)
+
+class MarcarPedidoEntregueView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        pedido = get_object_or_404(Pedido, pk=pk)
+        pedido.status = 'entregue'
+        pedido.delivered_at = timezone.now()
+        pedido.save()
+        messages.success(request, f"Pedido #{pedido.pedido_seq} entregue com sucesso!")
+        return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
+
+class ImprimirPedidoView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        pedido = get_object_or_404(Pedido, pk=pk)
+        # TODO: Lógica de impressão do pedido
+        messages.info(request, "A impressão do pedido individual ainda será implementada.")
+        return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
