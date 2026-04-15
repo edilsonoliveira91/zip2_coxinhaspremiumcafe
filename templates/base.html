@@ -3,7 +3,7 @@
 <html lang="pt-BR" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Sistema de Gestão para Coxinhas Premium Café">
     <title>{% block title %}Coxinhas Premium Café{% endblock %}</title>
     
@@ -19,6 +19,11 @@
     <meta name="display" content="standalone">
 
         <link rel="manifest" href="{% static 'manifest.json' %}">
+    
+    <!-- Apple Touch Icons e Viewport complementar -->
+    <link rel="apple-touch-icon" href="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}">
+    <meta name="apple-mobile-web-app-title" content="Premium Café">
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
 </head>
@@ -55,6 +60,20 @@
                     document.exitFullscreen();
                 }
             }
+        }
+    </script>
+
+
+    <!-- Instalação do Service Worker PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{% static 'sw.js' %}").then(function(registration) {
+                    console.log('SW Registrado: ', registration.scope);
+                }, function(err) {
+                    console.log('SW Falhou: ', err);
+                });
+            });
         }
     </script>
 
