@@ -1656,8 +1656,8 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
         
         for item in pedido.items.all():
             linhas.append(f"{item.quantity}x {item.product.name}")
-            if item.observation:
-                linhas.append(f"   Obs: {item.observation}")
+            if item.observations:  # CORRIGIDO AQUI: adicionado o S
+                linhas.append(f"   Obs: {item.observations}")  # CORRIGIDO AQUI: adicionado o S
                 
         if pedido.observations:
             linhas.append("-" * 48)
