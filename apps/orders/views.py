@@ -1670,14 +1670,32 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
         # Adiciona várias quebras de linha no final para o papel levantar o suficiente para picote na guilhotina
         linhas.append("\n\n\n\n\n")
         
+                # (Seu código acima que monta o texto_cupom continua igualzinho...)
+        
         # Junta todas as linhas separadas com "\n" num varalzão gigante
         texto_cupom = "\n".join(linhas)
         
-        # 2. Codifica o texto para ser compatível em transitar pela internet em formato de um link seguro
+        # Codifica o texto para formato de Internet/Link (URL)
         texto_encoded = urllib.parse.quote(texto_cupom)
         
-        # 3. Monta da URL customizada que é "escutada" pelo RawBT no Android (ele que sabe o que fazer com ela)
+        # Monta da URL customizada que é "escutada" pelo RawBT no Android
         rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
         
-        # 4. Redireciona a tela que seria branca para atirar essa bola pro app RawBT que imprime sem aparecer tela
-        return redirect(rawbt_intent)
+        # CORREÇÃO AQUI: Em vez de redirect(), mandamos um HTML mínimo que o Chrome lê e executa a intenção!
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+        <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
+            <h3>Enviando para a impressora...</h3>
+            <script>
+                window.location.replace("{rawbt_intent}");
+                setTimeout(function() {{
+                    window.history.back();
+                }}, 1000);
+            </script>
+        </body>
+        </html>
+        """
+        
+        from django.http import HttpResponse
+        return HttpResponse(html_response)
