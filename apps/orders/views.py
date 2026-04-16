@@ -1667,10 +1667,11 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
         linhas.append("-" * 48)
         linhas.append(str("Fim do Pedido").center(48, " "))
         
-        # Adiciona várias quebras de linha no final para o papel levantar o suficiente para picote na guilhotina
+        # 1. Levanta o papel para passar da serra/guilhotina da impressora
         linhas.append("\n\n\n\n\n")
         
-                # (Seu código acima que monta o texto_cupom continua igualzinho...)
+        # 2. Envia o código hexadecimal ESC/POS (GS V 0) que aciona a guilhotina de corte da EPSON
+        linhas.append("\x1d\x56\x00")
         
         # Junta todas as linhas separadas com "\n" num varalzão gigante
         texto_cupom = "\n".join(linhas)
