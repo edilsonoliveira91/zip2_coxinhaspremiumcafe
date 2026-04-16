@@ -10,10 +10,11 @@ class Product(TimeStampedModel):
     """
     CATEGORY_CHOICES = [
         ('bebidas', 'Bebidas'),
+        ('cafes', 'Cafés'),
         ('salgados', 'Salgados'),
+        ('minisalgados', 'Mini Salgados'),
         ('doces', 'Doces'),
-        ('lanches', 'Lanches'),
-        ('outros', 'Outros'),
+        ('sanduiches', 'Sanduíches'),
     ]
     
     name = models.CharField(

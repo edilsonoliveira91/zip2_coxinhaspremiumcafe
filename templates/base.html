@@ -35,9 +35,9 @@
     {% endif %}
 
     <!-- Navegação -->
-    {% if user.is_authenticated and user.is_superuser %}
+   {% if user.is_authenticated %}
         {% include 'navbar.html' %}
-    {% endif %}
+   {% endif %}
 
     <!-- Conteúdo Principal -->
     <main class="{% if user.is_authenticated %}pt-16{% else %}pt-0{% endif %} min-h-screen">

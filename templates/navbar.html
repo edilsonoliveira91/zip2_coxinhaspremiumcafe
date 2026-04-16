@@ -20,6 +20,7 @@
 
                 <!-- Menu Desktop -->
                 <div class="hidden md:flex md:items-center md:space-x-1 md:ml-10">
+                    {% if perms.orders.view_order %}
                     <a href="/" class="bg-orange-50 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-orange-100">
                         <div class="flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +70,9 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    {% if perms.products.view_product or request.user.is_superuser %}
                     <a href="{% url 'products:product_list' %}" class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all">
                         <div class="flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +81,9 @@
                             <span>Produtos</span>
                         </div>
                     </a>
+                    {% endif %}
 
+                    {% if perms.financials.view_financial or request.user.is_superuser %}
                     <!-- Dropdown Relatórios -->
                     <div class="relative" x-data="{ dropdownOpen: false }">
                         <button @click="dropdownOpen = !dropdownOpen" 
@@ -164,6 +169,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -193,7 +199,9 @@
                         </div>
                         <div class="hidden lg:block text-left">
                             <div class="text-gray-700 font-medium text-sm">{{ user.get_full_name|default:user.username }}</div>
-                            <div class="text-gray-500 text-xs">Administrador</div>
+                            <div class="text-gray-500 text-xs">
+                                {% if user.is_superuser %}Administrador{% else %}Operador{% endif %}
+                            </div>
                         </div>
                         <svg class="w-4 h-4 text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -224,6 +232,7 @@
                                 <span>Meu Perfil</span>
                             </a>
 
+                            {% if request.user.is_superuser %}
                             <!-- Configurações com submenu -->
                             <div class="relative config-submenu">
                                 <button @click.stop="configOpen = !configOpen" 
@@ -270,11 +279,9 @@
                                         </svg>
                                         <span>Tempo de Espera</span>
                                     </a>
-                                    
                                 </div>
                             </div>
 
-                            {% if request.user.is_superuser %}
                             <a href="{% url 'accounts:user_list' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-cyan-600 hover:bg-cyan-50 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
