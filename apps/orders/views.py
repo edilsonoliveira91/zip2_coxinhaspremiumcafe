@@ -1632,8 +1632,10 @@ class MarcarPedidoEntregueView(LoginRequiredMixin, View):
         return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
 
 class ImprimirPedidoView(LoginRequiredMixin, View):
-    def post(self, request, pk):
+    def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
-        # TODO: Lógica de impressão do pedido
-        messages.info(request, "A impressão do pedido individual ainda será implementada.")
-        return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
+        
+        context = {
+            'pedido': pedido
+        }
+        return render(request, 'orders/print_pedido.html', context)

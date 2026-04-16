@@ -132,9 +132,10 @@
                             R$ {{ pedido.total_amount|floatformat:2 }}
                         </td>
 
-                        <!-- Ações -->
+                                                <!-- Ações -->
                         <td class="px-4 py-3">
                             <div class="flex justify-center items-center gap-2">
+
                                 {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
                                 <button type="button" onclick="editarPedido('{{ pedido.id }}')" 
                                     class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
@@ -159,6 +160,17 @@
                                     Finalizado
                                 </div>
                                 {% endif %}
+
+                                <!-- Botão de Imprimir (Ícone) -->
+                                <form action="{% url 'orders:imprimir_pedido' pedido.id %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <!-- Botão de Imprimir (Ícone) -->
+                                    <a href="{% url 'orders:imprimir_pedido' pedido.id %}" target="_blank" title="Imprimir Pedido para Cozinha" class="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white border border-gray-600 rounded-lg transition shadow-sm flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                        </svg>
+                                    </a>
+                                </form>
                             </div>
                         </td>
                     </tr>
