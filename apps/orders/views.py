@@ -18,6 +18,10 @@ from products.models import Product
 import base64
 from decimal import Decimal
 
+import urllib.parse
+from django.utils import timezone
+from django.shortcuts import get_object_or_404, redirect
+
 
 class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
@@ -1635,7 +1639,45 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
         
-        context = {
-            'pedido': pedido
-        }
-        return render(request, 'orders/print_pedido.html', context)
+        # 1. Cria a comanda em formato de Texto Puro (48 caracteres para 80mm térmica)
+        linhas = []
+        linhas.append(str(" COPA / COZINHA ").center(48, "-"))
+        linhas.append(str(" Ticket de Preparo ").center(48, " "))
+        linhas.append("-" * 48)
+        
+        linhas.append(f"COMANDA: {pedido.comanda.numero}")
+        linhas.append(f"PEDIDO ID: {pedido.pedido_seq}")
+        
+        data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+        linhas.append(f"DATA: {data_formatada}")
+        
+        linhas.append("-" * 48)
+        linhas.append("ITENS PARA PREPARAR:\n")
+        
+        for item in pedido.items.all():
+            linhas.append(f"{item.quantity}x {item.product.name}")
+            if item.observation:
+                linhas.append(f"   Obs: {item.observation}")
+                
+        if pedido.observations:
+            linhas.append("-" * 48)
+            linhas.append("OBSERVACOES GERAIS:")
+            linhas.append(pedido.observations)
+            
+        linhas.append("-" * 48)
+        linhas.append(str("Fim do Pedido").center(48, " "))
+        
+        # Adiciona várias quebras de linha no final para o papel levantar o suficiente para picote na guilhotina
+        linhas.append("\n\n\n\n\n")
+        
+        # Junta todas as linhas separadas com "\n" num varalzão gigante
+        texto_cupom = "\n".join(linhas)
+        
+        # 2. Codifica o texto para ser compatível em transitar pela internet em formato de um link seguro
+        texto_encoded = urllib.parse.quote(texto_cupom)
+        
+        # 3. Monta da URL customizada que é "escutada" pelo RawBT no Android (ele que sabe o que fazer com ela)
+        rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+        
+        # 4. Redireciona a tela que seria branca para atirar essa bola pro app RawBT que imprime sem aparecer tela
+        return redirect(rawbt_intent)
