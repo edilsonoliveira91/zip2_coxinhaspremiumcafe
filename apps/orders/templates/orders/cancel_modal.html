@@ -1,0 +1,36 @@
+<!-- Modal de Cancelar Pedido (Sobreposto) -->
+<div id="modalCancelarPedido" class="fixed inset-0 z-[60] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-all p-6 relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">
+                Cancelar Pedido
+            </h3>
+            <button type="button" onclick="fecharModalCancelar()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <p class="text-gray-600 text-sm mb-2 font-medium">Pedido selecionado:</p>
+        <p id="cancelarPedidoSeq" class="text-lg text-red-600 font-bold mb-4"></p>
+
+        <form id="formCancelarPedido" method="POST">
+            {% csrf_token %}
+
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="motivo_cancelamento">Motivo do cancelamento</label>
+            <textarea id="motivo_cancelamento" name="motivo_cancelamento" rows="3" required
+                class="shadow-sm border border-gray-300 appearance-none rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                placeholder="Exemplo: Cliente desistiu, pedido errado..."></textarea>
+
+            <div class="mt-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+                <button type="button" onclick="fecharModalCancelar()"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition-colors border border-gray-200">
+                    Voltar
+                </button>
+                <button type="submit"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-sm transition-transform transform hover:scale-105 flex justify-center items-center">
+                    Confirmar Cancelamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
