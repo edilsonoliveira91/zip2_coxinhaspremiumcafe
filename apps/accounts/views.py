@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from .forms import CustomUserCreationForm
 from .models import User
 from products.models import Product
-from orders.models import Pedido, Comanda
+from orders.models import Comanda
 from django.utils import timezone
 from django.views import View
 from django.http import JsonResponse
@@ -20,6 +20,8 @@ from .forms import UserPermissionForm
 from apps.impressao.services import epson_service
 from django.http import JsonResponse
 from config.models import SystemConfig
+from django.contrib.auth.models import Permission
+from django.apps import apps
 
 
 class CustomLoginView(LoginView):
@@ -154,14 +156,53 @@ def user_list(request):
     return render(request, 'accounts/user_list.html', {'users': users})
 
 
+def get_permissions_by_app():
+    permissions_by_app = {}
+    # Nomes das pastas/apps registradas no Django que queremos controlar:
+    relevant_apps = ['products', 'orders', 'financials', 'pinpads', 'companies', 'config']
+    
+    for app_label in relevant_apps:
+        try:
+            app_config = apps.get_app_config(app_label)
+            # Puxa só as permissões dos modelos deste app
+            app_permissions = Permission.objects.filter(
+                content_type__app_label=app_label
+            ).order_by('content_type__model', 'codename')
+            
+            permissions_by_model = {}
+            for perm in app_permissions:
+                model_name = perm.content_type.model
+                if model_name not in permissions_by_model:
+                    permissions_by_model[model_name] = {
+                        'name': perm.content_type.name.title(),
+                        'permissions': []
+                    }
+                permissions_by_model[model_name]['permissions'].append(perm)
+                
+            if permissions_by_model:
+                app_name = app_config.verbose_name if hasattr(app_config, 'verbose_name') else app_label.title()
+                permissions_by_app[app_name] = permissions_by_model
+        except LookupError:
+            continue
+            
+    return permissions_by_app
+
 @login_required
 @user_passes_test(is_superuser)
 def user_create(request):
-    """Cria um novo usuário com permissões"""
+    """Cria um novo usuário com permissões dinâmicas"""
     if request.method == 'POST':
         form = UserPermissionForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.is_staff = True  # Padrão do sistema para conseguir fazer login
+            user.save()
+            
+            # MAGIA: Captura todos os checkboxes marcados na tela e salva
+            permissions_ids = request.POST.getlist('permissions')
+            user.user_permissions.set(permissions_ids)
+            
             messages.success(request, f'✅ Usuário {user.username} criado com sucesso!')
             return redirect('accounts:user_list')
     else:
@@ -170,58 +211,49 @@ def user_create(request):
     return render(request, 'accounts/user_form.html', {
         'form': form,
         'title': 'Criar Novo Usuário',
-        'is_editing': False
+        'is_editing': False,
+        'permissions_by_app': get_permissions_by_app(),
+        'user_permissions': []
     })
-
 
 @login_required
 @user_passes_test(is_superuser)
 def user_edit(request, user_id):
-    """Edita as permissões de um usuário existente"""
+    """Edita as permissões de um usuário existente (dinamicamente)"""
     user_to_edit = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        # Criar o form mas não validar o password (será opcional na edição)
         form = UserPermissionForm(request.POST, instance=user_to_edit)
-        # Remove validação de senha na edição
         form.fields['password'].required = False
         form.fields['confirm_password'].required = False
         
         if form.is_valid():
             user = form.save(commit=False)
-            # Só atualiza senha se foi fornecida
             if form.cleaned_data.get('password'):
                 user.set_password(form.cleaned_data['password'])
             user.save()
-            form._save_permissions(user)
+            
+            # Atualiza permissões do banco nativo do Django
+            permissions_ids = request.POST.getlist('permissions')
+            user.user_permissions.set(permissions_ids)
+            
             messages.success(request, f'✅ Permissões de {user.username} atualizadas!')
             return redirect('accounts:user_list')
     else:
-        # Preencher o formulário com as permissões atuais
-        initial_data = {}
-        user_perms = user_to_edit.user_permissions.all()
-        
-        for perm in user_perms:
-            if 'product' in perm.codename:
-                action = perm.codename.split('_')[0]
-                initial_data[f'products_{action}'] = True
-            elif 'order' in perm.codename:
-                action = perm.codename.split('_')[0]
-                initial_data[f'orders_{action}'] = True
-            elif 'checkout' in perm.codename:
-                action = perm.codename.split('_')[0]
-                initial_data[f'checkouts_{action}'] = True
-        
-        form = UserPermissionForm(instance=user_to_edit, initial=initial_data)
+        form = UserPermissionForm(instance=user_to_edit)
         form.fields['password'].required = False
         form.fields['confirm_password'].required = False
         form.fields['password'].help_text = 'Deixe em branco para manter a senha atual'
+        
+    user_permissions = [perm.id for perm in user_to_edit.user_permissions.all()]
     
     return render(request, 'accounts/user_form.html', {
         'form': form,
         'title': f'Editar: {user_to_edit.username}',
         'is_editing': True,
-        'user_to_edit': user_to_edit
+        'user_to_edit': user_to_edit,
+        'permissions_by_app': get_permissions_by_app(),
+        'user_permissions': user_permissions
     })
 
 

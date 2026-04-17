@@ -45,7 +45,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             status='aprovado',
             created_at__date__gte=start_date,
             created_at__date__lte=end_date
-        ).select_related('order')
+        ).select_related('comanda')
         
         # Sangrias do período
         sangrias_periodo = Sangria.objects.filter(
@@ -149,9 +149,9 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         for checkout in checkouts_list:
             combined_list.append({
                 'type': 'comanda',
-                'id': checkout.order.id,
-                'code': checkout.order.code,
-                'cliente': checkout.order.name,
+                'id': checkout.comanda.id,
+                'code': checkout.comanda.code,
+                'cliente': checkout.comanda.name,
                 'pagamento': checkout.get_payment_method_display(),
                 'valor': checkout.total,
                 'data': checkout.created_at,

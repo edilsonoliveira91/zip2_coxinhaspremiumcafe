@@ -114,7 +114,7 @@ class Checkout(TimeStampedModel):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f'Checkout #{self.order.code} - {self.get_payment_method_display()}'
+        return f'Checkout #{self.comanda.numero} - {self.get_payment_method_display()}'
     
     def save(self, *args, **kwargs):
         """Calcula o total automaticamente"""

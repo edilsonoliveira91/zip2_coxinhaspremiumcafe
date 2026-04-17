@@ -159,6 +159,45 @@
     </div>
 </div>
 
+<!-- Modal de Observação do Produto (Sobreposto ao Carrinho) -->
+<div id="modalObservacaoProduto" class="fixed inset-0 z-[60] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+    <div id="modalObsContent" class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-all p-6 relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">
+                Adicionar Produto
+            </h3>
+            <button type="button" onclick="fecharModalObservacao()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <p class="text-gray-600 text-sm mb-2 font-medium">Produto selecionado:</p>
+        <p id="obsNomeProduto" class="text-lg text-orange-600 font-bold mb-4"></p>
+
+        <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="obsInputText">Alguma observação? (Opcional)</label>
+            <textarea id="obsInputText" name="observacao" rows="3" 
+                class="shadow-sm border border-gray-300 appearance-none rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                placeholder="Exemplo: Sem cebola, com gelo..."></textarea>
+        </div>
+
+        <div class="mt-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+            <button type="button" onclick="fecharModalObservacao()" 
+                class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition-colors border border-gray-200">
+                Cancelar
+            </button>
+            <button type="button" onclick="confirmarAdicaoCarrinho()"
+                class="w-full sm:w-auto px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-sm transition-transform transform hover:scale-105 flex justify-center items-center">
+                Adicionar ao Carrinho
+            </button>
+        </div>
+
+        <!-- Campos ocultos guardam dados do lanche enquanto o modal fica aberto -->
+        <input type="hidden" id="obsProdutoId" value="">
+        <input type="hidden" id="obsProdutoPreco" value="">
+    </div>
+</div>
+
 <script>
     // ESTADOS DO CARRINHO
     let comandaCart = {};
@@ -252,26 +291,77 @@
         }
     }
 
-    // --- CARRINHO LOGIC ---
-    function addProdutoGridParaCarrinho(productId) {
-        const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+
+    // --- CARRINHO LOGIC COM NOVO MODAL ---
+    
+    // Função 1: Abre o modal bonitinho ao invés do "prompt()" feio
+    function addProdutoGridParaCarrinho(id) {
+        const card = document.querySelector(`.product-card[data-product-id="${id}"]`);
         if (!card) return;
         
         const name = card.getAttribute('data-product-name');
-        const price = parseFloat(card.getAttribute('data-product-price'));
+        let price = card.getAttribute('data-product-price');
+        price = parseFloat(price.replace(',', '.'));
+
+        // Preenche o modal de observação
+        document.getElementById('obsProdutoId').value = id;
+        document.getElementById('obsProdutoPreco').value = price;
+        document.getElementById('obsNomeProduto').innerText = name;
+        document.getElementById('obsInputText').value = ""; // Limpa texto anterior
+
+        // Mostrar o Modal
+        const modal = document.getElementById('modalObservacaoProduto');
+        const content = document.getElementById('modalObsContent');
         
-        if (comandaCart[productId]) {
-            comandaCart[productId].quantity += 1;
+        modal.classList.remove('hidden');
+        // Gatilho de animação do CSS
+        void modal.offsetWidth; 
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+
+        // Dá foco automático pro garçom não ter que clicar na caixa de texto
+        setTimeout(() => { document.getElementById('obsInputText').focus(); }, 100);
+    }
+
+    // Função 2: Fecha o modal (se ele clicar em Cancelar ou no "X")
+    function fecharModalObservacao() {
+        const modal = document.getElementById('modalObservacaoProduto');
+        const content = document.getElementById('modalObsContent');
+        
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 150);
+    }
+
+    // Função 3: Salva de fato a observação pra dentro do carrinho! (Botão Verde)
+    function confirmarAdicaoCarrinho() {
+        const id = document.getElementById('obsProdutoId').value;
+        const name = document.getElementById('obsNomeProduto').innerText;
+        const price = parseFloat(document.getElementById('obsProdutoPreco').value);
+        let obs = document.getElementById('obsInputText').value;
+
+        obs = obs ? obs.trim() : "";
+        
+        // Cria uma chave única (id_obs) garantindo que lanches customizados fiquem separados
+        let cartKey = id + "_" + obs.toLowerCase();
+
+        if (comandaCart[cartKey]) {
+            comandaCart[cartKey].quantity += 1;
         } else {
-            comandaCart[productId] = {
-                id: productId,
+            comandaCart[cartKey] = {
+                id: id,
                 name: name,
                 price: price,
-                quantity: 1
+                quantity: 1,
+                obs: obs
             };
         }
-        
+
         atualizarVisualCarrinho();
+        fecharModalObservacao();
     }
     
     function changeItemQtd(productId, delta) {
@@ -299,11 +389,18 @@
             const itemTotal = item.quantity * item.price;
             total += itemTotal;
             
+            // 1. Cria a variável com o nome e adiciona a observação, se existir
+            let displayName = item.name;
+            if (item.obs && item.obs.trim() !== "") {
+                displayName += `<br><span class="text-xs text-red-500 font-normal mt-1 block">Obs: ${item.obs}</span>`;
+            }
+
             const el = document.createElement('div');
             el.className = "bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col";
             el.innerHTML = `
                 <div class="flex justify-between items-start mb-2">
-                    <span class="font-bold text-gray-800 text-sm leading-tight w-2/3">${item.name}</span>
+                    <!-- 2. Troca item.name por displayName aqui: -->
+                    <span class="font-bold text-gray-800 text-sm leading-tight w-2/3">${displayName}</span>
                     <span class="font-bold text-orange-600 text-sm min-w-max">R$ ${(item.price).toFixed(2).replace('.',',')}</span>
                 </div>
                 <div class="flex items-center justify-between border-t border-gray-100 pt-2">
@@ -338,9 +435,12 @@
     // --- SALVAR NOVO PEDIDO NA API ---
     function salvarNovoPedido() {
         const btnSalvar = document.getElementById('btnSalvarPedido');
+        
+        // Mapeamos o carrinho transformando ele num array que o Django espera
         const itemsList = Object.values(comandaCart).map(item => ({
-            product_id: item.id,
-            quantity: item.quantity
+            product_id: parseInt(item.id),
+            quantity: parseInt(item.quantity),
+            observation: item.obs || ""  // <-- AQUI: Puxamos a observação para enviar!
         }));
         
         if (itemsList.length === 0) return;
@@ -348,7 +448,6 @@
         const originalText = btnSalvar.innerHTML;
         btnSalvar.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Salvando...`;
         btnSalvar.disabled = true;
-        
         
         let url = "{% url 'orders:api_create_pedido' comanda.numero %}";
         if (typeof currentEditingPedidoId !== 'undefined' && currentEditingPedidoId) {
@@ -362,7 +461,7 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({ items: itemsList })
+            body: JSON.stringify({ items: itemsList }) // O observation está dentro deste itemsList agora
         })
         .then(response => response.json())
         .then(data => {
@@ -374,7 +473,6 @@
                 btnSalvar.disabled = false;
             }
         })
-
         .catch(err => {
             console.error(err);
             alert('Erro na requisição. Tente novamente.');

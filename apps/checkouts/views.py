@@ -128,14 +128,14 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     
     def post(self, request, code):
         try:
-            # Buscar comanda
-            order = get_object_or_404(Comanda, code=code)
+            # Buscar comanda usando o 'numero' (antes estava 'code' e falhava)
+            comanda = get_object_or_404(Comanda, numero=code)
             
             # Validar se comanda pode ser finalizada
-            if order.status in ['entregue', 'cancelada']:
+            if comanda.status == 'fechada':
                 return JsonResponse({
                     'success': False,
-                    'message': f'Comanda já está {order.status}!'
+                    'message': f'Comanda já está {comanda.status}!'
                 }, status=400)
             
             # Pegar dados do pagamento
@@ -145,7 +145,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             change_amount = float(data.get('change_amount', 0))
             
             # Validar método de pagamento
-            if payment_method not in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix']:
+            if payment_method not in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']:
                 return JsonResponse({
                     'success': False,
                     'message': 'Método de pagamento inválido!'
@@ -153,7 +153,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             
             # Validar valores para dinheiro
             if payment_method == 'dinheiro':
-                if received_amount < float(order.total_amount):
+                if received_amount < float(comanda.total_amount):
                     return JsonResponse({
                         'success': False,
                         'message': 'Valor recebido é insuficiente!'
@@ -161,21 +161,25 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             
             # Processar finalização em transação
             with transaction.atomic():
-                # Atualizar status da comanda
-                order.status = 'entregue'
-                order.delivered_at = timezone.now()
-                order.updated_by = request.user
-                order.save()
+                # Fechar a comanda
+                comanda.status = 'fechada'
+                comanda.save()
                 
-                # Criar registro de checkout (se o modelo existir)
+                # Fechar também todos os "pedidos" na cozinha desta comanda caso esquecidos
+                comanda.pedidos.filter(status__in=['preparando', 'pronta', 'aguardando']).update(
+                    status='entregue', 
+                    delivered_at=timezone.now()
+                )
+                
+                # Criar registro financeiro na tela de Receitas
                 if Checkout:
                     try:
                         checkout = Checkout.objects.create(
-                            order=order,
-                            subtotal=order.total_amount,
+                            comanda=comanda,
+                            subtotal=comanda.total_amount,
                             desconto=Decimal('0.00'),
                             taxa_servico=Decimal('0.00'),
-                            total=order.total_amount,
+                            total=comanda.total_amount,
                             payment_method=payment_method,
                             status='aprovado',
                             processed_by=request.user,
@@ -191,25 +195,9 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return JsonResponse({
                     'success': True,
                     'message': f'Comanda #{code} finalizada com sucesso!',
-                    'order_code': code,
-                    'payment_method': payment_method,
-                    'total': float(order.total_amount),
-                    'received_amount': received_amount if payment_method == 'dinheiro' else float(order.total_amount),
-                    'change_amount': change_amount if payment_method == 'dinheiro' else 0
                 })
                 
         except Comanda.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': f'Comanda #{code} não encontrada!'
-            }, status=404)
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Dados inválidos!'
-            }, status=400)
+            return JsonResponse({'success': False, 'message': f'Comanda #{code} não encontrada!'}, status=404)
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Erro interno: {str(e)}'
-            }, status=500)
+            return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)

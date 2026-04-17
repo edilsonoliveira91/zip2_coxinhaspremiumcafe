@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/pedido/<int:pk>/update/', views.ApiUpdatePedidoView.as_view(), name='api_update_pedido'),
 
     path('pedido/<int:pk>/marcar-entregue/', views.MarcarPedidoEntregueView.as_view(), name='marcar_entregue'),
+    path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),
     
     # CRUD de comandas

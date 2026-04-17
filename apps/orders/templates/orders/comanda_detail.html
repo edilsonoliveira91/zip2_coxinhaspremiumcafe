@@ -64,6 +64,16 @@
                     class="w-full flex justify-center items-center py-3 px-4 border-2 border-gray-600 rounded-xl text-md font-extrabold text-gray-700 bg-gray-50 hover:bg-gray-200 transition-colors text-center uppercase tracking-wide">
                     Tela Principal
                 </a>
+
+                <!-- Botão de Finalizar Comanda no Caixa -->
+                {% if perms.checkouts.add_checkout or request.user.is_superuser %}
+                <button type="button" onclick="abrirModalFinalizar()"
+                    class="w-full mt-3 flex items-center justify-center py-4 px-4 rounded-xl shadow-lg text-lg font-bold text-white bg-blue-500 border-2 border-blue-600 hover:bg-blue-600 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Fechar Comanda
+                </button>
+                {% endif %}
+
             </div>
         </div>
     </div>
@@ -132,7 +142,7 @@
                             R$ {{ pedido.total_amount|floatformat:2 }}
                         </td>
 
-                                                <!-- Ações -->
+                        <!-- Ações -->
                         <td class="px-4 py-3">
                             <div class="flex justify-center items-center gap-2">
 
@@ -155,6 +165,10 @@
                                         Entregar
                                     </button>
                                 </form>
+                                {% elif pedido.status == 'cancelado' %}
+                                <div class="px-4 py-2 bg-red-100 text-red-600 border border-red-200 rounded-lg font-bold text-sm uppercase cursor-not-allowed text-center shadow-inner flex items-center justify-center">
+                                    Cancelado
+                                </div>
                                 {% else %}
                                 <div class="px-4 py-2 bg-gray-100 text-gray-400 border border-gray-200 rounded-lg font-medium text-sm uppercase cursor-not-allowed text-center shadow-inner flex items-center justify-center">
                                     Finalizado
@@ -171,6 +185,17 @@
                                         </svg>
                                     </a>
                                 </form>
+
+                                {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
+                                    <!-- Botão Cancelar (Ícone) -->
+                                    <button type="button" onclick="abrirModalCancelar('{{ pedido.id }}', '#{{ pedido.pedido_seq }}')" title="Cancelar Pedido" 
+                                        class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white border border-red-600 rounded-lg transition shadow-sm flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                {% endif %}
+
                             </div>
                         </td>
                     </tr>
@@ -185,15 +210,28 @@
                                      data-id="{{ item.product.id }}"
                                      data-name="{{ item.product.name }}"
                                      data-price="{{ item.unit_price|stringformat:'f'|default:0 }}"
-                                     data-quantity="{{ item.quantity }}">
+                                     data-quantity="{{ item.quantity }}"
+                                     data-obs="{{ item.observations|default:'' }}"> <!-- Adicionou OBS -->
                                 </div>
                                 {% endfor %}
                             </div>
                             
-                            <ul class="flex flex-wrap gap-2">
+                            <ul class="flex flex-col gap-2"> <!-- flex-col para espaçar as caixas com texto em baixo -->
                                 {% for item in pedido.items.all %}
-                                <li class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium shadow-sm">
-                                    <span class="font-extrabold text-gray-400 mr-1">{{ item.quantity }}x</span> {{ item.product.name }}
+                                <li class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium shadow-sm flex flex-col">
+                                    <div class="flex items-center justify-between w-full">
+                                        <span>
+                                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full mr-2">x{{ item.quantity }}</span>
+                                            {{ item.product.name }}
+                                        </span>
+                                        <span class="text-green-600 font-bold ml-2">R$ {{ item.unit_price }}</span>
+                                    </div>
+                                    {% if item.observations %}
+                                        <!-- Se tiver observação, mostrar com destaque -->
+                                        <div class="mt-1 text-xs text-red-600 font-semibold bg-red-50 p-1 px-2 rounded-md">
+                                            Obs: {{ item.observations }}
+                                        </div>
+                                    {% endif %}
                                 </li>
                                 {% endfor %}
                             </ul>
@@ -230,75 +268,102 @@
 <!-- Incluir o Modal de Novo Pedido -->
 {% include 'orders/comanda_pedido_modal.html' %}
 
+<!-- Incluir o Modal de Finalizar Comanda no Caixa -->
+{% include 'closecomanda_modal.html' %}
+
+
 <script>
+    let currentEditingPedidoId = null;
+
+    function editarPedido(pedidoId) {
+        comandaCart = {}; // Zera o carrinho para preencher com o pedido existente
+        
+        // Lemos os produtos a partir do HTML puro escondido
+        const dataDiv = document.getElementById('pedido-data-' + pedidoId);
+        if(dataDiv) {
+            const lines = dataDiv.querySelectorAll('.pedido-item-data');
+            lines.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const name = row.getAttribute('data-name');
+                let price = row.getAttribute('data-price');
+                const quantity = row.getAttribute('data-quantity');
+                
+                // Lendo nossa nova variável de observação
+                const obs = row.getAttribute('data-obs') || "";
+                
+                // Tratamento seguro para preços
+                price = price ? price.replace(',', '.') : '0';
+
+                // Aqui refazemos a chave para que não misture os lanches diferentes
+                let cartKey = id + "_" + obs.toLowerCase();
+
+                // Preenche o carrinho, mantendo a observacao se ela existir!
+                comandaCart[cartKey] = {
+                    id: id,
+                    name: name,
+                    price: parseFloat(price),
+                    quantity: parseInt(quantity),
+                    obs: obs
+                };
+            });
+        }
+        
+        // Força a tela a atualizar com os produtos preenchidos
+        currentEditingPedidoId = pedidoId;
+        document.getElementById('btnSalvarPedido').innerText = "Atualizar Pedido";
+        document.getElementById('modalTitle').innerText = "Editar Pedido #" + pedidoId;
+        
+        atualizarVisualCarrinho();
+        openPedidoComandaModal();
+    }
     
-</script>
+    // Sobrescrever a função de fechamento no escopo global ou modal
+    const oldOpen = window.openPedidoComandaModal;
+    window.openPedidoComandaModalNovo = function() {
+        currentEditingPedidoId = null;
+        comandaCart = {}; // start fresh
+        const titleEl = document.getElementById('modalTitle');
+        if(titleEl) titleEl.innerText = "Adicionar/Novo Pedido";
+        const btnEl = document.getElementById('btnSalvarPedido');
+        if(btnEl) btnEl.innerText = "Confirmar Pedido";
+        atualizarVisualCarrinho();
+        openPedidoComandaModal();
+    };
 
-    <script>
-        let currentEditingPedidoId = null;
+    function abrirModalCancelar(pedidoId, pedidoSeq) {
+        const modal = document.getElementById('modalCancelarPedido');
+        const seqSpan = document.getElementById('cancelarPedidoSeq');
+        const form = document.getElementById('formCancelarPedido');
+        
+        seqSpan.innerText = pedidoSeq;
+        
+        // Agora apontando exatamente pra view criada no Django
+        form.action = `/orders/pedido/${pedidoId}/cancelar/`;
+        
+        modal.classList.remove('hidden');
+    }
 
-        function editarPedido(pedidoId) {
-            comandaCart = {}; // reset cart
-            
-            // Lemos os produtos a partir do HTML puro escondido, sem chances de quebrar!
-            const dataDiv = document.getElementById('pedido-data-' + pedidoId);
-            if(dataDiv) {
-                const lines = dataDiv.querySelectorAll('.pedido-item-data');
-                lines.forEach(row => {
-                    const id = row.getAttribute('data-id');
-                    const name = row.getAttribute('data-name');
-                    let price = row.getAttribute('data-price');
-                    const quantity = row.getAttribute('data-quantity');
-                    
-                    // Tratamento seguro para preços
-                    price = price ? price.replace(',', '.') : '0';
+    function fecharModalCancelar() {
+        const modal = document.getElementById('modalCancelarPedido');
+        modal.classList.add('hidden');
+        document.getElementById('motivo_cancelamento').value = ''; // Limpa o campo
+    }
 
-                    comandaCart[id] = {
-                        id: id,
-                        name: name,
-                        price: parseFloat(price),
-                        quantity: parseInt(quantity)
-                    };
-                });
-            }
-            
-            // Força a tela a atualizar com os produtos preenchidos
-            currentEditingPedidoId = pedidoId;
-            document.getElementById('btnSalvarPedido').innerText = "Atualizar Pedido";
-            document.getElementById('modalTitle').innerText = "Editar Pedido #" + pedidoId;
-            
-            atualizarVisualCarrinho();
+// Capturar query param "?modal=open" e abrir modal dinamicamente quando vier redirecionado
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('modal') === 'open') {
+        if (typeof window.openPedidoComandaModalNovo === 'function') {
+            window.openPedidoComandaModalNovo();
+        } else if (typeof openPedidoComandaModal === 'function') {
             openPedidoComandaModal();
         }
         
-        // Sobrescrever a função de fechamento no escopo global ou modal
-        const oldOpen = window.openPedidoComandaModal;
-        window.openPedidoComandaModalNovo = function() {
-            currentEditingPedidoId = null;
-            comandaCart = {}; // start fresh
-            const titleEl = document.getElementById('modalTitle');
-            if(titleEl) titleEl.innerText = "Adicionar/Novo Pedido";
-            const btnEl = document.getElementById('btnSalvarPedido');
-            if(btnEl) btnEl.innerText = "Confirmar Pedido";
-            atualizarVisualCarrinho();
-            openPedidoComandaModal();
-        };
-
-    // Capturar query param "?modal=open" e abrir modal dinamicamente quando vier redirecionado
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('modal') === 'open') {
-            if (typeof window.openPedidoComandaModalNovo === 'function') {
-                window.openPedidoComandaModalNovo();
-            } else if (typeof openPedidoComandaModal === 'function') {
-                openPedidoComandaModal();
-            }
-            
-            // Limpar URL para não reabrir em refresh
-            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            window.history.replaceState({path:newUrl}, '', newUrl);
-        }
-    });
-    </script>
+        // Limpar URL para não reabrir em refresh
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({path:newUrl}, '', newUrl);
+    }
+});
+</script>
 {% endblock %}
 

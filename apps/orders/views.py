@@ -1550,10 +1550,13 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
             # Remove itens antigos
             pedido.items.all().delete()
             
-            total_amount = Decimal('0.00')
+            total_amount = 0
+            # Adicionar novos items e calcular o total
             for item_data in items:
                 product = get_object_or_404(Product, id=item_data['product_id'])
                 quantity = int(item_data['quantity'])
+                obs = item_data.get('observation') or '' 
+                
                 unit_price = product.price
                 subtotal = unit_price * quantity
                 total_amount += subtotal
@@ -1562,7 +1565,8 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                     pedido=pedido,
                     product=product,
                     quantity=quantity,
-                    unit_price=unit_price
+                    unit_price=unit_price,
+                    observations=obs 
                 )
             
             pedido.total_amount = total_amount
@@ -1591,27 +1595,35 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 status='preparando'
             )
             
+            total_amount = 0
             # Adicionar itens
             for item in items:
                 product = get_object_or_404(Product, id=item['product_id'])
+                quantity = int(item['quantity'])
+                obs = item.get('observation') or ''
+                
+                subtotal = product.price * quantity
+                total_amount += subtotal
+                
                 PedidoItem.objects.create(
                     pedido=pedido,
                     product=product,
-                    quantity=item['quantity'],
-                    unit_price=product.price
+                    quantity=quantity,
+                    unit_price=product.price,
+                    observations=obs 
                 )
             
             # Atualizar total do pedido
-            pedido.update_total()
+            pedido.total_amount = total_amount
+            pedido.save()
+            pedido.comanda.update_total()
             
             return JsonResponse({
                 'success': True, 
                 'message': 'Pedido adicionado com sucesso!'
             })
-            
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
-
 
 
 class NovoPedidoView(LoginRequiredMixin, View):
@@ -1625,6 +1637,38 @@ class NovoPedidoView(LoginRequiredMixin, View):
         if auto_open == 'true':
             url += '?modal=open'
         return redirect(url)
+
+
+class CancelarPedidoView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Cancela especificamente 1 pedido (Order/Pedido) de dentro de uma comanda
+    preenchendo a justificativa do cancelamento.
+    """
+    permission_required = 'orders.change_order'
+
+    def post(self, request, pk):
+        # 1. Pega o Pedido exato ou retorna 404
+        pedido = get_object_or_404(Pedido, id=pk)
+        
+        # 2. Pega o motivo que o usuário digitou naquele modal
+        motivo = request.POST.get('motivo_cancelamento', 'Sem motivo informado.')
+        
+        # 3. Muda o status e salva a o motivo nas observações do pedido
+        pedido.status = 'cancelado'
+        pedido.observations = f"[CANCELADO MOTIVO: {motivo}] - {pedido.observations or ''}"
+        pedido.save()
+        
+        # 4. (Opcional) Você pode querer diminuir o valor da Comanda total aqui
+        comanda = pedido.comanda
+        if comanda.total_amount >= pedido.total_amount:
+            comanda.total_amount -= pedido.total_amount
+            comanda.save()
+
+        messages.success(request, f'Pedido #{pedido.pedido_seq} cancelado com sucesso!')
+        
+        # 5. Redireciona de volta para a mesma tela da comanda onde ele estava
+        return redirect('orders:comanda_detail', numero=comanda.numero)
+
 
 class MarcarPedidoEntregueView(LoginRequiredMixin, View):
     def post(self, request, pk):

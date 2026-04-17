@@ -98,6 +98,13 @@ class Pedido(TimeStampedModel):
         default='aguardando',
         verbose_name="Status"
     )
+
+    motivo_cancelamento = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Motivo do Cancelamento",
+        help_text="Justificativa preenchida ao cancelar o pedido"
+    )
     
     total_amount = models.DecimalField(
         max_digits=10,
