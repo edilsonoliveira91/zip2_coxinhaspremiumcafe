@@ -49,13 +49,13 @@ class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             # Comandas ativas para exibir no dashboard
             'comandas_ativas': orders_today.exclude(
                 status__in=['entregue', 'cancelada']
-            ).comanda_by('-created_at')[:10],
+            ).order_by('-created_at')[:10],
             
             # Produtos para o modal (mantendo compatibilidade)
             'products': Product.objects.filter(
                 is_active=True,
                 show_in_menu=True
-            ).comanda_by('category', 'name'),
+            ).order_by('category', 'name'),
             
             # Estatísticas
             'total_vendas': orders_today.aggregate(
@@ -80,7 +80,7 @@ class OrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     login_url = reverse_lazy('accounts:login')
     
     def get_queryset(self):
-        queryset = Comanda.objects.all().comanda_by('-created_at')
+        queryset = Comanda.objects.all().order_by('-created_at')
         
         # Filtros opcionais
         status = self.request.GET.get('status')
@@ -443,7 +443,7 @@ class OrdersByStatusView(OrderListView):
     
     def get_queryset(self):
         status = self.kwargs['status']
-        return Comanda.objects.filter(status=status).comanda_by('-created_at')
+        return Comanda.objects.filter(status=status).order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -456,7 +456,7 @@ class TodayOrdersView(OrderListView):
     
     def get_queryset(self):
         today = timezone.now().date()
-        return Comanda.objects.filter(created_at__date=today).comanda_by('-created_at')
+        return Comanda.objects.filter(created_at__date=today).order_by('-created_at')
 
 
 class ActiveOrdersView(OrderListView):
@@ -465,7 +465,7 @@ class ActiveOrdersView(OrderListView):
     def get_queryset(self):
         return Comanda.objects.exclude(
             status__in=['entregue', 'cancelada']
-        ).comanda_by('-created_at')
+        ).order_by('-created_at')
 
 
 # API Views
@@ -741,8 +741,8 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     def get_queryset(self):
         """Retorna apenas comandas finalizadas"""
         return Comanda.objects.filter(
-            status='entregue'
-        ).select_related().prefetch_related('items__product').comanda_by('-delivered_at')
+            status='fechada'
+        ).select_related().prefetch_related('pedidos__items__product').order_by('-updated_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -751,8 +751,8 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
         finalized_comandas = self.get_queryset()
         
         context.update({
-            'total_finalizadas': finalized_orders.count(),
-            'total_receita': finalized_orders.aggregate(
+            'total_finalizadas': finalized_comandas.count(),
+            'total_receita': finalized_comandas.aggregate(
                 total=Sum('total_amount')
             )['total'] or 0,
         })
@@ -791,12 +791,12 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
         context['next_order'] = Comanda.objects.filter(
             status='entregue',
             delivered_at__gt=order.delivered_at
-        ).comanda_by('delivered_at').first()
+        ).order_by('updated_at').first()
         
         context['prev_order'] = Comanda.objects.filter(
             status='entregue',
             delivered_at__lt=order.delivered_at
-        ).comanda_by('-delivered_at').first()
+        ).order_by('-updated_at').first()
         
         return context
 
@@ -1103,7 +1103,7 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
         try:
             # Buscar a comanda
             comanda = get_object_or_404(
-                Comanda.objects.prefetch_related('items__product'),
+                Comanda.objects.prefetch_related('pedidos__items__product'),
                 code=code
             )
             
@@ -1166,7 +1166,7 @@ class CheckoutDirectPrintView(LoginRequiredMixin, View):
 class OrderCupomContentView(LoginRequiredMixin, View):
     def get(self, request, code):
         comanda = get_object_or_404(
-            Comanda.objects.prefetch_related('items__product'),
+            Comanda.objects.prefetch_related('pedidos__items__product'),
             code=code
         )
 
@@ -1226,7 +1226,7 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
             
             # Busca a comanda
             comanda = get_object_or_404(
-                Comanda.objects.select_related().prefetch_related('items__product'),
+                Comanda.objects.select_related().prefetch_related('pedidos__items__product'),
                 code=code,
                 status='entregue'
             )
@@ -1291,7 +1291,7 @@ class CupomFiscalDirectPrintView(LoginRequiredMixin, View):
         try:
             # Busca a comanda
             comanda = get_object_or_404(
-                Comanda.objects.select_related().prefetch_related('items__product'),
+                Comanda.objects.select_related().prefetch_related('pedidos__items__product'),
                 code=code,
                 status='entregue'
             )

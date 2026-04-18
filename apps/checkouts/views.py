@@ -184,8 +184,9 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                             status='aprovado',
                             processed_by=request.user,
                             processed_at=timezone.now(),
+                            created_by=request.user,
                             notes=f'Pagamento em {payment_method}' + (
-                                f' - Recebido: R$ {received_amount:.2f} - Troco: R$ {change_amount:.2f}' 
+                                f' - Recebido: R$ {received_amount:.2f} - Troco: R$ {change_amount:.2f}'
                                 if payment_method == 'dinheiro' else ''
                             )
                         )

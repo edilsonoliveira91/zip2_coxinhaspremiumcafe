@@ -2,205 +2,447 @@
 [x-cloak]{display:none !important}
 .no-spin::-webkit-inner-spin-button,.no-spin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .no-spin{-moz-appearance:textfield}
+
+.payment-btn-dinheiro:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.payment-btn-pix:hover {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+}
+.payment-btn-credito:hover {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.payment-btn-debito:hover {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.modal-entrance {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.glass-overlay {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.custom-shadow {
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25),
+              0 0 0 1px rgba(255,255,255,0.1),
+              inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.custom-input {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border: 2px solid #e5e7eb;
+}
+.custom-input:focus {
+  background: #ffffff;
+  border-color: #1f2937;
+  box-shadow: 0 0 0 3px rgba(31,41,55,0.1);
+  outline: none;
+}
+.custom-input.error {
+  background: linear-gradient(145deg, #fef2f2, #fecaca);
+  border-color: #ef4444;
+}
+
+/* Força o modal fechado por padrão */
+.modal-fechado {
+  display: none !important;
+}
 </style>
 
-<script>
-function abrirModalFinalizar(){window.dispatchEvent(new CustomEvent('open-payment-modal'))}
-</script>
-
-<!-- MODAL CHECKOUT V2 -->
+<!-- MODAL FECHAR COMANDA -->
 <div id="modal-checkout-v2"
-     x-data="checkoutV2()"
-     x-show="open"
-     x-cloak
-     @keydown.escape.window="fechar()"
-     class="fixed inset-0 z-50 flex items-center justify-center p-6"
-     style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px)">
+     class="modal-fechado fixed inset-0 z-50 flex items-center justify-center p-6 glass-overlay">
 
-  <div class="bg-white rounded-2xl w-full max-w-md shadow-xl border border-gray-200 relative overflow-hidden"
-       x-show="open"
-       x-transition:enter="transition ease-out duration-150"
-       x-transition:enter-start="opacity-0 translate-y-4"
-       x-transition:enter-end="opacity-100 translate-y-0"
-       @click.stop>
+  <div class="bg-white rounded-3xl w-full max-w-md custom-shadow relative overflow-hidden modal-entrance">
 
-    <!-- LOADING OVERLAY -->
-    <div x-show="loading" class="absolute inset-0 bg-white/90 z-50 flex items-center justify-center">
-      <div class="w-8 h-8 border-[3px] border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>
+    <!-- LOADING OVERLAY (vanilla JS) -->
+    <div id="loading-overlay"
+         class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div class="w-12 h-12 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>
     </div>
 
-    <!-- TOPO ESCURO -->
-    <div class="bg-gray-800 text-white px-5 py-4">
-      <div class="flex items-center justify-between">
+    <!-- HEADER -->
+    <div class="px-6 py-5 relative overflow-hidden"
+         style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 50%, #0a1628 100%); color: white;">
+
+      <div class="flex items-center justify-between relative z-10">
         <div>
-          <p class="text-gray-400 text-[11px] font-semibold uppercase tracking-wider">Fechar Comanda</p>
-          <p class="text-lg font-bold mt-0.5">#{{ comanda.numero }}</p>
+          <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: #93c5fd;">Fechar Comanda</p>
+          <p class="text-xl font-black" style="color: white;">#{{ comanda.numero }}</p>
         </div>
-        <button @click="fechar()" class="text-gray-400 hover:text-white p-1">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        <button onclick="fecharModalCheckout()"
+                class="p-2 rounded-xl transition-all duration-200"
+                style="color: #93c5fd; background: rgba(255,255,255,0.12);"
+                onmouseover="this.style.background='rgba(255,255,255,0.22)'; this.style.color='white';"
+                onmouseout="this.style.background='rgba(255,255,255,0.12)'; this.style.color='#93c5fd';">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
         </button>
       </div>
-      <div class="mt-3 flex items-baseline gap-1">
-        <span class="text-gray-400 text-sm font-medium">R$</span>
-        <span class="text-3xl font-black" x-text="fmt(total)"></span>
+
+      <div class="mt-4 flex items-baseline gap-2 relative z-10">
+        <span class="text-lg font-semibold" style="color: #93c5fd;">R$</span>
+        <span class="text-4xl font-black tracking-tight" id="modal-total-display" style="color: white;">
+          {{ comanda.total_amount|floatformat:2 }}
+        </span>
       </div>
     </div>
 
-    <!-- STEP 1 - METODOS (4 botões em linha) -->
-    <div x-show="step===1" class="p-5">
-      <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Forma de pagamento</p>
-      <div class="flex gap-2">
-        <button @click="escolher('dinheiro')" class="flex-1 py-3 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition text-center group">
-          <svg class="w-5 h-5 mx-auto text-gray-400 group-hover:text-green-600 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span class="text-xs font-bold text-gray-600 group-hover:text-green-700">Din.</span>
+    <!-- STEP 1 - MÉTODOS DE PAGAMENTO -->
+    <div id="step-1" class="p-6">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">Forma de pagamento</p>
+
+      <div class="grid grid-cols-2 gap-4">
+        <button onclick="escolherMetodo('dinheiro')"
+                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-green-200 group-hover:bg-green-300 flex items-center justify-center mb-3 transition-colors duration-300">
+              <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-bold text-green-800">Dinheiro</span>
+          </div>
         </button>
-        <button @click="escolher('pix')" class="flex-1 py-3 rounded-lg border border-gray-200 hover:border-teal-500 hover:bg-teal-50 transition text-center group">
-          <svg class="w-5 h-5 mx-auto text-gray-400 group-hover:text-teal-600 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1"/></svg>
-          <span class="text-xs font-bold text-gray-600 group-hover:text-teal-700">Pix</span>
+
+        <button onclick="escolherMetodo('pix')"
+                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-teal-200 hover:border-teal-400 bg-gradient-to-br from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-teal-200 group-hover:bg-teal-300 flex items-center justify-center mb-3 transition-colors duration-300">
+              <svg class="w-6 h-6 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-bold text-teal-800">PIX</span>
+          </div>
         </button>
-        <button @click="escolher('cartao_credito')" class="flex-1 py-3 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition text-center group">
-          <svg class="w-5 h-5 mx-auto text-gray-400 group-hover:text-blue-600 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-          <span class="text-xs font-bold text-gray-600 group-hover:text-blue-700">Créd.</span>
+
+        <button onclick="escolherMetodo('cartao_credito')"
+                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-blue-200 group-hover:bg-blue-300 flex items-center justify-center mb-3 transition-colors duration-300">
+              <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-bold text-blue-800">Crédito</span>
+          </div>
         </button>
-        <button @click="escolher('cartao_debito')" class="flex-1 py-3 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition text-center group">
-          <svg class="w-5 h-5 mx-auto text-gray-400 group-hover:text-purple-600 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-          <span class="text-xs font-bold text-gray-600 group-hover:text-purple-700">Déb.</span>
+
+        <button onclick="escolherMetodo('cartao_debito')"
+                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-purple-200 group-hover:bg-purple-300 flex items-center justify-center mb-3 transition-colors duration-300">
+              <svg class="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-bold text-purple-800">Débito</span>
+          </div>
         </button>
       </div>
     </div>
 
     <!-- STEP 2 - DINHEIRO -->
-    <div x-show="step===2 && metodo==='dinheiro'" class="p-5">
-      <div class="flex items-center justify-between mb-4">
-        <button @click="voltar()" class="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 font-semibold">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Voltar
+    <div id="step-2-dinheiro" class="p-6 hidden">
+      <div class="flex items-center justify-between mb-5">
+        <button onclick="voltarStep1()"
+                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Voltar
         </button>
-        <span class="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded border border-green-200 uppercase">Dinheiro</span>
+        <span class="text-xs font-bold text-green-700 bg-green-100 px-3 py-2 rounded-full border border-green-200 uppercase tracking-wide">Dinheiro</span>
       </div>
 
-      <label class="text-xs font-semibold text-gray-500 mb-1 block">Valor Recebido</label>
-      <input type="number" x-model="recebido" @input="calcTroco()" min="0" step="0.01" placeholder="0.00"
-             :class="invalido ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-300 focus:border-gray-800 bg-white text-gray-900'"
-             class="no-spin w-full px-3 py-2 text-xl font-black border-2 rounded-lg focus:outline-none mb-1">
-      <p x-show="invalido" class="text-[11px] text-red-500 font-semibold mb-2">
-        Faltam R$ <span x-text="fmt(total-(parseFloat(recebido)||0))"></span>
-      </p>
-
-      <div class="flex gap-1.5 my-3">
-        <template x-for="v in atalhos()" :key="v">
-          <button @click="recebido=v;calcTroco()"
-                  :class="parseFloat(recebido)===v ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'"
-                  class="flex-1 py-1.5 text-xs font-bold rounded border transition"
-                  x-text="'R$ '+fmt(v)"></button>
-        </template>
+      <div class="mb-5">
+        <label class="text-sm font-bold text-gray-600 mb-2 block">Valor Recebido</label>
+        <input type="number"
+               id="valor-recebido"
+               oninput="calcularTroco()"
+               min="0"
+               step="0.01"
+               placeholder="0,00"
+               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all duration-200 custom-input">
+        <p id="erro-valor" class="text-sm text-red-600 font-semibold mt-2 flex items-center gap-2 hidden">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.966-.833-2.736 0L3.077 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+          <span id="valor-faltante"></span>
+        </p>
       </div>
 
-      <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-4">
-        <span class="text-[11px] font-bold text-gray-500 uppercase">Troco</span>
-        <span :class="troco>0?'text-green-600':'text-gray-300'" class="text-xl font-black"
-              x-text="troco!==null&&!invalido ? 'R$ '+fmt(Math.max(troco,0)) : 'R$ 0,00'"></span>
+      <div class="flex gap-2 my-5" id="atalhos-valores"></div>
+
+      <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-5 mb-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm font-bold text-gray-600 uppercase tracking-wide">Troco</span>
+          </div>
+          <span id="display-troco" class="text-2xl font-black text-gray-400">R$ 0,00</span>
+        </div>
       </div>
 
-      <button @click="pagar()" :disabled="invalido||!recebido"
-              :class="(invalido||!recebido) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-900 text-white'"
-              class="w-full py-2.5 rounded-lg font-bold text-sm transition uppercase">
-        Confirmar
+      <button onclick="processarPagamento()"
+              id="btn-confirmar-dinheiro"
+              disabled
+              class="w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide bg-gray-200 text-gray-400 cursor-not-allowed transition-all duration-200">
+        Confirmar Pagamento
       </button>
     </div>
 
-    <!-- STEP 2 - CARTAO / PIX -->
-    <div x-show="step===2 && metodo!=='dinheiro'" class="p-5 text-center">
-      <div class="flex items-center justify-between mb-4">
-        <button @click="voltar()" class="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 font-semibold">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Voltar
+    <!-- STEP 2 - CARTÃO / PIX -->
+    <div id="step-2-outros" class="p-6 text-center hidden">
+      <div class="flex items-center justify-between mb-6">
+        <button onclick="voltarStep1()"
+                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Voltar
         </button>
-        <span class="text-[11px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 uppercase" x-text="metodo?metodo.replace('_',' '):''"></span>
+        <span id="metodo-label"
+              class="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-2 rounded-full border border-gray-200 uppercase tracking-wide"></span>
       </div>
 
-      <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-      <p class="text-sm font-semibold text-gray-700 mb-1">Confirme a cobrança</p>
-      <p class="text-xs text-gray-400 mb-5">Valor: <strong class="text-gray-700" x-text="'R$ '+fmt(total)"></strong></p>
+      <div class="mb-8">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
+          <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800 mb-2">Confirme a cobrança</h3>
+        <p class="text-gray-500 mb-1">Valor total do pagamento:</p>
+        <p class="text-3xl font-black text-gray-800">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+      </div>
 
-      <button @click="pagar()"
-              class="w-full py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-bold text-sm transition uppercase">
-        Confirmar no Sistema
+      <button onclick="processarPagamento()"
+              class="w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);"
+              onmouseover="this.style.background='linear-gradient(135deg, #15803d 0%, #166534 100%)';"
+              onmouseout="this.style.background='linear-gradient(135deg, #16a34a 0%, #15803d 100%)';"> 
+        ✓ Confirmar Pagamento
       </button>
     </div>
 
     <!-- STEP 3 - SUCESSO -->
-    <div x-show="step===3" class="p-8 text-center">
-      <div class="w-14 h-14 rounded-full bg-green-100 border-[3px] border-green-500 flex items-center justify-center mx-auto mb-3">
-        <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    <div id="step-3" class="p-8 text-center hidden">
+      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
       </div>
-      <h3 class="text-xl font-black text-gray-800 mb-0.5">Comanda Fechada!</h3>
-      <p class="text-xs text-gray-400 font-semibold mb-4">Redirecionando...</p>
-      <template x-if="metodo==='dinheiro' && troco>0">
-        <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-          <span class="block text-[11px] text-gray-500 font-bold uppercase mb-0.5">Troco ao Cliente</span>
-          <span class="block text-2xl font-black text-green-600" x-text="'R$ '+fmt(troco)"></span>
-        </div>
-      </template>
+      <h3 class="text-2xl font-black text-gray-800 mb-1">Comanda Fechada!</h3>
+      <p class="text-sm text-gray-500 font-semibold mb-6">Redirecionando em instantes...</p>
+
+      <div id="troco-display"
+           class="bg-green-50 border-2 border-green-200 rounded-2xl px-6 py-4 shadow-lg hidden">
+        <span class="text-sm text-green-700 font-bold uppercase tracking-wide block mb-1">Troco para o Cliente</span>
+        <span id="valor-troco-final" class="text-3xl font-black text-green-700"></span>
+      </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- fim do card -->
+</div><!-- fim do modal -->
 
 <script>
-function checkoutV2(){
-  return {
-    open:false,
-    step:1,
-    metodo:null,
-    recebido:'',
-    troco:null,
-    loading:false,
-    total:parseFloat('{{ comanda.total_amount|default:"0.00"|stringformat:"f" }}'),
+(function() {
+  // Lê o total como número seguro (sem vírgula de locale)
+  var totalStr = "{{ comanda.total_amount|default:'0' }}";
+  var totalNum = parseFloat(totalStr.replace(',', '.')) || 0;
 
-    get invalido(){
-      if(!this.recebido) return false;
-      return parseFloat(this.recebido)<this.total;
-    },
+  var modalData = {
+    open:     false,
+    step:     1,
+    metodo:   null,
+    total:    totalNum,
+    recebido: 0,
+    troco:    0,
+    invalido: false
+  };
 
-    abrir(){this.step=1;this.metodo=null;this.recebido='';this.troco=null;this.loading=false;this.open=true},
-    fechar(){if(this.step===3||this.loading) return;this.open=false},
-
-    escolher(m){
-      this.metodo=m;this.recebido='';this.troco=null;this.step=2;
-      if(m==='dinheiro') this.$nextTick(()=>{const i=this.$el.querySelector('input[type=number]');if(i)i.focus()});
-    },
-    voltar(){this.step=1;this.metodo=null;this.recebido='';this.troco=null},
-
-    calcTroco(){const v=parseFloat(this.recebido);this.troco=isNaN(v)?null:v-this.total},
-
-    atalhos(){
-      const t=this.total;
-      const b=[Math.ceil(t),Math.ceil(t/5)*5,Math.ceil(t/10)*10,Math.ceil(t/20)*20,Math.ceil(t/50)*50,Math.ceil(t/100)*100];
-      return[...new Set(b.filter(v=>v>=t))].slice(0,4)
-    },
-
-    fmt(v){return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})},
-
-    pagar(){
-      if(this.metodo==='dinheiro'&&this.invalido) return;
-      this.loading=true;
-      const o={payment_method:this.metodo};
-      if(this.metodo==='dinheiro'){o.received_amount=parseFloat(this.recebido);o.change_amount=this.troco}
-
-      fetch("{% url 'checkouts:finalize' comanda.numero %}",{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
-        body:JSON.stringify(o)
-      })
-      .then(r=>r.json())
-      .then(d=>{
-        this.loading=false;
-        if(d.success){this.step=3;setTimeout(()=>{window.location.href="{% url 'accounts:dashboard' %}"},3000)}
-        else{alert('Erro: '+d.message)}
-      })
-      .catch(()=>{this.loading=false;alert('Erro de conexão.')});
-    },
-
-    init(){window.addEventListener('open-payment-modal',()=>this.abrir())}
+  /* ───────── helpers de visibilidade ───────── */
+  function mostrarStep(step) {
+    var ids = ['step-1', 'step-2-dinheiro', 'step-2-outros', 'step-3'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+    var map = { 1: 'step-1', '2-dinheiro': 'step-2-dinheiro', '2-outros': 'step-2-outros', 3: 'step-3' };
+    var target = map[step];
+    if (target) {
+      var el = document.getElementById(target);
+      if (el) el.classList.remove('hidden');
+    }
   }
-}
+
+  function setLoading(show) {
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      if (show) overlay.classList.remove('hidden');
+      else       overlay.classList.add('hidden');
+    }
+  }
+
+  /* ───────── funções globais ───────── */
+  window.abrirModalFinalizar = function() {
+    var modal = document.getElementById('modal-checkout-v2');
+    if (!modal) { console.error('Modal não encontrado!'); return; }
+    modal.classList.remove('modal-fechado');
+    modal.style.display = 'flex';
+    modalData.open = true;
+    mostrarStep(1);
+    gerarAtalhos();
+
+    // Reset do input de dinheiro
+    var inp = document.getElementById('valor-recebido');
+    if (inp) inp.value = '';
+    var trocoEl = document.getElementById('display-troco');
+    if (trocoEl) trocoEl.textContent = 'R$ 0,00';
+    var btnEl = document.getElementById('btn-confirmar-dinheiro');
+    if (btnEl) { btnEl.disabled = true; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-gray-400 cursor-not-allowed transition-all duration-200'; btnEl.style.background = '#e5e7eb'; }
+  };
+
+  window.fecharModalCheckout = function() {
+    var modal = document.getElementById('modal-checkout-v2');
+    if (modal) {
+      modal.classList.add('modal-fechado');
+      modal.style.display = 'none';
+      modalData.open = false;
+    }
+  };
+
+  window.escolherMetodo = function(metodo) {
+    modalData.metodo = metodo;
+    if (metodo === 'dinheiro') {
+      mostrarStep('2-dinheiro');
+    } else {
+      mostrarStep('2-outros');
+      var label = document.getElementById('metodo-label');
+      if (label) label.textContent = metodo.replace(/_/g, ' ');
+    }
+  };
+
+  window.voltarStep1 = function() {
+    modalData.metodo = null;
+    mostrarStep(1);
+  };
+
+  window.calcularTroco = function() {
+    var inp = document.getElementById('valor-recebido');
+    if (!inp) return;
+    var recebido = parseFloat(inp.value) || 0;
+    var total    = modalData.total;
+    modalData.recebido = recebido;
+    modalData.invalido = recebido < total;
+    modalData.troco    = recebido - total;
+
+    var erroEl  = document.getElementById('erro-valor');
+    var trocoEl = document.getElementById('display-troco');
+    var btnEl   = document.getElementById('btn-confirmar-dinheiro');
+
+    if (modalData.invalido) {
+      if (erroEl) erroEl.classList.remove('hidden');
+      var faltanteEl = document.getElementById('valor-faltante');
+      if (faltanteEl) faltanteEl.textContent = 'Faltam R$ ' + fmtBR(total - recebido);
+      if (trocoEl) { trocoEl.textContent = 'R$ 0,00'; trocoEl.className = 'text-2xl font-black text-red-400'; }
+      if (btnEl)   { btnEl.disabled = true; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-gray-400 cursor-not-allowed transition-all duration-200'; btnEl.style.background = '#e5e7eb'; btnEl.style.cursor = 'not-allowed'; btnEl.onmouseover = null; btnEl.onmouseout = null; }
+    } else {
+      if (erroEl) erroEl.classList.add('hidden');
+      var troco = Math.max(modalData.troco, 0);
+      if (trocoEl) { trocoEl.textContent = 'R$ ' + fmtBR(troco); trocoEl.className = troco > 0 ? 'text-2xl font-black text-green-600' : 'text-2xl font-black text-gray-400'; }
+      if (btnEl)   { btnEl.disabled = false; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg transition-all duration-200 transform hover:scale-[1.02]'; btnEl.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'; btnEl.style.cursor = 'pointer'; btnEl.onmouseover = function(){ this.style.background='linear-gradient(135deg, #15803d 0%, #166534 100%)'; }; btnEl.onmouseout = function(){ this.style.background='linear-gradient(135deg, #16a34a 0%, #15803d 100%)'; }; }
+    }
+  };
+
+  window.processarPagamento = async function() {
+    if (modalData.metodo === 'dinheiro' && modalData.invalido) return;
+    setLoading(true);
+    var data = {
+      payment_method:  modalData.metodo,
+      received_amount: modalData.metodo === 'dinheiro' ? modalData.recebido : modalData.total,
+      change_amount:   modalData.metodo === 'dinheiro' ? Math.max(0, modalData.troco) : 0
+    };
+    try {
+      var resp   = await fetch('{% url "checkouts:finalize" comanda.numero %}', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body:    JSON.stringify(data)
+      });
+      var result = await resp.json();
+      if (result.success) {
+        mostrarStep(3);
+        if (modalData.metodo === 'dinheiro' && modalData.troco > 0) {
+          var td = document.getElementById('troco-display');
+          var tv = document.getElementById('valor-troco-final');
+          if (td) td.classList.remove('hidden');
+          if (tv) tv.textContent = 'R$ ' + fmtBR(modalData.troco);
+        }
+        setTimeout(function() { window.location.reload(); }, 2500);
+      } else {
+        setLoading(false);
+        alert(result.message || 'Erro ao processar pagamento.');
+      }
+    } catch (e) {
+      setLoading(false);
+      alert('Erro de conexão: ' + e.message);
+    }
+  };
+
+  /* ───────── internos ───────── */
+  function gerarAtalhos() {
+    var t = modalData.total;
+    var valores = [
+      Math.ceil(t / 10) * 10,
+      Math.ceil(t / 20) * 20,
+      Math.ceil(t / 50) * 50,
+      Math.ceil(t / 100) * 100
+    ];
+    var container = document.getElementById('atalhos-valores');
+    if (!container) return;
+    container.innerHTML = '';
+    valores.forEach(function(v) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all duration-200 hover:shadow-md';
+      btn.textContent = 'R$ ' + fmtBR(v);
+      btn.onclick = function() {
+        var inp = document.getElementById('valor-recebido');
+        if (inp) { inp.value = v; window.calcularTroco(); }
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  function fmtBR(valor) {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor);
+  }
+
+  /* ───────── fechar com Escape ───────── */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modalData.open) {
+      window.fecharModalCheckout();
+    }
+  });
+
+  /* ───────── fechar ao clicar no overlay ───────── */
+  document.getElementById('modal-checkout-v2').addEventListener('click', function(e) {
+    if (e.target === this) window.fecharModalCheckout();
+  });
+
+})();
 </script>

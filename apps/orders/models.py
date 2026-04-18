@@ -47,6 +47,12 @@ class Comanda(TimeStampedModel):
         verbose_name = "Comanda"
         verbose_name_plural = "Comandas"
         ordering = ['-created_at']
+        permissions = [
+            ('view_order', 'Pode visualizar comandas'),
+            ('add_order', 'Pode criar comandas'),
+            ('change_order', 'Pode editar comandas'),
+            ('delete_order', 'Pode excluir comandas'),
+        ]
 
     def __str__(self):
         return f"Comanda #{self.numero}"
