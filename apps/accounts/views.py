@@ -291,18 +291,18 @@ class CheckOrderChangesView(LoginRequiredMixin, View):
             
             # Contar comandas abertas de hoje
             comandas_abertas = Comanda.objects.filter(
-                created_at__date=hoje,
-                status__in=['aguardando', 'preparando', 'pronta']
+                status='em_uso'
             ).count()
             
             # Pegar total de comandas de hoje (para detectar finalizações)
             total_comandas_hoje = Comanda.objects.filter(
-                created_at__date=hoje
+                created_at__date=hoje,
+                status__in=['em_uso', 'fechada']
             ).count()
             
             # Pegar timestamp da última modificação
             ultima_comanda = Comanda.objects.filter(
-                created_at__date=hoje
+                status='em_uso'
             ).order_by('-updated_at').first()
             
             ultima_atualizacao = None

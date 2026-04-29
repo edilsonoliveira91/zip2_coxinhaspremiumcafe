@@ -1744,3 +1744,68 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
         
         from django.http import HttpResponse
         return HttpResponse(html_response)
+
+
+
+class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Imprime cupom completo da comanda (todos os pedidos/itens) via RawBT para Epson
+    Requer a mesma permissão do botão de fechar comanda.
+    """
+    permission_required = 'checkouts.add_checkout'
+    login_url = '/accounts/login/'
+
+    def get(self, request, numero):
+        comanda = get_object_or_404(
+            Comanda.objects.prefetch_related('pedidos__items__product'),
+            numero=numero
+        )
+
+        linhas = []
+        linhas.append(str(" CAIXA / COMANDA ").center(48, "-"))
+        linhas.append(str("COXINHAS PREMIUM CAFE").center(48, " "))
+        linhas.append("-" * 48)
+        linhas.append(f"COMANDA: {comanda.numero}")
+        linhas.append(f"Cliente: {comanda.cliente_nome or 'Sem nome'}")
+        data_formatada = timezone.localtime(comanda.created_at).strftime("%d/%m/%Y %H:%M")
+        linhas.append(f"Abertura: {data_formatada}")
+        linhas.append("-" * 48)
+        linhas.append("ITENS PEDIDOS:")
+        linhas.append("")
+
+        for pedido in comanda.pedidos.filter(
+            status__in=['aguardando', 'preparando', 'pronta', 'entregue']
+        ).prefetch_related('items__product'):
+            for item in pedido.items.all():
+                linhas.append(f"  {item.quantity}x {item.product.name}")
+                linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
+                if hasattr(item, 'observations') and item.observations:
+                    linhas.append(f"     Obs: {item.observations}")
+
+        linhas.append("-" * 48)
+        linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
+        linhas.append("=" * 48)
+        linhas.append(str("OBRIGADO!").center(48, " "))
+        linhas.append("\n\n\n\n\n")
+        linhas.append("\x1d\x56\x00")
+
+        texto_cupom = "\n".join(linhas)
+        texto_encoded = urllib.parse.quote(texto_cupom)
+        rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+        <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
+            <h3>Enviando para a impressora...</h3>
+            <script>
+                window.location.replace("{rawbt_intent}");
+                setTimeout(function() {{
+                    window.history.back();
+                }}, 1000);
+            </script>
+        </body>
+        </html>
+        """
+        from django.http import HttpResponse
+        return HttpResponse(html_response)

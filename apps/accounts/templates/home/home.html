@@ -504,6 +504,11 @@ class OrderPolling {
     }
 }
 
+// Inicializar polling automático de comandas
+document.addEventListener('DOMContentLoaded', function() {
+    window.orderPolling = new OrderPolling();
+});
+
 // Focar automaticamente no campo de pesquisa quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-comandas');

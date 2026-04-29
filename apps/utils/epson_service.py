@@ -76,6 +76,75 @@ class EpsonTMT20XService:
                 'erro': str(e)
             }
 
+    def imprimir_comanda_direto(self, comanda):
+        """
+        Imprime cupom da comanda (modelo Comanda com pedidos/items) na Epson TM-T20X II
+        """
+        try:
+            conteudo = self._gerar_cupom_comanda(comanda)
+            sucesso = self._enviar_para_epson(conteudo)
+            if sucesso:
+                print(f"[EPSON] ✓ Comanda #{comanda.numero} impressa na {self.printer_name}")
+                return {'sucesso': True, 'impressora': self.printer_name, 'tipo': 'cupom_comanda'}
+            else:
+                return {'sucesso': False, 'erro': 'Falha na comunicação com a impressora'}
+        except Exception as e:
+            print(f"[EPSON] ✗ Erro: {e}")
+            return {'sucesso': False, 'erro': str(e)}
+
+    def _gerar_cupom_comanda(self, comanda):
+        """
+        Gera conteúdo ESC/POS para uma Comanda (com pedidos e itens)
+        """
+        from datetime import datetime
+        agora = datetime.now()
+        conteudo = []
+
+        # Reset
+        conteudo.append("\x1B\x40")
+
+        # Cabeçalho
+        conteudo.append("COXINHAS PREMIUM CAFE")
+        conteudo.append("Rua Coronel Fernando Prestes, 898")
+        conteudo.append("Centro - Itapetininga/SP")
+        conteudo.append("Tel: (15) 3272-1234")
+        conteudo.append("")
+        conteudo.append("=" * self.largura)
+
+        # Dados da comanda
+        conteudo.append(f"COMANDA #{comanda.numero}")
+        conteudo.append(f"Cliente: {comanda.cliente_nome or 'Sem nome'}")
+        conteudo.append(f"Abertura: {comanda.created_at.strftime('%d/%m/%Y %H:%M')}")
+        conteudo.append(f"Impresso: {agora.strftime('%d/%m/%Y %H:%M')}")
+        conteudo.append("")
+        conteudo.append("-" * self.largura)
+        conteudo.append("")
+
+        # Itens de todos os pedidos
+        total_geral = 0
+        for pedido in comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']):
+            for item in pedido.items.select_related('product').all():
+                subtotal = float(item.quantity) * float(item.unit_price)
+                total_geral += subtotal
+                nome = item.product.name[:28] if len(item.product.name) > 28 else item.product.name
+                conteudo.append(f"{item.quantity:2d}x {nome}")
+                conteudo.append(f"    R$ {float(item.unit_price):.2f} = R$ {subtotal:.2f}")
+                conteudo.append("")
+
+        # Total
+        conteudo.append("-" * self.largura)
+        conteudo.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
+        conteudo.append("=" * self.largura)
+        conteudo.append("")
+        conteudo.append("*** OBRIGADO PELA PREFERENCIA! ***")
+        conteudo.append("")
+
+        # Corte
+        conteudo.extend(["", "", "", ""])
+        conteudo.append("\x1D\x56\x42\x00")
+
+        return "\n".join(conteudo)
+
     def _gerar_cupom_normal(self, order):
         """
         Gera conteúdo do cupom normal (sem NFCe) com comando de corte
