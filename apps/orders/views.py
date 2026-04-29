@@ -1682,68 +1682,60 @@ class MarcarPedidoEntregueView(LoginRequiredMixin, View):
 class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
-        
-        # 1. Cria a comanda em formato de Texto Puro (48 caracteres para 80mm térmica)
-        linhas = []
-        linhas.append(str(" COPA / COZINHA ").center(48, "-"))
-        linhas.append(str(" Ticket de Preparo ").center(48, " "))
-        linhas.append("-" * 48)
-        
-        linhas.append(f"COMANDA: {pedido.comanda.numero}")
-        linhas.append(f"PEDIDO ID: {pedido.pedido_seq}")
-        
-        data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
-        linhas.append(f"DATA: {data_formatada}")
-        
-        linhas.append("-" * 48)
-        linhas.append("ITENS PARA PREPARAR:\n")
-        
-        for item in pedido.items.all():
-            linhas.append(f"{item.quantity}x {item.product.name}")
-            if item.observations:  # CORRIGIDO AQUI: adicionado o S
-                linhas.append(f"   Obs: {item.observations}")  # CORRIGIDO AQUI: adicionado o S
-                
-        if pedido.observations:
+
+        ua = request.META.get('HTTP_USER_AGENT', '').lower()
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
+
+        if is_mobile:
+            # Android/tablet: usar RawBT
+            linhas = []
+            linhas.append(str(" COPA / COZINHA ").center(48, "-"))
+            linhas.append(str(" Ticket de Preparo ").center(48, " "))
             linhas.append("-" * 48)
-            linhas.append("OBSERVACOES GERAIS:")
-            linhas.append(pedido.observations)
-            
-        linhas.append("-" * 48)
-        linhas.append(str("Fim do Pedido").center(48, " "))
-        
-        # 1. Levanta o papel para passar da serra/guilhotina da impressora
-        linhas.append("\n\n\n\n\n")
-        
-        # 2. Envia o código hexadecimal ESC/POS (GS V 0) que aciona a guilhotina de corte da EPSON
-        linhas.append("\x1d\x56\x00")
-        
-        # Junta todas as linhas separadas com "\n" num varalzão gigante
-        texto_cupom = "\n".join(linhas)
-        
-        # Codifica o texto para formato de Internet/Link (URL)
-        texto_encoded = urllib.parse.quote(texto_cupom)
-        
-        # Monta da URL customizada que é "escutada" pelo RawBT no Android
-        rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
-        
-        # CORREÇÃO AQUI: Em vez de redirect(), mandamos um HTML mínimo que o Chrome lê e executa a intenção!
-        html_response = f"""
-        <!DOCTYPE html>
-        <html>
-        <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
-            <h3>Enviando para a impressora...</h3>
-            <script>
-                window.location.replace("{rawbt_intent}");
-                setTimeout(function() {{
-                    window.history.back();
-                }}, 1000);
-            </script>
-        </body>
-        </html>
-        """
-        
-        from django.http import HttpResponse
-        return HttpResponse(html_response)
+            linhas.append(f"COMANDA: {pedido.comanda.numero}")
+            linhas.append(f"PEDIDO ID: {pedido.pedido_seq}")
+            data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+            linhas.append(f"DATA: {data_formatada}")
+            linhas.append("-" * 48)
+            linhas.append("ITENS PARA PREPARAR:\n")
+            for item in pedido.items.all():
+                linhas.append(f"{item.quantity}x {item.product.name}")
+                if item.observations:
+                    linhas.append(f"   Obs: {item.observations}")
+            if pedido.observations:
+                linhas.append("-" * 48)
+                linhas.append("OBSERVACOES GERAIS:")
+                linhas.append(pedido.observations)
+            linhas.append("-" * 48)
+            linhas.append(str("Fim do Pedido").center(48, " "))
+            linhas.append("\n\n\n\n\n")
+            linhas.append("\x1d\x56\x00")
+
+            texto_cupom = "\n".join(linhas)
+            texto_encoded = urllib.parse.quote(texto_cupom)
+            rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+
+            html_response = f"""
+            <!DOCTYPE html>
+            <html>
+            <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
+                <h3>Enviando para a impressora...</h3>
+                <script>
+                    window.location.replace("{rawbt_intent}");
+                    setTimeout(function() {{
+                        window.history.back();
+                    }}, 1000);
+                </script>
+            </body>
+            </html>
+            """
+            from django.http import HttpResponse
+            return HttpResponse(html_response)
+
+        else:
+            # Windows/Desktop: página HTML com window.print()
+            from django.shortcuts import render
+            return render(request, 'orders/print_pedido.html', {'pedido': pedido})
 
 
 
@@ -1761,51 +1753,61 @@ class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
             numero=numero
         )
 
-        linhas = []
-        linhas.append(str(" CAIXA / COMANDA ").center(48, "-"))
-        linhas.append(str("COXINHAS PREMIUM CAFE").center(48, " "))
-        linhas.append("-" * 48)
-        linhas.append(f"COMANDA: {comanda.numero}")
-        linhas.append(f"Cliente: {comanda.cliente_nome or 'Sem nome'}")
-        data_formatada = timezone.localtime(comanda.created_at).strftime("%d/%m/%Y %H:%M")
-        linhas.append(f"Abertura: {data_formatada}")
-        linhas.append("-" * 48)
-        linhas.append("ITENS PEDIDOS:")
-        linhas.append("")
+        ua = request.META.get('HTTP_USER_AGENT', '').lower()
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
 
-        for pedido in comanda.pedidos.filter(
-            status__in=['aguardando', 'preparando', 'pronta', 'entregue']
-        ).prefetch_related('items__product'):
-            for item in pedido.items.all():
-                linhas.append(f"  {item.quantity}x {item.product.name}")
-                linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
-                if hasattr(item, 'observations') and item.observations:
-                    linhas.append(f"     Obs: {item.observations}")
+        if is_mobile:
+            # Android/tablet: usar RawBT
+            linhas = []
+            linhas.append(str(" CAIXA / COMANDA ").center(48, "-"))
+            linhas.append(str("COXINHAS PREMIUM CAFE").center(48, " "))
+            linhas.append("-" * 48)
+            linhas.append(f"COMANDA: {comanda.numero}")
+            linhas.append(f"Cliente: {comanda.cliente_nome or 'Sem nome'}")
+            data_formatada = timezone.localtime(comanda.created_at).strftime("%d/%m/%Y %H:%M")
+            linhas.append(f"Abertura: {data_formatada}")
+            linhas.append("-" * 48)
+            linhas.append("ITENS PEDIDOS:")
+            linhas.append("")
 
-        linhas.append("-" * 48)
-        linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
-        linhas.append("=" * 48)
-        linhas.append(str("OBRIGADO!").center(48, " "))
-        linhas.append("\n\n\n\n\n")
-        linhas.append("\x1d\x56\x00")
+            for pedido in comanda.pedidos.filter(
+                status__in=['aguardando', 'preparando', 'pronta', 'entregue']
+            ).prefetch_related('items__product'):
+                for item in pedido.items.all():
+                    linhas.append(f"  {item.quantity}x {item.product.name}")
+                    linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
+                    if hasattr(item, 'observations') and item.observations:
+                        linhas.append(f"     Obs: {item.observations}")
 
-        texto_cupom = "\n".join(linhas)
-        texto_encoded = urllib.parse.quote(texto_cupom)
-        rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+            linhas.append("-" * 48)
+            linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
+            linhas.append("=" * 48)
+            linhas.append(str("OBRIGADO!").center(48, " "))
+            linhas.append("\n\n\n\n\n")
+            linhas.append("\x1d\x56\x00")
 
-        html_response = f"""
-        <!DOCTYPE html>
-        <html>
-        <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
-            <h3>Enviando para a impressora...</h3>
-            <script>
-                window.location.replace("{rawbt_intent}");
-                setTimeout(function() {{
-                    window.history.back();
-                }}, 1000);
-            </script>
-        </body>
-        </html>
-        """
-        from django.http import HttpResponse
-        return HttpResponse(html_response)
+            texto_cupom = "\n".join(linhas)
+            texto_encoded = urllib.parse.quote(texto_cupom)
+            rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+
+            html_response = f"""
+            <!DOCTYPE html>
+            <html>
+            <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
+                <h3>Enviando para a impressora...</h3>
+                <script>
+                    window.location.replace("{rawbt_intent}");
+                    setTimeout(function() {{
+                        window.history.back();
+                    }}, 1000);
+                </script>
+            </body>
+            </html>
+            """
+            from django.http import HttpResponse
+            return HttpResponse(html_response)
+
+        else:
+            # Windows/Desktop: página HTML com window.print()
+            from django.shortcuts import render
+            return render(request, 'orders/imprimir_comanda_print.html', {'comanda': comanda})
