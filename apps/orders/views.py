@@ -1733,9 +1733,34 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             return HttpResponse(html_response)
 
         else:
-            # Windows/Desktop: página HTML com window.print()
+            # Windows/Desktop: enviar via Flask bridge local
+            linhas = []
+            linhas.append(str(" COPA / COZINHA ").center(42, "-"))
+            linhas.append("Ticket de Preparo".center(42))
+            linhas.append("-" * 42)
+            linhas.append(f"COMANDA: {pedido.comanda.numero}")
+            linhas.append(f"PEDIDO: #{pedido.pedido_seq}")
+            data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+            linhas.append(f"DATA: {data_formatada}")
+            linhas.append("-" * 42)
+            linhas.append("ITENS PARA PREPARAR:")
+            linhas.append("")
+            for item in pedido.items.select_related('product').all():
+                linhas.append(f"  {item.quantity}x {item.product.name}")
+                if hasattr(item, 'observations') and item.observations:
+                    linhas.append(f"     Obs: {item.observations}")
+            if pedido.observations:
+                linhas.append("-" * 42)
+                linhas.append("OBS GERAIS:")
+                linhas.append(pedido.observations)
+            linhas.append("-" * 42)
+            linhas.append("Fim do Pedido".center(42))
+            content_text = "\n".join(linhas)
             from django.shortcuts import render
-            return render(request, 'orders/print_pedido.html', {'pedido': pedido})
+            return render(request, 'orders/print_pedido.html', {
+                'pedido': pedido,
+                'content_text': content_text,
+            })
 
 
 
@@ -1808,6 +1833,36 @@ class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return HttpResponse(html_response)
 
         else:
-            # Windows/Desktop: página HTML com window.print()
+            # Windows/Desktop: enviar via Flask bridge local
+            linhas = []
+            linhas.append("=" * 42)
+            linhas.append("COXINHAS PREMIUM CAFE".center(42))
+            linhas.append("Rua Coronel Fernando Prestes, 898".center(42))
+            linhas.append("Centro - Itapetininga/SP".center(42))
+            linhas.append("Tel: (15) 3272-1234".center(42))
+            linhas.append("=" * 42)
+            linhas.append(f"COMANDA: {comanda.numero}")
+            linhas.append(f"Cliente: {comanda.cliente_nome or 'Sem nome'}")
+            data_formatada = timezone.localtime(comanda.created_at).strftime("%d/%m/%Y %H:%M")
+            linhas.append(f"Abertura: {data_formatada}")
+            linhas.append("-" * 42)
+            linhas.append("ITENS PEDIDOS:")
+            linhas.append("")
+            for pedido in comanda.pedidos.filter(
+                status__in=['aguardando', 'preparando', 'pronta', 'entregue']
+            ).prefetch_related('items__product'):
+                for item in pedido.items.all():
+                    linhas.append(f"  {item.quantity}x {item.product.name}")
+                    linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
+                    if hasattr(item, 'observations') and item.observations:
+                        linhas.append(f"     Obs: {item.observations}")
+            linhas.append("-" * 42)
+            linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
+            linhas.append("=" * 42)
+            linhas.append("OBRIGADO PELA PREFERENCIA!".center(42))
+            content_text = "\n".join(linhas)
             from django.shortcuts import render
-            return render(request, 'orders/imprimir_comanda_print.html', {'comanda': comanda})
+            return render(request, 'orders/imprimir_comanda_print.html', {
+                'comanda': comanda,
+                'content_text': content_text,
+            })

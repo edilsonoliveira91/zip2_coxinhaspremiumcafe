@@ -206,12 +206,34 @@
     </div>
 
     <script>
-        // Auto-imprimir e fechar a aba.
-        window.addEventListener('load', function() {
-            setTimeout(() => {
+        const BRIDGE_URL = 'https://localhost:5001/print';
+        const cupomContent = "{{ content_text|escapejs }}";
+
+        async function imprimirViaBridge() {
+            if (!cupomContent) { window.print(); return; }
+            try {
+                const resp = await fetch(BRIDGE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: cupomContent })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.body.innerHTML = '<div style="text-align:center;padding-top:80px;font-family:sans-serif;"><h3>✅ Impresso com sucesso!</h3></div>';
+                    setTimeout(() => window.close(), 1500);
+                } else {
+                    window.print();
+                }
+            } catch (e) {
                 window.print();
-            }, 500);
-        });
+            }
+        }
+
+        if (!window.location.search.includes('preview=1')) {
+            window.onload = function() {
+                setTimeout(imprimirViaBridge, 400);
+            };
+        }
     </script>
 </body>
 </html>

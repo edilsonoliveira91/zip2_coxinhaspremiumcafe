@@ -128,12 +128,33 @@
     </div>
 
     <script>
-        // Auto-imprimir apenas se não houver parâmetro ?preview=1
+        const BRIDGE_URL = 'https://localhost:5001/print';
+        const cupomContent = "{{ content_text|escapejs }}";
+
+        async function imprimirViaBridge() {
+            try {
+                const resp = await fetch(BRIDGE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: cupomContent })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.body.innerHTML = '<div style="text-align:center;padding-top:80px;font-family:sans-serif;"><h3>✅ Impresso com sucesso!</h3></div>';
+                    setTimeout(() => window.close(), 1500);
+                } else {
+                    console.warn('Bridge retornou erro, usando window.print():', data.message);
+                    window.print();
+                }
+            } catch (e) {
+                console.warn('Bridge indisponível, usando window.print():', e);
+                window.print();
+            }
+        }
+
         if (!window.location.search.includes('preview=1')) {
             window.onload = function() {
-                setTimeout(function() {
-                    window.print();
-                }, 500);
+                setTimeout(imprimirViaBridge, 400);
             };
         }
     </script>
