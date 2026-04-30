@@ -1715,22 +1715,7 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             texto_encoded = urllib.parse.quote(texto_cupom)
             rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
 
-            html_response = f"""
-            <!DOCTYPE html>
-            <html>
-            <body style="background-color: #f3f4f6; text-align: center; padding-top: 50px; font-family: sans-serif;">
-                <h3>Enviando para a impressora...</h3>
-                <script>
-                    window.location.replace("{rawbt_intent}");
-                    setTimeout(function() {{
-                        window.history.back();
-                    }}, 1000);
-                </script>
-            </body>
-            </html>
-            """
-            from django.http import HttpResponse
-            return HttpResponse(html_response)
+            return JsonResponse({"type": "rawbt", "intent_url": rawbt_intent})
 
         else:
             # Windows/Desktop: enviar via Flask bridge local
@@ -1861,8 +1846,4 @@ class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
             linhas.append("=" * 42)
             linhas.append("OBRIGADO PELA PREFERENCIA!".center(42))
             content_text = "\n".join(linhas)
-            from django.shortcuts import render
-            return render(request, 'orders/imprimir_comanda_print.html', {
-                'comanda': comanda,
-                'content_text': content_text,
-            })
+            return JsonResponse({"type": "bridge", "content_text": content_text})
