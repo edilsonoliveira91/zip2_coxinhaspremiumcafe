@@ -1741,11 +1741,7 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             linhas.append("-" * 42)
             linhas.append("Fim do Pedido".center(42))
             content_text = "\n".join(linhas)
-            from django.shortcuts import render
-            return render(request, 'orders/print_pedido.html', {
-                'pedido': pedido,
-                'content_text': content_text,
-            })
+            return JsonResponse({"type": "bridge", "content_text": content_text})
 
 
 
