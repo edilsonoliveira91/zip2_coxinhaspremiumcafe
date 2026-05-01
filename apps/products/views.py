@@ -486,3 +486,139 @@ class ComboDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
             f'Combo "{self.object.name}" removido com sucesso!'
         )
         return redirect(self.success_url)
+
+
+# ==================== VIEWS DE ADICIONAIS ====================
+
+import json
+from django.http import JsonResponse
+from decimal import Decimal as _Decimal
+from .models import Adicional
+
+
+class AdicionalListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Lista e gerencia adicionais
+    """
+    model = Adicional
+    template_name = 'products/adicional_list.html'
+    context_object_name = 'adicionais'
+    permission_required = 'products.view_product'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_queryset(self):
+        qs = Adicional.objects.filter(is_active=True)
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(name__icontains=search)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search'] = self.request.GET.get('search', '')
+        context['total'] = Adicional.objects.filter(is_active=True).count()
+        return context
+
+
+class AdicionalCreateView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Criação de adicional via AJAX (POST JSON)
+    """
+    model = Adicional
+    permission_required = 'products.add_product'
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            description = data.get('description', '').strip()
+            price_raw = data.get('price', '')
+
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
+            if not price_raw:
+                return JsonResponse({'success': False, 'message': 'Preço é obrigatório.'})
+
+            price = _Decimal(str(price_raw).replace(',', '.'))
+            if price <= 0:
+                return JsonResponse({'success': False, 'message': 'Preço deve ser maior que zero.'})
+
+            adicional = Adicional.objects.create(
+                name=name,
+                description=description,
+                price=price,
+                created_by=request.user,
+            )
+            return JsonResponse({
+                'success': True,
+                'message': f'Adicional "{adicional.name}" criado com sucesso!',
+                'adicional': {
+                    'id': adicional.id,
+                    'name': adicional.name,
+                    'description': adicional.description,
+                    'price': str(adicional.price),
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+class AdicionalUpdateView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Edição de adicional via AJAX (POST JSON)
+    """
+    model = Adicional
+    permission_required = 'products.change_product'
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        try:
+            from django.shortcuts import get_object_or_404
+            adicional = get_object_or_404(Adicional, pk=pk, is_active=True)
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            description = data.get('description', '').strip()
+            price_raw = data.get('price', '')
+
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
+            if not price_raw:
+                return JsonResponse({'success': False, 'message': 'Preço é obrigatório.'})
+
+            price = _Decimal(str(price_raw).replace(',', '.'))
+            if price <= 0:
+                return JsonResponse({'success': False, 'message': 'Preço deve ser maior que zero.'})
+
+            adicional.name = name
+            adicional.description = description
+            adicional.price = price
+            adicional.updated_by = request.user
+            adicional.save(update_fields=['name', 'description', 'price', 'updated_by', 'updated_at'])
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Adicional "{adicional.name}" atualizado com sucesso!',
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+class AdicionalDeleteView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Remoção (soft delete) de adicional via AJAX (POST JSON)
+    """
+    model = Adicional
+    permission_required = 'products.delete_product'
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        try:
+            from django.shortcuts import get_object_or_404
+            adicional = get_object_or_404(Adicional, pk=pk, is_active=True)
+            adicional.is_active = False
+            adicional.updated_by = request.user
+            adicional.save(update_fields=['is_active', 'updated_by', 'updated_at'])
+            return JsonResponse({'success': True, 'message': f'Adicional "{adicional.name}" removido com sucesso!'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)

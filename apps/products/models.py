@@ -168,3 +168,33 @@ class ComboItem(models.Model):
     def original_total_price(self):
         """Retorna o preço original total considerando a quantidade"""
         return self.product.price * self.quantity
+
+class Adicional(TimeStampedModel):
+    """
+    Adicional / complemento disponível para produtos
+    """
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Nome"
+    )
+
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Descrição"
+    )
+
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Preço"
+    )
+
+    class Meta:
+        verbose_name = 'Adicional'
+        verbose_name_plural = 'Adicionais'
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} - R$ {self.price:.2f}"

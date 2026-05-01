@@ -202,3 +202,39 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return JsonResponse({'success': False, 'message': f'Comanda #{code} não encontrada!'}, status=404)
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)
+
+
+class AlterarMetodoPagamentoView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Altera o método de pagamento de um Checkout já finalizado.
+    Requer permissão de add_checkout (mesma do caixa).
+    """
+    permission_required = 'checkouts.add_checkout'
+
+    def post(self, request, code):
+        try:
+            comanda = get_object_or_404(Comanda, numero=code)
+            if comanda.status != 'fechada':
+                return JsonResponse({'success': False, 'message': 'Comanda não está fechada.'}, status=400)
+
+            checkout = get_object_or_404(Checkout, comanda=comanda)
+
+            data = json.loads(request.body)
+            novo_metodo = data.get('payment_method', '').strip()
+
+            metodos_validos = [m[0] for m in Checkout.PAYMENT_METHOD_CHOICES]
+            if novo_metodo not in metodos_validos:
+                return JsonResponse({'success': False, 'message': 'Método de pagamento inválido.'}, status=400)
+
+            metodo_antigo = checkout.get_payment_method_display()
+            checkout.payment_method = novo_metodo
+            checkout.notes = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {checkout.get_payment_method_display()}'
+            checkout.save(update_fields=['payment_method', 'notes'])
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Método de pagamento alterado para {checkout.get_payment_method_display()}.',
+                'payment_method_display': checkout.get_payment_method_display(),
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)

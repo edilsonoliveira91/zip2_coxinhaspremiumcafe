@@ -5,6 +5,10 @@ app_name = 'products'
 
 urlpatterns = [
     path('products-list/', views.ProductListView.as_view(), name='product_list'),
+    path('adicionais/', views.AdicionalListView.as_view(), name='adicional_list'),
+    path('adicionais/create/', views.AdicionalCreateView.as_view(), name='adicional_create'),
+    path('adicionais/<int:pk>/update/', views.AdicionalUpdateView.as_view(), name='adicional_update'),
+    path('adicionais/<int:pk>/delete/', views.AdicionalDeleteView.as_view(), name='adicional_delete'),
     path('product/<int:pk>/', views.ProductDetailView.as_view(), name='product_detail'),
     path('product/create/', views.ProductCreateView.as_view(), name='product_create'),
     path('product/<int:pk>/update/', views.ProductUpdateView.as_view(), name='product_update'),
