@@ -1520,12 +1520,16 @@ class NovaComandaView(LoginRequiredMixin, View):
         comanda = Comanda.objects.filter(numero=numero).first()
         
         if comanda and comanda.status == 'fechada':
-            # Reabrir comanda ou criar nova? Em geral, pager reusa. Vamos "reabrir"
-            comanda.status = 'em_uso'
-            comanda.cliente_nome = cliente_nome
-            comanda.total_amount = 0.00
-            comanda.pedidos.all().delete() # Ou criar novo histórico, depende da regra do negócio. Aqui estamos reusando.
-            comanda.save()
+            # Arquiva a comanda fechada renomeando seu número para preservar o histórico,
+            # depois cria uma nova comanda com o número original do pager.
+            numero_arquivo = f"{comanda.numero}-arq{comanda.id}"
+            comanda.numero = numero_arquivo
+            comanda.save(update_fields=['numero'])
+            comanda = Comanda.objects.create(
+                numero=numero,
+                cliente_nome=cliente_nome,
+                status='em_uso',
+            )
         elif comanda and comanda.status == 'livre':
             comanda.status = 'em_uso'
             comanda.cliente_nome = cliente_nome
