@@ -1,5 +1,6 @@
 # PRINT/format_print.py
 from datetime import datetime
+from django.utils import timezone as dj_timezone
 
 class FormatadorCupom:
     """
@@ -130,7 +131,7 @@ class FormatadorCupom:
     
     def _footer_limpo(self):
         """Footer sem caracteres especiais"""
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+        agora = dj_timezone.localtime(dj_timezone.now()).strftime("%d/%m/%Y %H:%M")
         
         return [
             "",

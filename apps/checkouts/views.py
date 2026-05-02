@@ -108,7 +108,7 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             
             context = {
                 'order': order,
-                'print_time': datetime.now(),
+                'print_time': timezone.localtime(timezone.now()),
                 'is_fiscal': is_fiscal,
                 'tem_nfce': order.tem_nfce
             }

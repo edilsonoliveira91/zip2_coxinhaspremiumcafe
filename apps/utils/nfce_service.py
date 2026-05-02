@@ -305,7 +305,7 @@ class NFCeService:
         print("[DEBUG] Gerando XML ULTRA MÍNIMO para teste...")
         
         chave_acesso = dados['chave_acesso']
-        agora = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
+        agora = timezone.localtime(timezone.now()).strftime('%Y-%m-%dT%H:%M:%S-03:00')
         
         xml_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
@@ -506,7 +506,7 @@ class NFCeService:
     
     def _gerar_chave_acesso(self, numero):
         """Gera chave de acesso da NFCe usando dados da empresa"""
-        agora = datetime.now()
+        agora = timezone.localtime(timezone.now())
         uf_codigo = self._get_codigo_uf()
         cnpj = re.sub(r'\D', '', self.empresa.cnpj)  # apenas dígitos
         modelo = "65"
@@ -605,7 +605,7 @@ class NFCeService:
         """Gera XML completo da NFCe com dados reais da empresa e itens da comanda"""
         chave_acesso = dados['chave_acesso']
         order = dados['order']
-        agora = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
+        agora = timezone.localtime(timezone.now()).strftime('%Y-%m-%dT%H:%M:%S-03:00')
 
         # --- Empresa ---
         empresa = self.empresa
@@ -1164,7 +1164,7 @@ class NFCeService:
             payment_display = pm_map.get(order.checkout.payment_method, order.checkout.get_payment_method_display())
 
         # Data de emissão formatada
-        agora = datetime.now()
+        agora = timezone.localtime(timezone.now())
         data_emissao = agora.strftime('%d/%m/%Y %H:%M:%S')
 
         # Coletar todos os itens de todos os pedidos da comanda

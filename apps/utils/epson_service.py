@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 from datetime import datetime
+from django.utils import timezone as dj_timezone
 
 class EpsonTMT20XService:
     """
@@ -96,8 +97,7 @@ class EpsonTMT20XService:
         """
         Gera conteúdo ESC/POS para uma Comanda (com pedidos e itens)
         """
-        from datetime import datetime
-        agora = datetime.now()
+        agora = dj_timezone.localtime(dj_timezone.now())
         conteudo = []
 
         # Reset
@@ -149,8 +149,7 @@ class EpsonTMT20XService:
         """
         Gera conteúdo do cupom normal (sem NFCe) com comando de corte
         """
-        from datetime import datetime
-        agora = datetime.now()
+        agora = dj_timezone.localtime(dj_timezone.now())
         
         conteudo = []
         
@@ -210,7 +209,7 @@ class EpsonTMT20XService:
         order = dados_nfce['order']
         chave_acesso = dados_nfce['chave_acesso']
         numero_nfce = dados_nfce['numero']
-        agora = datetime.now()
+        agora = dj_timezone.localtime(dj_timezone.now())
         
         conteudo = []
         

@@ -8,6 +8,7 @@ import base64
 from django.conf import settings
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+from django.utils import timezone as dj_timezone
 from ..models import Pinpad
 from .base import PaymentProviderService
 
@@ -427,7 +428,7 @@ class RedeItauService(PaymentProviderService):
         Formato: YYYY-MM-DDThh:mm:ss
         Prazo máximo: 15 dias (usando 30 minutos para operação)
         """
-        expiration = datetime.now() + timedelta(minutes=30)
+        expiration = dj_timezone.localtime(dj_timezone.now()) + timedelta(minutes=30)
         return expiration.strftime('%Y-%m-%dT%H:%M:%S')
     
     def cancel_payment(self, payment_intent_id: str, amount: float = None) -> Dict:
