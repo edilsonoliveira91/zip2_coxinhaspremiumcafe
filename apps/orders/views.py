@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Case, When, IntegerField
 from django.db import transaction
 import json
 from .models import Comanda, Pedido, PedidoItem
@@ -1924,10 +1924,25 @@ class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
     login_url = '/accounts/login/'
 
     def get(self, request, numero):
-        comanda = get_object_or_404(
-            Comanda.objects.prefetch_related('pedidos__items__product'),
-            numero=numero
+        # Prioriza comanda em_uso; se não houver, pega a fechada mais recente (reimpressão)
+        comanda = (
+            Comanda.objects.prefetch_related('pedidos__items__product')
+            .filter(numero=numero)
+            .order_by(
+                # em_uso primeiro, depois fechada, depois qualquer outro
+                Case(
+                    When(status='em_uso', then=0),
+                    When(status='fechada', then=1),
+                    default=2,
+                    output_field=IntegerField(),
+                ),
+                '-updated_at',
+            )
+            .first()
         )
+        if comanda is None:
+            from django.http import Http404
+            raise Http404
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
         is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
