@@ -128,71 +128,94 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     
     def post(self, request, code):
         try:
-            # Buscar comanda usando o 'numero' (antes estava 'code' e falhava)
             comanda = get_object_or_404(Comanda, numero=code)
-            
-            # Validar se comanda pode ser finalizada
+
             if comanda.status == 'fechada':
                 return JsonResponse({
                     'success': False,
                     'message': f'Comanda já está {comanda.status}!'
                 }, status=400)
-            
-            # Pegar dados do pagamento
+
             data = json.loads(request.body)
-            payment_method = data.get('payment_method')
-            received_amount = float(data.get('received_amount', 0))
+            # Suporta lista de pagamentos parciais ou pagamento único (retrocompatibilidade)
+            payments_raw = data.get('payments', None)
             change_amount = float(data.get('change_amount', 0))
-            
-            # Validar método de pagamento
-            if payment_method not in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Método de pagamento inválido!'
-                }, status=400)
-            
-            # Validar valores para dinheiro
-            if payment_method == 'dinheiro':
-                if received_amount < float(comanda.total_amount):
+
+            VALID_METHODS = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']
+
+            if payments_raw:
+                # Novo formato: lista [{method, amount}]
+                payments = []
+                for p in payments_raw:
+                    m = p.get('method', '')
+                    a = float(p.get('amount', 0))
+                    if m not in VALID_METHODS:
+                        return JsonResponse({'success': False, 'message': f'Método inválido: {m}'}, status=400)
+                    if a <= 0:
+                        return JsonResponse({'success': False, 'message': 'Valor deve ser maior que zero.'}, status=400)
+                    payments.append({'method': m, 'amount': Decimal(str(a))})
+
+                total_pago = sum(p['amount'] for p in payments)
+                if total_pago < comanda.total_amount - Decimal('0.01'):
                     return JsonResponse({
                         'success': False,
-                        'message': 'Valor recebido é insuficiente!'
+                        'message': f'Valor pago (R$ {total_pago:.2f}) insuficiente para cobrir R$ {comanda.total_amount:.2f}!'
                     }, status=400)
-            
-            # Processar finalização em transação (apenas status da comanda)
+
+                unique_methods = set(p['method'] for p in payments)
+                payment_method = list(unique_methods)[0] if len(unique_methods) == 1 else 'parcial'
+            else:
+                # Formato antigo: campo único (retrocompatibilidade)
+                payment_method = data.get('payment_method')
+                received_amount = float(data.get('received_amount', 0))
+                if payment_method not in VALID_METHODS:
+                    return JsonResponse({'success': False, 'message': 'Método de pagamento inválido!'}, status=400)
+                if payment_method == 'dinheiro' and received_amount < float(comanda.total_amount):
+                    return JsonResponse({'success': False, 'message': 'Valor recebido é insuficiente!'}, status=400)
+                payments = [{'method': payment_method, 'amount': comanda.total_amount}]
+
+            # Fechar a comanda em transação atômica
             with transaction.atomic():
-                # Fechar a comanda
                 comanda.status = 'fechada'
                 comanda.save()
-                
-                # Fechar também todos os "pedidos" na cozinha desta comanda caso esquecidos
                 comanda.pedidos.filter(status__in=['preparando', 'pronta', 'aguardando']).update(
-                    status='entregue', 
+                    status='entregue',
                     delivered_at=timezone.now()
                 )
-            
-            # Criar registro financeiro FORA do atomic para não rolar back o status se falhar
+
+            # Criar/atualizar Checkout e CheckoutPayment fora do atomic
             if Checkout:
                 try:
-                    Checkout.objects.create(
+                    from checkouts.models import CheckoutPayment
+                    notes_parts = [f'{p["method"]}: R$ {p["amount"]:.2f}' for p in payments]
+                    if change_amount > 0:
+                        notes_parts.append(f'Troco: R$ {change_amount:.2f}')
+
+                    checkout, _ = Checkout.objects.update_or_create(
                         comanda=comanda,
-                        subtotal=comanda.total_amount,
-                        desconto=Decimal('0.00'),
-                        taxa_servico=Decimal('0.00'),
-                        total=comanda.total_amount,
-                        payment_method=payment_method,
-                        status='aprovado',
-                        processed_by=request.user,
-                        processed_at=timezone.now(),
-                        created_by=request.user,
-                        notes=f'Pagamento em {payment_method}' + (
-                            f' - Recebido: R$ {received_amount:.2f} - Troco: R$ {change_amount:.2f}'
-                            if payment_method == 'dinheiro' else ''
+                        defaults=dict(
+                            subtotal=comanda.total_amount,
+                            desconto=Decimal('0.00'),
+                            taxa_servico=Decimal('0.00'),
+                            total=comanda.total_amount,
+                            payment_method=payment_method,
+                            status='aprovado',
+                            processed_by=request.user,
+                            processed_at=timezone.now(),
+                            notes=' | '.join(notes_parts),
                         )
                     )
+                    # Recriar registros individuais de pagamento
+                    checkout.payments.all().delete()
+                    for p in payments:
+                        CheckoutPayment.objects.create(
+                            checkout=checkout,
+                            payment_method=p['method'],
+                            amount=p['amount'],
+                        )
                 except Exception as e:
-                    print(f"Erro ao criar registro de checkout: {e}")
-            
+                    print(f"Erro ao criar/atualizar registro de checkout: {e}")
+
             return JsonResponse({
                 'success': True,
                 'message': f'Comanda #{code} finalizada com sucesso!',

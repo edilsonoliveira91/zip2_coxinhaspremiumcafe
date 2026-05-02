@@ -13,6 +13,7 @@ class Comanda(TimeStampedModel):
         ('livre', 'Livre'),
         ('em_uso', 'Em Uso'),
         ('fechada', 'Fechada'),
+        ('cancelada', 'Cancelada'),
     ]
 
     numero = models.CharField(
@@ -48,6 +49,12 @@ class Comanda(TimeStampedModel):
     nfce_chave = models.CharField(max_length=44, null=True, blank=True, verbose_name="Chave de Acesso NFCe")
     nfce_protocolo = models.CharField(max_length=20, null=True, blank=True, verbose_name="Protocolo NFCe")
     nfce_emitida_em = models.DateTimeField(null=True, blank=True, verbose_name="NFCe Emitida em")
+
+    motivo_cancelamento = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Motivo do Cancelamento"
+    )
 
     @property
     def tem_nfce(self):

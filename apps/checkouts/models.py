@@ -15,6 +15,8 @@ class Checkout(TimeStampedModel):
         ('cartao_credito', 'Cartão de Crédito'),
         ('pix', 'PIX'),
         ('voucher', 'Voucher'),
+        ('parcial', 'Pagamento Parcial'),
+        ('cancelado', 'Cancelado'),
     ]
     
     STATUS_CHOICES = [
@@ -59,12 +61,17 @@ class Checkout(TimeStampedModel):
         verbose_name='Total'
     )
     
-    # Forma de pagamento
+    # Forma de pagamento ('parcial' quando múltiplos métodos usados)
     payment_method = models.CharField(
         max_length=20,
         choices=PAYMENT_METHOD_CHOICES,
+        default='dinheiro',
         verbose_name='Forma de Pagamento'
     )
+
+    @property
+    def is_parcial(self):
+        return self.payment_method == 'parcial'
     
     # Status do pagamento
     status = models.CharField(
@@ -173,3 +180,43 @@ class SessaoCaixa(models.Model):
             .annotate(total=Sum('total'), quantidade=Count('id'))
             .order_by('payment_method')
         )
+
+class CheckoutPayment(TimeStampedModel):
+    """
+    Registro individual de cada método de pagamento usado em um checkout.
+    Um Checkout pode ter múltiplos CheckoutPayment (pagamento parcial).
+    """
+    PAYMENT_METHOD_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('cartao_debito', 'Cartão de Débito'),
+        ('cartao_credito', 'Cartão de Crédito'),
+        ('pix', 'PIX'),
+        ('voucher', 'Voucher'),
+    ]
+
+    checkout = models.ForeignKey(
+        Checkout,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name='Checkout'
+    )
+
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        verbose_name='Forma de Pagamento'
+    )
+
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Valor'
+    )
+
+    class Meta:
+        verbose_name = 'Pagamento'
+        verbose_name_plural = 'Pagamentos'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.get_payment_method_display()} - R$ {self.amount}'

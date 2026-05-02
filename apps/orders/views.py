@@ -11,6 +11,7 @@ from django.urls import reverse_lazy, reverse
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
+from django.db import transaction
 import json
 from .models import Comanda, Pedido, PedidoItem
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
@@ -761,10 +762,10 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     paginate_by = 20
     
     def get_queryset(self):
-        """Retorna apenas comandas finalizadas"""
+        """Retorna comandas finalizadas e canceladas"""
         return Comanda.objects.filter(
-            status='fechada'
-        ).select_related().prefetch_related('pedidos__items__product').order_by('-updated_at')
+            status__in=['fechada', 'cancelada']
+        ).select_related('checkout').prefetch_related('pedidos__items__product').order_by('-updated_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1712,6 +1713,55 @@ class NovoPedidoView(LoginRequiredMixin, View):
             url += '?modal=open'
         return redirect(url)
 
+
+
+class CancelarComandaView(LoginRequiredMixin, View):
+    """
+    Cancela uma comanda inteira, registrando motivo e finalizando todos os pedidos ativos.
+    """
+    def post(self, request, numero):
+        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+            messages.error(request, 'Sem permissão para cancelar comandas.')
+            return redirect('orders:comanda_detail', numero=numero)
+
+        comanda = get_object_or_404(Comanda, numero=numero, status='em_uso')
+        motivo = request.POST.get('motivo_cancelamento', '').strip() or 'Sem motivo informado.'
+
+        with transaction.atomic():
+            comanda.status = 'cancelada'
+            comanda.motivo_cancelamento = motivo
+            comanda.save()
+
+            # Cancela todos os pedidos que ainda não foram entregues/cancelados
+            for pedido in comanda.pedidos.filter(
+                status__in=['aguardando', 'preparando', 'pronta']
+            ):
+                pedido.status = 'cancelado'
+                pedido.observations = f"[COMANDA CANCELADA - Motivo: {motivo}] {pedido.observations or ''}"
+                pedido.save()
+
+        # Registra no checkout fora do atomic para não reverter o cancelamento
+        try:
+            from checkouts.models import Checkout
+            Checkout.objects.update_or_create(
+                comanda=comanda,
+                defaults=dict(
+                    subtotal=comanda.total_amount,
+                    desconto=Decimal('0.00'),
+                    taxa_servico=Decimal('0.00'),
+                    total=comanda.total_amount,
+                    payment_method='cancelado',
+                    status='cancelado',
+                    processed_by=request.user,
+                    processed_at=timezone.now(),
+                    notes=f'COMANDA CANCELADA - Motivo: {motivo}',
+                )
+            )
+        except Exception as e:
+            print(f"Erro ao registrar checkout de cancelamento: {e}")
+
+        messages.warning(request, f'Comanda #{numero} foi cancelada.')
+        return redirect('accounts:dashboard')
 
 class CancelarPedidoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """

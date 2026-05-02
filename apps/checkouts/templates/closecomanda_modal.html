@@ -2,160 +2,152 @@
 [x-cloak]{display:none !important}
 .no-spin::-webkit-inner-spin-button,.no-spin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .no-spin{-moz-appearance:textfield}
-
-.payment-btn-dinheiro:hover {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-.payment-btn-pix:hover {
-  background: linear-gradient(135deg, #0d9488, #0f766e);
-}
-.payment-btn-credito:hover {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-.payment-btn-debito:hover {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-}
-
-.modal-entrance {
-  animation: modalFadeIn 0.3s ease-out;
-}
-
+.modal-fechado { display: none !important; }
 @keyframes modalFadeIn {
   from { opacity: 0; transform: scale(0.95) translateY(20px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-
-.glass-overlay {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.custom-shadow {
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25),
-              0 0 0 1px rgba(255,255,255,0.1),
-              inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-.custom-input {
-  background: linear-gradient(145deg, #ffffff, #f8fafc);
-  border: 2px solid #e5e7eb;
-}
-.custom-input:focus {
-  background: #ffffff;
-  border-color: #1f2937;
-  box-shadow: 0 0 0 3px rgba(31,41,55,0.1);
-  outline: none;
-}
-.custom-input.error {
-  background: linear-gradient(145deg, #fef2f2, #fecaca);
-  border-color: #ef4444;
-}
-
-/* Força o modal fechado por padrão */
-.modal-fechado {
-  display: none !important;
-}
+.modal-entrance { animation: modalFadeIn 0.3s ease-out; }
+.glass-overlay  { background: rgba(15,23,42,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.custom-shadow  { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.1); }
+.custom-input   { background: linear-gradient(145deg,#ffffff,#f8fafc); border: 2px solid #e5e7eb; }
+.custom-input:focus { background:#ffffff; border-color:#1f2937; box-shadow:0 0 0 3px rgba(31,41,55,0.1); outline:none; }
 </style>
 
 <!-- MODAL FECHAR COMANDA -->
 <div id="modal-checkout-v2"
-     class="modal-fechado fixed inset-0 z-50 flex items-center justify-center p-6 glass-overlay">
+     class="modal-fechado fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
 
-  <div class="bg-white rounded-3xl w-full max-w-md custom-shadow relative overflow-hidden modal-entrance">
+  <div class="bg-white rounded-3xl w-full max-w-md custom-shadow relative modal-entrance" style="max-height:90vh;overflow-y:auto;overflow-x:hidden;">
 
-    <!-- LOADING OVERLAY (vanilla JS) -->
+    <!-- LOADING OVERLAY -->
     <div id="loading-overlay"
          class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center">
       <div class="w-12 h-12 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>
     </div>
 
     <!-- HEADER -->
-    <div class="px-6 py-5 relative overflow-hidden"
+    <div class="px-6 py-4 relative overflow-hidden"
          style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 50%, #0a1628 100%); color: white;">
-
       <div class="flex items-center justify-between relative z-10">
         <div>
-          <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: #93c5fd;">Fechar Comanda</p>
-          <p class="text-xl font-black" style="color: white;">#{{ comanda.numero }}</p>
+          <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color:#93c5fd;">Fechar Comanda</p>
+          <p class="text-xl font-black" style="color:white;">#{{ comanda.numero }}</p>
         </div>
-        <button onclick="fecharModalCheckout()"
-                class="p-2 rounded-xl transition-all duration-200"
-                style="color: #93c5fd; background: rgba(255,255,255,0.12);"
-                onmouseover="this.style.background='rgba(255,255,255,0.22)'; this.style.color='white';"
-                onmouseout="this.style.background='rgba(255,255,255,0.12)'; this.style.color='#93c5fd';">
+        <button onclick="fecharModalCheckout()" class="p-2 rounded-xl transition-all"
+                style="color:#93c5fd;background:rgba(255,255,255,0.12);"
+                onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.color='white';"
+                onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.color='#93c5fd';">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
-
-      <div class="mt-4 flex items-baseline gap-2 relative z-10">
-        <span class="text-lg font-semibold" style="color: #93c5fd;">R$</span>
-        <span class="text-4xl font-black tracking-tight" id="modal-total-display" style="color: white;">
-          {{ comanda.total_amount|floatformat:2 }}
-        </span>
+      <div class="mt-3 grid grid-cols-2 gap-3 relative z-10">
+        <div>
+          <p class="text-xs" style="color:#93c5fd;">Total</p>
+          <p class="text-2xl font-black" style="color:white;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+        </div>
+        <div>
+          <p class="text-xs" style="color:#93c5fd;">Restante</p>
+          <p class="text-2xl font-black" id="hdr-restante" style="color:#fde68a;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- STEP 1 - MÉTODOS DE PAGAMENTO -->
-    <div id="step-1" class="p-6">
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">Forma de pagamento</p>
+    <!-- ═══ STEP 1 – Escolha do método ═══ -->
+    <div id="step-1" style="padding:20px 20px 32px 20px;">
 
-      <div class="grid grid-cols-2 gap-4">
+      <!-- Lista de pagamentos adicionados -->
+      <div id="payments-list" class="mb-4 space-y-2 hidden"></div>
+
+      <!-- Botão Finalizar (aparece quando restante = 0) -->
+      <button id="btn-finalizar" onclick="finalizarPagamento()"
+              class="hidden w-full py-3 mb-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg"
+              style="background:linear-gradient(135deg,#16a34a,#15803d);"
+              onmouseover="this.style.background='linear-gradient(135deg,#15803d,#166534)';"
+              onmouseout="this.style.background='linear-gradient(135deg,#16a34a,#15803d)';">
+        ✓ Finalizar Pagamento
+      </button>
+
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">
+        <span id="lbl-metodo">Escolha o método</span>
+      </p>
+
+      <!-- Grid de métodos diretos (pagam o restante todo) -->
+      <div class="grid grid-cols-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <button onclick="escolherMetodo('dinheiro')"
-                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center text-center">
-            <div class="w-12 h-12 rounded-full bg-green-200 group-hover:bg-green-300 flex items-center justify-center mb-3 transition-colors duration-300">
-              <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                class="group py-4 px-3 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-green-200 group-hover:bg-green-300 flex items-center justify-center mb-2 transition-colors">
+              <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <span class="text-sm font-bold text-green-800">Dinheiro</span>
+            <span class="text-xs font-bold text-green-800">Dinheiro</span>
           </div>
         </button>
 
         <button onclick="escolherMetodo('pix')"
-                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-teal-200 hover:border-teal-400 bg-gradient-to-br from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center text-center">
-            <div class="w-12 h-12 rounded-full bg-teal-200 group-hover:bg-teal-300 flex items-center justify-center mb-3 transition-colors duration-300">
-              <svg class="w-6 h-6 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                class="group py-4 px-3 rounded-2xl border-2 border-teal-200 hover:border-teal-400 bg-gradient-to-br from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-teal-200 group-hover:bg-teal-300 flex items-center justify-center mb-2 transition-colors">
+              <svg class="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
               </svg>
             </div>
-            <span class="text-sm font-bold text-teal-800">PIX</span>
+            <span class="text-xs font-bold text-teal-800">PIX</span>
           </div>
         </button>
 
         <button onclick="escolherMetodo('cartao_credito')"
-                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center text-center">
-            <div class="w-12 h-12 rounded-full bg-blue-200 group-hover:bg-blue-300 flex items-center justify-center mb-3 transition-colors duration-300">
-              <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                class="group py-4 px-3 rounded-2xl border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-blue-200 group-hover:bg-blue-300 flex items-center justify-center mb-2 transition-colors">
+              <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
               </svg>
             </div>
-            <span class="text-sm font-bold text-blue-800">Crédito</span>
+            <span class="text-xs font-bold text-blue-800">Crédito</span>
           </div>
         </button>
 
         <button onclick="escolherMetodo('cartao_debito')"
-                class="group relative overflow-hidden py-4 px-3 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center text-center">
-            <div class="w-12 h-12 rounded-full bg-purple-200 group-hover:bg-purple-300 flex items-center justify-center mb-3 transition-colors duration-300">
-              <svg class="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                class="group py-4 px-3 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-purple-200 group-hover:bg-purple-300 flex items-center justify-center mb-2 transition-colors">
+              <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
               </svg>
             </div>
-            <span class="text-sm font-bold text-purple-800">Débito</span>
+            <span class="text-xs font-bold text-purple-800">Débito</span>
+          </div>
+        </button>
+
+        <!-- PARCIAL – paga valor personalizado em qualquer método -->
+        <button onclick="abrirStepParcial()"
+                class="col-span-2 group py-3 px-3 rounded-2xl border-2 transition-all transform hover:scale-[1.01] hover:shadow-lg"
+                style="border-color:#f59e0b;background:linear-gradient(135deg,#fffbeb,#fef3c7);"
+                onmouseover="this.style.background='linear-gradient(135deg,#fef3c7,#fde68a)';"
+                onmouseout="this.style.background='linear-gradient(135deg,#fffbeb,#fef3c7)';">
+          <div class="flex items-center justify-center gap-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center transition-colors" style="background:#fde68a;">
+              <svg class="w-4 h-4" style="color:#92400e;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+              </svg>
+            </div>
+            <div class="text-left">
+              <span class="text-sm font-black" style="color:#92400e;">PARCIAL</span>
+              <p class="text-xs" style="color:#b45309;">Pagar parte em qualquer método</p>
+            </div>
           </div>
         </button>
       </div>
     </div>
 
-    <!-- STEP 2 - DINHEIRO -->
-    <div id="step-2-dinheiro" class="p-6 hidden">
-      <div class="flex items-center justify-between mb-5">
+    <!-- ═══ STEP 2d – Dinheiro (paga o restante todo) ═══ -->
+    <div id="step-2-dinheiro" class="hidden" style="padding:20px 20px 32px 20px;">
+      <div class="flex items-center justify-between mb-4">
         <button onclick="voltarStep1()"
                 class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -163,51 +155,39 @@
           </svg>
           Voltar
         </button>
-        <span class="text-xs font-bold text-green-700 bg-green-100 px-3 py-2 rounded-full border border-green-200 uppercase tracking-wide">Dinheiro</span>
+        <span class="text-xs font-bold text-green-700 bg-green-100 px-3 py-1.5 rounded-full border border-green-200 uppercase tracking-wide">Dinheiro</span>
       </div>
 
-      <div class="mb-5">
-        <label class="text-sm font-bold text-gray-600 mb-2 block">Valor Recebido</label>
-        <input type="number"
-               id="valor-recebido"
-               oninput="calcularTroco()"
-               min="0"
-               step="0.01"
-               placeholder="0,00"
-               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all duration-200 custom-input">
-        <p id="erro-valor" class="text-sm text-red-600 font-semibold mt-2 flex items-center gap-2 hidden">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.966-.833-2.736 0L3.077 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-          </svg>
-          <span id="valor-faltante"></span>
+      <div class="mb-1">
+        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor recebido em dinheiro</label>
+        <p class="text-xs text-gray-400 mb-2">Restante: <span id="dinheiro-restante-label" class="font-bold text-gray-700"></span></p>
+        <input type="number" id="valor-recebido" oninput="calcularTroco()"
+               min="0" step="0.01" placeholder="0,00"
+               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
+        <p id="erro-valor" class="text-sm text-red-600 font-semibold mt-2 hidden">
+          Valor não pode ser zero.
         </p>
       </div>
 
-      <div class="flex gap-2 my-5" id="atalhos-valores"></div>
+      <div class="flex gap-2 my-3" id="atalhos-valores"></div>
 
-      <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-5 mb-6">
+      <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-3 mb-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-bold text-gray-600 uppercase tracking-wide">Troco</span>
-          </div>
-          <span id="display-troco" class="text-2xl font-black text-gray-400">R$ 0,00</span>
+          <span class="text-sm font-bold text-gray-600 uppercase tracking-wide">Troco</span>
+          <span id="display-troco" class="text-xl font-black text-gray-400">R$ 0,00</span>
         </div>
       </div>
 
-      <button onclick="processarPagamento()"
-              id="btn-confirmar-dinheiro"
-              disabled
-              class="w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide bg-gray-200 text-gray-400 cursor-not-allowed transition-all duration-200">
+      <button onclick="adicionarPagamentoDinheiro()" id="btn-add-dinheiro" disabled
+              class="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-wide transition-all"
+              style="background:#e5e7eb;color:#9ca3af;cursor:not-allowed;">
         Confirmar Pagamento
       </button>
     </div>
 
-    <!-- STEP 2 - CARTÃO / PIX -->
-    <div id="step-2-outros" class="p-6 text-center hidden">
-      <div class="flex items-center justify-between mb-6">
+    <!-- ═══ STEP 2o – PIX / Crédito / Débito (paga o restante todo) ═══ -->
+    <div id="step-2-outros" class="hidden" style="padding:20px 20px 32px 20px;">
+      <div class="flex items-center justify-between mb-4">
         <button onclick="voltarStep1()"
                 class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -215,31 +195,100 @@
           </svg>
           Voltar
         </button>
-        <span id="metodo-label"
-              class="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-2 rounded-full border border-gray-200 uppercase tracking-wide"></span>
+        <span id="metodo-label" class="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 uppercase tracking-wide"></span>
       </div>
 
-      <div class="mb-8">
-        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
-          <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-          </svg>
-        </div>
-        <h3 class="text-lg font-bold text-gray-800 mb-2">Confirme a cobrança</h3>
-        <p class="text-gray-500 mb-1">Valor total do pagamento:</p>
-        <p class="text-3xl font-black text-gray-800">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+      <div class="mb-4">
+        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor a pagar</label>
+        <p class="text-xs text-gray-400 mb-2">Restante: <span id="outros-restante-label" class="font-bold text-gray-700"></span></p>
+        <input type="number" id="valor-outros" oninput="validarOutros()"
+               min="0.01" step="0.01" placeholder="0,00"
+               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
+        <p id="erro-outros" class="text-sm text-red-600 font-semibold mt-2 hidden">
+          Valor não pode exceder o restante.
+        </p>
       </div>
 
-      <button onclick="processarPagamento()"
-              class="w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);"
-              onmouseover="this.style.background='linear-gradient(135deg, #15803d 0%, #166534 100%)';"
-              onmouseout="this.style.background='linear-gradient(135deg, #16a34a 0%, #15803d 100%)';"> 
-        ✓ Confirmar Pagamento
+      <button onclick="adicionarPagamentoOutros()" id="btn-add-outros" disabled
+              class="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-wide transition-all"
+              style="background:#e5e7eb;color:#9ca3af;cursor:not-allowed;">
+        Confirmar Pagamento
       </button>
     </div>
 
-    <!-- STEP 3 - SUCESSO -->
+    <!-- ═══ STEP 2p – PARCIAL: valor + escolha do método ═══ -->
+    <div id="step-2-parcial" class="hidden" style="padding:20px 20px 32px 20px;">
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="voltarStep1()"
+                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Voltar
+        </button>
+        <span class="text-xs font-bold px-3 py-1.5 rounded-full border uppercase tracking-wide"
+              style="background:#fef3c7;border-color:#f59e0b;color:#92400e;">◆ PARCIAL</span>
+      </div>
+
+      <!-- Valor parcial -->
+      <div class="mb-4">
+        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor parcial a pagar</label>
+        <p class="text-xs text-gray-400 mb-2">Restante: <span id="parcial-restante-label" class="font-bold text-gray-700"></span></p>
+        <input type="number" id="valor-parcial" oninput="validarParcial()"
+               min="0.01" step="0.01" placeholder="0,00"
+               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
+        <p id="erro-parcial" class="text-sm text-red-600 font-semibold mt-2 hidden">
+          Valor deve ser maior que zero e não exceder o restante.
+        </p>
+      </div>
+
+      <!-- Escolha do método para este valor parcial -->
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">Escolha o método para este valor</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="confirmarParcial('dinheiro')"
+                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-green-200 hover:border-green-400 bg-green-50 hover:bg-green-100 transition-all">
+          <div class="flex flex-col items-center gap-1">
+            <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-xs font-bold text-green-800">Dinheiro</span>
+          </div>
+        </button>
+
+        <button onclick="confirmarParcial('pix')"
+                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-teal-200 hover:border-teal-400 bg-teal-50 hover:bg-teal-100 transition-all">
+          <div class="flex flex-col items-center gap-1">
+            <svg class="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            <span class="text-xs font-bold text-teal-800">PIX</span>
+          </div>
+        </button>
+
+        <button onclick="confirmarParcial('cartao_credito')"
+                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 transition-all">
+          <div class="flex flex-col items-center gap-1">
+            <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            <span class="text-xs font-bold text-blue-800">Crédito</span>
+          </div>
+        </button>
+
+        <button onclick="confirmarParcial('cartao_debito')"
+                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-purple-200 hover:border-purple-400 bg-purple-50 hover:bg-purple-100 transition-all">
+          <div class="flex flex-col items-center gap-1">
+            <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            <span class="text-xs font-bold text-purple-800">Débito</span>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3 – Sucesso ═══ -->
     <div id="step-3" class="p-10 text-center hidden">
       <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-5 shadow-lg">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -255,189 +304,305 @@
 
 <script>
 (function() {
-  // Lê o total como número seguro (sem vírgula de locale)
   var totalStr = "{{ comanda.total_amount|default:'0' }}";
-  var totalNum = parseFloat(totalStr.replace(',', '.')) || 0;
+  var TOTAL = parseFloat(totalStr.replace(',', '.')) || 0;
+  var FINALIZE_URL = '{% url "checkouts:finalize" comanda.numero %}';
+  var CSRF = '{{ csrf_token }}';
+  var DASHBOARD_URL = '{% url "accounts:dashboard" %}';
 
-  var modalData = {
-    open:     false,
-    step:     1,
-    metodo:   null,
-    total:    totalNum,
-    recebido: 0,
-    troco:    0,
-    invalido: false
+  var state = {
+    payments: [],   // [{method, amount, label}]
+    restante: TOTAL,
+    currentMethod: null,
+    open: false,
   };
 
-  /* ───────── helpers de visibilidade ───────── */
+  var LABELS = {
+    dinheiro: 'Dinheiro',
+    pix: 'PIX',
+    cartao_credito: 'Crédito',
+    cartao_debito: 'Débito',
+    voucher: 'Voucher',
+  };
+
+  /* ─── helpers ─── */
+  function fmtBR(v) {
+    return new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+  }
+
   function mostrarStep(step) {
-    var ids = ['step-1', 'step-2-dinheiro', 'step-2-outros', 'step-3'];
-    ids.forEach(function(id) {
+    ['step-1','step-2-dinheiro','step-2-outros','step-2-parcial','step-3'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
-    var map = { 1: 'step-1', '2-dinheiro': 'step-2-dinheiro', '2-outros': 'step-2-outros', 3: 'step-3' };
-    var target = map[step];
-    if (target) {
-      var el = document.getElementById(target);
-      if (el) el.classList.remove('hidden');
-    }
+    var m = {1:'step-1','2d':'step-2-dinheiro','2o':'step-2-outros','2p':'step-2-parcial',3:'step-3'};
+    var el = document.getElementById(m[step]);
+    if (el) el.classList.remove('hidden');
   }
 
   function setLoading(show) {
-    var overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-      if (show) overlay.classList.remove('hidden');
-      else       overlay.classList.add('hidden');
-    }
+    var o = document.getElementById('loading-overlay');
+    if (o) { if(show) o.classList.remove('hidden'); else o.classList.add('hidden'); }
   }
 
-  /* ───────── funções globais ───────── */
+  function recalc() {
+    var pago = state.payments.reduce(function(s,p){return s+p.amount;},0);
+    state.restante = Math.max(0, TOTAL - pago);
+    var hdr = document.getElementById('hdr-restante');
+    if (hdr) {
+      hdr.textContent = 'R$ ' + fmtBR(state.restante);
+      hdr.style.color = state.restante <= 0.009 ? '#86efac' : '#fde68a';
+    }
+    var lbl = document.getElementById('lbl-metodo');
+    if (lbl) lbl.textContent = state.restante <= 0.009 ? 'Pagamento completo ✓' : 'Escolha o método';
+    var bf = document.getElementById('btn-finalizar');
+    if (bf) { if(state.restante <= 0.009) bf.classList.remove('hidden'); else bf.classList.add('hidden'); }
+    renderPaymentsList();
+  }
+
+  function renderPaymentsList() {
+    var container = document.getElementById('payments-list');
+    if (!container) return;
+    if (state.payments.length === 0) { container.classList.add('hidden'); container.innerHTML=''; return; }
+    container.classList.remove('hidden');
+    container.innerHTML = state.payments.map(function(p, i){
+      return '<div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">'
+        + '<span class="text-sm font-bold text-gray-700">' + p.label + '</span>'
+        + '<div class="flex items-center gap-2">'
+        + '<span class="text-sm font-black text-gray-800">R$ ' + fmtBR(p.amount) + '</span>'
+        + '<button type="button" onclick="removerPagamento('+i+')" class="text-red-400 hover:text-red-600 transition-colors">'
+        + '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>'
+        + '</button></div></div>';
+    }).join('');
+  }
+
+  /* ─── API pública ─── */
   window.abrirModalFinalizar = function() {
     var modal = document.getElementById('modal-checkout-v2');
-    if (!modal) { console.error('Modal não encontrado!'); return; }
+    if (!modal) return;
+    state.payments = [];
+    state.restante = TOTAL;
+    state.currentMethod = null;
     modal.classList.remove('modal-fechado');
     modal.style.display = 'flex';
-    modalData.open = true;
+    state.open = true;
     mostrarStep(1);
-    gerarAtalhos();
-
-    // Reset do input de dinheiro
-    var inp = document.getElementById('valor-recebido');
-    if (inp) inp.value = '';
-    var trocoEl = document.getElementById('display-troco');
-    if (trocoEl) trocoEl.textContent = 'R$ 0,00';
-    var btnEl = document.getElementById('btn-confirmar-dinheiro');
-    if (btnEl) { btnEl.disabled = true; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-gray-400 cursor-not-allowed transition-all duration-200'; btnEl.style.background = '#e5e7eb'; }
+    recalc();
   };
 
   window.fecharModalCheckout = function() {
     var modal = document.getElementById('modal-checkout-v2');
-    if (modal) {
-      modal.classList.add('modal-fechado');
-      modal.style.display = 'none';
-      modalData.open = false;
+    if (modal) { modal.classList.add('modal-fechado'); modal.style.display='none'; state.open=false; }
+  };
+
+  /* Métodos diretos: pré-preenchem com o restante todo */
+  window.escolherMetodo = function(metodo) {
+    state.currentMethod = metodo;
+    if (metodo === 'dinheiro') {
+      mostrarStep('2d');
+      var inp = document.getElementById('valor-recebido');
+      if (inp) inp.value = state.restante.toFixed(2);
+      var rl = document.getElementById('dinheiro-restante-label');
+      if (rl) rl.textContent = 'R$ ' + fmtBR(state.restante);
+      calcularTroco();
+      gerarAtalhos();
+    } else {
+      mostrarStep('2o');
+      var lbl = document.getElementById('metodo-label');
+      if (lbl) lbl.textContent = LABELS[metodo] || metodo;
+      var inp2 = document.getElementById('valor-outros');
+      if (inp2) { inp2.value = state.restante.toFixed(2); inp2.max = state.restante.toFixed(2); }
+      var rl2 = document.getElementById('outros-restante-label');
+      if (rl2) rl2.textContent = 'R$ ' + fmtBR(state.restante);
+      validarOutros();
     }
   };
 
-  window.escolherMetodo = function(metodo) {
-    modalData.metodo = metodo;
-    if (metodo === 'dinheiro') {
-      mostrarStep('2-dinheiro');
-    } else {
-      mostrarStep('2-outros');
-      var label = document.getElementById('metodo-label');
-      if (label) label.textContent = metodo.replace(/_/g, ' ');
-    }
+  /* Botão PARCIAL: abre step com valor livre + escolha de método */
+  window.abrirStepParcial = function() {
+    if (state.restante <= 0.009) return;
+    mostrarStep('2p');
+    var inp = document.getElementById('valor-parcial');
+    if (inp) { inp.value = ''; inp.max = state.restante.toFixed(2); }
+    var rl = document.getElementById('parcial-restante-label');
+    if (rl) rl.textContent = 'R$ ' + fmtBR(state.restante);
+    // desabilitar botões de método até valor ser válido
+    atualizarBotoesParcial(false);
+    var erroEl = document.getElementById('erro-parcial');
+    if (erroEl) erroEl.classList.add('hidden');
+  };
+
+  function atualizarBotoesParcial(habilitar) {
+    document.querySelectorAll('.parcial-metodo-btn').forEach(function(btn){
+      btn.disabled = !habilitar;
+      btn.style.opacity = habilitar ? '1' : '0.4';
+      btn.style.cursor = habilitar ? 'pointer' : 'not-allowed';
+    });
+  }
+
+  window.validarParcial = function() {
+    var inp = document.getElementById('valor-parcial');
+    var v = parseFloat(inp ? inp.value : 0) || 0;
+    var erroEl = document.getElementById('erro-parcial');
+    var valido = v > 0.009 && v <= state.restante + 0.009;
+    if (erroEl) { if(!valido && v > 0) erroEl.classList.remove('hidden'); else erroEl.classList.add('hidden'); }
+    atualizarBotoesParcial(valido);
+  };
+
+  /* Confirma parcial: recebe o método escolhido, lê o valor e adiciona */
+  window.confirmarParcial = function(metodo) {
+    var inp = document.getElementById('valor-parcial');
+    var v = parseFloat(inp ? inp.value : 0) || 0;
+    if (v <= 0.009) return;
+    var valor = Math.min(v, state.restante);
+    state.payments.push({method: metodo, amount: parseFloat(valor.toFixed(2)), label: LABELS[metodo] || metodo});
+    state.currentMethod = null;
+    mostrarStep(1);
+    recalc();
   };
 
   window.voltarStep1 = function() {
-    modalData.metodo = null;
+    state.currentMethod = null;
     mostrarStep(1);
+    recalc();
+  };
+
+  window.removerPagamento = function(idx) {
+    state.payments.splice(idx, 1);
+    recalc();
   };
 
   window.calcularTroco = function() {
     var inp = document.getElementById('valor-recebido');
     if (!inp) return;
     var recebido = parseFloat(inp.value) || 0;
-    var total    = modalData.total;
-    modalData.recebido = recebido;
-    modalData.invalido = recebido < total;
-    modalData.troco    = recebido - total;
-
-    var erroEl  = document.getElementById('erro-valor');
+    var erroEl = document.getElementById('erro-valor');
     var trocoEl = document.getElementById('display-troco');
-    var btnEl   = document.getElementById('btn-confirmar-dinheiro');
-
-    if (modalData.invalido) {
-      if (erroEl) erroEl.classList.remove('hidden');
-      var faltanteEl = document.getElementById('valor-faltante');
-      if (faltanteEl) faltanteEl.textContent = 'Faltam R$ ' + fmtBR(total - recebido);
-      if (trocoEl) { trocoEl.textContent = 'R$ 0,00'; trocoEl.className = 'text-2xl font-black text-red-400'; }
-      if (btnEl)   { btnEl.disabled = true; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-gray-400 cursor-not-allowed transition-all duration-200'; btnEl.style.background = '#e5e7eb'; btnEl.style.cursor = 'not-allowed'; btnEl.onmouseover = null; btnEl.onmouseout = null; }
-    } else {
-      if (erroEl) erroEl.classList.add('hidden');
-      var troco = Math.max(modalData.troco, 0);
-      if (trocoEl) { trocoEl.textContent = 'R$ ' + fmtBR(troco); trocoEl.className = troco > 0 ? 'text-2xl font-black text-green-600' : 'text-2xl font-black text-gray-400'; }
-      if (btnEl)   { btnEl.disabled = false; btnEl.className = 'w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg transition-all duration-200 transform hover:scale-[1.02]'; btnEl.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'; btnEl.style.cursor = 'pointer'; btnEl.onmouseover = function(){ this.style.background='linear-gradient(135deg, #15803d 0%, #166534 100%)'; }; btnEl.onmouseout = function(){ this.style.background='linear-gradient(135deg, #16a34a 0%, #15803d 100%)'; }; }
+    var btnEl = document.getElementById('btn-add-dinheiro');
+    var invalid = recebido <= 0;
+    if (erroEl) { if(invalid) erroEl.classList.remove('hidden'); else erroEl.classList.add('hidden'); }
+    if (trocoEl) {
+      var t = Math.max(0, recebido - state.restante);
+      trocoEl.textContent = 'R$ ' + fmtBR(t);
+      trocoEl.style.color = t > 0 ? '#16a34a' : '#9ca3af';
+    }
+    if (btnEl) {
+      if (!invalid) {
+        btnEl.disabled = false;
+        btnEl.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+        btnEl.style.color = '#ffffff';
+        btnEl.style.cursor = 'pointer';
+      } else {
+        btnEl.disabled = true;
+        btnEl.style.background = '#e5e7eb';
+        btnEl.style.color = '#9ca3af';
+        btnEl.style.cursor = 'not-allowed';
+      }
     }
   };
 
-  window.processarPagamento = async function() {
-    if (modalData.metodo === 'dinheiro' && modalData.invalido) return;
+  window.validarOutros = function() {
+    var inp = document.getElementById('valor-outros');
+    if (!inp) return;
+    var v = parseFloat(inp.value) || 0;
+    var erroEl = document.getElementById('erro-outros');
+    var btnEl = document.getElementById('btn-add-outros');
+    var invalid = v <= 0 || v > state.restante + 0.009;
+    if (erroEl) { if(v > state.restante + 0.009) erroEl.classList.remove('hidden'); else erroEl.classList.add('hidden'); }
+    if (btnEl) {
+      if (!invalid) {
+        btnEl.disabled = false;
+        btnEl.style.background = 'linear-gradient(135deg,#2563eb,#1d4ed8)';
+        btnEl.style.color = '#ffffff';
+        btnEl.style.cursor = 'pointer';
+      } else {
+        btnEl.disabled = true;
+        btnEl.style.background = '#e5e7eb';
+        btnEl.style.color = '#9ca3af';
+        btnEl.style.cursor = 'not-allowed';
+      }
+    }
+  };
+
+  window.adicionarPagamentoDinheiro = function() {
+    var inp = document.getElementById('valor-recebido');
+    var recebido = parseFloat(inp ? inp.value : 0) || 0;
+    if (recebido <= 0) return;
+    var valor = Math.min(recebido, state.restante + 0.009);
+    state.payments.push({method:'dinheiro', amount: parseFloat(valor.toFixed(2)), label:'Dinheiro'});
+    mostrarStep(1);
+    state.currentMethod = null;
+    recalc();
+  };
+
+  window.adicionarPagamentoOutros = function() {
+    var inp = document.getElementById('valor-outros');
+    var v = parseFloat(inp ? inp.value : 0) || 0;
+    if (v <= 0) return;
+    state.payments.push({method: state.currentMethod, amount: parseFloat(v.toFixed(2)), label: LABELS[state.currentMethod] || state.currentMethod});
+    mostrarStep(1);
+    state.currentMethod = null;
+    recalc();
+  };
+
+  window.finalizarPagamento = async function() {
+    if (state.restante > 0.009) return;
     setLoading(true);
-    var data = {
-      payment_method:  modalData.metodo,
-      received_amount: modalData.metodo === 'dinheiro' ? modalData.recebido : modalData.total,
-      change_amount:   modalData.metodo === 'dinheiro' ? Math.max(0, modalData.troco) : 0
+    var totalPago = state.payments.reduce(function(s,p){return s+p.amount;},0);
+    var troco = Math.max(0, totalPago - TOTAL);
+    var payload = {
+      payments: state.payments.map(function(p){return {method:p.method,amount:p.amount};}),
+      change_amount: parseFloat(troco.toFixed(2)),
     };
     try {
-      var resp   = await fetch('{% url "checkouts:finalize" comanda.numero %}', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body:    JSON.stringify(data)
+      var resp = await fetch(FINALIZE_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+        body: JSON.stringify(payload)
       });
-      var contentType = resp.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
+      var ct = resp.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
         setLoading(false);
-        alert('Erro: resposta inesperada do servidor (status ' + resp.status + '). Verifique as permissões.');
+        alert('Erro: resposta inesperada (' + resp.status + '). Verifique permissões.');
         return;
       }
       var result = await resp.json();
       if (result.success) {
         setLoading(false);
         mostrarStep(3);
-        setTimeout(function() { window.location.href = '{% url "accounts:dashboard" %}'; }, 2000);
+        setTimeout(function(){ window.location.href = DASHBOARD_URL; }, 2000);
       } else {
         setLoading(false);
         alert(result.message || 'Erro ao processar pagamento.');
       }
-    } catch (e) {
+    } catch(e) {
       setLoading(false);
       alert('Erro de conexão: ' + e.message);
     }
   };
 
-  /* ───────── internos ───────── */
+  /* ─── atalhos de valor (dinheiro) ─── */
   function gerarAtalhos() {
-    var t = modalData.total;
-    var valores = [
-      Math.ceil(t / 10) * 10,
-      Math.ceil(t / 20) * 20,
-      Math.ceil(t / 50) * 50,
-      Math.ceil(t / 100) * 100
-    ];
-    var container = document.getElementById('atalhos-valores');
-    if (!container) return;
-    container.innerHTML = '';
-    valores.forEach(function(v) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all duration-200 hover:shadow-md';
-      btn.textContent = 'R$ ' + fmtBR(v);
-      btn.onclick = function() {
-        var inp = document.getElementById('valor-recebido');
-        if (inp) { inp.value = v; window.calcularTroco(); }
+    var t = state.restante;
+    var vals = [Math.ceil(t/10)*10, Math.ceil(t/20)*20, Math.ceil(t/50)*50, Math.ceil(t/100)*100];
+    var unique = [...new Set(vals)].filter(function(v){ return v >= t; }).slice(0,4);
+    var c = document.getElementById('atalhos-valores');
+    if (!c) return;
+    c.innerHTML = '';
+    unique.forEach(function(v){
+      var b = document.createElement('button');
+      b.type='button';
+      b.className='flex-1 py-2 text-sm font-bold rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all';
+      b.textContent='R$ '+fmtBR(v);
+      b.onclick=function(){
+        var inp=document.getElementById('valor-recebido');
+        if(inp){inp.value=v;calcularTroco();}
       };
-      container.appendChild(btn);
+      c.appendChild(b);
     });
   }
 
-  function fmtBR(valor) {
-    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor);
-  }
-
-  /* ───────── fechar com Escape ───────── */
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modalData.open) {
-      window.fecharModalCheckout();
-    }
-  });
-
-  /* ───────── fechar ao clicar no overlay ───────── */
-  document.getElementById('modal-checkout-v2').addEventListener('click', function(e) {
-    if (e.target === this) window.fecharModalCheckout();
-  });
-
+  /* ─── fechar apenas pelo botão X ─── */
+  // Escape e clique no overlay desabilitados intencionalmente.
 })();
 </script>

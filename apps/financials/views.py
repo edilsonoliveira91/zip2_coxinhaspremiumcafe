@@ -4,7 +4,7 @@ from django.urls import reverse_lazy
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
-from checkouts.models import Checkout
+from checkouts.models import Checkout, CheckoutPayment
 from decimal import Decimal, InvalidOperation
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -59,8 +59,24 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         total_sangrias = sangrias_periodo['total'] or Decimal('0.00')
         
         # Calcular valores por forma de pagamento
+        # Usa CheckoutPayment para capturar pagamentos parciais corretamente.
+        # Para checkouts antigos sem CheckoutPayment, usa o próprio Checkout.
+        checkout_ids = list(checkouts.values_list('id', flat=True))
+
+        # Pagamentos via CheckoutPayment (novos registros)
+        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+
+        def _sum_method(method):
+            cp = cp_qs.filter(payment_method=method).aggregate(total=Sum('amount'), count=Count('id'))
+            # Fallback: checkouts antigos sem CheckoutPayment (payment_method direto)
+            old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(
+                total=Sum('total'), count=Count('id'))
+            total = (cp['total'] or Decimal('0.00')) + (old['total'] or Decimal('0.00'))
+            count = (cp['count'] or 0) + (old['count'] or 0)
+            return total, count
+
         payment_stats = {}
-        
+
         # Sangria (retiradas do caixa)
         payment_stats['sangria'] = {
             'total': total_sangrias,
@@ -69,7 +85,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             'icon': '💸',
             'color': 'red'
         }
-        
+
         # Valor inicial vindo das configurações do sistema
         valor_inicial = SystemConfig.get_settings().troco_inicial
         payment_stats['valor_inicial'] = {
@@ -80,57 +96,20 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             'color': 'yellow'
         }
 
-        # Dinheiro
-        dinheiro = checkouts.filter(payment_method='dinheiro').aggregate(
-            total=Sum('total'),
-            count=Count('id')
-        )
-        payment_stats['dinheiro'] = {
-            'total': dinheiro['total'] or Decimal('0.00'),
-            'count': dinheiro['count'] or 0,
-            'label': 'Dinheiro',
-            'icon': '💵',
-            'color': 'green'
-        }
-        
-        # Cartão de Crédito
-        credito = checkouts.filter(payment_method='cartao_credito').aggregate(
-            total=Sum('total'),
-            count=Count('id')
-        )
-        payment_stats['cartao_credito'] = {
-            'total': credito['total'] or Decimal('0.00'),
-            'count': credito['count'] or 0,
-            'label': 'Cartão de Crédito',
-            'icon': '💳',
-            'color': 'blue'
-        }
-        
-        # Cartão de Débito
-        debito = checkouts.filter(payment_method='cartao_debito').aggregate(
-            total=Sum('total'),
-            count=Count('id')
-        )
-        payment_stats['cartao_debito'] = {
-            'total': debito['total'] or Decimal('0.00'),
-            'count': debito['count'] or 0,
-            'label': 'Cartão de Débito',
-            'icon': '💳',
-            'color': 'purple'
-        }
-        
-        # PIX
-        pix = checkouts.filter(payment_method='pix').aggregate(
-            total=Sum('total'),
-            count=Count('id')
-        )
-        payment_stats['pix'] = {
-            'total': pix['total'] or Decimal('0.00'),
-            'count': pix['count'] or 0,
-            'label': 'PIX',
-            'icon': '📱',
-            'color': 'orange'
-        }
+        d_total, d_count = _sum_method('dinheiro')
+        payment_stats['dinheiro'] = {'total': d_total, 'count': d_count, 'label': 'Dinheiro', 'icon': '💵', 'color': 'green'}
+
+        cr_total, cr_count = _sum_method('cartao_credito')
+        payment_stats['cartao_credito'] = {'total': cr_total, 'count': cr_count, 'label': 'Cartão de Crédito', 'icon': '💳', 'color': 'blue'}
+
+        db_total, db_count = _sum_method('cartao_debito')
+        payment_stats['cartao_debito'] = {'total': db_total, 'count': db_count, 'label': 'Cartão de Débito', 'icon': '💳', 'color': 'purple'}
+
+        px_total, px_count = _sum_method('pix')
+        payment_stats['pix'] = {'total': px_total, 'count': px_count, 'label': 'PIX', 'icon': '📱', 'color': 'orange'}
+
+        vch_total, vch_count = _sum_method('voucher')
+        payment_stats['voucher'] = {'total': vch_total, 'count': vch_count, 'label': 'Voucher', 'icon': '🎟️', 'color': 'yellow'}
         
         # Total geral
         total_receita = (checkouts.aggregate(total=Sum('total'))['total'] or Decimal('0.00')) + valor_inicial - total_sangrias
@@ -153,7 +132,12 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
                 'id': checkout.comanda.id,
                 'code': checkout.comanda.numero,
                 'cliente': checkout.comanda.cliente_nome or f'Comanda #{checkout.comanda.numero}',
-                'pagamento': checkout.get_payment_method_display(),
+                'pagamento': (
+                    ' + '.join(
+                        f'{p.get_payment_method_display()} R${p.amount:.2f}'
+                        for p in checkout.payments.all()
+                    ) if checkout.payments.exists() else checkout.get_payment_method_display()
+                ),
                 'valor': checkout.total,
                 'data': checkout.created_at,
                 'item': checkout
