@@ -48,3 +48,39 @@ class Sangria(TimeStampedModel):
     def valor_formatado(self):
         """Retorna o valor formatado em reais"""
         return f"R$ {self.valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+class FechamentoCaixaDiario(TimeStampedModel):
+    """
+    Arquiva o extrato do caixa ao final de cada dia operacional.
+    Permite verificar o histórico de fechamentos passados.
+    """
+    data = models.DateField(
+        unique=True,
+        verbose_name="Data do Fechamento",
+    )
+    fechado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='fechamentos_caixa',
+        verbose_name="Fechado por",
+    )
+    valor_inicial   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Troco Inicial")
+    total_dinheiro  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Dinheiro")
+    total_debito    = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Cartao Debito")
+    total_credito   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Cartao Credito")
+    total_pix       = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="PIX")
+    total_voucher   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Voucher")
+    total_sangrias  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Sangrias")
+    total_entradas  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Entradas")
+    total_final     = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Final em Caixa")
+    total_comandas  = models.PositiveIntegerField(default=0, verbose_name="Qtd Comandas")
+    observacao      = models.TextField(blank=True, verbose_name="Observacao")
+
+    class Meta:
+        verbose_name = "Fechamento de Caixa Diario"
+        verbose_name_plural = "Fechamentos de Caixa Diarios"
+        ordering = ['-data']
+
+    def __str__(self):
+        return f"Fechamento {self.data.strftime('%d/%m/%Y')} - R$ {self.total_final}"

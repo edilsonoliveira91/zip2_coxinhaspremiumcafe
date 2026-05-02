@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.shortcuts import redirect
 from django.views.generic import DetailView
 from products.models import Product
@@ -762,39 +763,99 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     paginate_by = 20
     
     def get_queryset(self):
-        """Retorna comandas finalizadas e canceladas"""
+        """Retorna comandas finalizadas e canceladas, filtradas por data (default hoje)"""
+        today = timezone.localtime().date()
+        raw_from = self.request.GET.get('date_from', '')
+        raw_to   = self.request.GET.get('date_to', '')
+        try:
+            date_from = datetime.strptime(raw_from, '%Y-%m-%d').date() if raw_from else today
+        except ValueError:
+            date_from = today
+        try:
+            date_to = datetime.strptime(raw_to, '%Y-%m-%d').date() if raw_to else today
+        except ValueError:
+            date_to = today
+        self._date_from = date_from
+        self._date_to   = date_to
         return Comanda.objects.filter(
-            status__in=['fechada', 'cancelada']
+            status__in=['fechada', 'cancelada'],
+            updated_at__date__gte=date_from,
+            updated_at__date__lte=date_to,
         ).select_related('checkout').prefetch_related(
             'pedidos__items__product',
             'checkout__payments',
         ).order_by('-updated_at')
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Estatísticas das comandas finalizadas
-        from django.db.models import Sum
-        from checkouts.models import Checkout
 
-        # Só comandas efetivamente fechadas (excluir canceladas da receita)
+        from django.db.models import Sum
+        from checkouts.models import Checkout, CheckoutPayment
+        from decimal import Decimal
+
+        date_from = getattr(self, '_date_from', timezone.localtime().date())
+        date_to   = getattr(self, '_date_to',   timezone.localtime().date())
+
+        # Estatísticas filtradas pelo mesmo período
         total_finalizadas = Comanda.objects.filter(
-            status__in=['fechada', 'cancelada']
+            status__in=['fechada', 'cancelada'],
+            updated_at__date__gte=date_from,
+            updated_at__date__lte=date_to,
         ).count()
 
-        # Receita real = soma do Checkout.total de checkouts aprovados de comandas fechadas
         total_receita = (
             Checkout.objects.filter(
                 comanda__status='fechada',
+                comanda__updated_at__date__gte=date_from,
+                comanda__updated_at__date__lte=date_to,
                 status='aprovado',
             ).aggregate(total=Sum('total'))['total'] or 0
         )
 
+        # Troco inicial (SystemConfig)
+        from config.models import SystemConfig
+        troco_inicial = SystemConfig.get_settings().troco_inicial
+
+        # Totais por método de pagamento (para impressão do relatório)
+        approved_qs = Checkout.objects.filter(
+            comanda__status='fechada',
+            comanda__updated_at__date__gte=date_from,
+            comanda__updated_at__date__lte=date_to,
+            status='aprovado',
+        )
+        parcial_qs = approved_qs.filter(payment_method='parcial')
+
+        def _soma_metodo(method):
+            simples  = (approved_qs.filter(payment_method=method)
+                        .aggregate(t=Sum('total'))['t'] or Decimal('0'))
+            parciais = (CheckoutPayment.objects.filter(
+                            checkout__in=parcial_qs, payment_method=method)
+                        .aggregate(t=Sum('amount'))['t'] or Decimal('0'))
+            return simples + parciais
+
+        total_dinheiro_print = _soma_metodo('dinheiro')
+        total_debito_print   = _soma_metodo('cartao_debito')
+        total_credito_print  = _soma_metodo('cartao_credito')
+        total_pix_print      = _soma_metodo('pix')
+        total_geral_print    = total_dinheiro_print + total_debito_print + total_credito_print + total_pix_print
+
         context.update({
             'total_finalizadas': total_finalizadas,
             'total_receita': total_receita,
+            'date_from': date_from.strftime('%Y-%m-%d'),
+            'date_to':   date_to.strftime('%Y-%m-%d'),
+            'date_from_fmt': date_from.strftime('%d/%m/%Y'),
+            'date_to_fmt':   date_to.strftime('%d/%m/%Y'),
+            # print totals
+            'print_troco':    troco_inicial,
+            'print_dinheiro': total_dinheiro_print,
+            'print_debito':   total_debito_print,
+            'print_credito':  total_credito_print,
+            'print_pix':      total_pix_print,
+            'print_total':    total_geral_print,
+            'print_total_cmd': total_finalizadas,
         })
-        
+
         return context
 
 

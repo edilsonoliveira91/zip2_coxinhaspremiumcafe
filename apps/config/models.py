@@ -15,6 +15,21 @@ class SystemConfig(models.Model):
         help_text="Valor padrão com que o caixa inicia todos os dias."
     )
 
+    quebra_positiva = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('5.00'),
+        verbose_name="Quebra de Caixa Positiva (R$)",
+        help_text="Margem máxima tolerada de sobra em espécie (caixa com mais dinheiro do que o previsto)."
+    )
+    quebra_negativa = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('5.00'),
+        verbose_name="Quebra de Caixa Negativa (R$)",
+        help_text="Margem máxima tolerada de falta em espécie (caixa com menos dinheiro do que o previsto)."
+    )
+
     class Meta:
         verbose_name = "Configuração do Sistema"
         verbose_name_plural = "Configurações do Sistema"

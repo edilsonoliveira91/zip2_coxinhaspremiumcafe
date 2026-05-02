@@ -6,4 +6,5 @@ app_name = 'config'
 urlpatterns = [
     path('time_config', views.TimeConfigView.as_view(), name='time_config'),
     path('troco-inicial/', views.TrocoInicialView.as_view(), name='troco_inicial'),
+    path('quebra-caixa/', views.QuebraCaixaView.as_view(), name='quebra_caixa'),
 ]

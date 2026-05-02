@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria
+from .models import Sangria, FechamentoCaixaDiario
 from django.views import View
 from config.models import SystemConfig
 
@@ -435,3 +435,188 @@ class ExcluirSangriaView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 'success': False,
                 'message': 'Erro interno do servidor'
             }, status=500)
+
+class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Extrato do caixa por período — resumo por forma de pagamento para impressão.
+    """
+    permission_required = 'financials.view_financial'
+    template_name = 'reports/report_list.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        date_str = self.request.GET.get('date')
+
+        if not date_str:
+            selected_date = timezone.localtime().date()
+        else:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        # Checkouts aprovados do dia
+        checkouts = Checkout.objects.filter(
+            status='aprovado',
+            created_at__date=selected_date,
+        )
+        checkout_ids = list(checkouts.values_list('id', flat=True))
+        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+
+        def _soma(method):
+            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
+            return via_cp + via_old
+
+        total_dinheiro  = _soma('dinheiro')
+        total_debito    = _soma('cartao_debito')
+        total_credito   = _soma('cartao_credito')
+        total_pix       = _soma('pix')
+
+        sangrias = Sangria.objects.filter(
+            created_at__date=selected_date,
+        )
+        total_sangrias = sangrias.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+
+        valor_inicial = SystemConfig.get_settings().troco_inicial
+
+        total_entradas = total_dinheiro + total_debito + total_credito + total_pix
+        total_final    = valor_inicial + total_entradas - total_sangrias
+
+        context.update({
+            'selected_date':   selected_date.strftime('%Y-%m-%d'),
+            'selected_date_fmt': selected_date.strftime('%d/%m/%Y'),
+            'valor_inicial':   valor_inicial,
+            'total_dinheiro':  total_dinheiro,
+            'total_debito':    total_debito,
+            'total_credito':   total_credito,
+            'total_pix':       total_pix,
+            'total_sangrias':  total_sangrias,
+            'total_entradas':  total_entradas,
+            'total_final':     total_final,
+            'total_comandas':  checkouts.count(),
+        })
+        return context
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  FECHAMENTO DIÁRIO DE CAIXA
+# ─────────────────────────────────────────────────────────────────────────────
+
+class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Tela de fechamento diário: mostra o extrato do dia atual e lista
+    os fechamentos anteriores já arquivados.
+    """
+    permission_required = 'financials.view_financial'
+    template_name = 'financials/fechamento_diario.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def _calcular_extrato(self, date):
+        """Retorna dict com os totais do dia."""
+        checkouts = Checkout.objects.filter(
+            status='aprovado',
+            created_at__date=date,
+        )
+        checkout_ids = list(checkouts.values_list('id', flat=True))
+        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+
+        def _soma(method):
+            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
+            return via_cp + via_old
+
+        sangrias_qs = Sangria.objects.filter(created_at__date=date)
+        valor_inicial  = SystemConfig.get_settings().troco_inicial
+        total_dinheiro = _soma('dinheiro')
+        total_debito   = _soma('cartao_debito')
+        total_credito  = _soma('cartao_credito')
+        total_pix      = _soma('pix')
+        total_sangrias = sangrias_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+        total_entradas = total_dinheiro + total_debito + total_credito + total_pix
+        total_final    = valor_inicial + total_entradas - total_sangrias
+
+        return {
+            'valor_inicial':  valor_inicial,
+            'total_dinheiro': total_dinheiro,
+            'total_debito':   total_debito,
+            'total_credito':  total_credito,
+            'total_pix':      total_pix,
+            'total_sangrias': total_sangrias,
+            'total_entradas': total_entradas,
+            'total_final':    total_final,
+            'total_comandas': checkouts.count(),
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localtime().date()
+        extrato = self._calcular_extrato(today)
+        fechamento_hoje = FechamentoCaixaDiario.objects.filter(data=today).first()
+        historico = FechamentoCaixaDiario.objects.select_related('fechado_por').order_by('-data')[:30]
+
+        context.update({
+            'today_fmt': today.strftime('%d/%m/%Y'),
+            'today': today.strftime('%Y-%m-%d'),
+            'extrato': extrato,
+            'fechamento_hoje': fechamento_hoje,
+            'historico': historico,
+        })
+        return context
+
+
+class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    POST: arquiva o extrato do dia como FechamentoCaixaDiario.
+    Se já existe um fechamento para o dia, atualiza.
+    """
+    permission_required = 'financials.view_financial'
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        today = timezone.localtime().date()
+        checkouts = Checkout.objects.filter(status='aprovado', created_at__date=today)
+        checkout_ids = list(checkouts.values_list('id', flat=True))
+        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+
+        def _soma(method):
+            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
+            return via_cp + via_old
+
+        sangrias_qs = Sangria.objects.filter(created_at__date=today)
+        valor_inicial  = SystemConfig.get_settings().troco_inicial
+        total_dinheiro = _soma('dinheiro')
+        total_debito   = _soma('cartao_debito')
+        total_credito  = _soma('cartao_credito')
+        total_pix      = _soma('pix')
+        total_sangrias = sangrias_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+        total_entradas = total_dinheiro + total_debito + total_credito + total_pix
+        total_final    = valor_inicial + total_entradas - total_sangrias
+
+        observacao = request.POST.get('observacao', '').strip()
+
+        fechamento, created = FechamentoCaixaDiario.objects.update_or_create(
+            data=today,
+            defaults={
+                'fechado_por':    request.user,
+                'valor_inicial':  valor_inicial,
+                'total_dinheiro': total_dinheiro,
+                'total_debito':   total_debito,
+                'total_credito':  total_credito,
+                'total_pix':      total_pix,
+                'total_sangrias': total_sangrias,
+                'total_entradas': total_entradas,
+                'total_final':    total_final,
+                'total_comandas': checkouts.count(),
+                'observacao':     observacao,
+            }
+        )
+
+        from django.contrib import messages as django_messages
+        if created:
+            django_messages.success(request, f'Caixa do dia {today.strftime("%d/%m/%Y")} fechado com sucesso!')
+        else:
+            django_messages.success(request, f'Fechamento do dia {today.strftime("%d/%m/%Y")} atualizado.')
+
+        from django.shortcuts import redirect
+        return redirect('financials:fechamento_diario')

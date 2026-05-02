@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fechamento de Caixa{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+  <div class="h-full overflow-y-auto bg-gray-50">
+
+    <!-- HEADER -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#f97316,#ef4444);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <svg style="width:20px;height:20px;" fill="none" stroke="#fff" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-gray-900 leading-tight">Fechamento de Caixa</h1>
+            <p class="text-xs text-gray-400">{{ today_fmt }} &middot; {{ extrato.total_comandas }} comanda{{ extrato.total_comandas|pluralize }}</p>
+          </div>
+        </div>
+        {% if fechamento_hoje %}
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#dcfce7;color:#15803d;border-radius:9999px;font-size:12px;font-weight:700;">
+          <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Fechado por {{ fechamento_hoje.fechado_por.get_full_name|default:fechamento_hoje.fechado_por.username }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 py-6 space-y-5">
+
+      {% include 'components/messages.html' %}
+
+      <!-- EXTRATO DO DIA -->
+      <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;overflow:hidden;">
+
+        <div style="padding:18px 22px 14px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#111827;">Extrato do Dia &mdash; {{ today_fmt }}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:1px;">Resumo atual (ainda nao fechado){% if fechamento_hoje %} &mdash; Fechamento registrado{% endif %}</div>
+          </div>
+          <a href="{% url 'financials:extrato' %}?date={{ today }}"
+             style="font-size:12px;color:#f97316;font-weight:600;text-decoration:none;">
+            Ver extrato completo &rarr;
+          </a>
+        </div>
+
+        <!-- Linhas resumo -->
+        <div>
+          {% with e=extrato %}
+
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
+            <span style="font-size:13px;color:#6b7280;">Troco Inicial</span>
+            <span style="font-size:13px;font-weight:600;color:#92400e;">R$ {{ e.valor_inicial|floatformat:2 }}</span>
+          </div>
+
+          <div style="padding:6px 22px 3px;background:#f9fafb;">
+            <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;">Entradas</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
+            <span style="font-size:13px;color:#374151;">Dinheiro</span>
+            <span style="font-size:13px;font-weight:600;color:#16a34a;">R$ {{ e.total_dinheiro|floatformat:2 }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
+            <span style="font-size:13px;color:#374151;">Cartao Debito</span>
+            <span style="font-size:13px;font-weight:600;color:#7c3aed;">R$ {{ e.total_debito|floatformat:2 }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
+            <span style="font-size:13px;color:#374151;">Cartao Credito</span>
+            <span style="font-size:13px;font-weight:600;color:#2563eb;">R$ {{ e.total_credito|floatformat:2 }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
+            <span style="font-size:13px;color:#374151;">PIX</span>
+            <span style="font-size:13px;font-weight:600;color:#0891b2;">R$ {{ e.total_pix|floatformat:2 }}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;padding:10px 22px;background:#f0fdf4;border-bottom:1px solid #e5e7eb;">
+            <span style="font-size:12px;font-weight:700;color:#15803d;">Total Entradas</span>
+            <span style="font-size:13px;font-weight:800;color:#15803d;">R$ {{ e.total_entradas|floatformat:2 }}</span>
+          </div>
+
+          {% if e.total_sangrias > 0 %}
+          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
+            <span style="font-size:13px;color:#374151;">Sangria</span>
+            <span style="font-size:13px;font-weight:600;color:#dc2626;">- R$ {{ e.total_sangrias|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 22px;background:#1f2937;">
+            <span style="font-size:13px;font-weight:700;color:#fff;">TOTAL EM CAIXA</span>
+            <span style="font-size:22px;font-weight:900;color:#4ade80;">R$ {{ e.total_final|floatformat:2 }}</span>
+          </div>
+
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- FORM FECHAR CAIXA -->
+      <form method="post" action="{% url 'financials:realizar_fechamento' %}" id="form-fechamento">
+        {% csrf_token %}
+        <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;padding:20px 22px;">
+          <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:12px;">
+            {% if fechamento_hoje %}Atualizar Fechamento{% else %}Fechar Caixa Agora{% endif %}
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:6px;">Observacao (opcional)</label>
+            <textarea name="observacao" rows="2"
+                      style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;resize:none;"
+                      placeholder="Ex: movimento normal, cheque devolvido...">{% if fechamento_hoje %}{{ fechamento_hoje.observacao }}{% endif %}</textarea>
+          </div>
+          <button type="button" onclick="confirmarFechamento()"
+                  style="width:100%;padding:12px;background:{% if fechamento_hoje %}#2563eb{% else %}#16a34a{% endif %};color:#fff;border-radius:12px;font-weight:700;font-size:15px;border:none;cursor:pointer;">
+            {% if fechamento_hoje %}
+              Atualizar Fechamento do Dia
+            {% else %}
+              Confirmar Fechamento do Caixa
+            {% endif %}
+          </button>
+        </div>
+      </form>
+
+      <!-- HISTORICO -->
+      {% if historico %}
+      <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;overflow:hidden;">
+        <div style="padding:16px 22px 12px;border-bottom:1px solid #f3f4f6;">
+          <div style="font-size:14px;font-weight:700;color:#111827;">Historico de Fechamentos</div>
+          <div style="font-size:12px;color:#9ca3af;">Ultimos {{ historico|length }} fechamentos arquivados</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="background:#f9fafb;">
+                <th style="padding:10px 16px;text-align:left;font-weight:600;color:#6b7280;">Data</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Dinheiro</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Debito</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Credito</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">PIX</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Total</th>
+                <th style="padding:10px 16px;text-align:left;font-weight:600;color:#6b7280;">Fechado por</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in historico %}
+              <tr style="border-top:1px solid #f3f4f6;{% if f.data == today|date:'Y-m-d' %}background:#fffbeb;{% endif %}">
+                <td style="padding:10px 16px;font-weight:600;color:#374151;">
+                  {{ f.data|date:"d/m/Y" }}
+                  {% if forloop.first and f.data == today|date:"Y-m-d" %}
+                    <span style="margin-left:6px;background:#fef9c3;color:#854d0e;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">HOJE</span>
+                  {% endif %}
+                </td>
+                <td style="padding:10px 16px;text-align:right;color:#16a34a;font-weight:600;">R$ {{ f.total_dinheiro|floatformat:2 }}</td>
+                <td style="padding:10px 16px;text-align:right;color:#7c3aed;font-weight:600;">R$ {{ f.total_debito|floatformat:2 }}</td>
+                <td style="padding:10px 16px;text-align:right;color:#2563eb;font-weight:600;">R$ {{ f.total_credito|floatformat:2 }}</td>
+                <td style="padding:10px 16px;text-align:right;color:#0891b2;font-weight:600;">R$ {{ f.total_pix|floatformat:2 }}</td>
+                <td style="padding:10px 16px;text-align:right;font-weight:800;color:#111827;">R$ {{ f.total_final|floatformat:2 }}</td>
+                <td style="padding:10px 16px;color:#6b7280;font-size:12px;">{{ f.fechado_por.get_full_name|default:f.fechado_por.username }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmacao -->
+<div id="modal-confirmar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px;">Confirmar Fechamento</div>
+    <div style="font-size:14px;color:#6b7280;margin-bottom:20px;">
+      Ao confirmar, os valores atuais do caixa de <strong>{{ today_fmt }}</strong> serao arquivados.
+      Voce pode refazer o fechamento a qualquer momento.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('modal-confirmar').style.display='none'"
+              style="flex:1;padding:11px;background:#f3f4f6;border-radius:10px;font-weight:600;border:none;cursor:pointer;font-size:14px;">
+        Cancelar
+      </button>
+      <button onclick="document.getElementById('form-fechamento').submit()"
+              style="flex:1;padding:11px;background:#16a34a;color:#fff;border-radius:10px;font-weight:700;border:none;cursor:pointer;font-size:14px;">
+        Fechar Caixa
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmarFechamento() {
+  const m = document.getElementById('modal-confirmar');
+  m.style.display = 'flex';
+}
+document.getElementById('modal-confirmar').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endblock %}

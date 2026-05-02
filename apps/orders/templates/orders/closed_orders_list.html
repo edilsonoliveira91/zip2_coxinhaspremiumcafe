@@ -25,12 +25,22 @@
                         <h1 class="text-3xl font-bold text-gray-900">Comandas Finalizadas</h1>
                         <p class="mt-1 text-sm text-gray-600">Histórico de comandas pagas e entregues</p>
                     </div>
-                    <!-- Estatísticas rápidas -->
-                    <div class="hidden md:flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600">{{ total_finalizadas }}</div>
-                            <div class="text-xs text-gray-500">Total</div>
+                    <!-- Estatísticas rápidas + botão imprimir -->
+                    <div class="hidden md:flex items-center space-x-3">
+                        <div class="flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-600">{{ total_finalizadas }}</div>
+                                <div class="text-xs text-gray-500">Total</div>
+                            </div>
                         </div>
+                        <button id="btn-imprimir-relatorio" onclick="imprimirRelatorio(this)"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Imprimir Relatório
+                        </button>
                     </div>
                 </div>
             </div>
@@ -40,7 +50,7 @@
         <div class="flex-1 p-6 space-y-6">
 
             <!-- Filtros -->
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+            <form method="get" id="filter-form" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
                 <div class="flex items-end gap-4">
                     <div class="flex-1 min-w-0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Buscar comanda</label>
@@ -53,37 +63,41 @@
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
-                        <input type="date" id="dateStart"
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data inicio</label>
+                        <input type="date" name="date_from" id="dateStart" value="{{ date_from }}"
                                class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                     </div>
                     <div class="flex-1 min-w-0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
-                        <input type="date" id="dateEnd"
+                        <input type="date" name="date_to" id="dateEnd" value="{{ date_to }}"
                                class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                     </div>
                     <div class="flex-shrink-0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button onclick="applyFilters()"
+                        <button type="submit"
                                 class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 transition-colors font-medium flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                            <span>Buscar</span>
+                            <span>Filtrar</span>
                         </button>
                     </div>
                     <div class="flex-shrink-0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button onclick="clearFilters()"
-                                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 focus:ring-2 focus:ring-gray-300 transition-colors font-medium flex items-center space-x-2">
+                        <a href="?"
+                           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 focus:ring-2 focus:ring-gray-300 transition-colors font-medium flex items-center space-x-2"
+                           style="display:inline-flex;">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
-                            <span>Limpar</span>
-                        </button>
+                            <span>Hoje</span>
+                        </a>
                     </div>
                 </div>
-            </div>
+                <div class="mt-3 text-xs text-gray-400">
+                    Mostrando comandas de <strong>{{ date_from_fmt }}</strong> a <strong>{{ date_to_fmt }}</strong>
+                </div>
+            </form>
 
             <!-- Lista de Comandas -->
             <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
@@ -295,11 +309,11 @@
                         </div>
                         <div class="flex space-x-2">
                             {% if page_obj.has_previous %}
-                            <a href="?page={{ page_obj.previous_page_number }}"
+                            <a href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}"
                                class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Anterior</a>
                             {% endif %}
                             {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}"
+                            <a href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}"
                                class="px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600">Próximo</a>
                             {% endif %}
                         </div>
@@ -415,30 +429,13 @@ document.addEventListener('keydown', function(e) {
 
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const startDate  = document.getElementById('dateStart').value;
-    const endDate    = document.getElementById('dateEnd').value;
-
     document.querySelectorAll('.order-row').forEach(row => {
         const searchData = row.getAttribute('data-search');
-        const rowDate    = row.getAttribute('data-date');
-        let show = true;
-
-        if (searchTerm && !searchData.includes(searchTerm)) show = false;
-        if (startDate  && rowDate < startDate)              show = false;
-        if (endDate    && rowDate > endDate)                show = false;
-
-        row.style.display = show ? 'table-row' : 'none';
+        row.style.display = (!searchTerm || searchData.includes(searchTerm)) ? 'table-row' : 'none';
     });
 }
 
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('dateStart').value   = '';
-    document.getElementById('dateEnd').value     = '';
-    document.querySelectorAll('.order-row').forEach(row => {
-        row.style.display = 'table-row';
-    });
-}
+document.getElementById('searchInput').addEventListener('input', applyFilters);
 
 let _emitindoNFCe = false;
 
@@ -531,6 +528,92 @@ async function imprimirCupomComanda(url, btn) {
         alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = originalHTML; }
     }
+}
+
+
+// ── Impressão de relatório do período ───────────────────────────────────────
+const RELATORIO_DATA = {
+  periodo:   "{{ date_from_fmt }}{% if date_from != date_to %} a {{ date_to_fmt }}{% endif %}",
+  total_cmd: {{ print_total_cmd }},
+  troco:     "{{ print_troco|floatformat:2 }}",
+  dinheiro:  "{{ print_dinheiro|floatformat:2 }}",
+  debito:    "{{ print_debito|floatformat:2 }}",
+  credito:   "{{ print_credito|floatformat:2 }}",
+  pix:       "{{ print_pix|floatformat:2 }}",
+  total:     "{{ print_total|floatformat:2 }}",
+};
+
+function fmtLinha(label, valor, sinal) {
+  const L = 42;
+  const prefix = sinal || '';
+  const right = prefix + 'R$ ' + valor;
+  const pad = L - label.length - right.length;
+  return label + ' '.repeat(Math.max(1, pad)) + right;
+}
+
+function buildRelatorioEscPos(d) {
+  const SEP  = '-'.repeat(42);
+  const SEP2 = '='.repeat(42);
+  const center = (t) => {
+    const pad = Math.floor((42 - t.length) / 2);
+    return ' '.repeat(Math.max(0, pad)) + t;
+  };
+  return [
+    center('COXINHAS PREMIUM CAFE'),
+    center('Rua Cel. Fernando Prestes, 898'),
+    center('Centro - Itapetininga/SP'),
+    SEP,
+    center('*** RELATORIO DE COMANDAS ***'),
+    center('Periodo: ' + d.periodo),
+    center('Comandas: ' + d.total_cmd),
+    SEP,
+    '',
+    fmtLinha('TROCO INICIAL', d.troco, ''),
+    '',
+    '--- ENTRADAS POR PAGAMENTO ---',
+    fmtLinha('Dinheiro',       d.dinheiro, '+ '),
+    fmtLinha('Cartao Debito',  d.debito,   '+ '),
+    fmtLinha('Cartao Credito', d.credito,  '+ '),
+    fmtLinha('PIX',            d.pix,      '+ '),
+    SEP2,
+    fmtLinha('TOTAL GERAL', d.total, ''),
+    SEP2,
+    '',
+    '',
+    '',
+  ].join('\n');
+}
+
+async function imprimirRelatorio(btn) {
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  const FLASK_BRIDGE = 'https://localhost:5001/print';
+  try {
+    const texto = buildRelatorioEscPos(RELATORIO_DATA);
+    const resp = await fetch(FLASK_BRIDGE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: texto })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      btn.innerHTML = '<svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Impresso!';
+      btn.style.background = '#16a34a';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.background = 'linear-gradient(135deg,#f97316,#ef4444)';
+        btn.innerHTML = '<svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg> Imprimir Relatório';
+      }, 2500);
+    } else {
+      alert('Erro ao imprimir: ' + (data.message || 'desconhecido'));
+      btn.disabled = false; btn.style.opacity = '1';
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
 }
 
 </script>

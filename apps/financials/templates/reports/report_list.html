@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Extrato do Caixa{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+  <div class="h-full overflow-y-auto bg-gray-50">
+
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div class="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#f97316,#ef4444);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <svg style="width:20px;height:20px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 4h16v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 10v-2h12v2H6z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-gray-900 leading-tight">Extrato do Caixa</h1>
+            <p class="text-xs text-gray-400">{{ selected_date_fmt }} &middot; {{ total_comandas }} comanda{{ total_comandas|pluralize }}</p>
+          </div>
+        </div>
+        <button id="btn-imprimir" onclick="imprimirExtrato(this)"
+                style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:#f97316;color:#fff;border-radius:10px;font-weight:600;font-size:13px;border:none;cursor:pointer;transition:opacity .2s;">
+          <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+          </svg>
+          Imprimir Epson
+        </button>
+      </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto px-4 py-6 space-y-4">
+
+      <!-- ===== FILTRO DE DATA ===== -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-4">
+        <form method="get" class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Data</label>
+            <input type="date" name="date" value="{{ selected_date }}"
+                   style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;color:#374151;background:#f9fafb;">
+          </div>
+          <button type="submit"
+                  style="padding:9px 22px;background:#1f2937;color:#fff;border-radius:10px;font-weight:600;font-size:14px;border:none;cursor:pointer;white-space:nowrap;">
+            Ver Extrato
+          </button>
+        </form>
+      </div>
+
+      <!-- ===== CARDS DE RESUMO ===== -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+        <!-- Troco Inicial -->
+        <div style="background:#fff;border-radius:16px;border:1px solid #e5e7eb;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Troco Inicial</div>
+          <div style="font-size:22px;font-weight:800;color:#92400e;">R$ {{ valor_inicial|floatformat:2 }}</div>
+        </div>
+
+        <!-- Total Comandas -->
+        <div style="background:#fff;border-radius:16px;border:1px solid #e5e7eb;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Comandas</div>
+          <div style="font-size:22px;font-weight:800;color:#374151;">{{ total_comandas }}</div>
+        </div>
+
+      </div>
+
+      <!-- ===== EXTRATO PRINCIPAL ===== -->
+      <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;overflow:hidden;">
+
+        <!-- Cabeçalho -->
+        <div style="padding:18px 22px 14px;border-bottom:1px solid #f3f4f6;">
+          <div style="font-size:13px;font-weight:700;color:#111827;">Entradas por forma de pagamento</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">{{ selected_date_fmt }}</div>
+        </div>
+
+        <!-- Itens -->
+        <div>
+
+          <!-- Dinheiro -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#16a34a;">$</div>
+              <span style="font-size:14px;font-weight:500;color:#374151;">Dinheiro</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;color:#16a34a;">R$ {{ total_dinheiro|floatformat:2 }}</div>
+            </div>
+          </div>
+
+          <!-- Cartão Débito -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#ede9fe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#7c3aed;">DB</div>
+              <span style="font-size:14px;font-weight:500;color:#374151;">Débito</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;color:#7c3aed;">R$ {{ total_debito|floatformat:2 }}</div>
+            </div>
+          </div>
+
+          <!-- Cartão Crédito -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#2563eb;">CR</div>
+              <span style="font-size:14px;font-weight:500;color:#374151;">Crédito</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;color:#2563eb;">R$ {{ total_credito|floatformat:2 }}</div>
+            </div>
+          </div>
+
+          <!-- PIX -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#cffafe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#0891b2;">PIX</div>
+              <span style="font-size:14px;font-weight:500;color:#374151;">PIX</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;color:#0891b2;">R$ {{ total_pix|floatformat:2 }}</div>
+            </div>
+          </div>
+
+
+          <!-- Sub-total entradas -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 22px;background:#f0fdf4;border-bottom:1px solid #e5e7eb;">
+            <span style="font-size:13px;font-weight:700;color:#15803d;">Total Entradas</span>
+            <span style="font-size:14px;font-weight:800;color:#15803d;">R$ {{ total_entradas|floatformat:2 }}</span>
+          </div>
+
+        </div>
+
+        <!-- Sangria -->
+        {% if total_sangrias > 0 %}
+        <div>
+          <div style="padding:8px 22px 4px;background:#fef2f2;">
+            <span style="font-size:10px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.06em;">Saídas</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#dc2626;">S</div>
+              <span style="font-size:14px;font-weight:500;color:#374151;">Sangria</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:700;color:#dc2626;">- R$ {{ total_sangrias|floatformat:2 }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- TOTAL EM CAIXA -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 22px;background:linear-gradient(135deg,#1f2937,#111827);">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Total em Caixa</div>
+            <div style="font-size:11px;color:#6b7280;">Troco + Entradas - Sangrias</div>
+          </div>
+          <div style="font-size:26px;font-weight:900;color:#4ade80;">R$ {{ total_final|floatformat:2 }}</div>
+        </div>
+
+      </div>
+
+    </div><!-- /max-w-2xl -->
+  </div>
+</div>
+
+<!-- JS dados para impressão -->
+<script>
+const EXTRATO_DATA = {
+  data:          "{{ selected_date_fmt }}",
+  total_cmd:     {{ total_comandas }},
+  valor_inicial: "{{ valor_inicial|floatformat:2 }}",
+  dinheiro:      "{{ total_dinheiro|floatformat:2 }}",
+  debito:        "{{ total_debito|floatformat:2 }}",
+  credito:       "{{ total_credito|floatformat:2 }}",
+  pix:           "{{ total_pix|floatformat:2 }}",
+  entradas:      "{{ total_entradas|floatformat:2 }}",
+  sangrias:      "{{ total_sangrias|floatformat:2 }}",
+  total_final:   "{{ total_final|floatformat:2 }}",
+};
+
+function fmt(label, valor, sinal) {
+  const L = 42;
+  const prefix = sinal || '';
+  const right = prefix + 'R$ ' + valor;
+  const pad = L - label.length - right.length;
+  return label + ' '.repeat(Math.max(1, pad)) + right;
+}
+
+function buildEscPos(d) {
+  const SEP  = '-'.repeat(42);
+  const SEP2 = '='.repeat(42);
+
+  const center = (txt) => {
+    const pad = Math.floor((42 - txt.length) / 2);
+    return ' '.repeat(Math.max(0, pad)) + txt;
+  };
+
+  const lines = [
+    center('COXINHAS PREMIUM CAFE'),
+    center('Rua Cel. Fernando Prestes, 898'),
+    center('Centro - Itapetininga/SP'),
+    SEP,
+    center('*** EXTRATO DO CAIXA ***'),
+    center('Data: ' + d.data),
+    center('Comandas: ' + d.total_cmd),
+    SEP,
+    '',
+    fmt('TROCO INICIAL', d.valor_inicial, ''),
+    '',
+    '--- ENTRADAS ---',
+    fmt('Dinheiro', d.dinheiro, '+ '),
+    fmt('Cartao Debito', d.debito, '+ '),
+    fmt('Cartao Credito', d.credito, '+ '),
+    fmt('PIX', d.pix, '+ '),
+    SEP,
+    fmt('TOTAL ENTRADAS', d.entradas, ''),
+    '',
+    '--- SAIDAS ---',
+    fmt('Sangria', d.sangrias, '- '),
+    SEP2,
+    fmt('TOTAL EM CAIXA', d.total_final, ''),
+    SEP2,
+    '',
+    '',
+    '',
+  ];
+
+  return lines.join('\n');
+}
+
+async function imprimirExtrato(btn) {
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  const FLASK_BRIDGE = 'https://localhost:5001/print';
+  try {
+    const texto = buildEscPos(EXTRATO_DATA);
+    const resp = await fetch(FLASK_BRIDGE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: texto })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      btn.innerHTML = '<svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Impresso!';
+      btn.style.background = '#16a34a';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.background = '#f97316';
+        btn.innerHTML = '<svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg> Imprimir Epson';
+      }, 2500);
+    } else {
+      alert('Erro ao imprimir: ' + (data.message || 'desconhecido'));
+      btn.disabled = false; btn.style.opacity = '1';
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Erro ao conectar com a impressora. Verifique se o servico esta rodando.');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+</script>
+{% endblock %}
