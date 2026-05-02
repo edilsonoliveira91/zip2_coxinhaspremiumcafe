@@ -723,7 +723,6 @@ class NoStockListView(LoginRequiredMixin, TemplateView):
                     output_field=IntegerField()
                 ),
             )
-            .filter(entradas__gt=0)  # apenas produtos com controle de estoque
             .annotate(
                 saldo=ExpressionWrapper(
                     F('entradas') - F('saidas_perm') - F('saidas_ativas'),
