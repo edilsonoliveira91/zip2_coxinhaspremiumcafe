@@ -234,13 +234,14 @@
                                           {% endif %}
 
                                           <!-- Imprimir Cupom da Comanda (sempre disponível) -->
-                                          <a href="{% url 'orders:imprimir_comanda' order.numero %}" target="_blank"
+                                          <button type="button"
+                                             onclick="imprimirCupomComanda('{% url 'orders:imprimir_comanda' order.numero %}', this)"
                                              class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all inline-flex"
                                              title="Imprimir cupom da comanda">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                               </svg>
-                                          </a>
+                                          </button>
 
                                           <!-- Cupom Fiscal NFC-e (só quando emitido) -->
                                           {% if order.nfce_numero %}
@@ -491,5 +492,46 @@ async function emitirNFCe(numero) {
 
     _emitindoNFCe = false;
 }
+
+async function imprimirCupomComanda(url, btn) {
+    const originalHTML = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    const FLASK_BRIDGE = 'https://localhost:5001/print';
+    try {
+        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const ct = resp.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+            window.open(url, '_blank');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
+        const data = await resp.json();
+        if (data.type === 'rawbt') {
+            window.location.href = data.intent_url;
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
+        const bridgeResp = await fetch(FLASK_BRIDGE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: data.content_text })
+        });
+        const bridgeData = await bridgeResp.json();
+        if (bridgeData.success) {
+            if (btn) { btn.title = '✅ Impresso!'; }
+            setTimeout(() => {
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.title = 'Imprimir cupom da comanda'; }
+            }, 2000);
+        } else {
+            alert('Erro ao imprimir: ' + (bridgeData.message || 'desconhecido'));
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        }
+    } catch (e) {
+        console.error('Erro ao imprimir comanda:', e);
+        alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = originalHTML; }
+    }
+}
+
 </script>
 {% endblock %}
