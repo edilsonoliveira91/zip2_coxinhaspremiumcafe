@@ -240,20 +240,14 @@
     </div>
 
     <!-- STEP 3 - SUCESSO -->
-    <div id="step-3" class="p-8 text-center hidden">
-      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
-        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+    <div id="step-3" class="p-10 text-center hidden">
+      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-5 shadow-lg">
+        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
         </svg>
       </div>
-      <h3 class="text-2xl font-black text-gray-800 mb-1">Comanda Fechada!</h3>
-      <p class="text-sm text-gray-500 font-semibold mb-6">Redirecionando em instantes...</p>
-
-      <div id="troco-display"
-           class="bg-green-50 border-2 border-green-200 rounded-2xl px-6 py-4 shadow-lg hidden">
-        <span class="text-sm text-green-700 font-bold uppercase tracking-wide block mb-1">Troco para o Cliente</span>
-        <span id="valor-troco-final" class="text-3xl font-black text-green-700"></span>
-      </div>
+      <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide mb-2">Pagamento Realizado<br>com Sucesso!</h3>
+      <p class="text-sm text-gray-400">Redirecionando...</p>
     </div>
 
   </div><!-- fim do card -->
@@ -383,16 +377,17 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
         body:    JSON.stringify(data)
       });
+      var contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        setLoading(false);
+        alert('Erro: resposta inesperada do servidor (status ' + resp.status + '). Verifique as permissões.');
+        return;
+      }
       var result = await resp.json();
       if (result.success) {
+        setLoading(false);
         mostrarStep(3);
-        if (modalData.metodo === 'dinheiro' && modalData.troco > 0) {
-          var td = document.getElementById('troco-display');
-          var tv = document.getElementById('valor-troco-final');
-          if (td) td.classList.remove('hidden');
-          if (tv) tv.textContent = 'R$ ' + fmtBR(modalData.troco);
-        }
-        setTimeout(function() { window.location.href = '{% url "orders:closed_orders" %}'; }, 2500);
+        setTimeout(function() { window.location.href = '{% url "accounts:dashboard" %}'; }, 2000);
       } else {
         setLoading(false);
         alert(result.message || 'Erro ao processar pagamento.');

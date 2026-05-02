@@ -1746,6 +1746,26 @@ class MarcarPedidoEntregueView(LoginRequiredMixin, View):
         messages.success(request, f"Pedido #{pedido.pedido_seq} entregue com sucesso!")
         return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
 
+class RemoverItemPedidoView(LoginRequiredMixin, View):
+    """
+    Remove um item de um pedido já entregue e atualiza os totais.
+    Requer superuser ou permissão change_order.
+    """
+    def post(self, request, item_pk):
+        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+            return JsonResponse({'success': False, 'message': 'Sem permissão.'}, status=403)
+        item = get_object_or_404(PedidoItem, pk=item_pk)
+        pedido = item.pedido
+        comanda = pedido.comanda
+        item.delete()
+        pedido.update_total()
+        return JsonResponse({
+            'success': True,
+            'novo_total_pedido': str(pedido.total_amount),
+            'novo_total_comanda': str(comanda.total_amount),
+        })
+
+
 class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)

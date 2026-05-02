@@ -225,18 +225,29 @@
                                 {% endfor %}
                             </div>
                             
-                            <ul class="flex flex-col gap-2"> <!-- flex-col para espaçar as caixas com texto em baixo -->
+                            <ul class="flex flex-col gap-2" id="items-list-{{ pedido.id }}">
                                 {% for item in pedido.items.all %}
-                                <li class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium shadow-sm flex flex-col">
+                                <li class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium shadow-sm flex flex-col" id="item-row-{{ item.id }}">
                                     <div class="flex items-center justify-between w-full">
                                         <span>
                                             <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full mr-2">x{{ item.quantity }}</span>
                                             {{ item.product.name }}
                                         </span>
-                                        <span class="text-green-600 font-bold ml-2">R$ {{ item.unit_price }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-green-600 font-bold">R$ {{ item.unit_price }}</span>
+                                            {% if pedido.status == 'entregue' %}
+                                            <button type="button"
+                                                onclick="removerItem({{ item.id }}, '{{ item.product.name }}', {{ pedido.id }})"
+                                                title="Remover item"
+                                                class="p-1 rounded-md text-red-400 hover:text-white hover:bg-red-500 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     {% if item.observations %}
-                                        <!-- Se tiver observação, mostrar com destaque -->
                                         <div class="mt-1 text-xs text-red-600 font-semibold bg-red-50 p-1 px-2 rounded-md">
                                             Obs: {{ item.observations }}
                                         </div>
@@ -462,6 +473,32 @@ async function imprimirComanda() {
         alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
         if (label) { label.textContent = 'Imprimir Comanda'; }
         if (btn) { btn.disabled = false; }
+    }
+}
+
+async function removerItem(itemId, nomeProduto, pedidoId) {
+    if (!confirm('Remover "' + nomeProduto + '" deste pedido?')) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') 
+        ? document.querySelector('[name=csrfmiddlewaretoken]').value 
+        : '{{ csrf_token }}';
+    try {
+        const resp = await fetch('/orders/item/' + itemId + '/remover/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+        if (data.success) {
+            // Remove o item da lista visualmente
+            const row = document.getElementById('item-row-' + itemId);
+            if (row) row.remove();
+            // Atualiza o total da comanda no sidebar
+            const totalEl = document.querySelector('.text-4xl.font-black.text-gray-800');
+            if (totalEl) totalEl.textContent = 'R$ ' + parseFloat(data.novo_total_comanda).toFixed(2).replace('.', ',');
+        } else {
+            alert(data.message || 'Erro ao remover item.');
+        }
+    } catch (e) {
+        alert('Erro de conexão: ' + e.message);
     }
 }
 </script>

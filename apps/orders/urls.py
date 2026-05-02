@@ -20,6 +20,7 @@ urlpatterns = [
     path('pedido/<int:pk>/marcar-entregue/', views.MarcarPedidoEntregueView.as_view(), name='marcar_entregue'),
     path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),
+    path('item/<int:item_pk>/remover/', views.RemoverItemPedidoView.as_view(), name='remover_item'),
     
     # CRUD de comandas
     path('list/', views.OrderListView.as_view(), name='list'),

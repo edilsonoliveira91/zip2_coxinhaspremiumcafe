@@ -159,7 +159,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         'message': 'Valor recebido é insuficiente!'
                     }, status=400)
             
-            # Processar finalização em transação
+            # Processar finalização em transação (apenas status da comanda)
             with transaction.atomic():
                 # Fechar a comanda
                 comanda.status = 'fechada'
@@ -170,33 +170,33 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     status='entregue', 
                     delivered_at=timezone.now()
                 )
-                
-                # Criar registro financeiro na tela de Receitas
-                if Checkout:
-                    try:
-                        checkout = Checkout.objects.create(
-                            comanda=comanda,
-                            subtotal=comanda.total_amount,
-                            desconto=Decimal('0.00'),
-                            taxa_servico=Decimal('0.00'),
-                            total=comanda.total_amount,
-                            payment_method=payment_method,
-                            status='aprovado',
-                            processed_by=request.user,
-                            processed_at=timezone.now(),
-                            created_by=request.user,
-                            notes=f'Pagamento em {payment_method}' + (
-                                f' - Recebido: R$ {received_amount:.2f} - Troco: R$ {change_amount:.2f}'
-                                if payment_method == 'dinheiro' else ''
-                            )
+            
+            # Criar registro financeiro FORA do atomic para não rolar back o status se falhar
+            if Checkout:
+                try:
+                    Checkout.objects.create(
+                        comanda=comanda,
+                        subtotal=comanda.total_amount,
+                        desconto=Decimal('0.00'),
+                        taxa_servico=Decimal('0.00'),
+                        total=comanda.total_amount,
+                        payment_method=payment_method,
+                        status='aprovado',
+                        processed_by=request.user,
+                        processed_at=timezone.now(),
+                        created_by=request.user,
+                        notes=f'Pagamento em {payment_method}' + (
+                            f' - Recebido: R$ {received_amount:.2f} - Troco: R$ {change_amount:.2f}'
+                            if payment_method == 'dinheiro' else ''
                         )
-                    except Exception as e:
-                        print(f"Erro ao criar registro de checkout: {e}")
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Comanda #{code} finalizada com sucesso!',
-                })
+                    )
+                except Exception as e:
+                    print(f"Erro ao criar registro de checkout: {e}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Comanda #{code} finalizada com sucesso!',
+            })
                 
         except Comanda.DoesNotExist:
             return JsonResponse({'success': False, 'message': f'Comanda #{code} não encontrada!'}, status=404)

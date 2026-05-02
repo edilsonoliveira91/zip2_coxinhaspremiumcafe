@@ -151,8 +151,8 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             combined_list.append({
                 'type': 'comanda',
                 'id': checkout.comanda.id,
-                'code': checkout.comanda.code,
-                'cliente': checkout.comanda.name,
+                'code': checkout.comanda.numero,
+                'cliente': checkout.comanda.cliente_nome or f'Comanda #{checkout.comanda.numero}',
                 'pagamento': checkout.get_payment_method_display(),
                 'valor': checkout.total,
                 'data': checkout.created_at,

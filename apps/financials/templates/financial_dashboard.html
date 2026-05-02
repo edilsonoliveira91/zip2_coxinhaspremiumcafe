@@ -151,7 +151,7 @@
                                       {% if item.type == 'comanda' %}
                                           <div class="flex items-center space-x-1">
                                               <!-- Ver detalhes -->
-                                              <a href="{% url 'orders:closed_order_detail' item.item.order.code %}" 
+                                              <a href="{% url 'orders:closed_order_detail' item.code %}" 
                                                 class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                 title="Ver detalhes">
                                                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@
                                               </a>
 
                                               <!-- Imprimir -->
-                                              <button onclick="printOrder('{{ item.item.order.code }}')" 
+                                              <button onclick="printOrder('{{ item.code }}')" 
                                                       class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                                                       title="Imprimir">
                                                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
