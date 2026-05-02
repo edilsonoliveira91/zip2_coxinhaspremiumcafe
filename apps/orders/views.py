@@ -765,19 +765,34 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
         """Retorna comandas finalizadas e canceladas"""
         return Comanda.objects.filter(
             status__in=['fechada', 'cancelada']
-        ).select_related('checkout').prefetch_related('pedidos__items__product').order_by('-updated_at')
+        ).select_related('checkout').prefetch_related(
+            'pedidos__items__product',
+            'checkout__payments',
+        ).order_by('-updated_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
         # Estatísticas das comandas finalizadas
-        finalized_comandas = self.get_queryset()
-        
+        from django.db.models import Sum
+        from checkouts.models import Checkout
+
+        # Só comandas efetivamente fechadas (excluir canceladas da receita)
+        total_finalizadas = Comanda.objects.filter(
+            status__in=['fechada', 'cancelada']
+        ).count()
+
+        # Receita real = soma do Checkout.total de checkouts aprovados de comandas fechadas
+        total_receita = (
+            Checkout.objects.filter(
+                comanda__status='fechada',
+                status='aprovado',
+            ).aggregate(total=Sum('total'))['total'] or 0
+        )
+
         context.update({
-            'total_finalizadas': finalized_comandas.count(),
-            'total_receita': finalized_comandas.aggregate(
-                total=Sum('total_amount')
-            )['total'] or 0,
+            'total_finalizadas': total_finalizadas,
+            'total_receita': total_receita,
         })
         
         return context
