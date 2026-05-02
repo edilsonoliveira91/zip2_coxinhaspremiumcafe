@@ -70,7 +70,7 @@ class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             
             # Comandas ativas para exibir no dashboard
             'comandas_ativas': orders_today.exclude(
-                status__in=['entregue', 'cancelada']
+                status__in=['entregue', 'cancelada', 'fechada', 'livre']
             ).order_by('-created_at')[:10],
             
             # Produtos para o modal (mantendo compatibilidade)
