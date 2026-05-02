@@ -132,6 +132,15 @@ class Company(TimeStampedModel):
         help_text="CFOP padrão para vendas (5102 - Venda no Estado)"
     )
 
+    # Código IBGE do Município (obrigatório para NFCe)
+    codigo_municipio_ibge = models.CharField(
+        max_length=7,
+        blank=True,
+        default='',
+        verbose_name="Código IBGE do Município",
+        help_text="Código IBGE de 7 dígitos do município (ex: 3523800 para Itapetininga/SP)"
+    )
+
     class Meta:
         verbose_name = "Empresa"
         verbose_name_plural = "Empresas"

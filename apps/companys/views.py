@@ -3,7 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
@@ -121,7 +121,7 @@ class CertificadoCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse_lazy('companys:company_detail', kwargs={'pk': self.kwargs['company_id']})
+        return reverse_lazy('companys:company_update', kwargs={'pk': self.kwargs['company_id']})
 
 
 class CertificadoUpdateView(LoginRequiredMixin, UpdateView):
@@ -144,28 +144,26 @@ class CertificadoUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse_lazy('companys:company_detail', kwargs={'pk': self.kwargs['company_id']})
+        return reverse_lazy('companys:company_update', kwargs={'pk': self.kwargs['company_id']})
 
 
-class CertificadoDeleteView(LoginRequiredMixin, UpdateView):
+class CertificadoDeleteView(LoginRequiredMixin, DeleteView):
     """Remover certificado digital"""
     model = CertificadoDigital
     template_name = 'companys/certificado_delete.html'
-    
+
     def get_object(self):
         company = get_object_or_404(Company, pk=self.kwargs['company_id'])
         return get_object_or_404(CertificadoDigital, company=company)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['company'] = get_object_or_404(Company, pk=self.kwargs['company_id'])
         return context
-    
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-        messages.success(request, '✅ Certificado digital removido com sucesso!')
-        return redirect('companys:company_detail', pk=self.kwargs['company_id'])
+
+    def get_success_url(self):
+        messages.success(self.request, '✅ Certificado digital removido com sucesso!')
+        return reverse_lazy('companys:company_update', kwargs={'pk': self.kwargs['company_id']})
 
 
 

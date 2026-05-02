@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Remover Certificado - {{ company.razao_social }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+
+        <!-- Linha de destaque no topo -->
+        <div class="h-1 bg-gradient-to-r from-red-500 to-rose-400"></div>
+
+        <div class="p-8">
+
+            <!-- Ícone + Título -->
+            <div class="flex flex-col items-center text-center mb-8">
+                <div class="w-14 h-14 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mb-4">
+                    <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Remover certificado digital?</h2>
+                <p class="text-sm text-gray-500 mt-1">{{ company.razao_social }}</p>
+            </div>
+
+            <!-- Arquivo -->
+            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-6 text-sm">
+                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                </svg>
+                <span class="text-gray-700 truncate">{{ object.arquivo_pfx.name|cut:"certificados/" }}</span>
+                {% if object.valido_ate %}
+                <span class="ml-auto text-xs text-gray-400 flex-shrink-0">Válido até {{ object.valido_ate|date:"d/m/Y" }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Aviso -->
+            <p class="text-sm text-gray-500 text-center mb-8 leading-relaxed">
+                Esta ação é irreversível. A emissão de NFCe em produção ficará desativada até que um novo certificado seja adicionado.
+            </p>
+
+            <!-- Botões -->
+            <form method="POST">
+                {% csrf_token %}
+                <div class="flex gap-3">
+                    <a href="{% url 'companys:company_update' company.pk %}"
+                       class="flex-1 text-center px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition text-sm">
+                        Cancelar
+                    </a>
+                    <button type="submit"
+                            class="flex-1 px-5 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition text-sm shadow-sm">
+                        Remover certificado
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

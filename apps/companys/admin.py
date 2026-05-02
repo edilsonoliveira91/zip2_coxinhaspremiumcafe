@@ -22,7 +22,7 @@ class CompanyAdmin(admin.ModelAdmin):
             'fields': ('razao_social', 'nome_fantasia', 'cnpj', 'ativa')
         }),
         ('Endereço', {
-            'fields': ('logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep')
+            'fields': ('logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep', 'codigo_municipio_ibge')
         }),
         ('Dados Fiscais', {
             'fields': ('inscricao_estadual', 'inscricao_municipal', 'telefone', 'email')

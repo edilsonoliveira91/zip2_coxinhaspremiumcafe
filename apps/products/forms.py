@@ -1,11 +1,11 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Product, Combo, ComboItem
-
-
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Product, Combo, ComboItem
+import datetime
+from .models import StockEntry
 
 
 class ProductForm(forms.ModelForm):
@@ -279,3 +279,41 @@ class ComboSearchForm(forms.Form):
         }),
         label='Status no Cardápio'
     )
+
+
+class StockEntryForm(forms.ModelForm):
+    class Meta:
+        model = StockEntry
+        fields = ['date', 'product', 'quantity', 'unit_cost', 'notes']
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition',
+            }),
+            'product': forms.Select(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 h-12 appearance-none bg-white',
+                'style': 'height: 48px !important; min-height: 48px !important;',
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition',
+                'placeholder': '0', 'min': '1',
+            }),
+            'unit_cost': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition',
+                'placeholder': '0,00',
+                'inputmode': 'numeric',
+                'autocomplete': 'off',
+            }),
+            'notes': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition',
+                'placeholder': 'Observações opcionais (ex: fornecedor, nota fiscal...)',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.initial.get('date') and not self.data.get('date'):
+            self.initial['date'] = datetime.date.today().isoformat()
+        self.fields['product'].queryset = Product.objects.filter(is_active=True).order_by('category', 'name')
+        self.fields['product'].empty_label = 'Selecione um produto...'
+        self.fields['notes'].required = False

@@ -6,6 +6,9 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.db import transaction
 from .models import Product, Combo, ComboItem
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm
+from .models import StockEntry
+from .forms import StockEntryForm
+from django.db.models import Sum, F
 
 
 # ==================== VIEWS DE PRODUTOS ====================
@@ -622,3 +625,63 @@ class AdicionalDeleteView(LoginRequiredMixin, PermissionRequiredMixin, ListView)
             return JsonResponse({'success': True, 'message': f'Adicional "{adicional.name}" removido com sucesso!'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+
+# ==================== VIEWS DE ESTOQUE ====================
+
+class StockListView(LoginRequiredMixin, ListView):
+    model = StockEntry
+    template_name = 'stock/stock_list.html'
+    context_object_name = 'entries'
+    paginate_by = 20
+    login_url = reverse_lazy('accounts:login')
+
+    def get_queryset(self):
+        qs = StockEntry.objects.select_related('product').order_by('-date', '-created_at')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(product__name__icontains=q)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['totals'] = (
+            StockEntry.objects
+            .values('product__id', 'product__name', 'product__category')
+            .annotate(
+                total_qty=Sum('quantity'),
+                total_invested=Sum(F('quantity') * F('unit_cost'))
+            )
+            .order_by('product__category', 'product__name')
+        )
+        context['q'] = self.request.GET.get('q', '')
+        return context
+
+
+class StockEntryCreateView(LoginRequiredMixin, CreateView):
+    model = StockEntry
+    form_class = StockEntryForm
+    template_name = 'stock/stock_form.html'
+    success_url = reverse_lazy('products:stock_list')
+    login_url = reverse_lazy('accounts:login')
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, '✅ Entrada de estoque registrada com sucesso!')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, '❌ Verifique os campos e tente novamente.')
+        return super().form_invalid(form)
+
+
+class StockEntryDeleteView(LoginRequiredMixin, DeleteView):
+    model = StockEntry
+    template_name = 'stock/stock_confirm_delete.html'
+    success_url = reverse_lazy('products:stock_list')
+    login_url = reverse_lazy('accounts:login')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, '✅ Entrada removida com sucesso!')
+        return super().delete(request, *args, **kwargs)

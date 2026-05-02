@@ -181,19 +181,46 @@
                                           </button>
                                           {% endif %}
 
-                                          <!-- Imprimir cupom -->
+                                          <!-- Imprimir cupom NFC-e -->
+                                          {% if order.nfce_numero %}
+                                          <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
+                                             class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all inline-flex"
+                                             title="Imprimir cupom NFC-e #{{ order.nfce_numero }}">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                              </svg>
+                                          </a>
+                                          <!-- PDF do cupom NFC-e -->
+                                          <a href="{% url 'orders:cupom_nfce' order.numero %}?pdf=1" target="_blank"
+                                             class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all inline-flex"
+                                             title="Salvar PDF do cupom NFC-e #{{ order.nfce_numero }}">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                              </svg>
+                                          </a>
+                                          {% else %}
                                           <button type="button" disabled
                                                   class="p-2 text-gray-300 rounded-lg cursor-not-allowed"
-                                                  title="Imprimir cupom (em breve)">
+                                                  title="Imprimir cupom (emita NFC-e primeiro)">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                               </svg>
                                           </button>
-
-                                          <!-- Emitir NFC-e -->
                                           <button type="button" disabled
                                                   class="p-2 text-gray-300 rounded-lg cursor-not-allowed"
-                                                  title="Emitir NFC-e (em breve)">
+                                                  title="Salvar PDF (emita NFC-e primeiro)">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                              </svg>
+                                          </button>
+                                          {% endif %}
+
+                                          <!-- Emitir NFC-e -->
+                                          <button type="button"
+                                                  id="btn-nfce-{{ order.numero }}"
+                                                  onclick="emitirNFCe('{{ order.numero }}')"
+                                                  class="p-2 {% if order.nfce_numero %}text-green-500 hover:text-green-700{% else %}text-gray-400 hover:text-purple-600 hover:bg-purple-50{% endif %} rounded-lg transition-all"
+                                                  title="{% if order.nfce_numero %}NFC-e #{{ order.nfce_numero }} emitida — Re-emitir{% else %}Emitir NFC-e{% endif %}">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                               </svg>
@@ -372,6 +399,59 @@ function clearFilters() {
     document.querySelectorAll('.order-row').forEach(row => {
         row.style.display = 'table-row';
     });
+}
+
+let _emitindoNFCe = false;
+
+async function emitirNFCe(numero) {
+    if (_emitindoNFCe) return;
+    _emitindoNFCe = true;
+
+    const btn = document.getElementById(`btn-nfce-${numero}`);
+    const originalHTML = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+        btn.disabled = true;
+    }
+
+    try {
+        const resp = await fetch(`/orders/comanda/${numero}/emitir-nfce/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({}),
+        });
+        const data = await resp.json();
+
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-6 right-6 ${data.success ? 'bg-green-600' : 'bg-red-600'} text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium`;
+        toast.textContent = data.message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+
+        if (data.success) {
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            if (btn) {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+    } catch (e) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-6 right-6 bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium';
+        toast.textContent = 'Erro ao conectar com o servidor.';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+
+    _emitindoNFCe = false;
 }
 </script>
 {% endblock %}

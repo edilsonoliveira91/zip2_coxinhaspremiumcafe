@@ -411,41 +411,86 @@ class NFCeService:
 
     def _emitir_nfce_real(self, dados):
         """
-        Emite NFCe real no SEFAZ com debugging avançado - CORRIGIDO
+        Emite NFCe real no SEFAZ:
+        1. Carrega certificado A1
+        2. Gera XML com dados reais
+        3. Assina com XMLDSig RSA-SHA1
+        4. Envia para webservice SEFAZ
+        5. Parseia resposta e retorna protocolo
         """
         cert_path = None
         key_path = None
-        
+
         try:
-            print("[INFO] Modo de teste: desabilitando conexão real com SEFAZ")
-            print("[INFO] Testando apenas geração e validação de XML...")
-            
-            # Gera XML da NFCe com debugging
+            # 1. Carregar certificado
+            print("[INFO] Carregando certificado digital...")
+            with open(self.certificado.arquivo_pfx.path, 'rb') as f:
+                pfx_data = f.read()
+
+            private_key, certificate, _ = pkcs12.load_key_and_certificates(
+                pfx_data,
+                self.certificado.senha_pfx.encode('utf-8'),
+            )
+            print(f"[INFO] Certificado carregado: {certificate.subject.rfc4514_string()}")
+
+            # 2. Exportar cert e key para arquivos temporários (necessário para requests cert=)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pem', mode='wb') as cf:
+                cf.write(certificate.public_bytes(serialization.Encoding.PEM))
+                cert_path = cf.name
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.key', mode='wb') as kf:
+                kf.write(private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                ))
+                key_path = kf.name
+
+            # 3. Gerar XML completo
             print("[INFO] Gerando XML da NFCe...")
             xml_content = self._gerar_xml_nfce_completo(dados)
-            
-            # DEBUGGING PROFUNDO
-            self._debug_xml_profundo(xml_content)
-            
-            # Simula resposta de sucesso para testar a view
-            print("[SIMULAÇÃO] Emitindo como se fosse real...")
-            return {
-                'sucesso': True,
-                'numero_nfce': dados['numero'],  # CORRIGIDO: campo correto
-                'chave_acesso': dados['chave_acesso'],
-                'protocolo': 'TESTE123456789',
-                'modo': 'teste_real'
-            }
-            
+
+            # 4. Assinar XML
+            print("[INFO] Assinando XML com certificado digital...")
+            xml_assinado = self._assinar_xml(xml_content, private_key, certificate)
+            print(f"[INFO] XML assinado ({len(xml_assinado)} chars)")
+
+            # 5. Enviar para SEFAZ
+            print("[INFO] Enviando para SEFAZ...")
+            resposta_xml = self._chamar_sefaz(xml_assinado, cert_path, key_path)
+
+            # 6. Parsear resposta
+            resultado_sefaz = self._parsear_resposta_sefaz(resposta_xml)
+
+            if resultado_sefaz['sucesso']:
+                print(f"[SEFAZ] NFCe autorizada! Protocolo: {resultado_sefaz['protocolo']}")
+                return {
+                    'sucesso': True,
+                    'numero_nfce': dados['numero'],
+                    'chave_acesso': dados['chave_acesso'],
+                    'protocolo': resultado_sefaz['protocolo'],
+                    'modo': 'producao' if self.empresa.ambiente_nfce == '1' else 'homologacao',
+                }
+            else:
+                return {
+                    'sucesso': False,
+                    'erro': resultado_sefaz['erro'],
+                    'cStat': resultado_sefaz.get('cStat', ''),
+                    'xMotivo': resultado_sefaz.get('xMotivo', ''),
+                }
+
         except Exception as e:
             print(f"[ERROR] Falha na emissão real: {e}")
             import traceback
             traceback.print_exc()
             raise e
 
+        finally:
+            self._limpar_certificados_temporarios(cert_path, key_path)
+
     def _obter_proximo_numero_nfce(self):
-        """Obtém próximo número sequencial da NFCe"""
-        return 171622
+        """Obtém próximo número sequencial da NFCe a partir da empresa"""
+        return self.empresa.get_proximo_numero_nfce()
     
     def _montar_dados_nfce(self, order, numero, cpf_cliente=None):
         """Monta estrutura de dados da NFCe"""
@@ -460,30 +505,30 @@ class NFCeService:
         }
     
     def _gerar_chave_acesso(self, numero):
-        """Gera chave de acesso da NFCe"""
+        """Gera chave de acesso da NFCe usando dados da empresa"""
         agora = datetime.now()
         uf_codigo = self._get_codigo_uf()
-        cnpj = "10361831000223"
+        cnpj = re.sub(r'\D', '', self.empresa.cnpj)  # apenas dígitos
         modelo = "65"
-        serie = "001"
+        serie = f"{self.empresa.serie_nfce:03d}"
         numero_formatado = f"{numero:09d}"
-        codigo_numerico = "12345678"
-        
+        # Código numérico: 8 dígitos derivados do CNPJ+número
+        codigo_numerico = f"{abs(hash(cnpj + str(numero))) % 100000000:08d}"
+
         chave_sem_dv = (
-            f"{uf_codigo}"  # UF
-            f"{agora.strftime('%y%m')}"  # AAMM
-            f"{cnpj}"  # CNPJ
-            f"{modelo}"  # Modelo
-            f"{serie}"  # Série
-            f"{numero_formatado}"  # Número
-            f"{codigo_numerico}"  # Código numérico
-        )
-        
-        # Calcula dígito verificador
+            f"{uf_codigo}"             # 2 digits
+            f"{agora.strftime('%y%m')}"  # 4 digits
+            f"{cnpj}"                  # 14 digits
+            f"{modelo}"                # 2 digits
+            f"{serie}"                 # 3 digits
+            f"{numero_formatado}"      # 9 digits
+            "1"                        # tpEmis = 1 (normal)
+            f"{codigo_numerico}"       # 8 digits
+        )  # total 43 + cDV = 44
+
         dv = self._calcular_dv_chave_acesso(chave_sem_dv)
         chave_completa = chave_sem_dv + str(dv)
-        
-        print(f"[DEBUG] Chave de acesso gerada: {chave_completa}")
+        print(f"[DEBUG] Chave de acesso gerada: {chave_completa} ({len(chave_completa)} chars)")
         return chave_completa
     
     def _calcular_dv_chave_acesso(self, chave_sem_dv):
@@ -502,129 +547,248 @@ class NFCeService:
             return 11 - resto
 
     def _gerar_qr_code(self, chave_acesso, valor_total):
-        """Gera código QR da NFCe"""
-        valor_formatado = f"{valor_total:.2f}".replace('.', ',')
-        hash_sha1 = hashlib.sha1(f"{chave_acesso}|2|2|1|{valor_formatado}".encode()).hexdigest()
-        
-        qr_data = f"{chave_acesso}|2|2|1|{hash_sha1.upper()}"
-        return qr_data
+        """
+        Gera URL do QR Code da NFCe conforme NT 2013.005 SEFAZ.
+        Formato: <url>?p=<chave>|<tpAmb>|<cIdToken>|<cHashQRCode>
+        cHashQRCode = SHA1(chave + "|" + tpAmb + "|" + cIdToken + "|" + csc_codigo).upper()
+        """
+        tp_amb = self.empresa.ambiente_nfce  # '1' prod, '2' homolog
+        cid_token = str(self.empresa.csc_id).zfill(6)  # padded to 6 digits
+        csc_codigo = self.empresa.csc_codigo
+
+        hash_input = f"{chave_acesso}|{tp_amb}|{cid_token}|{csc_codigo}"
+        c_hash = hashlib.sha1(hash_input.encode('utf-8')).hexdigest().upper()
+
+        url_base = self._get_url_consulta_qrcode()
+        qr_url = f"{url_base}?p={chave_acesso}|{tp_amb}|{cid_token}|{c_hash}"
+        return qr_url
+
+    def _get_url_consulta_qrcode(self):
+        """Retorna URL de consulta pública do QR Code por UF e ambiente"""
+        uf = self.empresa.uf
+        amb = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+
+        urls = {
+            'SP': {
+                '1': 'https://www.nfce.fazenda.sp.gov.br/NFeConsultaPublica/Paginas/ConsultaQRCode.aspx',
+                '2': 'https://homologacao.nfce.fazenda.sp.gov.br/NFCeConsultaPublica',
+            },
+            'MG': {
+                '1': 'https://nfce.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+                '2': 'https://hnfce.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+            },
+            'RS': {
+                '1': 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx',
+                '2': 'https://www.sefaz.rs.gov.br/NFCEHOM/NFCE-COM.aspx',
+            },
+            'PR': {
+                '1': 'https://www.nfce.sefa.pr.gov.br/nfce/qrcode',
+                '2': 'https://www.nfce.sefa.pr.gov.br/nfce/qrcode',
+            },
+        }
+        # SVRS states (default for unregistered states)
+        svrs_states = ['AC', 'AL', 'AP', 'DF', 'ES', 'PB', 'PI', 'RN', 'RO', 'RR', 'SC', 'SE', 'TO']
+        svrs_urls = {
+            '1': 'https://nfce.svrs.rs.gov.br/off/gqrcodeoff.aspx',
+            '2': 'https://nfce-homologacao.svrs.rs.gov.br/off/gqrcodeoff.aspx',
+        }
+
+        if uf in urls:
+            return urls[uf].get(amb, urls[uf]['2'])
+        elif uf in svrs_states:
+            return svrs_urls.get(amb, svrs_urls['2'])
+        else:
+            # AN/SVAN states
+            return svrs_urls.get(amb, svrs_urls['2'])
 
     def _gerar_xml_nfce_completo(self, dados):
-        """Gera XML completo da NFCe"""
+        """Gera XML completo da NFCe com dados reais da empresa e itens da comanda"""
         chave_acesso = dados['chave_acesso']
         order = dados['order']
         agora = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
-        
-        print("[DEBUG] XML TESTE PROFUNDO - Ultra limpo")
-        
-        xml_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-<enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
-    <idLote>1</idLote>
-    <indSinc>1</indSinc>
-    <NFe>
-        <infNFe versao="4.00" Id="NFe{chave_acesso}">
-            <ide>
-                <cUF>35</cUF>
-                <cNF>12345678</cNF>
-                <natOp>Venda</natOp>
-                <mod>65</mod>
-                <serie>1</serie>
-                <nNF>{dados['numero']}</nNF>
-                <dhEmi>{agora}</dhEmi>
-                <tpNF>1</tpNF>
-                <idDest>1</idDest>
-                <cMunFG>3523800</cMunFG>
-                <tpImp>4</tpImp>
-                <tpEmis>1</tpEmis>
-                <cDV>{chave_acesso[-1]}</cDV>
-                <tpAmb>2</tpAmb>
-                <finNFe>1</finNFe>
-                <indFinal>1</indFinal>
-                <indPres>1</indPres>
-            </ide>
-            <emit>
-                <CNPJ>10361831000223</CNPJ>
-                <xNome>COXINHAS PREMIUM LTDA</xNome>
-                <enderEmit>
-                    <xLgr>Rua Coronel Fernando Prestes</xLgr>
-                    <nro>898</nro>
-                    <xBairro>Centro</xBairro>
-                    <cMun>3523800</cMun>
-                    <xMun>Itapetininga</xMun>
-                    <UF>SP</UF>
-                    <CEP>18200230</CEP>
-                </enderEmit>
-                <IE>371468833110</IE>
-                <CRT>1</CRT>
-            </emit>
-            <det nItem="1">
-                <prod>
-                    <cProd>1</cProd>
-                    <xProd>PRODUTO TESTE</xProd>
-                    <NCM>21069090</NCM>
-                    <CFOP>5102</CFOP>
-                    <uCom>UN</uCom>
-                    <qCom>1.0000</qCom>
-                    <vUnCom>1.00</vUnCom>
-                    <uTrib>UN</uTrib>
-                    <qTrib>1.0000</qTrib>
-                    <vUnTrib>1.00</vUnTrib>
-                    <vProd>1.00</vProd>
-                    <indTot>1</indTot>
-                </prod>
-                <imposto>
-                    <ICMS>
-                        <ICMSSN102>
-                            <orig>0</orig>
-                            <CSOSN>102</CSOSN>
-                        </ICMSSN102>
-                    </ICMS>
-                </imposto>
-            </det>
-            <total>
-                <ICMSTot>
-                    <vBC>0.00</vBC>
-                    <vICMS>0.00</vICMS>
-                    <vICMSDeson>0.00</vICMSDeson>
-                    <vFCP>0.00</vFCP>
-                    <vBCST>0.00</vBCST>
-                    <vST>0.00</vST>
-                    <vFCPST>0.00</vFCPST>
-                    <vFCPSTRet>0.00</vFCPSTRet>
-                    <vProd>1.00</vProd>
-                    <vFrete>0.00</vFrete>
-                    <vSeg>0.00</vSeg>
-                    <vDesc>0.00</vDesc>
-                    <vII>0.00</vII>
-                    <vIPI>0.00</vIPI>
-                    <vIPIDevol>0.00</vIPIDevol>
-                    <vPIS>0.00</vPIS>
-                    <vCOFINS>0.00</vCOFINS>
-                    <vOutro>0.00</vOutro>
-                    <vNF>1.00</vNF>
-                </ICMSTot>
-            </total>
-            <transp>
-                <modFrete>9</modFrete>
-            </transp>
-            <pag>
-                <detPag>
-                    <tPag>01</tPag>
-                    <vPag>1.00</vPag>
-                </detPag>
-            </pag>
-            <infNFeSupl>
-                <qrCode><![CDATA[{dados['qr_code']}]]></qrCode>
-                <urlChave>https://www.fazenda.sp.gov.br/nfe/qrcode</urlChave>
-            </infNFeSupl>
-        </infNFe>
-    </NFe>
-</enviNFe>'''
-        
-        print(f"[DEBUG] XML gerado:")
-        print(xml_content)
-        print(f"[DEBUG] Tamanho total do XML: {len(xml_content)} chars")
-        
+
+        # --- Empresa ---
+        empresa = self.empresa
+        cnpj_digits = re.sub(r'\D', '', empresa.cnpj)
+        ie_digits = re.sub(r'\D', '', empresa.inscricao_estadual)
+        cep_digits = re.sub(r'\D', '', empresa.cep)
+        uf_codigo = self._get_codigo_uf()
+        cod_municipio = empresa.codigo_municipio_ibge or '3523800'
+        tp_amb = empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+        crt = empresa.regime_tributario  # '1','2','3'
+        cfop = empresa.cfop_padrao or '5102'
+        serie = str(empresa.serie_nfce)
+
+        # Extrair cNF da chave (posição 35-43 após tpEmis=1)
+        # chave = cUF(2)+AAMM(4)+CNPJ(14)+mod(2)+serie(3)+nNF(9)+tpEmis(1)+cNF(8)+cDV(1)
+        c_nf = chave_acesso[35:43] if len(chave_acesso) == 44 else '12345678'
+
+        # --- Itens: coletar de todos os pedidos da comanda ---
+        all_items = []
+        for pedido in order.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']):
+            for item in pedido.items.select_related('product').all():
+                all_items.append(item)
+
+        if not all_items:
+            # Fallback: item genérico com total da comanda
+            all_items = [{
+                '_fallback': True,
+                'name': 'VENDA DE ALIMENTOS',
+                'qty': 1,
+                'unit_price': float(order.total_amount),
+                'total_price': float(order.total_amount),
+            }]
+
+        # --- Calcular totais ---
+        valor_total = float(order.total_amount)
+
+        # --- Forma de pagamento ---
+        tp_pag = '01'  # dinheiro default
+        v_pag = f"{valor_total:.2f}"
+        if hasattr(order, 'checkout') and order.checkout:
+            pm = order.checkout.payment_method
+            tp_pag_map = {
+                'dinheiro': '01',
+                'cartao_credito': '03',
+                'cartao_debito': '04',
+                'pix': '17',
+                'voucher': '15',
+            }
+            tp_pag = tp_pag_map.get(pm, '01')
+
+        # --- Gerar blocos <det> ---
+        det_blocks = []
+        for i, item in enumerate(all_items, 1):
+            if isinstance(item, dict) and item.get('_fallback'):
+                nome = item['name']
+                qty = item['qty']
+                v_unit = item['unit_price']
+                v_prod = item['total_price']
+                ncm = '21069090'
+                cprod = str(i)
+            else:
+                nome = item.product.name[:120]
+                qty = float(item.quantity)
+                v_unit = float(item.unit_price)
+                v_prod = round(qty * v_unit, 2)
+                ncm = getattr(item.product, 'ncm', '') or '21069090'
+                cprod = str(getattr(item.product, 'id', i))
+
+            # CSOSN depends on CRT
+            if crt == '1':
+                imposto_block = '<imposto><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS></imposto>'
+            else:
+                imposto_block = '<imposto><ICMS><ICMS60><orig>0</orig><CST>60</CST></ICMS60></ICMS></imposto>'
+
+            det_blocks.append(f'<det nItem="{i}">\n'
+                f'            <prod>\n'
+                f'                <cProd>{cprod}</cProd>\n'
+                f'                <xProd>{nome}</xProd>\n'
+                f'                <NCM>{ncm}</NCM>\n'
+                f'                <CFOP>{cfop}</CFOP>\n'
+                f'                <uCom>UN</uCom>\n'
+                f'                <qCom>{qty:.4f}</qCom>\n'
+                f'                <vUnCom>{v_unit:.10f}</vUnCom>\n'
+                f'                <uTrib>UN</uTrib>\n'
+                f'                <qTrib>{qty:.4f}</qTrib>\n'
+                f'                <vUnTrib>{v_unit:.10f}</vUnTrib>\n'
+                f'                <vProd>{v_prod:.2f}</vProd>\n'
+                f'                <indTot>1</indTot>\n'
+                f'            </prod>\n'
+                f'            {imposto_block}\n'
+                f'        </det>')
+
+        dets = '\n        '.join(det_blocks)
+
+        url_consulta = self._get_url_consulta_qrcode()
+
+        xml_content = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">\n'
+            f'    <idLote>{dados["numero"]}</idLote>\n'
+            '    <indSinc>1</indSinc>\n'
+            '    <NFe xmlns="http://www.portalfiscal.inf.br/nfe">\n'
+            f'        <infNFe versao="4.00" Id="NFe{chave_acesso}">\n'
+            '            <ide>\n'
+            f'                <cUF>{uf_codigo}</cUF>\n'
+            f'                <cNF>{c_nf}</cNF>\n'
+            '                <natOp>VENDA A CONSUMIDOR</natOp>\n'
+            '                <mod>65</mod>\n'
+            f'                <serie>{serie}</serie>\n'
+            f'                <nNF>{dados["numero"]}</nNF>\n'
+            f'                <dhEmi>{agora}</dhEmi>\n'
+            '                <tpNF>1</tpNF>\n'
+            '                <idDest>1</idDest>\n'
+            f'                <cMunFG>{cod_municipio}</cMunFG>\n'
+            '                <tpImp>4</tpImp>\n'
+            '                <tpEmis>1</tpEmis>\n'
+            f'                <cDV>{chave_acesso[-1]}</cDV>\n'
+            f'                <tpAmb>{tp_amb}</tpAmb>\n'
+            '                <finNFe>1</finNFe>\n'
+            '                <indFinal>1</indFinal>\n'
+            '                <indPres>1</indPres>\n'
+            '            </ide>\n'
+            '            <emit>\n'
+            f'                <CNPJ>{cnpj_digits}</CNPJ>\n'
+            f'                <xNome>{empresa.razao_social}</xNome>\n'
+            f'                <xFant>{empresa.nome_fantasia or empresa.razao_social}</xFant>\n'
+            '                <enderEmit>\n'
+            f'                    <xLgr>{empresa.logradouro}</xLgr>\n'
+            f'                    <nro>{empresa.numero}</nro>\n'
+            f'                    <xBairro>{empresa.bairro}</xBairro>\n'
+            f'                    <cMun>{cod_municipio}</cMun>\n'
+            f'                    <xMun>{empresa.cidade}</xMun>\n'
+            f'                    <UF>{empresa.uf}</UF>\n'
+            f'                    <CEP>{cep_digits}</CEP>\n'
+            '                    <cPais>1058</cPais>\n'
+            '                    <xPais>Brasil</xPais>\n'
+            '                </enderEmit>\n'
+            f'                <IE>{ie_digits}</IE>\n'
+            f'                <CRT>{crt}</CRT>\n'
+            '            </emit>\n'
+            f'            {dets}\n'
+            '            <total>\n'
+            '                <ICMSTot>\n'
+            '                    <vBC>0.00</vBC>\n'
+            '                    <vICMS>0.00</vICMS>\n'
+            '                    <vICMSDeson>0.00</vICMSDeson>\n'
+            '                    <vFCP>0.00</vFCP>\n'
+            '                    <vBCST>0.00</vBCST>\n'
+            '                    <vST>0.00</vST>\n'
+            '                    <vFCPST>0.00</vFCPST>\n'
+            '                    <vFCPSTRet>0.00</vFCPSTRet>\n'
+            f'                    <vProd>{valor_total:.2f}</vProd>\n'
+            '                    <vFrete>0.00</vFrete>\n'
+            '                    <vSeg>0.00</vSeg>\n'
+            '                    <vDesc>0.00</vDesc>\n'
+            '                    <vII>0.00</vII>\n'
+            '                    <vIPI>0.00</vIPI>\n'
+            '                    <vIPIDevol>0.00</vIPIDevol>\n'
+            '                    <vPIS>0.00</vPIS>\n'
+            '                    <vCOFINS>0.00</vCOFINS>\n'
+            '                    <vOutro>0.00</vOutro>\n'
+            f'                    <vNF>{valor_total:.2f}</vNF>\n'
+            '                </ICMSTot>\n'
+            '            </total>\n'
+            '            <transp>\n'
+            '                <modFrete>9</modFrete>\n'
+            '            </transp>\n'
+            '            <pag>\n'
+            '                <detPag>\n'
+            f'                    <tPag>{tp_pag}</tPag>\n'
+            f'                    <vPag>{v_pag}</vPag>\n'
+            '                </detPag>\n'
+            '            </pag>\n'
+            '            <infNFeSupl>\n'
+            f'                <qrCode><![CDATA[{dados["qr_code"]}]]></qrCode>\n'
+            f'                <urlChave>{url_consulta}</urlChave>\n'
+            '            </infNFeSupl>\n'
+            '        </infNFe>\n'
+            '    </NFe>\n'
+            '</enviNFe>'
+        )
+
+        print(f"[INFO] XML gerado para NFCe #{dados['numero']} ({len(xml_content)} chars)")
         return xml_content
 
     def _preparar_certificado(self):
@@ -655,10 +819,222 @@ class NFCeService:
         
         return cert_path, key_path
 
-    def _assinar_xml(self, xml_content, cert_path, key_path):
-        """Assina XML com certificado digital (simplificado para teste)"""
-        # Para teste, retorna o XML sem assinatura para verificar se o problema é na estrutura
-        return xml_content
+    def _assinar_xml(self, xml_str, private_key, certificate):
+        """
+        Assina o XML NFe com XMLDSig RSA-SHA1 conforme padrão SEFAZ.
+        A assinatura cobre o elemento infNFe referenciado por seu Id.
+        """
+        import io as _io
+        from cryptography.hazmat.primitives import hashes as _hashes
+        from cryptography.hazmat.primitives.asymmetric import padding as _asym_padding
+        from cryptography.hazmat.primitives import serialization as _serialization
+
+        NS_NFE = "http://www.portalfiscal.inf.br/nfe"
+        NS_DS = "http://www.w3.org/2000/09/xmldsig#"
+
+        # 1. Parse XML
+        root = etree.fromstring(xml_str.encode('utf-8'))
+
+        # 2. Localizar NFe e infNFe (pode estar diretamente ou dentro de enviNFe)
+        nfe_elem = root.find(f'{{{NS_NFE}}}NFe')
+        if nfe_elem is None:
+            # root IS NFe
+            nfe_elem = root
+
+        infnfe = nfe_elem.find(f'{{{NS_NFE}}}infNFe')
+        if infnfe is None:
+            raise ValueError("Elemento infNFe não encontrado no XML")
+
+        ref_id = infnfe.get('Id')  # e.g. "NFe35250210361831..."
+
+        # 3. Canonicalizar infNFe (C14N inclusivo sem comentários)
+        infnfe_c14n = etree.tostring(infnfe, method='c14n', exclusive=False, with_comments=False)
+
+        # 4. Calcular DigestValue (SHA-1 do c14n do infNFe)
+        sha1_digest = hashlib.sha1(infnfe_c14n).digest()
+        digest_b64 = base64.b64encode(sha1_digest).decode('utf-8')
+
+        # 5. Construir SignedInfo
+        signed_info_xml = (
+            f'<SignedInfo xmlns="{NS_DS}">'
+            f'<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>'
+            f'<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>'
+            f'<Reference URI="#{ref_id}">'
+            f'<Transforms>'
+            f'<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>'
+            f'<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>'
+            f'</Transforms>'
+            f'<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>'
+            f'<DigestValue>{digest_b64}</DigestValue>'
+            f'</Reference>'
+            f'</SignedInfo>'
+        )
+
+        # 6. Canonicalizar SignedInfo
+        signed_info_elem = etree.fromstring(signed_info_xml.encode('utf-8'))
+        signed_info_c14n = etree.tostring(signed_info_elem, method='c14n', exclusive=False, with_comments=False)
+
+        # 7. Assinar com RSA-SHA1
+        sig_bytes = private_key.sign(
+            signed_info_c14n,
+            _asym_padding.PKCS1v15(),
+            _hashes.SHA1(),
+        )
+        sig_b64 = base64.b64encode(sig_bytes).decode('utf-8')
+
+        # 8. Codificar certificado
+        cert_der = certificate.public_bytes(_serialization.Encoding.DER)
+        cert_b64 = base64.b64encode(cert_der).decode('utf-8')
+
+        # 9. Construir elemento Signature
+        signature_xml = (
+            f'<Signature xmlns="{NS_DS}">'
+            f'{signed_info_xml}'
+            f'<SignatureValue>{sig_b64}</SignatureValue>'
+            f'<KeyInfo>'
+            f'<X509Data>'
+            f'<X509Certificate>{cert_b64}</X509Certificate>'
+            f'</X509Data>'
+            f'</KeyInfo>'
+            f'</Signature>'
+        )
+        sig_elem = etree.fromstring(signature_xml.encode('utf-8'))
+
+        # 10. Inserir Signature dentro de NFe (após infNFe)
+        nfe_elem.append(sig_elem)
+
+        return etree.tostring(root, encoding='unicode', xml_declaration=False)
+
+    def _get_sefaz_url(self):
+        """Retorna URL do webservice SEFAZ de autorização NFCe por UF e ambiente"""
+        uf = self.empresa.uf
+        amb = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+
+        urls = {
+            'SP': {
+                '1': 'https://nfce.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx',
+                '2': 'https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx',
+            },
+            'MG': {
+                '1': 'https://nfce.fazenda.mg.gov.br/nfce/services/NFeAutorizacao4',
+                '2': 'https://hnfce.fazenda.mg.gov.br/nfce/services/NFeAutorizacao4',
+            },
+            'RS': {
+                '1': 'https://nfce.sefazrs.rs.gov.br/ws/nfceautorizacao/NFeAutorizacao4.asmx',
+                '2': 'https://nfce-homologacao.sefazrs.rs.gov.br/ws/nfceautorizacao/NFeAutorizacao4.asmx',
+            },
+            'PR': {
+                '1': 'https://nfe.sefa.pr.gov.br/nfe-portal-web/NFeAutorizacao4',
+                '2': 'https://homologacao.nfe.sefa.pr.gov.br/nfe-portal-homologacao-web/NFeAutorizacao4',
+            },
+        }
+        svrs = {
+            '1': 'https://nfce.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx',
+            '2': 'https://nfce-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx',
+        }
+
+        if uf in urls:
+            return urls[uf].get(amb, urls[uf]['2'])
+        return svrs.get(amb, svrs['2'])
+
+    def _chamar_sefaz(self, xml_assinado, cert_path, key_path):
+        """
+        Envia enviNFe assinado para o webservice SOAP da SEFAZ e retorna a resposta XML.
+        """
+        import requests as _req
+
+        url = self._get_sefaz_url()
+        uf_codigo = self._get_codigo_uf()
+
+        soap_envelope = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            'xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
+            '<soap12:Header>'
+            '<nfeCabecMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4">'
+            f'<cUF>{uf_codigo}</cUF>'
+            '<versaoDados>4.00</versaoDados>'
+            '</nfeCabecMsg>'
+            '</soap12:Header>'
+            '<soap12:Body>'
+            '<nfeDadosMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4">'
+            f'{xml_assinado}'
+            '</nfeDadosMsg>'
+            '</soap12:Body>'
+            '</soap12:Envelope>'
+        )
+
+        headers = {
+            'Content-Type': 'application/soap+xml; charset=utf-8; action="http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4/nfeAutorizacaoLote"',
+        }
+
+        print(f"[SEFAZ] Enviando NFCe para {url}")
+        resp = _req.post(
+            url,
+            data=soap_envelope.encode('utf-8'),
+            headers=headers,
+            cert=(cert_path, key_path),
+            verify=False,  # disable SSL verification for homologação
+            timeout=60,
+        )
+        print(f"[SEFAZ] HTTP {resp.status_code}")
+        return resp.text
+
+    def _parsear_resposta_sefaz(self, xml_resposta):
+        """
+        Parseia a resposta SOAP da SEFAZ.
+        Retorna dict com 'sucesso', 'protocolo', 'cStat', 'xMotivo' ou 'erro'.
+        """
+        try:
+            # Remove SOAP envelope and find NFe content
+            root = etree.fromstring(xml_resposta.encode('utf-8'))
+            NS_NFE = 'http://www.portalfiscal.inf.br/nfe'
+
+            # Look for retEnviNFe anywhere in the tree
+            ret_envi = root.find(f'.//{{{NS_NFE}}}retEnviNFe')
+            if ret_envi is None:
+                # Try without namespace
+                ret_envi = root.find('.//retEnviNFe')
+            if ret_envi is None:
+                return {
+                    'sucesso': False,
+                    'erro': f'Resposta inválida da SEFAZ: {xml_resposta[:500]}',
+                }
+
+            c_stat_elem = ret_envi.find(f'.//{{{NS_NFE}}}cStat') or ret_envi.find('.//cStat')
+            x_motivo_elem = ret_envi.find(f'.//{{{NS_NFE}}}xMotivo') or ret_envi.find('.//xMotivo')
+
+            c_stat = c_stat_elem.text if c_stat_elem is not None else '000'
+            x_motivo = x_motivo_elem.text if x_motivo_elem is not None else 'Sem motivo'
+
+            print(f"[SEFAZ] cStat={c_stat} — {x_motivo}")
+
+            # cStat 100 = Autorizado uso da NF-e
+            if c_stat == '100':
+                inf_prot = ret_envi.find(f'.//{{{NS_NFE}}}infProt') or ret_envi.find('.//infProt')
+                n_prot = ''
+                if inf_prot is not None:
+                    n_prot_elem = inf_prot.find(f'{{{NS_NFE}}}nProt') or inf_prot.find('nProt')
+                    n_prot = n_prot_elem.text if n_prot_elem is not None else ''
+                return {
+                    'sucesso': True,
+                    'protocolo': n_prot,
+                    'cStat': c_stat,
+                    'xMotivo': x_motivo,
+                }
+            else:
+                return {
+                    'sucesso': False,
+                    'erro': f'SEFAZ {c_stat}: {x_motivo}',
+                    'cStat': c_stat,
+                    'xMotivo': x_motivo,
+                }
+        except Exception as e:
+            return {
+                'sucesso': False,
+                'erro': f'Erro ao parsear resposta SEFAZ: {str(e)}',
+            }
 
     def _emitir_nfce_simulado(self, dados):
         """Emite NFCe em modo simulação - CORRIGIDO"""
@@ -750,15 +1126,57 @@ class NFCeService:
         chave_acesso = dados_nfce['chave_acesso']
         qr_code = dados_nfce['qr_code']
         numero_nfce = dados_nfce['numero']
-        
+
+        # Gerar imagem QR Code
+        qr_img_b64 = ''
+        try:
+            import qrcode as _qr
+            import io as _io
+            _qr_obj = _qr.QRCode(version=None, error_correction=_qr.constants.ERROR_CORRECT_M, box_size=4, border=2)
+            _qr_obj.add_data(qr_code)
+            _qr_obj.make(fit=True)
+            _qr_img = _qr_obj.make_image(fill_color="black", back_color="white")
+            _buf = _io.BytesIO()
+            _qr_img.save(_buf, format='PNG')
+            qr_img_b64 = base64.b64encode(_buf.getvalue()).decode('utf-8')
+        except Exception as _e:
+            print(f"[WARN] Não foi possível gerar imagem QR Code: {_e}")
+
+        # Dados dinâmicos da empresa
+        nome_empresa = self.empresa.nome_fantasia or self.empresa.razao_social
+        cnpj_fmt = self.empresa.cnpj
+        ie_fmt = self.empresa.inscricao_estadual
+        end_linha1 = f"{self.empresa.logradouro}, {self.empresa.numero}"
+        end_linha2 = f"{self.empresa.bairro} - {self.empresa.cidade}/{self.empresa.uf}"
+        cep_fmt = self.empresa.cep
+        ambiente_label = "Homologação" if self.empresa.ambiente_nfce == "2" else "Produção"
+
+        # Forma de pagamento do checkout
+        payment_display = "Dinheiro"
+        if hasattr(order, 'checkout') and order.checkout:
+            pm_map = {
+                'dinheiro': 'Dinheiro',
+                'cartao_debito': 'Cartão de Débito',
+                'cartao_credito': 'Cartão de Crédito',
+                'pix': 'PIX',
+                'voucher': 'Voucher',
+            }
+            payment_display = pm_map.get(order.checkout.payment_method, order.checkout.get_payment_method_display())
+
         # Data de emissão formatada
         agora = datetime.now()
         data_emissao = agora.strftime('%d/%m/%Y %H:%M:%S')
-        
+
+        # Coletar todos os itens de todos os pedidos da comanda
+        all_items = []
+        for pedido in order.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']):
+            for item in pedido.items.all():
+                all_items.append(item)
+
         # Valor aproximado dos tributos (estimativa de 20% sobre o total)
         valor_total = float(order.total_amount)
         tributos_aproximados = valor_total * 0.20
-        
+
         html_cupom = f'''
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -980,13 +1398,13 @@ class NFCeService:
 
         <!-- === CABEÇALHO DA EMPRESA === -->
         <div class="empresa-header">
-            <div class="empresa-nome">COXINHAS PREMIUM LTDA</div>
+            <div class="empresa-nome">{nome_empresa}</div>
             <div class="empresa-dados">
-                Rua Coronel Fernando Prestes, 898<br>
-                Centro - Itapetininga/SP<br>
-                CEP: 18200-230<br>
-                CNPJ: 10.361.831/0001-23<br>
-                IE: 371.468.833.110
+                {end_linha1}<br>
+                {end_linha2}<br>
+                CEP: {cep_fmt}<br>
+                CNPJ: {cnpj_fmt}<br>
+                IE: {ie_fmt}
             </div>
         </div>
 
@@ -1001,7 +1419,7 @@ class NFCeService:
             <div class="bold">NFCe Nº {numero_nfce:09d} - Série 001</div>
             <div>Emissão: {data_emissao}</div>
             <div style="font-size: 8px; margin-top: 2px;">
-                Ambiente: Homologação
+                Ambiente: {ambiente_label}
             </div>
         </div>
 
@@ -1018,7 +1436,7 @@ class NFCeService:
     '''
 
         # Adicionar itens
-        for i, item in enumerate(order.items.all(), 1):
+        for i, item in enumerate(all_items, 1):
             subtotal = float(item.quantity) * float(item.unit_price)
             html_cupom += f'''
         <div class="item">
@@ -1041,7 +1459,7 @@ class NFCeService:
         <div class="totais">
             <div style="display: flex; justify-content: space-between;">
                 <span>Qtd. total de itens:</span>
-                <span>{order.items.count()}</span>
+                <span>{len(all_items)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>Valor total R$:</span>
@@ -1056,7 +1474,7 @@ class NFCeService:
         <!-- === FORMA DE PAGAMENTO === -->
         <div class="pagamento">
             <div class="bold">FORMA PAGAMENTO</div>
-            <div>Dinheiro - Valor R$ {valor_total:.2f}</div>
+            <div>{payment_display} - Valor R$ {valor_total:.2f}</div>
         </div>
 
         <div class="line"></div>
@@ -1067,17 +1485,14 @@ class NFCeService:
             Fonte: IBPT/empresometro.com.br
         </div>
 
-        <!-- === CONSULTA VIA QR CODE === -->
+        <!-- === QR CODE === -->
         <div class="qrcode-section">
-            <div class="bold">Consulte pela chave de acesso em:</div>
-            <div style="font-size: 8px;">fazenda.sp.gov.br/nfe/qrcode</div>
-            
-            <div class="qrcode-box">
-                <div style="font-size: 8px;">QR CODE</div>
-                <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 4px auto; display: flex; align-items: center; justify-content: center; font-size: 6px;">
-                    {qr_code[:20]}...<br>
-                    (QR Code aqui)
-                </div>
+            <div style="font-size: 9px; font-weight: bold; margin-bottom: 4px;">
+                CONSULTE PELA CHAVE DE ACESSO
+            </div>
+            {f'<img src="data:image/png;base64,{qr_img_b64}" style="display:block;margin:4px auto;width:140px;height:140px;" alt="QR Code NFCe"/>' if qr_img_b64 else f'<div class="qrcode-box" style="font-size:7px;word-break:break-all;max-width:200px;">{qr_code}</div>'}
+            <div class="consulta-info" style="font-size:7px;word-break:break-all;margin-top:4px;">
+                {qr_code[:44]}...
             </div>
         </div>
 
@@ -1126,6 +1541,12 @@ class NFCeService:
                 setTimeout(() => {{
                     window.print();
                     setTimeout(() => window.close(), 1000);
+                }}, 500);
+            }}
+            // Salvar como PDF (abre diálogo sem fechar janela)
+            if (window.location.search.includes('pdf=1')) {{
+                setTimeout(() => {{
+                    window.print();
                 }}, 500);
             }}
         </script>

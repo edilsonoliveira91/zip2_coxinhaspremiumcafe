@@ -1,10 +1,18 @@
 from django.db import models
+from decimal import Decimal
 
 class SystemConfig(models.Model):
     max_order_time_minutes = models.PositiveIntegerField(
         default=20,
         verbose_name="Tempo Máximo de Espera (minutos)",
         help_text="Pedidos abertos após este tempo farão a comanda piscar em vermelho."
+    )
+    troco_inicial = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('50.00'),
+        verbose_name="Troco Inicial (R$)",
+        help_text="Valor padrão com que o caixa inicia todos os dias."
     )
 
     class Meta:

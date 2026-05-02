@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Certificado Digital - {{ company.razao_social }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Breadcrumb -->
+        <nav class="flex mb-6" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3 text-sm text-gray-500">
+                <li><a href="{% url 'companys:company_list' %}" class="hover:text-orange-600">Empresas</a></li>
+                <li><span class="mx-2">/</span></li>
+                <li><a href="{% url 'companys:company_update' company.pk %}" class="hover:text-orange-600">{{ company.razao_social }}</a></li>
+                <li><span class="mx-2">/</span></li>
+                <li class="text-gray-900 font-medium">Certificado Digital</li>
+            </ol>
+        </nav>
+
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-100 flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">
+                        {% if object %}Atualizar{% else %}Adicionar{% endif %} Certificado Digital A1
+                    </h2>
+                    <p class="text-sm text-gray-500">{{ company.razao_social }} — {{ company.cnpj }}</p>
+                </div>
+            </div>
+
+            <!-- Aviso -->
+            <div class="mx-6 mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 flex items-start space-x-3">
+                <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <p class="font-medium">Certificado A1 (.pfx / .p12)</p>
+                    <p class="mt-1 text-blue-700">O certificado digital é obrigatório para emissão de NFCe em produção. Em homologação, a emissão funciona no modo simulação sem certificado.</p>
+                </div>
+            </div>
+
+            <!-- Formulário -->
+            <form method="POST" enctype="multipart/form-data" class="p-6">
+                {% csrf_token %}
+
+                <div class="space-y-6">
+
+                    <!-- Arquivo PFX -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            Arquivo do Certificado (.pfx ou .p12) <span class="text-red-500">*</span>
+                        </label>
+                        {% if object and object.arquivo_pfx %}
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 border border-green-200 rounded-xl mb-2">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm text-green-700 font-medium">Certificado atual: {{ object.arquivo_pfx.name|cut:"certificados/" }}</span>
+                        </div>
+                        {% endif %}
+                        {{ form.arquivo_pfx }}
+                        {% if form.arquivo_pfx.errors %}
+                            <p class="text-red-500 text-sm">{{ form.arquivo_pfx.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">Aceita arquivos .pfx e .p12 (certificado A1)</p>
+                    </div>
+
+                    <!-- Senha -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            Senha do Certificado <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.senha_pfx }}
+                        {% if form.senha_pfx.errors %}
+                            <p class="text-red-500 text-sm">{{ form.senha_pfx.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">Senha definida na emissão do certificado</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Número de Série -->
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">
+                                Número de Série <span class="text-gray-400 font-normal">(opcional)</span>
+                            </label>
+                            {{ form.numero_serie }}
+                            {% if form.numero_serie.errors %}
+                                <p class="text-red-500 text-sm">{{ form.numero_serie.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Validade -->
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">
+                                Válido até <span class="text-gray-400 font-normal">(opcional)</span>
+                            </label>
+                            {{ form.valido_ate }}
+                            {% if form.valido_ate.errors %}
+                                <p class="text-red-500 text-sm">{{ form.valido_ate.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Botões -->
+                <div class="mt-8 flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'companys:company_update' company.pk %}"
+                       class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition">
+                        Cancelar
+                    </a>
+                    <button type="submit"
+                            class="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition shadow-md">
+                        {% if object %}💾 Atualizar Certificado{% else %}📤 Salvar Certificado{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if messages %}
+        <div class="mt-4 space-y-2">
+            {% for message in messages %}
+            <div class="p-4 rounded-xl {% if message.tags == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

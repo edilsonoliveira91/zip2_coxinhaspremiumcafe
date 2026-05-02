@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 import json
 from .models import Sangria
 from django.views import View
+from config.models import SystemConfig
 
 
 class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
@@ -69,8 +70,8 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             'color': 'red'
         }
         
-        # Valor inicial (fixo)
-        valor_inicial = Decimal('50.00')
+        # Valor inicial vindo das configurações do sistema
+        valor_inicial = SystemConfig.get_settings().troco_inicial
         payment_stats['valor_inicial'] = {
             'total': valor_inicial,
             'count': 1,
@@ -256,7 +257,7 @@ class SangriaView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         
         # VALOR INICIAL (mesmo valor fixo do dashboard)
-        valor_inicial = Decimal('50.00')  # Mesmo valor usado no dashboard
+        valor_inicial = SystemConfig.get_settings().troco_inicial
         
         # DINHEIRO recebido HOJE 
         dinheiro_recebido_hoje = checkouts_hoje.filter(

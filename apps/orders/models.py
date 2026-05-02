@@ -43,6 +43,16 @@ class Comanda(TimeStampedModel):
         verbose_name="Valor Total"
     )
 
+    # Campos para NFCe (emitida por comanda)
+    nfce_numero = models.IntegerField(null=True, blank=True, verbose_name="Número NFCe")
+    nfce_chave = models.CharField(max_length=44, null=True, blank=True, verbose_name="Chave de Acesso NFCe")
+    nfce_protocolo = models.CharField(max_length=20, null=True, blank=True, verbose_name="Protocolo NFCe")
+    nfce_emitida_em = models.DateTimeField(null=True, blank=True, verbose_name="NFCe Emitida em")
+
+    @property
+    def tem_nfce(self):
+        return bool(self.nfce_numero)
+
     class Meta:
         verbose_name = "Comanda"
         verbose_name_plural = "Comandas"

@@ -2,6 +2,7 @@ from django.db import models
 from utils.models import TimeStampedModel
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from django.conf import settings
 
 
 class Product(TimeStampedModel):
@@ -198,3 +199,44 @@ class Adicional(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} - R$ {self.price:.2f}"
+
+
+class StockEntry(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='stock_entries',
+        verbose_name="Produto"
+    )
+    date = models.DateField(verbose_name="Data de Entrada")
+    quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+        verbose_name="Quantidade"
+    )
+    unit_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Valor Unitário (R$)"
+    )
+    notes = models.CharField(max_length=255, blank=True, verbose_name="Observações")
+    created_at = models.DateTimeField(auto_now_add=True)  # já deve estar importado no topo do arquivo
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='stock_entries_created',
+        verbose_name="Registrado por"
+    )
+
+    class Meta:
+        verbose_name = "Entrada de Estoque"
+        verbose_name_plural = "Entradas de Estoque"
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.product.name} — {self.quantity} un. em {self.date}"
+
+    @property
+    def total_cost(self):
+        return self.unit_cost * self.quantity
