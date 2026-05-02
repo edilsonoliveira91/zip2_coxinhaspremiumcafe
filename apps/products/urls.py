@@ -18,4 +18,5 @@ urlpatterns = [
     path('estoque/', views.StockListView.as_view(), name='stock_list'),
     path('estoque/entrada/', views.StockEntryCreateView.as_view(), name='stock_create'),
     path('estoque/<int:pk>/remover/', views.StockEntryDeleteView.as_view(), name='stock_delete'),
+    path('estoque/sem-estoque/', views.NoStockListView.as_view(), name='nostock_list'),
 ]

@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.db import transaction
 from .models import Product, Combo, ComboItem
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm
@@ -685,3 +685,55 @@ class StockEntryDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, '✅ Entrada removida com sucesso!')
         return super().delete(request, *args, **kwargs)
+
+# ==================== VIEW SEM ESTOQUE ====================
+
+class NoStockListView(LoginRequiredMixin, TemplateView):
+    """
+    Lista produtos com saldo de estoque igual a zero.
+    """
+    template_name = 'stock/nostock_list.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        from django.db.models import OuterRef, Subquery, ExpressionWrapper, IntegerField
+        from django.db.models.functions import Coalesce
+        from .models import StockExit
+        from orders.models import PedidoItem
+
+        context = super().get_context_data(**kwargs)
+
+        # Subquery: saídas em andamento (pedidos não entregues)
+        active_items_qs = (
+            PedidoItem.objects
+            .filter(product=OuterRef('pk'), pedido__status__in=['aguardando', 'preparando', 'pronta'])
+            .values('product')
+            .annotate(t=Sum('quantity'))
+            .values('t')
+        )
+
+        produtos = (
+            Product.objects
+            .filter(show_in_menu=True)
+            .annotate(
+                entradas=Coalesce(Sum('stock_entries__quantity'), 0, output_field=IntegerField()),
+                saidas_perm=Coalesce(Sum('stock_exits__quantity'), 0, output_field=IntegerField()),
+                saidas_ativas=Coalesce(
+                    Subquery(active_items_qs, output_field=IntegerField()), 0,
+                    output_field=IntegerField()
+                ),
+            )
+            .filter(entradas__gt=0)  # apenas produtos com controle de estoque
+            .annotate(
+                saldo=ExpressionWrapper(
+                    F('entradas') - F('saidas_perm') - F('saidas_ativas'),
+                    output_field=IntegerField()
+                )
+            )
+            .filter(saldo__lte=0)
+            .order_by('category', 'name')
+        )
+
+        context['produtos'] = produtos
+        context['total'] = produtos.count()
+        return context
