@@ -392,7 +392,7 @@
           if (td) td.classList.remove('hidden');
           if (tv) tv.textContent = 'R$ ' + fmtBR(modalData.troco);
         }
-        setTimeout(function() { window.location.reload(); }, 2500);
+        setTimeout(function() { window.location.href = '{% url "orders:closed_orders" %}'; }, 2500);
       } else {
         setLoading(false);
         alert(result.message || 'Erro ao processar pagamento.');

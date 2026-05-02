@@ -238,3 +238,122 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             })
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)
+
+
+class FechamentoCaixaView(LoginRequiredMixin, View):
+    """
+    Tela de fechamento de caixa.
+    - Usuário is_caixa vê sua sessão aberta + seus próprios fechamentos
+    - Superuser/staff vê todos os fechamentos
+    """
+    template_name = 'checkouts/fechamento_caixa.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        if not (request.user.is_caixa or request.user.is_superuser or request.user.is_staff):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        from checkouts.models import SessaoCaixa
+        usuario = request.user
+
+        # Sessão atualmente aberta (apenas do próprio usuário)
+        sessao_aberta = None
+        if usuario.is_caixa:
+            sessao_aberta = SessaoCaixa.objects.filter(
+                usuario=usuario, status='aberta'
+            ).first()
+
+        # Lista de fechamentos
+        if usuario.is_superuser or usuario.is_staff:
+            fechamentos = SessaoCaixa.objects.filter(status='fechada').select_related('usuario')
+        else:
+            fechamentos = SessaoCaixa.objects.filter(usuario=usuario, status='fechada')
+
+        context = {
+            'sessao_aberta': sessao_aberta,
+            'fechamentos': fechamentos,
+        }
+        if sessao_aberta:
+            context['totais_por_metodo'] = sessao_aberta.totais_por_metodo()
+            context['total_sessao'] = sessao_aberta.total()
+
+        return render(request, self.template_name, context)
+
+
+class FechamentoCaixaFecharView(LoginRequiredMixin, View):
+    """
+    POST: fecha a sessão de caixa aberta do usuário logado.
+    """
+
+    def post(self, request):
+        from checkouts.models import SessaoCaixa
+        from django.utils import timezone
+
+        if not request.user.is_caixa:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+        sessao = SessaoCaixa.objects.filter(
+            usuario=request.user, status='aberta'
+        ).first()
+
+        if sessao:
+            sessao.fechada_em = timezone.now()
+            sessao.status = 'fechada'
+            sessao.save()
+            from django.contrib import messages
+            messages.success(request, 'Caixa fechado com sucesso!')
+        else:
+            from django.contrib import messages
+            messages.info(request, 'Nenhum caixa aberto encontrado.')
+
+        from django.shortcuts import redirect
+        return redirect('checkouts:fechamento_caixa')
+
+
+class FechamentoCaixaDetalheView(LoginRequiredMixin, View):
+    """
+    GET: retorna JSON com os totais por método de pagamento de uma sessão fechada.
+    Usado pelo modal de visualização.
+    """
+
+    def get(self, request, pk):
+        from checkouts.models import SessaoCaixa
+        from django.http import JsonResponse
+
+        sessao = SessaoCaixa.objects.filter(pk=pk).first()
+        if not sessao:
+            return JsonResponse({'error': 'Sessão não encontrada'}, status=404)
+
+        # Apenas o próprio usuário ou admin pode ver
+        if not (request.user.is_superuser or request.user.is_staff or sessao.usuario == request.user):
+            return JsonResponse({'error': 'Sem permissão'}, status=403)
+
+        LABELS = {
+            'dinheiro': 'Dinheiro',
+            'cartao_debito': 'Cartão de Débito',
+            'cartao_credito': 'Cartão de Crédito',
+            'pix': 'PIX',
+            'voucher': 'Voucher',
+        }
+
+        totais = []
+        for item in sessao.totais_por_metodo():
+            totais.append({
+                'metodo': LABELS.get(item['payment_method'], item['payment_method']),
+                'quantidade': item['quantidade'],
+                'total': float(item['total'] or 0),
+            })
+
+        return JsonResponse({
+            'usuario': sessao.usuario.username,
+            'aberta_em': sessao.aberta_em.strftime('%d/%m/%Y %H:%M'),
+            'fechada_em': sessao.fechada_em.strftime('%d/%m/%Y %H:%M') if sessao.fechada_em else '-',
+            'total': float(sessao.total()),
+            'totais': totais,
+        })

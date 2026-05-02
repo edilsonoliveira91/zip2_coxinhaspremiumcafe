@@ -20,6 +20,12 @@ class User(AbstractUser):
     # - date_joined
     # - last_login
     
+    is_caixa = models.BooleanField(
+        default=False,
+        verbose_name='Operador de Caixa',
+        help_text='Permite que este usuário opere o caixa e acesse o fechamento de caixa.'
+    )
+
     class Meta:
         verbose_name = "Usuário"
         verbose_name_plural = "Usuários"

@@ -240,3 +240,31 @@ class StockEntry(models.Model):
     @property
     def total_cost(self):
         return self.unit_cost * self.quantity
+
+class StockExit(models.Model):
+    """
+    Saída de estoque gerada automaticamente quando um Pedido é entregue.
+    """
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='stock_exits',
+        verbose_name="Produto"
+    )
+    quantity = models.PositiveIntegerField(verbose_name="Quantidade")
+    pedido = models.ForeignKey(
+        'orders.Pedido',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='stock_exits',
+        verbose_name="Pedido"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Saída de Estoque"
+        verbose_name_plural = "Saídas de Estoque"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.product.name} — -{self.quantity} un."

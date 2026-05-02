@@ -15,6 +15,28 @@ import json
 from .models import Comanda, Pedido, PedidoItem
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product, Adicional
+
+
+def _get_saldo_estoque(product_id, exclude_pedido_id=None):
+    """
+    Retorna o saldo atual em estoque do produto.
+    saldo = entradas - saidas_permanentes - pedidos_em_andamento
+    Retorna 0 se não houver entradas de estoque (produto bloqueado para venda).
+    """
+    from products.models import StockEntry, StockExit
+    from django.db.models import Sum as _Sum
+    entradas = StockEntry.objects.filter(product_id=product_id).aggregate(t=_Sum('quantity'))['t'] or 0
+    # Saídas permanentes: pedidos já entregues (registrados via signal)
+    saidas_permanentes = StockExit.objects.filter(product_id=product_id).aggregate(t=_Sum('quantity'))['t'] or 0
+    # Saídas temporárias: pedidos em andamento (ainda não entregues)
+    qs = PedidoItem.objects.filter(
+        product_id=product_id,
+        pedido__status__in=['aguardando', 'preparando', 'pronta']
+    )
+    if exclude_pedido_id:
+        qs = qs.exclude(pedido_id=exclude_pedido_id)
+    saidas_em_andamento = qs.aggregate(t=_Sum('quantity'))['t'] or 0
+    return entradas - saidas_permanentes - saidas_em_andamento
 import base64
 from decimal import Decimal
 
@@ -774,7 +796,7 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
     
     def get_queryset(self):
         """Garante que só comandas finalizadas sejam acessadas"""
-        return Comanda.objects.filter(status='entregue')
+        return Comanda.objects.filter(status='fechada')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1534,7 +1556,28 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
             
             if not items:
                 return JsonResponse({'success': False, 'message': 'O pedido não pode ficar vazio.'})
-            
+
+            # Verificar estoque antes de processar (excluindo itens atuais do pedido)
+            product_qtds = {}
+            for item_data in items:
+                pid = int(item_data['product_id'])
+                qty = int(item_data['quantity'])
+                product_qtds[pid] = product_qtds.get(pid, 0) + qty
+
+            erros_estoque = []
+            for product_id, qty_solicitada in product_qtds.items():
+                saldo = _get_saldo_estoque(product_id, exclude_pedido_id=pedido.pk)
+                if qty_solicitada > saldo:
+                    prod = Product.objects.get(id=product_id)
+                    erros_estoque.append('PRODUTO FORA DE ESTOQUE')
+
+            if erros_estoque:
+                return JsonResponse({
+                    'success': False,
+                    'out_of_stock': True,
+                    'message': '; '.join(set(erros_estoque))
+                })
+
             # Remove itens antigos
             pedido.items.all().delete()
             
@@ -1583,7 +1626,28 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
 
             comanda = get_object_or_404(Comanda, numero=numero)
-            
+
+            # Verificar estoque antes de criar o pedido
+            product_qtds = {}
+            for item in items:
+                pid = int(item['product_id'])
+                qty = int(item['quantity'])
+                product_qtds[pid] = product_qtds.get(pid, 0) + qty
+
+            erros_estoque = []
+            for product_id, qty_solicitada in product_qtds.items():
+                saldo = _get_saldo_estoque(product_id)
+                if qty_solicitada > saldo:
+                    prod = Product.objects.get(id=product_id)
+                    erros_estoque.append('PRODUTO FORA DE ESTOQUE')
+
+            if erros_estoque:
+                return JsonResponse({
+                    'success': False,
+                    'out_of_stock': True,
+                    'message': '; '.join(set(erros_estoque))
+                })
+
             # Criar um novo Pedido na comanda
             pedido = Pedido.objects.create(
                 comanda=comanda,

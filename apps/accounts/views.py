@@ -105,9 +105,26 @@ class HomeView(LoginRequiredMixin, TemplateView):
 
 def custom_logout_view(request):
     """
-    View de logout funcional - mais confiável
+    View de logout funcional - bloqueia logout se o usuário de caixa tiver sessão aberta.
     """
     if request.user.is_authenticated:
+        # Bloqueia logout se usuário de caixa tem sessão aberta com recebimentos
+        if getattr(request.user, 'is_caixa', False):
+            try:
+                from checkouts.models import SessaoCaixa
+                sessao_aberta = SessaoCaixa.objects.filter(
+                    usuario=request.user,
+                    status='aberta',
+                ).first()
+                if sessao_aberta and sessao_aberta.get_checkouts().exists():
+                    messages.warning(
+                        request,
+                        'Você possui um caixa aberto com recebimentos. Feche o caixa antes de sair.'
+                    )
+                    return redirect('checkouts:fechamento_caixa')
+            except Exception:
+                pass
+
         username = request.user.get_full_name() or request.user.username
         logout(request)
         messages.success(request, f'Até logo, {username}!')
