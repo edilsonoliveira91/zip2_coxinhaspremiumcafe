@@ -128,7 +128,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     
     def post(self, request, code):
         try:
-            comanda = get_object_or_404(Comanda, numero=code)
+            comanda = get_object_or_404(Comanda, numero=code, status='em_uso')
 
             if comanda.status == 'fechada':
                 return JsonResponse({
@@ -236,9 +236,12 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, PermissionRequiredMixin, Vi
 
     def post(self, request, code):
         try:
-            comanda = get_object_or_404(Comanda, numero=code)
-            if comanda.status != 'fechada':
-                return JsonResponse({'success': False, 'message': 'Comanda não está fechada.'}, status=400)
+            # Busca a comanda fechada mais recente com esse número
+            comanda = Comanda.objects.filter(
+                numero=code, status='fechada'
+            ).order_by('-updated_at').first()
+            if not comanda:
+                return JsonResponse({'success': False, 'message': 'Comanda fechada não encontrada.'}, status=404)
 
             checkout = get_object_or_404(Checkout, comanda=comanda)
 

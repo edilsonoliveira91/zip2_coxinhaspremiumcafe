@@ -1491,7 +1491,10 @@ from django.http import JsonResponse
 
 class ApiCheckComandaView(View):
     def get(self, request, numero):
-        comanda = Comanda.objects.filter(numero=numero).first()
+        # Retorna a comanda ativa (em_uso ou livre); ignora fechadas/canceladas
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=['em_uso', 'livre']
+        ).order_by('-created_at').first()
         if comanda:
             return JsonResponse({'exists': True, 'status': comanda.status})
         return JsonResponse({'exists': False, 'status': None})
@@ -1516,29 +1519,21 @@ class NovaComandaView(LoginRequiredMixin, View):
             return render(request, self.template_name, {'error': 'Número inválido.'})
         numero = str(num_int).zfill(3)
 
-        # Verifica se já existe essa comanda e se está aberta
-        comanda = Comanda.objects.filter(numero=numero).first()
-        
-        if comanda and comanda.status == 'fechada':
-            # Arquiva a comanda fechada renomeando seu número para preservar o histórico,
-            # depois cria uma nova comanda com o número original do pager.
-            numero_arquivo = f"{comanda.numero}-arq{comanda.id}"
-            comanda.numero = numero_arquivo
-            comanda.save(update_fields=['numero'])
-            comanda = Comanda.objects.create(
-                numero=numero,
-                cliente_nome=cliente_nome,
-                status='em_uso',
-            )
-        elif comanda and comanda.status == 'livre':
+        # Busca comanda ativa (em_uso ou livre) com esse número
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=['em_uso', 'livre']
+        ).order_by('-created_at').first()
+
+        if comanda and comanda.status == 'livre':
             comanda.status = 'em_uso'
             comanda.cliente_nome = cliente_nome
             comanda.save()
         elif not comanda:
+            # Não há comanda ativa com esse número — cria nova (histórico anterior preservado)
             comanda = Comanda.objects.create(
                 numero=numero,
                 cliente_nome=cliente_nome,
-                status='em_uso'
+                status='em_uso',
             )
 
         # Redireciona para a página de detalhes da comanda
@@ -1555,7 +1550,15 @@ class ComandaDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'comanda'
 
     def get_object(self):
-        return get_object_or_404(Comanda, numero=self.kwargs.get('numero'))
+        numero = self.kwargs.get('numero')
+        # Pega a comanda ativa com esse número
+        comanda = Comanda.objects.filter(
+            numero=numero, status='em_uso'
+        ).order_by('-created_at').first()
+        if comanda is None:
+            # Fallback: qualquer comanda com esse número (ex.: recém-cancelada)
+            comanda = get_object_or_404(Comanda, numero=numero)
+        return comanda
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1652,7 +1655,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
             if not items:
                 return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
 
-            comanda = get_object_or_404(Comanda, numero=numero)
+            comanda = get_object_or_404(Comanda, numero=numero, status='em_uso')
 
             # Verificar estoque antes de criar o pedido
             product_qtds = {}

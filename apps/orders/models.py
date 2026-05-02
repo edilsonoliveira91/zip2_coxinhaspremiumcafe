@@ -18,9 +18,8 @@ class Comanda(TimeStampedModel):
 
     numero = models.CharField(
         max_length=50,
-        unique=True,
         verbose_name="Número da Comanda",
-        help_text="Número único identificado pelo código de barras do pager."
+        help_text="Número identificado pelo código de barras do pager."
     )
     
     status = models.CharField(
