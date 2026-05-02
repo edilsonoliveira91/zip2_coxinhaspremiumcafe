@@ -1490,8 +1490,15 @@ class NovaComandaView(LoginRequiredMixin, View):
         numero = request.POST.get('numero')
         cliente_nome = request.POST.get('cliente_nome')
 
-        if not numero:
-            return render(request, self.template_name, {'error': 'O número da comanda é obrigatório.'})
+        if not numero or not str(numero).strip().isdigit():
+            return render(request, self.template_name, {'error': 'O número da comanda é obrigatório e deve conter apenas dígitos.'})
+        try:
+            num_int = int(numero.strip())
+            if num_int < 0 or num_int > 999:
+                return render(request, self.template_name, {'error': 'O número da comanda deve ser entre 000 e 999.'})
+        except ValueError:
+            return render(request, self.template_name, {'error': 'Número inválido.'})
+        numero = str(num_int).zfill(3)
 
         # Verifica se já existe essa comanda e se está aberta
         comanda = Comanda.objects.filter(numero=numero).first()

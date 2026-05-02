@@ -40,8 +40,13 @@
                         Nº da Comanda
                     </label>
                     <input id="numero" name="numero" type="text" required autofocus autocomplete="off"
+                        inputmode="numeric"
+                        maxlength="3"
+                        pattern="[0-9]{1,3}"
+                        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                         class="block w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 text-center text-3xl font-black text-gray-800 transition-all shadow-inner"
-                        placeholder="00">
+                        placeholder="000">
+                    <p class="text-xs text-gray-400 text-center mt-1">000 a 999</p>
                 </div>
 
                 {% if error %}
