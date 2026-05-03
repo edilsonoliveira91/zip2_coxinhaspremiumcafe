@@ -1984,26 +1984,34 @@ class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'checkouts.add_checkout'
     login_url = '/accounts/login/'
 
-    def get(self, request, numero):
-        # Prioriza comanda em_uso; se não houver, pega a fechada mais recente (reimpressão)
-        comanda = (
-            Comanda.objects.prefetch_related('pedidos__items__product')
-            .filter(numero=numero)
-            .order_by(
-                # em_uso primeiro, depois fechada, depois qualquer outro
-                Case(
-                    When(status='em_uso', then=0),
-                    When(status='fechada', then=1),
-                    default=2,
-                    output_field=IntegerField(),
-                ),
-                '-updated_at',
+    def get(self, request, numero=None, pk=None):
+        # Quando chamado por PK (reimpressão da lista de finalizadas), busca pelo ID exato
+        # para evitar pegar a comanda ativa quando o número foi reutilizado.
+        if pk:
+            from django.shortcuts import get_object_or_404
+            comanda = get_object_or_404(
+                Comanda.objects.prefetch_related('pedidos__items__product'),
+                pk=pk,
             )
-            .first()
-        )
-        if comanda is None:
-            from django.http import Http404
-            raise Http404
+        else:
+            # Chamado da tela da comanda: prioriza em_uso, depois fechada mais recente
+            comanda = (
+                Comanda.objects.prefetch_related('pedidos__items__product')
+                .filter(numero=numero)
+                .order_by(
+                    Case(
+                        When(status='em_uso', then=0),
+                        When(status='fechada', then=1),
+                        default=2,
+                        output_field=IntegerField(),
+                    ),
+                    '-updated_at',
+                )
+                .first()
+            )
+            if comanda is None:
+                from django.http import Http404
+                raise Http404
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
         is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua

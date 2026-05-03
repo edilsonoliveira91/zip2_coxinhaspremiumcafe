@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Editar Matéria Prima{% else %}Nova Matéria Prima{% endif %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+      <a href="{% url 'products:rawmaterial_list' %}" class="hover:text-orange-600 transition-colors flex items-center gap-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+        </svg>
+        Matérias Primas
+      </a>
+      <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+      </svg>
+      <span>{% if object %}Editar{% else %}Nova{% endif %}</span>
+    </nav>
+
+    {% include 'components/messages.html' %}
+
+    <!-- Card principal -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+
+      <!-- Header do card -->
+      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 px-8 py-6">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">
+              {% if object %}Editar Matéria Prima{% else %}Nova Matéria Prima{% endif %}
+            </h1>
+            <p class="text-yellow-100 text-sm mt-0.5">
+              {% if object %}Altere os dados do insumo abaixo{% else %}Preencha os dados para cadastrar um novo insumo{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulário -->
+      <form method="post" class="p-8 space-y-6">
+        {% csrf_token %}
+
+        <!-- Nome -->
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            Nome da Matéria Prima <span class="text-red-500">*</span>
+          </label>
+          {{ form.name }}
+          {% if form.name.errors %}
+          <p class="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ form.name.errors|join:', ' }}
+          </p>
+          {% endif %}
+          <p class="mt-1 text-xs text-gray-400">Ex: Farinha de Trigo, Açúcar Refinado, Óleo de Soja</p>
+        </div>
+
+        <!-- Unidade de Medida -->
+        <div>
+          <label for="{{ form.unit_measure.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            Unidade de Medida <span class="text-red-500">*</span>
+          </label>
+          {{ form.unit_measure }}
+          {% if form.unit_measure.errors %}
+          <p class="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ form.unit_measure.errors|join:', ' }}
+          </p>
+          {% endif %}
+
+          <!-- Dica das unidades -->
+          <div style="background:#fafafa;border:1px solid #e5e7eb;border-radius:12px;padding:12px 16px;margin-top:10px;">
+            <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Exemplos de uso</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#fef9c3;color:#854d0e;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">kg</span>
+                <span style="font-size:12px;color:#6b7280;">0.800 = 800 gramas</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#e0f2fe;color:#0369a1;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">L</span>
+                <span style="font-size:12px;color:#6b7280;">0.250 = 250 ml</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#f0fdf4;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">un</span>
+                <span style="font-size:12px;color:#6b7280;">2 = 2 unidades</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#fdf4ff;color:#7e22ce;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">pct</span>
+                <span style="font-size:12px;color:#6b7280;">1 = 1 pacote</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-3 pt-2">
+          <button type="submit"
+                  class="flex-1 py-3 px-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-md flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {% if object %}Salvar Alterações{% else %}Cadastrar{% endif %}
+          </button>
+          <a href="{% url 'products:rawmaterial_list' %}"
+             class="flex-1 py-3 px-6 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-center flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Cancelar
+          </a>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Product, Combo, ComboItem
+from .models import Product, Combo, ComboItem, RawMaterial
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Product, Combo, ComboItem
@@ -317,3 +317,26 @@ class StockEntryForm(forms.ModelForm):
         self.fields['product'].queryset = Product.objects.filter(is_active=True).order_by('category', 'name')
         self.fields['product'].empty_label = 'Selecione um produto...'
         self.fields['notes'].required = False
+
+
+class RawMaterialForm(forms.ModelForm):
+    class Meta:
+        model = RawMaterial
+        fields = ['name', 'unit_measure']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
+                'placeholder': 'Ex: Farinha de Trigo',
+            }),
+            'unit_measure': forms.Select(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white',
+                'style': 'height: 48px !important;',
+            }),
+        }
+        labels = {
+            'name': 'Nome da Matéria Prima',
+            'unit_measure': 'Unidade de Medida',
+        }
+        error_messages = {
+            'name': {'unique': 'Já existe uma matéria prima com este nome.'}
+        }

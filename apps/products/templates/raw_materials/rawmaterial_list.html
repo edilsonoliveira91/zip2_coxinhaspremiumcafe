@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Matérias Primas{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            </svg>
+          </div>
+          Matérias Primas
+        </h1>
+        <p class="text-gray-500 mt-1 text-sm">Gerencie os insumos e ingredientes do sistema</p>
+      </div>
+      <a href="{% url 'products:rawmaterial_create' %}"
+         class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-md">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Nova Matéria Prima
+      </a>
+    </div>
+
+    {% include 'components/messages.html' %}
+
+    <!-- Barra de busca + contador -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row items-center gap-3">
+      <form method="get" class="flex-1 flex items-center gap-3 w-full">
+        <div class="relative flex-1">
+          <svg class="absolute inset-y-0 left-3 my-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input type="text" name="search" value="{{ search }}" placeholder="Buscar matéria prima..."
+                 class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm">
+        </div>
+        <button type="submit"
+                class="px-5 py-3 bg-gray-800 text-white rounded-xl font-medium text-sm hover:bg-gray-700 transition-colors">
+          Buscar
+        </button>
+        {% if search %}
+        <a href="{% url 'products:rawmaterial_list' %}"
+           class="px-4 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors whitespace-nowrap">
+          Limpar
+        </a>
+        {% endif %}
+      </form>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 text-center min-w-max">
+        <div class="text-xl font-bold text-yellow-700">{{ total }}</div>
+        <div class="text-xs text-yellow-600">Total</div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-semibold text-gray-800 text-base">Lista de Matérias Primas</h2>
+        <span class="text-xs text-gray-400">{{ materials|length }} registro{{ materials|length|pluralize }}</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50/70">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Unidade de Medida</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for mat in materials %}
+            <tr class="hover:bg-orange-50/40 transition-colors">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                  </div>
+                  <span class="font-medium text-gray-900">{{ mat.name }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                {% if mat.unit_measure == 'kg' %}
+                  <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;">
+                    kg — Quilograma
+                  </span>
+                {% elif mat.unit_measure == 'litros' %}
+                  <span style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;">
+                    L — Litro
+                  </span>
+                {% elif mat.unit_measure == 'unidade' %}
+                  <span style="background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;">
+                    un — Unidade
+                  </span>
+                {% elif mat.unit_measure == 'pacote' %}
+                  <span style="background:#fdf4ff;color:#7e22ce;border:1px solid #d8b4fe;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;">
+                    pct — Pacote
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-center gap-2">
+                  <a href="{% url 'products:rawmaterial_update' mat.pk %}"
+                     class="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                     title="Editar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </a>
+                  <form method="post" action="{% url 'products:rawmaterial_delete' mat.pk %}"
+                        onsubmit="return confirm('Excluir {{ mat.name }}? Esta ação não pode ser desfeita.')">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Excluir">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="px-6 py-16 text-center">
+                <div class="flex flex-col items-center gap-3">
+                  <svg class="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-900">
+                    {% if search %}Nenhum resultado para "{{ search }}"{% else %}Nenhuma matéria prima cadastrada{% endif %}
+                  </h3>
+                  <p class="text-sm text-gray-500">
+                    {% if search %}Tente outro termo de busca.{% else %}Clique em "Nova Matéria Prima" para começar.{% endif %}
+                  </p>
+                  {% if not search %}
+                  <a href="{% url 'products:rawmaterial_create' %}"
+                     class="mt-2 inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-semibold text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Cadastrar agora
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      {% if is_paginated %}
+      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-sm">
+        <span class="text-gray-500">
+          {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ paginator.count }}
+        </span>
+        <div class="flex gap-2">
+          {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+             class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Anterior</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
+             class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">Próximo</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

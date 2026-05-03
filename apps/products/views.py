@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.db import transaction
-from .models import Product, Combo, ComboItem
-from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm
+from .models import Product, Combo, ComboItem, RawMaterial
+from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
 from .models import StockEntry
 from .forms import StockEntryForm
 from django.db.models import Sum, F
@@ -736,3 +736,77 @@ class NoStockListView(LoginRequiredMixin, TemplateView):
         context['produtos'] = produtos
         context['total'] = produtos.count()
         return context
+
+
+# ==================== VIEWS DE MATÉRIA PRIMA ====================
+
+class RawMaterialListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    model = RawMaterial
+    permission_required = 'products.view_product'
+    template_name = 'raw_materials/rawmaterial_list.html'
+    context_object_name = 'materials'
+    paginate_by = 20
+    login_url = reverse_lazy('accounts:login')
+
+    def get_queryset(self):
+        qs = RawMaterial.objects.all()
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(name__icontains=search)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total'] = RawMaterial.objects.count()
+        context['search'] = self.request.GET.get('search', '')
+        return context
+
+
+class RawMaterialCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = RawMaterial
+    form_class = RawMaterialForm
+    permission_required = 'products.add_product'
+    template_name = 'raw_materials/rawmaterial_form.html'
+    success_url = reverse_lazy('products:rawmaterial_list')
+    login_url = reverse_lazy('accounts:login')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Matéria prima "{form.instance.name}" cadastrada com sucesso!')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erro ao cadastrar. Verifique os dados informados.')
+        return super().form_invalid(form)
+
+
+class RawMaterialUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = RawMaterial
+    form_class = RawMaterialForm
+    permission_required = 'products.change_product'
+    template_name = 'raw_materials/rawmaterial_form.html'
+    success_url = reverse_lazy('products:rawmaterial_list')
+    login_url = reverse_lazy('accounts:login')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Matéria prima "{form.instance.name}" atualizada com sucesso!')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erro ao atualizar. Verifique os dados informados.')
+        return super().form_invalid(form)
+
+
+class RawMaterialDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = RawMaterial
+    permission_required = 'products.delete_product'
+    success_url = reverse_lazy('products:rawmaterial_list')
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, *args, **kwargs):
+        # No confirmation page — delete directly via POST from list
+        return self.post(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        messages.success(request, f'Matéria prima "{obj.name}" removida com sucesso!')
+        return super().delete(request, *args, **kwargs)

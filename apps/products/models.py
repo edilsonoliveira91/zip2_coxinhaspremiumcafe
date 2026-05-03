@@ -268,3 +268,34 @@ class StockExit(models.Model):
 
     def __str__(self):
         return f"{self.product.name} — -{self.quantity} un."
+
+
+class RawMaterial(TimeStampedModel):
+    """Matéria Prima — ingrediente ou insumo cadastrado no sistema"""
+
+    UNIT_CHOICES = [
+        ('kg',      'Quilograma (kg)'),
+        ('litros',  'Litro (L)'),
+        ('unidade', 'Unidade (un)'),
+        ('pacote',  'Pacote (pct)'),
+    ]
+
+    name = models.CharField(
+        max_length=150,
+        unique=True,
+        verbose_name='Nome'
+    )
+    unit_measure = models.CharField(
+        max_length=10,
+        choices=UNIT_CHOICES,
+        default='kg',
+        verbose_name='Unidade de Medida'
+    )
+
+    class Meta:
+        verbose_name = 'Matéria Prima'
+        verbose_name_plural = 'Matérias Primas'
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name} ({self.get_unit_measure_display()})'

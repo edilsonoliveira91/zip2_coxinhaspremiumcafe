@@ -19,4 +19,10 @@ urlpatterns = [
     path('estoque/entrada/', views.StockEntryCreateView.as_view(), name='stock_create'),
     path('estoque/<int:pk>/remover/', views.StockEntryDeleteView.as_view(), name='stock_delete'),
     path('estoque/sem-estoque/', views.NoStockListView.as_view(), name='nostock_list'),
+
+    # Matéria Prima
+    path('materia-prima/', views.RawMaterialListView.as_view(), name='rawmaterial_list'),
+    path('materia-prima/nova/', views.RawMaterialCreateView.as_view(), name='rawmaterial_create'),
+    path('materia-prima/<int:pk>/editar/', views.RawMaterialUpdateView.as_view(), name='rawmaterial_update'),
+    path('materia-prima/<int:pk>/excluir/', views.RawMaterialDeleteView.as_view(), name='rawmaterial_delete'),
 ]
