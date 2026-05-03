@@ -37,10 +37,11 @@
     <!-- Navegação -->
    {% if user.is_authenticated %}
         {% include 'navbar.html' %}
+        {% include 'mobile_navbar.html' %}
    {% endif %}
 
     <!-- Conteúdo Principal -->
-    <main class="{% if user.is_authenticated %}pt-16{% else %}pt-0{% endif %} min-h-screen">
+    <main class="{% if user.is_authenticated %}pt-16 pb-20 md:pb-0{% else %}pt-0{% endif %} min-h-screen">
         {% block content %}
         {% endblock %}
     </main>

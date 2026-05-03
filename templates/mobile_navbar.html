@@ -1,0 +1,420 @@
+{% load static %}
+<!-- ═══════════════════════════════════════════════════
+     MOBILE BOTTOM NAVBAR — apenas em telas < md (768px)
+════════════════════════════════════════════════════ -->
+
+<!-- Overlay escuro -->
+<div id="mob-overlay"
+     onclick="mobCloseAll()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;"></div>
+
+<!-- Drawer lateral (Mais) -->
+<div id="mob-drawer"
+     style="display:none;position:fixed;top:0;right:0;bottom:0;width:82%;max-width:320px;
+            background:#fff;z-index:101;overflow-y:auto;
+            box-shadow:-4px 0 24px rgba(0,0,0,.15);
+            transform:translateX(100%);transition:transform .25s ease;">
+
+  <!-- Header do drawer -->
+  <div style="background:linear-gradient(135deg,#f97316,#ef4444);padding:20px 16px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}"
+             style="width:36px;height:36px;border-radius:8px;object-fit:cover;">
+        <div>
+          <div style="color:#fff;font-weight:700;font-size:14px;">{{ user.get_full_name|default:user.username }}</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px;">
+            {% if user.is_superuser %}Administrador{% else %}Operador{% endif %}
+          </div>
+        </div>
+      </div>
+      <button onclick="mobCloseAll()"
+              style="background:rgba(255,255,255,.2);border:none;border-radius:8px;
+                     padding:6px;cursor:pointer;color:#fff;line-height:0;">
+        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Itens do drawer -->
+  <div style="padding:8px 0;">
+
+    <!-- Início -->
+    <a href="/"
+       style="display:flex;align-items:center;gap:12px;padding:12px 20px;
+              color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+      <span style="width:36px;height:36px;background:#fff7ed;border-radius:10px;
+                   display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg style="width:18px;height:18px;color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+      </span>
+      Início
+    </a>
+
+    <!-- Comandas (admin/staff) -->
+    {% if request.user.is_superuser or request.user.is_staff %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Comandas
+      </div>
+      <a href="{% url 'accounts:dashboard' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </span>
+        Abertas
+      </a>
+      <a href="{% url 'orders:closed_orders' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </span>
+        Finalizadas
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Produtos -->
+    {% if perms.products.view_product or request.user.is_superuser %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Produtos
+      </div>
+      <a href="{% url 'products:product_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fff7ed;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+        </span>
+        Produtos
+      </a>
+      <a href="{% url 'products:adicional_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fdf4ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#a855f7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+        </span>
+        Adicionais
+      </a>
+      <a href="{% url 'products:stock_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fefce8;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#ca8a04;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+        </span>
+        Estoque
+      </a>
+      <a href="{% url 'products:rawmaterial_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fefce8;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#ca8a04;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+          </svg>
+        </span>
+        Matéria Prima
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Caixa -->
+    {% if perms.financials.view_financial or request.user.is_superuser %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Caixa
+      </div>
+      <a href="{% url 'financials:dashboard' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#eff6ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </span>
+        Dashboard
+      </a>
+      <a href="{% url 'financials:sangria' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fef2f2;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+          </svg>
+        </span>
+        Sangria
+      </a>
+      {% if request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
+      <a href="{% url 'financials:fechamento_diario' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </span>
+        Fechamento de Caixa
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Relatórios -->
+    {% if perms.financials.view_financial or request.user.is_superuser %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Relatórios
+      </div>
+      <a href="{% url 'reports:nfce_report' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#eff6ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </span>
+        Relatório NFCe
+      </a>
+      <a href="{% url 'financials:extrato' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fff7ed;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 4h16v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 10v-2h12v2H6z"/>
+          </svg>
+        </span>
+        Extrato
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Configurações (superuser) -->
+    {% if request.user.is_superuser %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Configurações
+      </div>
+      <a href="{% url 'pinpads:pinpad_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fdf4ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#a855f7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </span>
+        Pinpads
+      </a>
+      <a href="{% url 'companys:company_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fdf4ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#a855f7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+        </span>
+        Empresas
+      </a>
+      <a href="{% url 'config:time_config' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fdf4ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#a855f7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </span>
+        Tempo de Espera
+      </a>
+      <a href="{% url 'config:troco_inicial' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </span>
+        Troco Inicial
+      </a>
+      <a href="{% url 'config:quebra_caixa' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#fff7ed;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+          </svg>
+        </span>
+        Quebra de Caixa
+      </a>
+      <a href="{% url 'accounts:user_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#eff6ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </span>
+        Gerenciar Usuários
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Sair -->
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;padding-bottom:8px;">
+      <a href="{% url 'accounts:logout' %}"
+         style="display:flex;align-items:center;gap:12px;padding:12px 20px;
+                color:#dc2626;text-decoration:none;font-size:14px;font-weight:600;">
+        <span style="width:36px;height:36px;background:#fef2f2;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </span>
+        Sair do Sistema
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ───── Barra inferior fixa (apenas mobile) ───── -->
+<nav id="mob-bottombar"
+     class="md:hidden"
+     style="position:fixed;bottom:0;left:0;right:0;
+            background:#fff;border-top:1px solid #e5e7eb;
+            box-shadow:0 -2px 12px rgba(0,0,0,.08);
+            display:flex;align-items:stretch;z-index:99;
+            padding-bottom:env(safe-area-inset-bottom,0);">
+
+  <!-- Início -->
+  <a href="/" class="mob-tab"
+     style="flex:1;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;padding:8px 2px 6px;gap:3px;
+            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
+    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+    </svg>
+    Início
+  </a>
+
+  <!-- Comandas (admin/staff) -->
+  {% if request.user.is_superuser or request.user.is_staff %}
+  <a href="{% url 'accounts:dashboard' %}" class="mob-tab"
+     style="flex:1;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;padding:8px 2px 6px;gap:3px;
+            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
+    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    Comandas
+  </a>
+  {% endif %}
+
+  <!-- Caixa (financials) -->
+  {% if perms.financials.view_financial or request.user.is_superuser %}
+  <a href="{% url 'financials:dashboard' %}" class="mob-tab"
+     style="flex:1;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;padding:8px 2px 6px;gap:3px;
+            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
+    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+    </svg>
+    Caixa
+  </a>
+  {% endif %}
+
+  <!-- Mais -->
+  <button onclick="mobOpenDrawer()"
+          style="flex:1;display:flex;flex-direction:column;align-items:center;
+                 justify-content:center;padding:8px 2px 6px;gap:3px;
+                 background:none;border:none;cursor:pointer;
+                 color:#6b7280;font-size:10px;font-weight:500;">
+    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
+    Mais
+  </button>
+
+</nav>
+
+<script>
+(function() {
+  var overlay = document.getElementById('mob-overlay');
+  var drawer  = document.getElementById('mob-drawer');
+
+  window.mobOpenDrawer = function() {
+    if (!overlay || !drawer) return;
+    overlay.style.display = 'block';
+    drawer.style.display  = 'block';
+    requestAnimationFrame(function() {
+      drawer.style.transform = 'translateX(0)';
+    });
+  };
+
+  window.mobCloseAll = function() {
+    if (!overlay || !drawer) return;
+    drawer.style.transform = 'translateX(100%)';
+    overlay.style.display  = 'none';
+    setTimeout(function() {
+      drawer.style.display = 'none';
+    }, 260);
+  };
+
+  // Marca o tab ativo conforme a URL atual
+  var path = window.location.pathname;
+  document.querySelectorAll('.mob-tab').forEach(function(a) {
+    if (a.getAttribute('href') && path.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '/') {
+      a.style.color = '#f97316';
+    } else if (a.getAttribute('href') === '/' && path === '/') {
+      a.style.color = '#f97316';
+    }
+  });
+})();
+</script>
