@@ -463,13 +463,16 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             status='aprovado',
             created_at__date=selected_date,
         )
-        checkout_ids = list(checkouts.values_list('id', flat=True))
-        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+        parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
-            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
-            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
-            return via_cp + via_old
+            simples = (checkouts.exclude(payment_method='parcial')
+                       .filter(payment_method=method)
+                       .aggregate(t=Sum('total'))['t'] or Decimal('0.00'))
+            parcial = (CheckoutPayment.objects
+                       .filter(checkout_id__in=parcial_ids, payment_method=method)
+                       .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
+            return simples + parcial
 
         total_dinheiro  = _soma('dinheiro')
         total_debito    = _soma('cartao_debito')
@@ -521,13 +524,19 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
             status='aprovado',
             created_at__date=date,
         )
-        checkout_ids = list(checkouts.values_list('id', flat=True))
-        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+        # Mesma lógica do FinancialDashboardView:
+        #  - não-parciais: usa Checkout.payment_method (reflete alterações do operador)
+        #  - parciais: usa CheckoutPayment para quebrar por método
+        parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
-            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
-            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
-            return via_cp + via_old
+            simples = (checkouts.exclude(payment_method='parcial')
+                       .filter(payment_method=method)
+                       .aggregate(t=Sum('total'))['t'] or Decimal('0.00'))
+            parcial = (CheckoutPayment.objects
+                       .filter(checkout_id__in=parcial_ids, payment_method=method)
+                       .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
+            return simples + parcial
 
         sangrias_qs = Sangria.objects.filter(created_at__date=date)
         valor_inicial  = SystemConfig.get_settings().troco_inicial
@@ -579,13 +588,16 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
     def post(self, request):
         today = timezone.localtime().date()
         checkouts = Checkout.objects.filter(status='aprovado', created_at__date=today)
-        checkout_ids = list(checkouts.values_list('id', flat=True))
-        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+        parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
-            via_cp  = cp_qs.filter(payment_method=method).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
-            via_old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(t=Sum('total'))['t'] or Decimal('0.00')
-            return via_cp + via_old
+            simples = (checkouts.exclude(payment_method='parcial')
+                       .filter(payment_method=method)
+                       .aggregate(t=Sum('total'))['t'] or Decimal('0.00'))
+            parcial = (CheckoutPayment.objects
+                       .filter(checkout_id__in=parcial_ids, payment_method=method)
+                       .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
+            return simples + parcial
 
         sangrias_qs = Sangria.objects.filter(created_at__date=today)
         valor_inicial  = SystemConfig.get_settings().troco_inicial
