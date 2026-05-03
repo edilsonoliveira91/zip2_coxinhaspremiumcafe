@@ -257,6 +257,17 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             checkout.notes = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {checkout.get_payment_method_display()}'
             checkout.save(update_fields=['payment_method', 'notes'])
 
+            # Sincroniza CheckoutPayment com o novo método (somente para checkouts não-parciais)
+            # Para checkouts parciais, os registros individuais permanecem intactos.
+            if novo_metodo != 'parcial':
+                from checkouts.models import CheckoutPayment
+                checkout.payments.all().delete()
+                CheckoutPayment.objects.create(
+                    checkout=checkout,
+                    payment_method=novo_metodo,
+                    amount=checkout.total,
+                )
+
             return JsonResponse({
                 'success': True,
                 'message': f'Método de pagamento alterado para {checkout.get_payment_method_display()}.',

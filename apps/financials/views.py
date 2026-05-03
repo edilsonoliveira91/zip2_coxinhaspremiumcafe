@@ -59,20 +59,24 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         total_sangrias = sangrias_periodo['total'] or Decimal('0.00')
         
         # Calcular valores por forma de pagamento
-        # Usa CheckoutPayment para capturar pagamentos parciais corretamente.
-        # Para checkouts antigos sem CheckoutPayment, usa o próprio Checkout.
-        checkout_ids = list(checkouts.values_list('id', flat=True))
+        # Lógica correta e consistente com o Relatório de Impressão:
+        #   - Checkouts não-parciais: usa Checkout.payment_method (reflete alterações feitas pelo operador)
+        #   - Checkouts parciais: usa CheckoutPayment para separar cada método
+        #   - Fallback legado: checkouts antigos sem CheckoutPayment usam Checkout diretamente
 
-        # Pagamentos via CheckoutPayment (novos registros)
-        cp_qs = CheckoutPayment.objects.filter(checkout_id__in=checkout_ids)
+        parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _sum_method(method):
-            cp = cp_qs.filter(payment_method=method).aggregate(total=Sum('amount'), count=Count('id'))
-            # Fallback: checkouts antigos sem CheckoutPayment (payment_method direto)
-            old = checkouts.filter(payment_method=method, payments__isnull=True).aggregate(
-                total=Sum('total'), count=Count('id'))
-            total = (cp['total'] or Decimal('0.00')) + (old['total'] or Decimal('0.00'))
-            count = (cp['count'] or 0) + (old['count'] or 0)
+            # 1. Checkouts simples com o método (não-parcial e não-legado sem payment records)
+            simples = checkouts.exclude(payment_method='parcial').filter(
+                payment_method=method
+            ).aggregate(total=Sum('total'), count=Count('id'))
+            # 2. Porção do método dentro de checkouts parciais (via CheckoutPayment)
+            parcial = (CheckoutPayment.objects
+                       .filter(checkout_id__in=parcial_ids, payment_method=method)
+                       .aggregate(total=Sum('amount'), count=Count('id')))
+            total = (simples['total'] or Decimal('0.00')) + (parcial['total'] or Decimal('0.00'))
+            count = (simples['count'] or 0) + (parcial['count'] or 0)
             return total, count
 
         payment_stats = {}
