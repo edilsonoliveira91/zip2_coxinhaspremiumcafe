@@ -919,12 +919,13 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         Processa a emissão de NFCe para uma comanda
         """
         try:
-            # Busca a comanda
-            comanda = get_object_or_404(
-                Comanda,
+            # Busca a comanda — usa filter+first pois numero não é unique
+            comanda = Comanda.objects.filter(
                 numero=code,
-                status='fechada'  # Só permite NFCe de comandas fechadas
-            )
+                status='fechada'
+            ).order_by('-created_at').first()
+            if not comanda:
+                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está fechada.'})
             
             # Verifica se já foi emitida NFCe
             if comanda.tem_nfce:
@@ -1323,12 +1324,12 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
         try:
             from companys.models import Company
 
-            # Busca a comanda pelo numero
-            comanda = get_object_or_404(
-                Comanda.objects.select_related().prefetch_related('pedidos__items__product'),
-                numero=code,
-                status='fechada'
-            )
+            # Busca a comanda pelo numero — usa filter+first pois numero não é unique
+            comanda = Comanda.objects.select_related().prefetch_related(
+                'pedidos__items__product'
+            ).filter(numero=code, status='fechada').order_by('-created_at').first()
+            if not comanda:
+                return HttpResponse("Comanda não encontrada.", status=404)
 
             # Verifica se tem NFCe emitida
             if not comanda.tem_nfce:
@@ -1339,12 +1340,16 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
             if not empresa:
                 return HttpResponse("Empresa não configurada.", status=404)
 
-            # Criar dados para o cupom
+            # Criar dados para o cupom — QR code recalculado via serviço
+            from apps.utils.nfce_service import NFCeService
+            nfce_service = NFCeService(empresa)
+            qr_code_url = nfce_service._gerar_qr_code(comanda.nfce_chave, comanda.total_amount)
+
             dados_nfce = {
                 'numero': comanda.nfce_numero,
                 'chave_acesso': comanda.nfce_chave,
                 'order': comanda,
-                'qr_code': f"{comanda.nfce_chave}|2|2|1|QRCODE",
+                'qr_code': qr_code_url,
             }
 
             resultado_emissao = {
@@ -1353,9 +1358,6 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
                 'modo': 'autorizada',
             }
 
-            # Gerar HTML do cupom
-            from apps.utils.nfce_service import NFCeService
-            nfce_service = NFCeService(empresa)
             cupom_html = nfce_service.gerar_cupom_fiscal_html(dados_nfce, resultado_emissao)
 
             return HttpResponse(cupom_html, content_type='text/html')
@@ -1382,7 +1384,7 @@ class CupomFiscalDirectPrintView(LoginRequiredMixin, View):
             )
             
             # Verifica se tem NFCe emitida
-            if not order.tem_nfce:
+            if not comanda.tem_nfce:
                 return JsonResponse({
                     'success': False,
                     'message': 'Esta comanda não possui NFCe emitida'

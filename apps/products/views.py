@@ -3,6 +3,7 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views import View
 from django.db import transaction
 from .models import Product, Combo, ComboItem, RawMaterial
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
@@ -817,3 +818,85 @@ class RawMaterialDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteV
         obj = self.get_object()
         messages.success(request, f'Matéria prima "{obj.name}" removida com sucesso!')
         return super().delete(request, *args, **kwargs)
+
+class ProdutoListaPDFView(LoginRequiredMixin, View):
+    """Gera PDF com lista de produtos (somente nomes, sem preço)."""
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        import io
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2*cm,
+            leftMargin=2*cm,
+            topMargin=2*cm,
+            bottomMargin=2*cm,
+        )
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Title'],
+            fontSize=18,
+            textColor=colors.HexColor('#ea580c'),
+            spaceAfter=8,
+        )
+        subtitle_style = ParagraphStyle(
+            'Subtitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#6b7280'),
+            spaceAfter=20,
+        )
+        item_style = ParagraphStyle(
+            'Item',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=colors.HexColor('#111827'),
+            leading=16,
+        )
+        cat_style = ParagraphStyle(
+            'Category',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#374151'),
+            spaceBefore=14,
+            spaceAfter=6,
+        )
+
+        from django.utils.timezone import localdate
+        today = localdate().strftime('%d/%m/%Y')
+
+        story = []
+        story.append(Paragraph('Lista de Produtos', title_style))
+        story.append(Paragraph(f'Emitido em: {today}', subtitle_style))
+
+        products = Product.objects.all().order_by('category', 'name')
+
+        # Agrupar por categoria
+        current_cat = None
+        for p in products:
+            cat_name = p.get_category_display() if p.category else 'Sem Categoria'
+            if cat_name != current_cat:
+                current_cat = cat_name
+                story.append(Paragraph(cat_name, cat_style))
+            story.append(Paragraph(f'• {p.name}', item_style))
+
+        if not products.exists():
+            story.append(Paragraph('Nenhum produto encontrado.', item_style))
+
+        doc.build(story)
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="lista_produtos.pdf"'
+        return response

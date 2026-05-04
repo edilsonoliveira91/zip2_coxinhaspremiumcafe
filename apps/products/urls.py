@@ -25,4 +25,7 @@ urlpatterns = [
     path('materia-prima/nova/', views.RawMaterialCreateView.as_view(), name='rawmaterial_create'),
     path('materia-prima/<int:pk>/editar/', views.RawMaterialUpdateView.as_view(), name='rawmaterial_update'),
     path('materia-prima/<int:pk>/excluir/', views.RawMaterialDeleteView.as_view(), name='rawmaterial_delete'),
+
+    # PDF
+    path('lista-produtos.pdf', views.ProdutoListaPDFView.as_view(), name='produto_lista_pdf'),
 ]
