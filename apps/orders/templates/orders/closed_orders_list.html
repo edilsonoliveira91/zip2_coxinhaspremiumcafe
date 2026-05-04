@@ -121,20 +121,22 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200" id="ordersTableBody">
                                 {% for order in orders %}
-                                <tr class="{% if order.status == 'cancelada' %}bg-red-50 hover:bg-red-100{% else %}hover:bg-gray-50{% endif %} transition-colors order-row"
+                                <tr class="{% if order.status == 'cancelada' %}bg-red-50 hover:bg-red-100{% elif order.status == 'cortesia' %}bg-purple-50 hover:bg-purple-100{% else %}hover:bg-gray-50{% endif %} transition-colors order-row"
                                     data-search="{{ order.cliente_nome|lower|default:'' }} {{ order.numero }} {{ order.id }}"
                                     data-date="{{ order.created_at|date:'Y-m-d' }}">
 
                                     <!-- Comanda -->
                                     <td class="w-52 px-4 py-4">
                                         <div class="flex items-center">
-                                            <div class="w-10 h-10 {% if order.status == 'cancelada' %}bg-gradient-to-r from-red-500 to-red-600{% else %}bg-gradient-to-r from-green-500 to-emerald-500{% endif %} rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                            <div class="w-10 h-10 {% if order.status == 'cancelada' %}bg-gradient-to-r from-red-500 to-red-600{% elif order.status == 'cortesia' %}bg-gradient-to-r from-purple-500 to-purple-600{% else %}bg-gradient-to-r from-green-500 to-emerald-500{% endif %} rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                                 #
                                             </div>
                                             <div class="ml-3 min-w-0 flex-1">
                                                 <div class="text-sm font-bold text-gray-900 truncate">#{{ order.numero }}</div>
                                                 {% if order.status == 'cancelada' %}
                                                 <span class="inline-flex items-center px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded">CANCELADA</span>
+                                                {% elif order.status == 'cortesia' %}
+                                                <span class="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded">CORTESIA</span>
                                                 {% endif %}
                                                 <div class="text-xs text-gray-400 truncate">{{ order.cliente_nome|default:"Sem nome" }}</div>
                                                 <div class="text-xs text-gray-300 truncate">ID: {{ order.id }}</div>
@@ -167,6 +169,11 @@
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-lg">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                                 Cancelado
+                                            </span>
+                                        {% elif order.status == 'cortesia' %}
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+                                                Cortesia
                                             </span>
                                         {% elif order.checkout.payment_method == 'parcial' %}
                                             <div class="space-y-1">
@@ -216,7 +223,7 @@
 
                                     <!-- Total -->
                                     <td class="w-32 px-4 py-4 text-right">
-                                        <div class="text-base font-bold {% if order.status == 'cancelada' %}text-red-500 line-through{% else %}text-green-600{% endif %}">
+                                        <div class="text-base font-bold {% if order.status == 'cancelada' %}text-red-500 line-through{% elif order.status == 'cortesia' %}text-purple-500 line-through{% else %}text-green-600{% endif %}">
                                             R$ {{ order.total_amount|floatformat:2 }}
                                         </div>
                                     </td>

@@ -87,17 +87,28 @@
                 </button>
                 {% endif %}
 
-                <!-- Botão de Cancelar Comanda -->
+                <!-- Botões de Cancelar Comanda e Cortesia -->
                 {% if perms.orders.change_order or request.user.is_superuser %}
-                <button type="button" onclick="abrirModalCancelarComanda()"
-                    class="w-full mt-2 flex items-center justify-center py-3 px-4 rounded-xl shadow text-base font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style="background-color:#dc2626;color:#ffffff;border:2px solid #b91c1c;"
-                    onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    CANCELAR COMANDA
-                </button>
+                <div class="w-full mt-2 flex gap-2">
+                    <button type="button" onclick="abrirModalCancelarComanda()"
+                        class="flex-1 flex items-center justify-center py-3 px-3 rounded-xl shadow text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style="background-color:#dc2626;color:#ffffff;border:2px solid #b91c1c;"
+                        onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        CANCELAR
+                    </button>
+                    <button type="button" onclick="abrirModalCortesia()"
+                        class="flex-1 flex items-center justify-center py-3 px-3 rounded-xl shadow text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style="background-color:#7c3aed;color:#ffffff;border:2px solid #6d28d9;"
+                        onmouseover="this.style.backgroundColor='#6d28d9'" onmouseout="this.style.backgroundColor='#7c3aed'">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                        </svg>
+                        CORTESIA
+                    </button>
+                </div>
                 {% endif %}
 
             </div>
@@ -352,6 +363,51 @@
     </div>
 </div>
 
+<!-- Modal de Cortesia -->
+<div id="modalCortesia" class="fixed inset-0 z-[60] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-all p-6 relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-purple-700 flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                </svg>
+                Registrar Cortesia
+            </h3>
+            <button type="button" onclick="fecharModalCortesia()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <p class="text-gray-600 text-sm mb-1">Comanda:</p>
+        <p class="text-lg text-purple-600 font-bold mb-3">#{{ comanda.numero }}</p>
+        <p class="text-sm text-gray-500 mb-4">A comanda será finalizada como cortesia. O valor <strong>não será lançado</strong> no financeiro.</p>
+
+        <form id="formCortesia" method="POST" action="{% url 'orders:cortesia_comanda' comanda.numero %}">
+            {% csrf_token %}
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="observacao_cortesia">Observação <span class="text-red-500">*</span></label>
+            <textarea id="observacao_cortesia" name="observacao_cortesia" rows="3" required
+                class="shadow-sm border border-gray-300 appearance-none rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                placeholder="Exemplo: Cliente especial, brinde, degustação..."></textarea>
+
+            <div class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                <button type="button" onclick="fecharModalCortesia()"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition-colors border border-gray-200">
+                    Voltar
+                </button>
+                <button type="submit"
+                    class="w-full sm:w-auto px-6 py-2.5 font-bold rounded-lg shadow-sm transition-transform transform hover:scale-105 flex justify-center items-center gap-2"
+                    style="background-color:#7c3aed;color:#ffffff;border:none;"
+                    onmouseover="this.style.backgroundColor='#6d28d9'" onmouseout="this.style.backgroundColor='#7c3aed'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Confirmar Cortesia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     let currentEditingPedidoId = null;
 
@@ -418,6 +474,16 @@
     function fecharModalCancelarComanda() {
         document.getElementById('modalCancelarComanda').classList.add('hidden');
         document.getElementById('motivo_cancelamento_comanda').value = '';
+    }
+
+    function abrirModalCortesia() {
+        document.getElementById('modalCortesia').classList.remove('hidden');
+        document.getElementById('observacao_cortesia').value = '';
+    }
+
+    function fecharModalCortesia() {
+        document.getElementById('modalCortesia').classList.add('hidden');
+        document.getElementById('observacao_cortesia').value = '';
     }
 
     function abrirModalCancelar(pedidoId, pedidoSeq) {

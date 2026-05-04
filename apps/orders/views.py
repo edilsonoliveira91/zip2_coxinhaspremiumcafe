@@ -778,7 +778,7 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
         self._date_from = date_from
         self._date_to   = date_to
         return Comanda.objects.filter(
-            status__in=['fechada', 'cancelada'],
+            status__in=['fechada', 'cancelada', 'cortesia'],
             updated_at__date__gte=date_from,
             updated_at__date__lte=date_to,
         ).select_related('checkout').prefetch_related(
@@ -798,7 +798,7 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
 
         # Estatísticas filtradas pelo mesmo período
         total_finalizadas = Comanda.objects.filter(
-            status__in=['fechada', 'cancelada'],
+            status__in=['fechada', 'cancelada', 'cortesia'],
             updated_at__date__gte=date_from,
             updated_at__date__lte=date_to,
         ).count()
@@ -1847,6 +1847,44 @@ class CancelarComandaView(LoginRequiredMixin, View):
 
         messages.warning(request, f'Comanda #{numero} foi cancelada.')
         return redirect('accounts:dashboard')
+
+
+class CortesiaComandaView(LoginRequiredMixin, View):
+    """
+    Finaliza uma comanda como cortesia: registra observação, cancela pedidos ativos,
+    mas NÃO gera fluxo de caixa nem registra no financeiro.
+    """
+    def post(self, request, numero):
+        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+            messages.error(request, 'Sem permissão para registrar cortesia.')
+            return redirect('orders:comanda_detail', numero=numero)
+
+        comanda = Comanda.objects.filter(numero=numero, status='em_uso').order_by('-created_at').first()
+        if not comanda:
+            messages.error(request, 'Comanda não encontrada ou não está em uso.')
+            return redirect('accounts:dashboard')
+
+        observacao = request.POST.get('observacao_cortesia', '').strip()
+        if not observacao:
+            messages.error(request, 'A observação é obrigatória para registrar cortesia.')
+            return redirect('orders:comanda_detail', numero=numero)
+
+        with transaction.atomic():
+            comanda.status = 'cortesia'
+            comanda.motivo_cancelamento = observacao
+            comanda.save()
+
+            # Cancela todos os pedidos ativos
+            for pedido in comanda.pedidos.filter(
+                status__in=['aguardando', 'preparando', 'pronta']
+            ):
+                pedido.status = 'cancelado'
+                pedido.observations = f"[CORTESIA - {observacao}] {pedido.observations or ''}"
+                pedido.save()
+
+        messages.success(request, f'Comanda #{numero} registrada como cortesia.')
+        return redirect('accounts:dashboard')
+
 
 class CancelarPedidoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """

@@ -14,6 +14,7 @@ class Comanda(TimeStampedModel):
         ('em_uso', 'Em Uso'),
         ('fechada', 'Fechada'),
         ('cancelada', 'Cancelada'),
+        ('cortesia', 'Cortesia'),
     ]
 
     numero = models.CharField(
