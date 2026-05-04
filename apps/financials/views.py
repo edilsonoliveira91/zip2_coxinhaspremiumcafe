@@ -112,11 +112,8 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         px_total, px_count = _sum_method('pix')
         payment_stats['pix'] = {'total': px_total, 'count': px_count, 'label': 'PIX', 'icon': '📱', 'color': 'orange'}
 
-        vch_total, vch_count = _sum_method('voucher')
-        payment_stats['voucher'] = {'total': vch_total, 'count': vch_count, 'label': 'Voucher', 'icon': '🎟️', 'color': 'yellow'}
-        
         # Total geral
-        total_receita = (checkouts.aggregate(total=Sum('total'))['total'] or Decimal('0.00')) + valor_inicial - total_sangrias
+        total_receita = (checkouts.aggregate(total=Sum('total'))['total'] or Decimal('0.00')) - total_sangrias
         total_comandas = checkouts.count()
         
         # ===== LISTA COMBINADA DE COMANDAS E SANGRIAS =====
@@ -487,20 +484,32 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         valor_inicial = SystemConfig.get_settings().troco_inicial
 
         total_entradas = total_dinheiro + total_debito + total_credito + total_pix
-        total_final    = valor_inicial + total_entradas - total_sangrias
+        total_final    = total_entradas - total_sangrias
+
+        from orders.models import Comanda
+        canceladas_qs = Comanda.objects.filter(status='cancelada', updated_at__date=selected_date)
+        cortesias_qs  = Comanda.objects.filter(status='cortesia',  updated_at__date=selected_date)
+        total_canceladas = canceladas_qs.aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
+        qtd_canceladas   = canceladas_qs.count()
+        total_cortesias  = cortesias_qs.aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
+        qtd_cortesias    = cortesias_qs.count()
 
         context.update({
-            'selected_date':   selected_date.strftime('%Y-%m-%d'),
+            'selected_date':     selected_date.strftime('%Y-%m-%d'),
             'selected_date_fmt': selected_date.strftime('%d/%m/%Y'),
-            'valor_inicial':   valor_inicial,
-            'total_dinheiro':  total_dinheiro,
-            'total_debito':    total_debito,
-            'total_credito':   total_credito,
-            'total_pix':       total_pix,
-            'total_sangrias':  total_sangrias,
-            'total_entradas':  total_entradas,
-            'total_final':     total_final,
-            'total_comandas':  checkouts.count(),
+            'valor_inicial':     valor_inicial,
+            'total_dinheiro':    total_dinheiro,
+            'total_debito':      total_debito,
+            'total_credito':     total_credito,
+            'total_pix':         total_pix,
+            'total_sangrias':    total_sangrias,
+            'total_entradas':    total_entradas,
+            'total_final':       total_final,
+            'total_comandas':    checkouts.count(),
+            'total_canceladas':  total_canceladas,
+            'qtd_canceladas':    qtd_canceladas,
+            'total_cortesias':   total_cortesias,
+            'qtd_cortesias':     qtd_cortesias,
         })
         return context
 
@@ -546,18 +555,30 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         total_pix      = _soma('pix')
         total_sangrias = sangrias_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
         total_entradas = total_dinheiro + total_debito + total_credito + total_pix
-        total_final    = valor_inicial + total_entradas - total_sangrias
+        total_final    = total_entradas - total_sangrias
+
+        from orders.models import Comanda
+        canceladas_qs = Comanda.objects.filter(status='cancelada', updated_at__date=date)
+        cortesias_qs  = Comanda.objects.filter(status='cortesia',  updated_at__date=date)
+        total_canceladas = canceladas_qs.aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
+        qtd_canceladas   = canceladas_qs.count()
+        total_cortesias  = cortesias_qs.aggregate(t=Sum('total_amount'))['t'] or Decimal('0.00')
+        qtd_cortesias    = cortesias_qs.count()
 
         return {
-            'valor_inicial':  valor_inicial,
-            'total_dinheiro': total_dinheiro,
-            'total_debito':   total_debito,
-            'total_credito':  total_credito,
-            'total_pix':      total_pix,
-            'total_sangrias': total_sangrias,
-            'total_entradas': total_entradas,
-            'total_final':    total_final,
-            'total_comandas': checkouts.count(),
+            'valor_inicial':    valor_inicial,
+            'total_dinheiro':   total_dinheiro,
+            'total_debito':     total_debito,
+            'total_credito':    total_credito,
+            'total_pix':        total_pix,
+            'total_sangrias':   total_sangrias,
+            'total_entradas':   total_entradas,
+            'total_final':      total_final,
+            'total_comandas':   checkouts.count(),
+            'total_canceladas': total_canceladas,
+            'qtd_canceladas':   qtd_canceladas,
+            'total_cortesias':  total_cortesias,
+            'qtd_cortesias':    qtd_cortesias,
         }
 
     def get_context_data(self, **kwargs):
@@ -607,7 +628,7 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
         total_pix      = _soma('pix')
         total_sangrias = sangrias_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
         total_entradas = total_dinheiro + total_debito + total_credito + total_pix
-        total_final    = valor_inicial + total_entradas - total_sangrias
+        total_final    = total_entradas - total_sangrias
 
         observacao = request.POST.get('observacao', '').strip()
 

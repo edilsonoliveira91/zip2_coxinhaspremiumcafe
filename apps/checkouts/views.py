@@ -319,6 +319,27 @@ class FechamentoCaixaView(LoginRequiredMixin, View):
             context['totais_por_metodo'] = sessao_aberta.totais_por_metodo()
             context['total_sessao'] = sessao_aberta.total()
 
+            # Totais de canceladas e cortesias no período da sessão
+            from orders.models import Comanda
+            from django.utils import timezone
+            from django.db.models import Sum
+            fim = sessao_aberta.fechada_em or timezone.now()
+
+            canceladas_qs = Comanda.objects.filter(
+                status='cancelada',
+                updated_at__gte=sessao_aberta.aberta_em,
+                updated_at__lte=fim,
+            )
+            cortesias_qs = Comanda.objects.filter(
+                status='cortesia',
+                updated_at__gte=sessao_aberta.aberta_em,
+                updated_at__lte=fim,
+            )
+            context['total_canceladas'] = canceladas_qs.aggregate(t=Sum('total_amount'))['t'] or 0
+            context['qtd_canceladas'] = canceladas_qs.count()
+            context['total_cortesias'] = cortesias_qs.aggregate(t=Sum('total_amount'))['t'] or 0
+            context['qtd_cortesias'] = cortesias_qs.count()
+
         return render(request, self.template_name, context)
 
 

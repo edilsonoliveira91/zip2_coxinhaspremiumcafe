@@ -2,6 +2,11 @@
 <!-- ═══════════════════════════════════════════════════
      MOBILE BOTTOM NAVBAR — apenas em telas < md (768px)
 ════════════════════════════════════════════════════ -->
+<style>
+@media (min-width: 768px) {
+  #mob-bottombar { display: none !important; }
+}
+</style>
 
 <!-- Overlay escuro -->
 <div id="mob-overlay"
@@ -322,11 +327,11 @@
 
 <!-- ───── Barra inferior fixa (apenas mobile) ───── -->
 <nav id="mob-bottombar"
-     class="md:hidden"
+     class="flex"
      style="position:fixed;bottom:0;left:0;right:0;
             background:#fff;border-top:1px solid #e5e7eb;
             box-shadow:0 -2px 12px rgba(0,0,0,.08);
-            display:flex;align-items:stretch;z-index:99;
+            align-items:stretch;z-index:99;
             padding-bottom:env(safe-area-inset-bottom,0);">
 
   <!-- Início -->

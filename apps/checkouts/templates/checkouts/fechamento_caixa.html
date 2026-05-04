@@ -87,6 +87,32 @@
 
             </div>
 
+            <!-- Canceladas e Cortesias -->
+            {% if qtd_canceladas or qtd_cortesias %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {% if qtd_canceladas %}
+                <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <span class="text-xs font-semibold text-red-700 uppercase tracking-wide">Canceladas</span>
+                    </div>
+                    <p class="text-2xl font-bold text-red-700">R$ {{ total_canceladas|floatformat:2 }}</p>
+                    <p class="text-xs text-red-400 mt-1">{{ qtd_canceladas }} comanda{{ qtd_canceladas|pluralize }} — não entra no caixa</p>
+                </div>
+                {% endif %}
+                {% if qtd_cortesias %}
+                <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+                        <span class="text-xs font-semibold text-purple-700 uppercase tracking-wide">Cortesia</span>
+                    </div>
+                    <p class="text-2xl font-bold text-purple-700">R$ {{ total_cortesias|floatformat:2 }}</p>
+                    <p class="text-xs text-purple-400 mt-1">{{ qtd_cortesias }} comanda{{ qtd_cortesias|pluralize }} — não entra no caixa</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Total Geral -->
             {% if totais_por_metodo %}
             <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-orange-50 to-pink-50 border border-orange-200 rounded-2xl">

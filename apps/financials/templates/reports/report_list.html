@@ -130,6 +130,34 @@
             <span style="font-size:14px;font-weight:800;color:#15803d;">R$ {{ total_entradas|floatformat:2 }}</span>
           </div>
 
+          {% if qtd_canceladas %}
+          <!-- Canceladas -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#dc2626;">X</div>
+              <div>
+                <span style="font-size:14px;font-weight:500;color:#374151;">Canceladas</span>
+                <div style="font-size:11px;color:#f87171;">{{ qtd_canceladas }} comanda{{ qtd_canceladas|pluralize }} — não entra no caixa</div>
+              </div>
+            </div>
+            <div style="font-size:15px;font-weight:700;color:#dc2626;">R$ {{ total_canceladas|floatformat:2 }}</div>
+          </div>
+          {% endif %}
+
+          {% if qtd_cortesias %}
+          <!-- Cortesia -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #f9fafb;background:#faf5ff;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:#ede9fe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#7c3aed;">C</div>
+              <div>
+                <span style="font-size:14px;font-weight:500;color:#374151;">Cortesia</span>
+                <div style="font-size:11px;color:#c084fc;">{{ qtd_cortesias }} comanda{{ qtd_cortesias|pluralize }} — não entra no caixa</div>
+              </div>
+            </div>
+            <div style="font-size:15px;font-weight:700;color:#7c3aed;">R$ {{ total_cortesias|floatformat:2 }}</div>
+          </div>
+          {% endif %}
+
         </div>
 
         <!-- Sangria -->
@@ -168,16 +196,20 @@
 <!-- JS dados para impressão -->
 <script>
 const EXTRATO_DATA = {
-  data:          "{{ selected_date_fmt }}",
-  total_cmd:     {{ total_comandas }},
-  valor_inicial: "{{ valor_inicial|floatformat:2 }}",
-  dinheiro:      "{{ total_dinheiro|floatformat:2 }}",
-  debito:        "{{ total_debito|floatformat:2 }}",
-  credito:       "{{ total_credito|floatformat:2 }}",
-  pix:           "{{ total_pix|floatformat:2 }}",
-  entradas:      "{{ total_entradas|floatformat:2 }}",
-  sangrias:      "{{ total_sangrias|floatformat:2 }}",
-  total_final:   "{{ total_final|floatformat:2 }}",
+  data:              "{{ selected_date_fmt }}",
+  total_cmd:         {{ total_comandas }},
+  valor_inicial:     "{{ valor_inicial|floatformat:2 }}",
+  dinheiro:          "{{ total_dinheiro|floatformat:2 }}",
+  debito:            "{{ total_debito|floatformat:2 }}",
+  credito:           "{{ total_credito|floatformat:2 }}",
+  pix:               "{{ total_pix|floatformat:2 }}",
+  entradas:          "{{ total_entradas|floatformat:2 }}",
+  sangrias:          "{{ total_sangrias|floatformat:2 }}",
+  total_final:       "{{ total_final|floatformat:2 }}",
+  qtd_canceladas:    {{ qtd_canceladas }},
+  total_canceladas:  "{{ total_canceladas|floatformat:2 }}",
+  qtd_cortesias:     {{ qtd_cortesias }},
+  total_cortesias:   "{{ total_cortesias|floatformat:2 }}",
 };
 
 function fmt(label, valor, sinal) {
@@ -216,6 +248,14 @@ function buildEscPos(d) {
     fmt('PIX', d.pix, '+ '),
     SEP,
     fmt('TOTAL ENTRADAS', d.entradas, ''),
+    ...(d.qtd_canceladas > 0 ? [
+      '',
+      '--- INFORMATIVO ---',
+      fmt('Canceladas (' + d.qtd_canceladas + ')', d.total_canceladas, ''),
+    ] : []),
+    ...(d.qtd_cortesias > 0 ? [
+      fmt('Cortesia (' + d.qtd_cortesias + ')', d.total_cortesias, ''),
+    ] : []),
     '',
     '--- SAIDAS ---',
     fmt('Sangria', d.sangrias, '- '),

@@ -223,7 +223,7 @@
 
                                     <!-- Total -->
                                     <td class="w-32 px-4 py-4 text-right">
-                                        <div class="text-base font-bold {% if order.status == 'cancelada' %}text-red-500 line-through{% elif order.status == 'cortesia' %}text-purple-500 line-through{% else %}text-green-600{% endif %}">
+                                        <div class="text-base font-bold {% if order.status == 'cancelada' %}text-red-500 line-through{% elif order.status == 'cortesia' %}text-purple-600{% else %}text-green-600{% endif %}">
                                             R$ {{ order.total_amount|floatformat:2 }}
                                         </div>
                                     </td>

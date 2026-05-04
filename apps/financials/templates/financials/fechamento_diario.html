@@ -86,6 +86,26 @@
             <span style="font-size:13px;font-weight:800;color:#15803d;">R$ {{ e.total_entradas|floatformat:2 }}</span>
           </div>
 
+          {% if e.qtd_canceladas %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
+            <div>
+              <span style="font-size:13px;color:#374151;">Canceladas</span>
+              <span style="font-size:11px;color:#f87171;margin-left:6px;">{{ e.qtd_canceladas }} comanda{{ e.qtd_canceladas|pluralize }} — não entra no caixa</span>
+            </div>
+            <span style="font-size:13px;font-weight:600;color:#dc2626;">R$ {{ e.total_canceladas|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if e.qtd_cortesias %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#faf5ff;">
+            <div>
+              <span style="font-size:13px;color:#374151;">Cortesia</span>
+              <span style="font-size:11px;color:#c084fc;margin-left:6px;">{{ e.qtd_cortesias }} comanda{{ e.qtd_cortesias|pluralize }} — não entra no caixa</span>
+            </div>
+            <span style="font-size:13px;font-weight:600;color:#7c3aed;">R$ {{ e.total_cortesias|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
           {% if e.total_sangrias > 0 %}
           <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
             <span style="font-size:13px;color:#374151;">Sangria</span>

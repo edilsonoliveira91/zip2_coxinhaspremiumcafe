@@ -88,7 +88,7 @@
                 {% endif %}
 
                 <!-- Botões de Cancelar Comanda e Cortesia -->
-                {% if perms.orders.change_order or request.user.is_superuser %}
+                {% if request.user.is_caixa or request.user.is_superuser %}
                 <div class="w-full mt-2 flex gap-2">
                     <button type="button" onclick="abrirModalCancelarComanda()"
                         class="flex-1 flex items-center justify-center py-3 px-3 rounded-xl shadow text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
