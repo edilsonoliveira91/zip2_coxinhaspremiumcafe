@@ -703,6 +703,12 @@ class NoStockListView(LoginRequiredMixin, TemplateView):
 
         context = super().get_context_data(**kwargs)
 
+        # Parâmetro de mínimo de estoque (padrão = 0 → só sem estoque)
+        try:
+            minimo = int(self.request.GET.get('minimo', 0))
+        except (ValueError, TypeError):
+            minimo = 0
+
         # Subquery: saídas em andamento (pedidos não entregues)
         active_items_qs = (
             PedidoItem.objects
@@ -729,12 +735,13 @@ class NoStockListView(LoginRequiredMixin, TemplateView):
                     output_field=IntegerField()
                 )
             )
-            .filter(saldo__lte=0)
+            .filter(saldo__lte=minimo)
             .order_by('category', 'name')
         )
 
         context['produtos'] = produtos
         context['total'] = produtos.count()
+        context['minimo'] = minimo
         return context
 
 

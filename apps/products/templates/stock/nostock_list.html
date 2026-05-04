@@ -19,18 +19,25 @@
                             </svg>
                         </a>
                         <div>
+                            {% if minimo > 0 %}
+                            <h1 class="text-3xl font-bold text-gray-900">Estoque Baixo</h1>
+                            <p class="mt-1 text-sm text-gray-600">Produtos com saldo igual ou abaixo de <strong>{{ minimo }}</strong> unidade{{ minimo|pluralize }}</p>
+                            {% else %}
                             <h1 class="text-3xl font-bold text-gray-900">Produtos Sem Estoque</h1>
                             <p class="mt-1 text-sm text-gray-600">Produtos com saldo atual zerado ou negativo</p>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="flex items-center gap-4">
                         <!-- Badge contador -->
-                        <div class="flex items-center gap-2 bg-red-50 border border-red-200 px-5 py-2.5 rounded-2xl">
-                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 px-5 py-2.5 rounded-2xl border
+                            {% if minimo > 0 %}bg-amber-50 border-amber-200{% else %}bg-red-50 border-red-200{% endif %}">
+                            <svg class="w-5 h-5 {% if minimo > 0 %}text-amber-500{% else %}text-red-500{% endif %}"
+                                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                             </svg>
-                            <span class="text-red-700 font-bold text-lg">{{ total }}</span>
-                            <span class="text-red-600 text-sm font-medium">produto{{ total|pluralize }}</span>
+                            <span class="font-bold text-lg {% if minimo > 0 %}text-amber-700{% else %}text-red-700{% endif %}">{{ total }}</span>
+                            <span class="text-sm font-medium {% if minimo > 0 %}text-amber-600{% else %}text-red-600{% endif %}">produto{{ total|pluralize }}</span>
                         </div>
                         <a href="{% url 'products:stock_create' %}"
                            class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg">
@@ -41,6 +48,28 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- Barra de filtro de mínimo -->
+                <div class="mt-4 flex items-center gap-3">
+                    <form method="get" class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-600 whitespace-nowrap">Estoque mínimo:</label>
+                        <input type="number" name="minimo" min="1" value="{{ minimo|default:'' }}"
+                               placeholder="ex: 5"
+                               style="width:90px;border:1px solid #d1d5db;border-radius:10px;padding:6px 10px;font-size:14px;outline:none;"
+                               onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#d1d5db'">
+                        <button type="submit"
+                                style="background:linear-gradient(to right,#f97316,#ec4899);color:#fff;padding:6px 16px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">
+                            Filtrar
+                        </button>
+                    </form>
+                    {% if minimo > 0 %}
+                    <a href="{% url 'products:nostock_list' %}"
+                       style="background:#fee2e2;color:#b91c1c;padding:6px 16px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;border:1px solid #fca5a5;">
+                        Sem Estoque
+                    </a>
+                    {% endif %}
+                </div>
+
             </div>
         </div>
 
@@ -54,16 +83,26 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
+                {% if minimo > 0 %}
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Todos acima do mínimo!</h2>
+                <p class="text-gray-500">Nenhum produto com saldo igual ou abaixo de {{ minimo }}.</p>
+                {% else %}
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">Tudo em estoque!</h2>
                 <p class="text-gray-500">Nenhum produto com saldo zerado no momento.</p>
+                {% endif %}
             </div>
 
             {% else %}
             <!-- Tabela -->
             <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    {% if minimo > 0 %}
+                    <h2 class="text-base font-semibold text-gray-700">Produtos com estoque baixo (&le; {{ minimo }})</h2>
+                    <span class="text-xs text-gray-400">Considere repor antes de acabar</span>
+                    {% else %}
                     <h2 class="text-base font-semibold text-gray-700">Produtos bloqueados para venda</h2>
                     <span class="text-xs text-gray-400">Reponha o estoque para liberar as vendas</span>
+                    {% endif %}
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -80,11 +119,14 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
                             {% for p in produtos %}
-                            <tr class="hover:bg-red-50/40 transition-colors">
+                            <tr class="transition-colors
+                                {% if p.saldo <= 0 %}hover:bg-red-50/40{% else %}hover:bg-amber-50/40{% endif %}">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                                            {% if p.saldo <= 0 %}bg-red-100{% else %}bg-amber-100{% endif %}">
+                                            <svg class="w-4 h-4 {% if p.saldo <= 0 %}text-red-500{% else %}text-amber-500{% endif %}"
+                                                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                             </svg>
                                         </div>
@@ -99,7 +141,9 @@
                                 <td class="px-6 py-4 text-right font-medium text-amber-600">{{ p.saidas_ativas }}</td>
                                 <td class="px-6 py-4 text-right">
                                     <span class="inline-flex items-center justify-center px-3 py-1 rounded-xl text-sm font-bold
-                                        {% if p.saldo < 0 %}bg-red-100 text-red-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                                        {% if p.saldo < 0 %}bg-red-100 text-red-700
+                                        {% elif p.saldo == 0 %}bg-orange-100 text-orange-700
+                                        {% else %}bg-amber-100 text-amber-700{% endif %}">
                                         {{ p.saldo }}
                                     </span>
                                 </td>
