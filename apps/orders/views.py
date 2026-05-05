@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.http import HttpResponse, JsonResponse
@@ -2029,13 +2029,15 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
 
 
 
-class ImprimirComandaView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Imprime cupom completo da comanda (todos os pedidos/itens) via RawBT para Epson
-    Requer a mesma permissão do botão de fechar comanda.
+    Requer is_caixa ou is_superuser.
     """
-    permission_required = 'checkouts.add_checkout'
     login_url = '/accounts/login/'
+
+    def test_func(self):
+        return self.request.user.is_caixa or self.request.user.is_superuser
 
     def get(self, request, numero=None, pk=None):
         # Quando chamado por PK (reimpressão da lista de finalizadas), busca pelo ID exato

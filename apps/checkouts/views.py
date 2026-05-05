@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Sum, Avg, Q
 from django.http import HttpResponse, JsonResponse
 from django.views import View
@@ -120,11 +120,12 @@ class CheckoutOrderPrintView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         except Exception as e:
             return HttpResponse(f"<h1>Erro ao carregar comanda</h1><p>Erro: {str(e)}</p>")
 
-class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     API para finalizar comanda e processar pagamento
     """
-    permission_required = 'checkouts.add_checkout'
+    def test_func(self):
+        return self.request.user.is_caixa or self.request.user.is_superuser
     
     def post(self, request, code):
         try:
@@ -227,12 +228,13 @@ class CheckoutFinalizeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)
 
 
-class AlterarMetodoPagamentoView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Altera o método de pagamento de um Checkout já finalizado.
-    Requer permissão de add_checkout (mesma do caixa).
+    Requer is_caixa ou is_superuser.
     """
-    permission_required = 'checkouts.add_checkout'
+    def test_func(self):
+        return self.request.user.is_caixa or self.request.user.is_superuser
 
     def post(self, request, code):
         try:
