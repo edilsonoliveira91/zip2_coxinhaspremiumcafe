@@ -256,24 +256,27 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
             if novo_metodo not in metodos_validos:
                 return JsonResponse({'success': False, 'message': 'Método de pagamento inválido.'}, status=400)
 
-            metodo_antigo = checkout.get_payment_method_display()
-            nova_nota = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {dict(Checkout.PAYMENT_METHOD_CHOICES).get(novo_metodo, novo_metodo)}'
+            metodo_antigo = checkout.payment_method
+            nova_nota = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {novo_metodo}'
 
-            # Atualização direta no banco (garante persistência)
-            Checkout.objects.filter(pk=checkout.pk).update(
-                payment_method=novo_metodo,
-                notes=nova_nota,
-            )
+            from checkouts.models import CheckoutPayment
 
-            # Sincroniza CheckoutPayment com o novo método (somente para checkouts não-parciais)
-            if novo_metodo != 'parcial':
-                from checkouts.models import CheckoutPayment
-                checkout.payments.all().delete()
-                CheckoutPayment.objects.create(
-                    checkout=checkout,
+            with transaction.atomic():
+                rows = Checkout.objects.filter(pk=checkout.pk).update(
                     payment_method=novo_metodo,
-                    amount=checkout.total,
+                    notes=nova_nota,
                 )
+                if rows == 0:
+                    return JsonResponse({'success': False, 'message': 'Checkout não encontrado no banco.'}, status=404)
+
+                # Sincroniza CheckoutPayment com o novo método (somente para checkouts não-parciais)
+                if novo_metodo != 'parcial':
+                    CheckoutPayment.objects.filter(checkout=checkout).delete()
+                    CheckoutPayment.objects.create(
+                        checkout_id=checkout.pk,
+                        payment_method=novo_metodo,
+                        amount=checkout.total,
+                    )
 
             display_novo = dict(Checkout.PAYMENT_METHOD_CHOICES).get(novo_metodo, novo_metodo)
             return JsonResponse({
@@ -282,7 +285,8 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
                 'payment_method_display': display_novo,
             })
         except Exception as e:
-            return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)
+            import traceback
+            return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}', 'detail': traceback.format_exc()}, status=500)
 
 
 class FechamentoCaixaView(LoginRequiredMixin, View):
