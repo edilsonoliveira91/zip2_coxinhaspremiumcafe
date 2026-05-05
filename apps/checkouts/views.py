@@ -233,6 +233,8 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
     Altera o método de pagamento de um Checkout já finalizado.
     Requer is_caixa ou is_superuser.
     """
+    raise_exception = True
+
     def test_func(self):
         return self.request.user.is_caixa or self.request.user.is_superuser
 
@@ -255,12 +257,15 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
                 return JsonResponse({'success': False, 'message': 'Método de pagamento inválido.'}, status=400)
 
             metodo_antigo = checkout.get_payment_method_display()
-            checkout.payment_method = novo_metodo
-            checkout.notes = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {checkout.get_payment_method_display()}'
-            checkout.save(update_fields=['payment_method', 'notes'])
+            nova_nota = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {dict(Checkout.PAYMENT_METHOD_CHOICES).get(novo_metodo, novo_metodo)}'
+
+            # Atualização direta no banco (garante persistência)
+            Checkout.objects.filter(pk=checkout.pk).update(
+                payment_method=novo_metodo,
+                notes=nova_nota,
+            )
 
             # Sincroniza CheckoutPayment com o novo método (somente para checkouts não-parciais)
-            # Para checkouts parciais, os registros individuais permanecem intactos.
             if novo_metodo != 'parcial':
                 from checkouts.models import CheckoutPayment
                 checkout.payments.all().delete()
@@ -270,10 +275,11 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
                     amount=checkout.total,
                 )
 
+            display_novo = dict(Checkout.PAYMENT_METHOD_CHOICES).get(novo_metodo, novo_metodo)
             return JsonResponse({
                 'success': True,
-                'message': f'Método de pagamento alterado para {checkout.get_payment_method_display()}.',
-                'payment_method_display': checkout.get_payment_method_display(),
+                'message': f'Método de pagamento alterado para {display_novo}.',
+                'payment_method_display': display_novo,
             })
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Erro interno: {str(e)}'}, status=500)
