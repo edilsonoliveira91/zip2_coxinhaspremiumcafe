@@ -406,12 +406,11 @@ async function confirmarAlteracaoPagamento() {
         const data = await resp.json();
         if (data.success) {
             fecharModalPagamento();
-            // pequena notificação inline
             const toast = document.createElement('div');
             toast.className = 'fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium';
             toast.textContent = data.message;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            setTimeout(() => { toast.remove(); location.reload(); }, 1500);
         } else {
             erroEl.textContent = data.message;
             erroEl.classList.remove('hidden');
