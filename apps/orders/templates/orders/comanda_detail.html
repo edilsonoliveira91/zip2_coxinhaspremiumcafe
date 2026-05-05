@@ -66,7 +66,7 @@
                 </a>
 
                 <!-- Botão de Finalizar Comanda no Caixa -->
-                {% if perms.checkouts.add_checkout or request.user.is_superuser %}
+                {% if request.user.is_caixa or request.user.is_superuser %}
                 <button type="button" onclick="abrirModalFinalizar()"
                     class="w-full mt-3 flex items-center justify-center py-4 px-4 rounded-xl shadow-lg text-lg font-bold text-white bg-blue-500 border-2 border-blue-600 hover:bg-blue-600 transition-all hover:scale-[1.02] active:scale-[0.98]">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +77,7 @@
                 {% endif %}
 
                 <!-- Botão de Imprimir Comanda (mesmo guard do Fechar Comanda) -->
-                {% if perms.checkouts.add_checkout or request.user.is_superuser %}
+                {% if request.user.is_caixa or request.user.is_superuser %}
                 <button id="btn-imprimir-comanda" onclick="imprimirComanda()"
                     class="w-full mt-2 flex items-center justify-center py-3 px-4 rounded-xl shadow text-base font-bold text-white bg-orange-500 border-2 border-orange-600 hover:bg-orange-600 transition-all hover:scale-[1.02] active:scale-[0.98]">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
