@@ -17,7 +17,7 @@ urlpatterns = [
     
     # API de finalização - DESCOMENTADO e CORRIGIDO
     path('finalize/<str:code>/', views.CheckoutFinalizeView.as_view(), name='finalize'),
-    path('alterar-pagamento/<str:code>/', views.AlterarMetodoPagamentoView.as_view(), name='alterar_pagamento'),
+    path('alterar-pagamento/<int:pk>/', views.AlterarMetodoPagamentoView.as_view(), name='alterar_pagamento'),
     
     # URLs futuras para funcionalidades do checkout
     # path('orders/<str:code>/details/', views.CheckoutOrderDetailView.as_view(), name='order_detail'),

@@ -238,15 +238,10 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         return self.request.user.is_caixa or self.request.user.is_superuser
 
-    def post(self, request, code):
+    def post(self, request, pk):
         try:
-            # Busca a comanda fechada mais recente com esse número
-            comanda = Comanda.objects.filter(
-                numero=code, status='fechada'
-            ).order_by('-updated_at').first()
-            if not comanda:
-                return JsonResponse({'success': False, 'message': 'Comanda fechada não encontrada.'}, status=404)
-
+            # Busca pelo ID exato da comanda (pk é único, evita ambiguidade por numero)
+            comanda = get_object_or_404(Comanda, pk=pk, status='fechada')
             checkout = get_object_or_404(Checkout, comanda=comanda)
 
             data = json.loads(request.body)

@@ -260,7 +260,7 @@
                                           <!-- Alterar Pagamento -->
                                           {% if perms.checkouts.add_checkout or request.user.is_superuser %}
                                           <button type="button"
-                                            onclick="abrirModalPagamento('{{ order.numero }}', '{% if order.checkout %}{{ order.checkout.payment_method }}{% endif %}')"
+                                            onclick="abrirModalPagamento({{ order.id }}, '{{ order.numero }}', '{% if order.checkout %}{{ order.checkout.payment_method }}{% endif %}')"
                                             class="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
                                             title="Alterar método de pagamento">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,8 +370,8 @@
 <script>
 let _modalPagamentoComanda = null;
 
-function abrirModalPagamento(numero, metodoAtual) {
-    _modalPagamentoComanda = numero;
+function abrirModalPagamento(id, numero, metodoAtual) {
+    _modalPagamentoComanda = id;
     document.getElementById('modal-pagamento-comanda').textContent = '#' + numero;
     const sel = document.getElementById('modal-pagamento-select');
     if (metodoAtual) sel.value = metodoAtual;
