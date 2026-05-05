@@ -62,6 +62,21 @@
                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                         </div>
                     </div>
+                    <div class="flex-shrink-0 min-w-[160px]">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pagamento</label>
+                        <select name="metodo"
+                                class="w-full px-3 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                                style="height:50px;border-radius:0.75rem;-webkit-appearance:none;appearance:none;">
+                            <option value="" {% if not metodo_filter %}selected{% endif %}>Todos</option>
+                            <option value="dinheiro"      {% if metodo_filter == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                            <option value="cartao_debito" {% if metodo_filter == 'cartao_debito' %}selected{% endif %}>Cartão Débito</option>
+                            <option value="cartao_credito"{% if metodo_filter == 'cartao_credito' %}selected{% endif %}>Cartão Crédito</option>
+                            <option value="pix"           {% if metodo_filter == 'pix' %}selected{% endif %}>PIX</option>
+                            <option value="parcial"       {% if metodo_filter == 'parcial' %}selected{% endif %}>Parcial</option>
+                            <option value="cancelada"     {% if metodo_filter == 'cancelada' %}selected{% endif %}>Canceladas</option>
+                            <option value="cortesia"      {% if metodo_filter == 'cortesia' %}selected{% endif %}>Cortesia</option>
+                        </select>
+                    </div>
                     <div class="flex-1 min-w-0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Data inicio</label>
                         <input type="date" name="date_from" id="dateStart" value="{{ date_from }}"
@@ -307,26 +322,7 @@
                     </div>
                 </div>
 
-                <!-- Paginação -->
-                {% if is_paginated %}
-                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50/50">
-                    <div class="flex items-center justify-between">
-                        <div class="text-sm text-gray-700">
-                            Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ paginator.count }} comandas
-                        </div>
-                        <div class="flex space-x-2">
-                            {% if page_obj.has_previous %}
-                            <a href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}"
-                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Anterior</a>
-                            {% endif %}
-                            {% if page_obj.has_next %}
-                            <a href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}"
-                               class="px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600">Próximo</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+
 
             </div>
         </div>

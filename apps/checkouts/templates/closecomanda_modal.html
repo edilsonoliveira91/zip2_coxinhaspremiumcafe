@@ -528,7 +528,7 @@
     var inp = document.getElementById('valor-recebido');
     var recebido = parseFloat(inp ? inp.value : 0) || 0;
     if (recebido <= 0) return;
-    var valor = Math.min(recebido, state.restante + 0.009);
+    var valor = Math.min(recebido, state.restante);
     state.payments.push({method:'dinheiro', amount: parseFloat(valor.toFixed(2)), label:'Dinheiro'});
     mostrarStep(1);
     state.currentMethod = null;

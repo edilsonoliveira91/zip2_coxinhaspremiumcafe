@@ -760,8 +760,6 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
     model = Comanda
     template_name = 'orders/closed_orders_list.html'
     context_object_name = 'orders'
-    paginate_by = 20
-    
     def get_queryset(self):
         """Retorna comandas finalizadas e canceladas, filtradas por data (default hoje)"""
         today = timezone.localtime().date()
@@ -777,7 +775,12 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
             date_to = today
         self._date_from = date_from
         self._date_to   = date_to
-        return Comanda.objects.filter(
+        self._metodo    = self.request.GET.get('metodo', '')
+
+        VALID_METHODS = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'parcial', 'cancelada', 'cortesia']
+        metodo = self._metodo if self._metodo in VALID_METHODS else ''
+
+        qs = Comanda.objects.filter(
             status__in=['fechada', 'cancelada', 'cortesia'],
             updated_at__date__gte=date_from,
             updated_at__date__lte=date_to,
@@ -785,6 +788,15 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
             'pedidos__items__product',
             'checkout__payments',
         ).order_by('-updated_at')
+
+        if metodo == 'cancelada':
+            qs = qs.filter(status='cancelada')
+        elif metodo == 'cortesia':
+            qs = qs.filter(status='cortesia')
+        elif metodo in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'parcial']:
+            qs = qs.filter(checkout__payment_method=metodo, status='fechada')
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -846,6 +858,7 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
             'date_to':   date_to.strftime('%Y-%m-%d'),
             'date_from_fmt': date_from.strftime('%d/%m/%Y'),
             'date_to_fmt':   date_to.strftime('%d/%m/%Y'),
+            'metodo_filter': getattr(self, '_metodo', ''),
             # print totals
             'print_troco':    troco_inicial,
             'print_dinheiro': total_dinheiro_print,
