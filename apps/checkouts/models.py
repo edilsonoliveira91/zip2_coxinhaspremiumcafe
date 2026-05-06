@@ -173,13 +173,57 @@ class SessaoCaixa(models.Model):
         return result['t'] or 0
 
     def totais_por_metodo(self):
+        """
+        Retorna lista de dicts {payment_method, total, quantidade} com a mesma
+        lógica usada em financials/views.py:
+          - Checkouts não-parciais: agrupados por payment_method diretamente
+          - Checkouts parciais: desdobrados via CheckoutPayment por método
+        Garante que alterações feitas pelo operador (alterar_pagamento) sejam refletidas.
+        """
         from django.db.models import Sum, Count
-        return (
-            self.get_checkouts()
-            .values('payment_method')
-            .annotate(total=Sum('total'), quantidade=Count('id'))
-            .order_by('payment_method')
-        )
+        from decimal import Decimal
+
+        checkouts = self.get_checkouts()
+        parcial_qs = checkouts.filter(payment_method='parcial')
+        parcial_ids = list(parcial_qs.values_list('id', flat=True))
+
+        METODOS = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']
+
+        resultado = []
+        for metodo in METODOS:
+            # Checkouts simples (não-parciais) com esse método
+            simples = (
+                checkouts.exclude(payment_method='parcial')
+                .filter(payment_method=metodo)
+                .aggregate(t=Sum('total'), q=Count('id'))
+            )
+            total_simples = simples['t'] or Decimal('0.00')
+            qtd_simples   = simples['q'] or 0
+
+            # Porção deste método dentro de checkouts parciais (via CheckoutPayment)
+            if parcial_ids:
+                parcial = (
+                    CheckoutPayment.objects
+                    .filter(checkout_id__in=parcial_ids, payment_method=metodo)
+                    .aggregate(t=Sum('amount'), q=Count('id'))
+                )
+                total_parcial = parcial['t'] or Decimal('0.00')
+                qtd_parcial   = parcial['q'] or 0
+            else:
+                total_parcial = Decimal('0.00')
+                qtd_parcial   = 0
+
+            total = total_simples + total_parcial
+            quantidade = qtd_simples + qtd_parcial
+
+            if total > 0 or quantidade > 0:
+                resultado.append({
+                    'payment_method': metodo,
+                    'total': total,
+                    'quantidade': quantidade,
+                })
+
+        return resultado
 
 class CheckoutPayment(TimeStampedModel):
     """
