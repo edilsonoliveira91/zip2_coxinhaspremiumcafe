@@ -103,7 +103,9 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                                     <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                                    <th class="w-32 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd. Total</th>
+                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Entradas</th>
+                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saídas</th>
+                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
                                     <th class="w-40 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Investido</th>
                                 </tr>
                             </thead>
@@ -127,10 +129,30 @@
                                             {{ t.product__category }}
                                         </span>
                                     </td>
-                                    <td class="w-32 px-4 py-4 text-center">
+                                    <td class="w-28 px-4 py-4 text-center">
                                         <span class="inline-flex items-center justify-center w-10 h-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">
                                             {{ t.total_qty }}
                                         </span>
+                                    </td>
+                                    <td class="w-28 px-4 py-4 text-center">
+                                        <span class="inline-flex items-center justify-center w-10 h-8 rounded-full bg-red-100 text-red-600 text-sm font-bold">
+                                            {{ t.saidas_qty }}
+                                        </span>
+                                    </td>
+                                    <td class="w-28 px-4 py-4 text-center">
+                                        {% if t.saldo_qty <= 0 %}
+                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-red-100 text-red-700 text-sm font-bold">
+                                            {{ t.saldo_qty }}
+                                        </span>
+                                        {% elif t.saldo_qty <= 5 %}
+                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-yellow-100 text-yellow-700 text-sm font-bold">
+                                            {{ t.saldo_qty }}
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-green-100 text-green-700 text-sm font-bold">
+                                            {{ t.saldo_qty }}
+                                        </span>
+                                        {% endif %}
                                     </td>
                                     <td class="w-40 px-4 py-4 text-right">
                                         <div class="text-base font-bold text-emerald-600">R$ {{ t.total_invested|floatformat:2 }}</div>
@@ -138,7 +160,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="px-6 py-12 text-center">
+                                    <td colspan="6" class="px-6 py-12 text-center">
                                         <div class="flex flex-col items-center">
                                             <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>

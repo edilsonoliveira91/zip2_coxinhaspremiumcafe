@@ -647,7 +647,20 @@ class StockListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['totals'] = (
+        from .models import StockExit
+        from django.db.models import Subquery, OuterRef, IntegerField
+        from django.db.models.functions import Coalesce
+
+        # Saídas por produto (StockExit)
+        saidas_sub = (
+            StockExit.objects
+            .filter(product=OuterRef('product__id'))
+            .values('product')
+            .annotate(t=Sum('quantity'))
+            .values('t')
+        )
+
+        totals_qs = (
             StockEntry.objects
             .values('product__id', 'product__name', 'product__category')
             .annotate(
@@ -656,6 +669,23 @@ class StockListView(LoginRequiredMixin, ListView):
             )
             .order_by('product__category', 'product__name')
         )
+
+        # Calcular saídas acumuladas por produto em Python (simples e confiável)
+        saidas_por_produto = dict(
+            StockExit.objects
+            .values('product_id')
+            .annotate(t=Sum('quantity'))
+            .values_list('product_id', 't')
+        )
+
+        totals = []
+        for t in totals_qs:
+            saidas = saidas_por_produto.get(t['product__id'], 0) or 0
+            t['saidas_qty'] = saidas
+            t['saldo_qty'] = (t['total_qty'] or 0) - saidas
+            totals.append(t)
+
+        context['totals'] = totals
         context['q'] = self.request.GET.get('q', '')
         return context
 
