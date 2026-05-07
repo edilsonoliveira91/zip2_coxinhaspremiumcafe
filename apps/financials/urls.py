@@ -15,4 +15,6 @@ urlpatterns = [
     path('extrato/', views.ExtratoView.as_view(), name='extrato'),
     path('fechamento-diario/', views.FechamentoCaixaDiarioView.as_view(), name='fechamento_diario'),
     path('fechamento-diario/realizar/', views.RealizarFechamentoCaixaView.as_view(), name='realizar_fechamento'),
+    path('comissao/', views.CommissionView.as_view(), name='comissao'),
+    path('api/comissao/salvar/', views.SalvarComissaoView.as_view(), name='salvar_comissao'),
 ]

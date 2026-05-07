@@ -175,8 +175,8 @@
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 
                                 <!-- Nome -->
                                 <div class="space-y-2">
@@ -295,8 +295,24 @@
                                     {% endif %}
                                 </div>
 
-                                <!-- Mostrar no Cardápio (span completo) -->
-                                <div class="md:col-span-2">
+                                <!-- Status e visibilidade (span completo) -->
+                                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <!-- Produto Ativo -->
+                                    <div class="p-4 bg-green-50 rounded-xl border border-green-100">
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            {{ form.is_active }}
+                                            <div class="flex-1">
+                                                <div class="flex items-center">
+                                                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span class="text-sm font-medium text-gray-900">Produto Ativo</span>
+                                                </div>
+                                                <p class="text-xs text-gray-600 ml-7">Produtos inativos não aparecem nas listagens de venda</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <!-- Mostrar no Cardápio -->
                                     <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                         <label class="flex items-center space-x-3 cursor-pointer">
                                             {{ form.show_in_menu }}
@@ -311,7 +327,114 @@
                                             </div>
                                         </label>
                                     </div>
+                                    <!-- Destino de Produção -->
+                                    <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                        <div class="flex items-center mb-2">
+                                            <svg class="w-5 h-5 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                            </svg>
+                                            <span class="text-sm font-medium text-gray-900">Destino de Produção</span>
+                                        </div>
+                                        {{ form.destino_producao }}
+                                        <p class="text-xs text-gray-600 mt-1">Para onde este produto será enviado após o pedido</p>
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Card NFCe -->
+                        <div class="p-8 border-t border-gray-100">
+                            <div class="flex items-center space-x-3 mb-6">
+                                <div class="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Configuração NFC-e</h3>
+                                    <p class="text-xs text-gray-500">Dados fiscais utilizados na emissão de NFC-e</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                                <!-- NCM -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">NCM</label>
+                                    {{ form.ncm }}
+                                    {% if form.ncm.errors %}<p class="text-red-500 text-xs mt-1">{{ form.ncm.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- CFOP -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">CFOP</label>
+                                    {{ form.cfop }}
+                                    {% if form.cfop.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cfop.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- CST ICMS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">CST ICMS</label>
+                                    {{ form.cst_icms }}
+                                    {% if form.cst_icms.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cst_icms.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- % Base de Cálculo ICMS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">% Base de Cálculo ICMS</label>
+                                    {{ form.base_calculo_icms }}
+                                    {% if form.base_calculo_icms.errors %}<p class="text-red-500 text-xs mt-1">{{ form.base_calculo_icms.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Alíquota ICMS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota ICMS (%)</label>
+                                    {{ form.aliq_icms }}
+                                    {% if form.aliq_icms.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_icms.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Código CBENEF -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Código CBENEF</label>
+                                    {{ form.codigo_cbenef }}
+                                    {% if form.codigo_cbenef.errors %}<p class="text-red-500 text-xs mt-1">{{ form.codigo_cbenef.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- CST PIS e COFINS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">CST PIS e COFINS</label>
+                                    {{ form.cst_pis_cofins }}
+                                    {% if form.cst_pis_cofins.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cst_pis_cofins.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Alíquota COFINS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota COFINS (%)</label>
+                                    {{ form.aliq_cofins }}
+                                    {% if form.aliq_cofins.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_cofins.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- CST IBS CBS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">CST IBS CBS</label>
+                                    {{ form.cst_ibs_cbs }}
+                                    {% if form.cst_ibs_cbs.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cst_ibs_cbs.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- CCLASS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">CCLASS</label>
+                                    {{ form.cclass }}
+                                    {% if form.cclass.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cclass.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Dados Adicionais NF-e (span 2 colunas no md) -->
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Dados Adicionais da NF-e</label>
+                                    {{ form.dados_adicionais_nfe }}
+                                    {% if form.dados_adicionais_nfe.errors %}<p class="text-red-500 text-xs mt-1">{{ form.dados_adicionais_nfe.errors.0 }}</p>{% endif %}
+                                </div>
+
                             </div>
                         </div>
 

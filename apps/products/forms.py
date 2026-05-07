@@ -15,7 +15,14 @@ class ProductForm(forms.ModelForm):
     
     class Meta:
         model = Product
-        fields = ['name', 'description', 'category', 'price', 'show_in_menu', 'image']
+        fields = [
+            'name', 'description', 'category', 'price', 'show_in_menu', 'is_active', 'destino_producao', 'image',
+            'ncm', 'cfop', 'cst_icms', 'base_calculo_icms', 'aliq_icms',
+            'codigo_cbenef', 'dados_adicionais_nfe', 'cst_pis_cofins',
+            'aliq_cofins', 'cst_ibs_cbs', 'cclass',
+        ]
+        
+        _input_class = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
         
         widgets = {
             'name': forms.TextInput(attrs={
@@ -40,10 +47,72 @@ class ProductForm(forms.ModelForm):
             'show_in_menu': forms.CheckboxInput(attrs={
                 'class': 'rounded border-gray-300 text-orange-600 focus:ring-orange-500 focus:ring-offset-0'
             }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0'
+            }),
+            'destino_producao': forms.Select(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 h-12 appearance-none bg-white',
+                'style': 'height: 48px !important; min-height: 48px !important;'
+            }),
             'image': forms.FileInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
                 'accept': 'image/*'
-            })
+            }),
+            # NFCe fields
+            'ncm': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: 21069090'
+            }),
+            'cfop': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: 5102'
+            }),
+            'cst_icms': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: 400'
+            }),
+            'base_calculo_icms': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '100.00'
+            }),
+            'aliq_icms': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'codigo_cbenef': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: SC820050'
+            }),
+            'dados_adicionais_nfe': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'rows': 3,
+                'placeholder': 'Informações adicionais que constarão na NF-e'
+            }),
+            'cst_pis_cofins': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: 07'
+            }),
+            'aliq_cofins': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'cst_ibs_cbs': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Ex: 00'
+            }),
+            'cclass': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'placeholder': 'Código de classificação'
+            }),
         }
         
         labels = {
@@ -52,7 +121,20 @@ class ProductForm(forms.ModelForm):
             'category': 'Categoria',
             'price': 'Preço (R$)',
             'show_in_menu': 'Mostrar no Cardápio',
-            'image': 'Imagem do Produto'
+            'is_active': 'Produto Ativo',
+            'destino_producao': 'Destino de Produção',
+            'image': 'Imagem do Produto',
+            'ncm': 'NCM',
+            'cfop': 'CFOP',
+            'cst_icms': 'CST ICMS',
+            'base_calculo_icms': '% Base de Cálculo ICMS',
+            'aliq_icms': 'Alíquota ICMS (%)',
+            'codigo_cbenef': 'Código CBENEF',
+            'dados_adicionais_nfe': 'Dados Adicionais da NF-e',
+            'cst_pis_cofins': 'CST PIS e COFINS',
+            'aliq_cofins': 'Alíquota COFINS (%)',
+            'cst_ibs_cbs': 'CST IBS CBS',
+            'cclass': 'CCLASS',
         }
 
     def __init__(self, *args, **kwargs):

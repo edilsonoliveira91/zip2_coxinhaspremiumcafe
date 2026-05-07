@@ -657,3 +657,98 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
 
         from django.shortcuts import redirect
         return redirect('financials:fechamento_diario')
+
+
+class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Tela de configuração e visualização de comissões sobre vendas.
+    Permite definir o percentual de comissão e consultar o valor por período.
+    """
+    permission_required = 'checkouts.view_checkout'
+    template_name = 'commissions/commission.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        start_date = self.request.GET.get('start_date')
+        end_date   = self.request.GET.get('end_date')
+        if not start_date:
+            start_date = timezone.localtime().date()
+        else:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            except ValueError:
+                start_date = timezone.localtime().date()
+        if not end_date:
+            end_date = timezone.localtime().date()
+        else:
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                end_date = timezone.localtime().date()
+
+        config = SystemConfig.get_settings()
+        comissao_pct = config.comissao_percentual
+
+        checkouts = Checkout.objects.filter(
+            status='aprovado',
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date,
+        )
+        total_vendas   = checkouts.aggregate(t=Sum('total'))['t'] or Decimal('0.00')
+        total_comandas = checkouts.count()
+        valor_comissao = (total_vendas * comissao_pct / Decimal('100')).quantize(Decimal('0.01'))
+
+        parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
+
+        def _soma(method):
+            simples = (checkouts.exclude(payment_method='parcial')
+                       .filter(payment_method=method)
+                       .aggregate(t=Sum('total'))['t'] or Decimal('0.00'))
+            parcial_v = (CheckoutPayment.objects
+                         .filter(checkout_id__in=parcial_ids, payment_method=method)
+                         .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
+            return simples + parcial_v
+
+        context.update({
+            'start_date':     start_date.strftime('%Y-%m-%d'),
+            'end_date':       end_date.strftime('%Y-%m-%d'),
+            'start_date_fmt': start_date.strftime('%d/%m/%Y'),
+            'end_date_fmt':   end_date.strftime('%d/%m/%Y'),
+            'comissao_pct':   comissao_pct,
+            'total_vendas':   total_vendas,
+            'total_comandas': total_comandas,
+            'valor_comissao': valor_comissao,
+            'total_dinheiro': _soma('dinheiro'),
+            'total_debito':   _soma('cartao_debito'),
+            'total_credito':  _soma('cartao_credito'),
+            'total_pix':      _soma('pix'),
+        })
+        return context
+
+
+class SalvarComissaoView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    POST: salva o percentual de comissão em SystemConfig.
+    Apenas superusuários ou staff podem alterar.
+    """
+    permission_required = 'checkouts.view_checkout'
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        if not (request.user.is_superuser or request.user.is_staff):
+            return JsonResponse({'success': False, 'message': 'Sem permissão para alterar a comissão.'}, status=403)
+        try:
+            data = json.loads(request.body)
+            pct_str = str(data.get('percentual', '')).replace(',', '.').strip()
+            pct = Decimal(pct_str)
+            if pct < 0 or pct > 100:
+                return JsonResponse({'success': False, 'message': 'Percentual deve estar entre 0 e 100.'}, status=400)
+        except Exception:
+            return JsonResponse({'success': False, 'message': 'Valor inválido.'}, status=400)
+
+        config = SystemConfig.get_settings()
+        config.comissao_percentual = pct
+        config.save()
+        return JsonResponse({'success': True, 'message': f'Comissão atualizada para {pct}%.'})

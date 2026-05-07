@@ -46,12 +46,90 @@ class Product(TimeStampedModel):
         default=True,
         verbose_name="Mostrar no Cardápio"
     )
-    
+
+    DESTINO_CHOICES = [
+        ('balcao', 'Balcão'),
+        ('cozinha', 'Cozinha'),
+    ]
+    destino_producao = models.CharField(
+        max_length=10,
+        choices=DESTINO_CHOICES,
+        default='balcao',
+        verbose_name="Destino de Produção"
+    )
+
     image = models.ImageField(
         upload_to='products/',
         blank=True,
         null=True,
         verbose_name="Imagem do Produto"
+    )
+
+    # --- Campos NFC-e ---
+    ncm = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        verbose_name="NCM"
+    )
+    cfop = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        verbose_name="CFOP"
+    )
+    cst_icms = models.CharField(
+        max_length=5,
+        blank=True,
+        default='',
+        verbose_name="CST ICMS"
+    )
+    base_calculo_icms = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('100.00'),
+        verbose_name="% Base de Cálculo ICMS"
+    )
+    aliq_icms = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota ICMS (%)"
+    )
+    codigo_cbenef = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        verbose_name="Código CBENEF"
+    )
+    dados_adicionais_nfe = models.TextField(
+        blank=True,
+        default='',
+        verbose_name="Dados Adicionais da NF-e"
+    )
+    cst_pis_cofins = models.CharField(
+        max_length=5,
+        blank=True,
+        default='',
+        verbose_name="CST PIS e COFINS"
+    )
+    aliq_cofins = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota COFINS (%)"
+    )
+    cst_ibs_cbs = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        verbose_name="CST IBS CBS"
+    )
+    cclass = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        verbose_name="CCLASS"
     )
 
     class Meta:

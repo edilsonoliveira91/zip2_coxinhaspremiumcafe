@@ -23,12 +23,13 @@ class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     login_url = reverse_lazy('accounts:login')
     
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active=True).select_related('created_by')
+        queryset = Product.objects.all().select_related('created_by')
         
         # Filtros de pesquisa
         search = self.request.GET.get('search')
         category = self.request.GET.get('category')
         show_in_menu = self.request.GET.get('show_in_menu')
+        only_active = self.request.GET.get('only_active')
         
         if search:
             queryset = queryset.filter(name__icontains=search)
@@ -40,18 +41,23 @@ class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
             queryset = queryset.filter(show_in_menu=True)
         elif show_in_menu == 'false':
             queryset = queryset.filter(show_in_menu=False)
+
+        if only_active == 'true':
+            queryset = queryset.filter(is_active=True)
+        elif only_active == 'false':
+            queryset = queryset.filter(is_active=False)
             
         return queryset.order_by('category', 'name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        queryset = Product.objects.filter(is_active=True)
+        all_products = Product.objects.all()
         
         context.update({
             'search_form': ProductSearchForm(self.request.GET),
             'categories': Product.CATEGORY_CHOICES,
-            'total_products': queryset.count(),
-            'menu_products': queryset.filter(show_in_menu=True).count(),
+            'total_products': all_products.filter(is_active=True).count(),
+            'menu_products': all_products.filter(is_active=True, show_in_menu=True).count(),
             'search_query': self.request.GET.get('search', ''),
         })
         return context
@@ -126,7 +132,7 @@ class ProductUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
     permission_required = 'products.change_product' 
     
     def get_queryset(self):
-        return Product.objects.filter(is_active=True)
+        return Product.objects.all()
     
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
