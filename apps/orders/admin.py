@@ -58,13 +58,6 @@ class ComandaAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
     inlines = [PedidoInline]
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        # Se não há filtro aplicado, mostra só as abertas
-        if not request.GET.get('status_filtro'):
-            return qs.filter(status='em_uso')
-        return qs
-
 
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):

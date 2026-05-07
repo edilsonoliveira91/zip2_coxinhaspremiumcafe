@@ -164,7 +164,7 @@ class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
                     }, status=400)
 
                 unique_methods = set(p['method'] for p in payments)
-                payment_method = list(unique_methods)[0] if len(unique_methods) == 1 else 'parcial'
+                payment_method = list(unique_methods)[0] if len(payments) == 1 else 'parcial'
             else:
                 # Formato antigo: campo único (retrocompatibilidade)
                 payment_method = data.get('payment_method')
