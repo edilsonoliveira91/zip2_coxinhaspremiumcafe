@@ -19,7 +19,7 @@ class ProductForm(forms.ModelForm):
             'name', 'description', 'category', 'price', 'show_in_menu', 'is_active', 'destino_producao', 'image',
             'ncm', 'cfop', 'cst_icms', 'base_calculo_icms', 'aliq_icms',
             'codigo_cbenef', 'dados_adicionais_nfe', 'cst_pis_cofins',
-            'aliq_cofins', 'cst_ibs_cbs', 'cclass',
+            'aliq_pis', 'aliq_cofins', 'cst_ibs_cbs', 'cclass',
         ]
         
         _input_class = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -98,6 +98,13 @@ class ProductForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                 'placeholder': 'Ex: 07'
             }),
+            'aliq_pis': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
             'aliq_cofins': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                 'step': '0.01',
@@ -132,6 +139,7 @@ class ProductForm(forms.ModelForm):
             'codigo_cbenef': 'Código CBENEF',
             'dados_adicionais_nfe': 'Dados Adicionais da NF-e',
             'cst_pis_cofins': 'CST PIS e COFINS',
+            'aliq_pis': 'Alíquota PIS (%)',
             'aliq_cofins': 'Alíquota COFINS (%)',
             'cst_ibs_cbs': 'CST IBS CBS',
             'cclass': 'CCLASS',

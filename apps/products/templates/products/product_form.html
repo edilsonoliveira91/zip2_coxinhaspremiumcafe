@@ -407,6 +407,13 @@
                                     {% if form.cst_pis_cofins.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cst_pis_cofins.errors.0 }}</p>{% endif %}
                                 </div>
 
+                                <!-- Alíquota PIS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota PIS (%)</label>
+                                    {{ form.aliq_pis }}
+                                    {% if form.aliq_pis.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_pis.errors.0 }}</p>{% endif %}
+                                </div>
+
                                 <!-- Alíquota COFINS -->
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-gray-700">Alíquota COFINS (%)</label>

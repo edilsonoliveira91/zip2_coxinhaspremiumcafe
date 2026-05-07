@@ -113,6 +113,12 @@ class Product(TimeStampedModel):
         default='',
         verbose_name="CST PIS e COFINS"
     )
+    aliq_pis = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota PIS (%)"
+    )
     aliq_cofins = models.DecimalField(
         max_digits=5,
         decimal_places=2,
