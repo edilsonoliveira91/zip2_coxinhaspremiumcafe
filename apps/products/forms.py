@@ -100,17 +100,17 @@ class ProductForm(forms.ModelForm):
             }),
             'aliq_pis': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                'step': '0.01',
+                'step': '0.001',
                 'min': '0',
                 'max': '100',
-                'placeholder': '0.00'
+                'placeholder': '0.000'
             }),
             'aliq_cofins': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                'step': '0.01',
+                'step': '0.001',
                 'min': '0',
                 'max': '100',
-                'placeholder': '0.00'
+                'placeholder': '0.000'
             }),
             'cst_ibs_cbs': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
