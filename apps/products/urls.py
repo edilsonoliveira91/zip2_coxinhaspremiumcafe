@@ -28,4 +28,7 @@ urlpatterns = [
 
     # PDF
     path('lista-produtos.pdf', views.ProdutoListaPDFView.as_view(), name='produto_lista_pdf'),
+
+    # CSV NFC-e
+    path('exportar-nfce.csv', views.ProdutoNFCeCSVView.as_view(), name='produto_nfce_csv'),
 ]

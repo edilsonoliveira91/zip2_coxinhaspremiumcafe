@@ -936,3 +936,64 @@ class ProdutoListaPDFView(LoginRequiredMixin, View):
         response = HttpResponse(buffer, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="lista_produtos.pdf"'
         return response
+
+
+class ProdutoNFCeCSVView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Exporta CSV com dados fiscais NFC-e de todos os produtos ativos."""
+    login_url = reverse_lazy('accounts:login')
+    permission_required = 'products.view_product'
+
+    def get(self, request, *args, **kwargs):
+        import csv
+        import io
+        from django.http import HttpResponse
+        from django.utils import timezone
+
+        produtos = Product.objects.filter(is_active=True).order_by('category', 'name')
+
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=';')
+
+        # Cabeçalho
+        writer.writerow([
+            'Produto',
+            'Categoria',
+            'Preço de Venda',
+            'NCM',
+            'CFOP',
+            'CST ICMS',
+            '% Base Cálculo ICMS',
+            'Alíq ICMS (%)',
+            'Código CBENEF',
+            'CST PIS e COFINS',
+            'Alíq PIS (%)',
+            'Alíq COFINS (%)',
+            'CST IBS CBS',
+            'CCLASS',
+            'Dados Adicionais NF-e',
+        ])
+
+        for p in produtos:
+            writer.writerow([
+                p.name,
+                p.get_category_display(),
+                str(p.price).replace('.', ','),
+                p.ncm,
+                p.cfop,
+                p.cst_icms,
+                str(p.base_calculo_icms).replace('.', ','),
+                str(p.aliq_icms).replace('.', ','),
+                p.codigo_cbenef,
+                p.cst_pis_cofins,
+                str(p.aliq_pis).replace('.', ','),
+                str(p.aliq_cofins).replace('.', ','),
+                p.cst_ibs_cbs,
+                p.cclass,
+                p.dados_adicionais_nfe,
+            ])
+
+        data = output.getvalue().encode('utf-8-sig')  # BOM para Excel abrir corretamente
+        response = HttpResponse(data, content_type='text/csv; charset=utf-8-sig')
+        filename = f"produtos_nfce_{timezone.now().strftime('%Y%m%d_%H%M')}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

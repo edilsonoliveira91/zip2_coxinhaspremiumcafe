@@ -13,6 +13,7 @@ import json
 from .models import Sangria, FechamentoCaixaDiario
 from django.views import View
 from config.models import SystemConfig
+from products.models import Product
 
 
 class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
@@ -711,6 +712,24 @@ class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
                          .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
             return simples + parcial_v
 
+        # Products with tax calculation
+        produtos_com_imposto = []
+        for p in Product.objects.order_by('category', 'name'):
+            base_icms = p.price * (p.base_calculo_icms / Decimal('100'))
+            icms = (base_icms * (p.aliq_icms / Decimal('100'))).quantize(Decimal('0.01'))
+            pis = (p.price * (p.aliq_pis / Decimal('100'))).quantize(Decimal('0.01'))
+            cofins = (p.price * (p.aliq_cofins / Decimal('100'))).quantize(Decimal('0.01'))
+            total_tax = icms + pis + cofins
+            produtos_com_imposto.append({
+                'name': p.name,
+                'category': p.get_category_display(),
+                'price': p.price,
+                'icms': icms,
+                'pis': pis,
+                'cofins': cofins,
+                'total_tax': total_tax,
+            })
+
         context.update({
             'start_date':     start_date.strftime('%Y-%m-%d'),
             'end_date':       end_date.strftime('%Y-%m-%d'),
@@ -724,6 +743,7 @@ class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             'total_debito':   _soma('cartao_debito'),
             'total_credito':  _soma('cartao_credito'),
             'total_pix':      _soma('pix'),
+            'produtos_com_imposto': produtos_com_imposto,
         })
         return context
 
