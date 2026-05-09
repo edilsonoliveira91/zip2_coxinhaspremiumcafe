@@ -986,7 +986,8 @@ class EmitirNFCeView(LoginRequiredMixin, View):
             else:
                 return JsonResponse({
                     'success': False,
-                    'message': f"Erro na emissão: {resultado['erro']}"
+                    'message': f"Erro na emissão: {resultado.get('erro', 'Erro desconhecido')}",
+                    'detalhe': resultado.get('detalhe', ''),
                 })
                 
         except Comanda.DoesNotExist:

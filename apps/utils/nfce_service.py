@@ -51,33 +51,41 @@ class NFCeService:
             # Monta dados da NFCe
             dados_nfce = self._montar_dados_nfce(order, numero, cpf_cliente)
             
-            # Se tem certificado, tenta emissão real primeiro
+            # Se tem certificado, tenta emissão real
             if self.certificado:
+                ambiente = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+                print(f"[INFO] Tentando emissão real em {'PRODUÇÃO' if ambiente == '1' else 'HOMOLOGAÇÃO'}...")
                 try:
-                    print("[INFO] Tentando emissão real em HOMOLOGAÇÃO...")
                     resultado = self._emitir_nfce_real(dados_nfce)
-                    
-                    # Gerar cupom fiscal após emissão bem-sucedida
-                    if resultado['sucesso']:
-                        cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
-                        resultado['cupom_fiscal'] = cupom_info
-                        print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
-                    
-                    return resultado
                 except Exception as e:
-                    print(f"[ERROR] Falha na emissão real: {e}")
-                    print("[FALLBACK] Tentando simulação após falha na emissão real...")
-                    resultado = self._emitir_nfce_simulado(dados_nfce)
+                    import traceback
+                    tb = traceback.format_exc()
+                    print(f"[ERROR] Falha na emissão real: {e}\n{tb}")
+                    # Não faz fallback para simulação — retorna erro real
+                    return {
+                        'sucesso': False,
+                        'erro': f'Falha na conexão com a SEFAZ: {str(e)}',
+                        'detalhe': tb,
+                        'modo': 'erro_conexao',
+                    }
+
+                # Gerar cupom fiscal após emissão bem-sucedida
+                if resultado['sucesso']:
+                    cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
+                    resultado['cupom_fiscal'] = cupom_info
+                    print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
+
+                return resultado
             else:
-                print("[INFO] Emissão apenas em modo simulação") 
+                print("[INFO] Nenhum certificado — modo simulação")
                 resultado = self._emitir_nfce_simulado(dados_nfce)
-            
-            # Gerar cupom fiscal mesmo em simulação
+
+            # Cupom fiscal em simulação
             if resultado['sucesso']:
                 cupom_info = self.salvar_cupom_fiscal(dados_nfce, resultado)
                 resultado['cupom_fiscal'] = cupom_info
                 print(f"[INFO] Cupom fiscal gerado: {cupom_info.get('url_impressao', 'N/A')}")
-                
+
             return resultado
             
         except Exception as e:

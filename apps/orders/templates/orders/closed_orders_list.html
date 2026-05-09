@@ -465,15 +465,31 @@ async function emitirNFCe(numero) {
         });
         const data = await resp.json();
 
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-6 right-6 ${data.success ? 'bg-green-600' : 'bg-red-600'} text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium`;
-        toast.textContent = data.message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-
         if (data.success) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium';
+            toast.textContent = data.message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
             setTimeout(() => location.reload(), 1500);
         } else {
+            // Erro — mostrar painel fixo com detalhes completos
+            let erroExistente = document.getElementById('nfce-erro-painel');
+            if (erroExistente) erroExistente.remove();
+
+            const painel = document.createElement('div');
+            painel.id = 'nfce-erro-painel';
+            painel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:50vh;overflow-y:auto;background:#1f2937;color:#f9fafb;padding:16px 20px;z-index:9999;font-family:monospace;font-size:12px;border-top:3px solid #ef4444;';
+            painel.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <strong style="color:#ef4444;font-size:14px;">❌ Erro na emissão NFC-e</strong>
+                    <button onclick="this.parentElement.parentElement.remove()" style="color:#9ca3af;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;">×</button>
+                </div>
+                <div style="color:#fbbf24;margin-bottom:6px;">${data.message || 'Erro desconhecido'}</div>
+                ${data.detalhe ? `<pre style="color:#d1d5db;white-space:pre-wrap;word-break:break-all;background:#111827;padding:8px;border-radius:6px;margin-top:6px;font-size:11px;">${data.detalhe}</pre>` : ''}
+            `;
+            document.body.appendChild(painel);
+
             if (btn) {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
