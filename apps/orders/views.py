@@ -1358,11 +1358,15 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
             # Busca a comanda pelo numero — usa filter+first pois numero não é unique
             comanda = Comanda.objects.select_related().prefetch_related(
                 'pedidos__items__product'
-            ).filter(numero=code, status__in=['fechada', 'cortesia']).order_by('-nfce_emitida_em').first()
+            ).filter(
+                numero=code,
+                status__in=['fechada', 'cortesia'],
+                nfce_numero__isnull=False,
+            ).order_by('-nfce_emitida_em').first()
             if not comanda:
-                return HttpResponse("Comanda não encontrada.", status=404)
+                return HttpResponse("Comanda não encontrada ou NFCe não emitida.", status=404)
 
-            # Verifica se tem NFCe emitida
+            # Verifica se tem NFCe emitida (segurança extra)
             if not comanda.tem_nfce:
                 return HttpResponse("NFCe não emitida para esta comanda.", status=404)
 

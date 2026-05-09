@@ -446,6 +446,11 @@ document.getElementById('searchInput').addEventListener('input', applyFilters);
 let _emitindoNFCe = false;
 
 async function emitirNFCe(numero, cpf_cliente) {
+    if (!numero || numero === 'null' || numero === 'undefined') {
+        console.error('[NFCE] número inválido:', numero);
+        alert('Erro interno: número da comanda não identificado. Recarregue a página e tente novamente.');
+        return;
+    }
     if (_emitindoNFCe) return;
     _emitindoNFCe = true;
 
