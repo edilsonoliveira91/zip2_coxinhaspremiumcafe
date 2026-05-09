@@ -1,5 +1,4 @@
 import os
-import ssl
 import tempfile
 import hashlib
 import base64
@@ -17,7 +16,6 @@ from lxml import etree
 from signxml import XMLSigner, methods
 import requests
 import urllib3
-from requests.adapters import HTTPAdapter
 from requests import Session
 
 # Desabilita warnings SSL para homologação
@@ -1089,52 +1087,7 @@ class NFCeService:
             '</soap12:Envelope>'
         )
 
-        import ssl
-
-        def _make_ssl_ctx(cert_file, key_file):
-            """
-            Cria SSLContext compatível com macOS LibreSSL e Linux OpenSSL.
-            SEFAZ SP produção usa IIS com TLS 1.2 — sem @SECLEVEL (LibreSSL não suporta).
-            """
-            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            # Forçar TLS 1.2 mínimo
-            try:
-                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-            except Exception:
-                pass
-            # OP_LEGACY_SERVER_CONNECT: necessário para alguns servidores IIS antigos
-            try:
-                ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
-            except AttributeError:
-                pass
-            # Tentar ciphers permissivos — fallback para default se LibreSSL não suportar @SECLEVEL
-            for _ciphers in ('DEFAULT@SECLEVEL=0', 'DEFAULT@SECLEVEL=1', 'DEFAULT', 'ALL'):
-                try:
-                    ctx.set_ciphers(_ciphers)
-                    break
-                except ssl.SSLError:
-                    continue
-            ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
-            return ctx
-
-        class TLSAdapter(HTTPAdapter):
-            def __init__(self, cert_file, key_file, **kwargs):
-                self._cert_file = cert_file
-                self._key_file = key_file
-                super().__init__(**kwargs)
-
-            def init_poolmanager(self, *args, **kwargs):
-                kwargs['ssl_context'] = _make_ssl_ctx(self._cert_file, self._key_file)
-                return super().init_poolmanager(*args, **kwargs)
-
-            def proxy_manager_for(self, proxy, **proxy_kwargs):
-                proxy_kwargs['ssl_context'] = _make_ssl_ctx(self._cert_file, self._key_file)
-                return super().proxy_manager_for(proxy, **proxy_kwargs)
-
         session = requests.Session()
-        session.mount('https://', TLSAdapter(cert_path, key_path))
 
         headers = {'Content-Type': 'application/soap+xml; charset=utf-8'}
         print(f"[SEFAZ] Enviando NFCe para {url}")
@@ -1149,6 +1102,7 @@ class NFCeService:
             data=soap_body.encode('utf-8'),
             headers=headers,
             verify=False,
+            cert=(cert_path, key_path),
             timeout=60,
         )
         print(f"[SEFAZ] HTTP {resp.status_code}")
