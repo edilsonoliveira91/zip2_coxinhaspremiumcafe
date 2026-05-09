@@ -1351,7 +1351,7 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
             # Busca a comanda pelo numero — usa filter+first pois numero não é unique
             comanda = Comanda.objects.select_related().prefetch_related(
                 'pedidos__items__product'
-            ).filter(numero=code, status='fechada').order_by('-created_at').first()
+            ).filter(numero=code, status__in=['fechada', 'cortesia']).order_by('-nfce_emitida_em').first()
             if not comanda:
                 return HttpResponse("Comanda não encontrada.", status=404)
 
