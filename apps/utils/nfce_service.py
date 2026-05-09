@@ -634,8 +634,8 @@ class NFCeService:
         amb = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
         urls = {
             'SP': {
-                '1': 'https://www.nfce.fazenda.sp.gov.br/qrcode',
-                '2': 'https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode',
+                '1': 'https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica',
+                '2': 'https://www.homologacao.nfce.fazenda.sp.gov.br/NFCeConsultaPublica',
             },
             'MG': {
                 '1': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
