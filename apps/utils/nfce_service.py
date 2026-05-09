@@ -742,8 +742,9 @@ class NFCeService:
                 v_prod = valor_total
                 ncm_val = '21069090'
                 cprod = '1'
-                cst_icms_item = '102'
-                cfop_item = cfop[:4]
+                # CRT=1 usa CSOSN 102; CRT=3 usa CST 40 (isenta) com CFOP 5102
+                cst_icms_item = '102' if crt == '1' else '40'
+                cfop_item = cfop[:4] if crt == '1' else '5102'
                 cbenef_item = ''
                 cst_pis_item = '99'
                 aliq_pis_item = Decimal('0.00')
@@ -760,10 +761,19 @@ class NFCeService:
                 # CFOP do produto (fallback para empresa)
                 _cfop_prod = (getattr(item.product, 'cfop', '') or '').strip()[:4]
                 cfop_item = _cfop_prod if _cfop_prod else cfop[:4]
-                # CST ICMS → CSOSN (060→500, 090→900, default→102)
+                # CST ICMS: para CRT=1 mapeia para CSOSN; para CRT=3 usa CST direto do produto
                 _cst_raw = (getattr(item.product, 'cst_icms', '') or '').strip()
-                _csosn_map = {'060': '500', '090': '900', '500': '500', '900': '900'}
-                cst_icms_item = _csosn_map.get(_cst_raw, '102')
+                if crt == '1':
+                    _csosn_map = {'060': '500', '090': '900', '500': '500', '900': '900'}
+                    cst_icms_item = _csosn_map.get(_cst_raw, '102')
+                else:
+                    # Normaliza: aceita '0', '00', '060', '60' → sempre 2 dígitos
+                    _cst_norm = _cst_raw.lstrip('0') or '0'
+                    _cst_norm = _cst_norm.zfill(2)
+                    # Se CFOP for 5405/6405 → ST (CST 60); se não tiver CST → isenta (40)
+                    if _cst_norm not in ('00','10','20','30','40','41','50','51','60','70','90'):
+                        _cst_norm = '60' if cfop_item in ('5405','6405') else '40'
+                    cst_icms_item = _cst_norm
                 # CBENEF
                 _cbenef_raw = (getattr(item.product, 'codigo_cbenef', '') or '').strip()
                 cbenef_item = _cbenef_raw if _cbenef_raw and _cbenef_raw.upper() != 'SEM CBENEF' else ''
@@ -819,9 +829,24 @@ class NFCeService:
                     etree.SubElement(icms_sn, 'orig').text = '0'
                     etree.SubElement(icms_sn, 'CSOSN').text = '102'
             else:
-                icms60 = etree.SubElement(icms, 'ICMS60')
-                etree.SubElement(icms60, 'orig').text = '0'
-                etree.SubElement(icms60, 'CST').text = '60'
+                # Regime Normal (CRT=2 ou 3) — seleciona grupo ICMS pelo CST do produto
+                if cst_icms_item == '00':
+                    icms_rn = etree.SubElement(icms, 'ICMS00')
+                    etree.SubElement(icms_rn, 'orig').text = '0'
+                    etree.SubElement(icms_rn, 'CST').text = '00'
+                    etree.SubElement(icms_rn, 'modBC').text = '3'
+                    etree.SubElement(icms_rn, 'vBC').text = f'{v_prod:.2f}'
+                    etree.SubElement(icms_rn, 'pICMS').text = '12.00'
+                    etree.SubElement(icms_rn, 'vICMS').text = f'{v_prod * 0.12:.2f}'
+                elif cst_icms_item in ('40', '41'):
+                    icms_rn = etree.SubElement(icms, 'ICMS40')
+                    etree.SubElement(icms_rn, 'orig').text = '0'
+                    etree.SubElement(icms_rn, 'CST').text = cst_icms_item
+                else:
+                    # CST 60: ST já recolhida — CFOP deve ser 5405
+                    icms_rn = etree.SubElement(icms, 'ICMS60')
+                    etree.SubElement(icms_rn, 'orig').text = '0'
+                    etree.SubElement(icms_rn, 'CST').text = '60'
 
             # PIS
             pis = etree.SubElement(imposto, 'PIS')
