@@ -164,6 +164,16 @@ class ProductForm(forms.ModelForm):
             'min_value': 'O preço deve ser maior que zero.'
         }
 
+        # Campos fiscais obrigatórios para emissão de NFC-e
+        self.fields['ncm'].required = True
+        self.fields['ncm'].error_messages = {'required': 'O NCM é obrigatório para emissão de NFC-e.'}
+        self.fields['cfop'].required = True
+        self.fields['cfop'].error_messages = {'required': 'O CFOP é obrigatório para emissão de NFC-e.'}
+        self.fields['cst_icms'].required = True
+        self.fields['cst_icms'].error_messages = {'required': 'O CST ICMS é obrigatório para emissão de NFC-e.'}
+        self.fields['cst_pis_cofins'].required = True
+        self.fields['cst_pis_cofins'].error_messages = {'required': 'O CST PIS/COFINS é obrigatório para emissão de NFC-e.'}
+
 
 class ComboForm(forms.ModelForm):
     """

@@ -552,20 +552,20 @@ class NFCeService:
         Gera URL do QR Code da NFCe conforme schema NF-e 4.00 (QRCODE V2 ONLINE).
         Formato V2: <url>?p=<chave>|2|<tpAmb>|<cIdToken>|<cHashQRCode>
         cIdToken: csc_id SEM zeros à esquerda (ex: 1, não 000001)
-        cHashQRCode = SHA1(chave + "|" + tpAmb + "|" + cIdToken + "|" + csc_codigo).upper()
+        cHashQRCode = SHA1(chave + "|2|" + tpAmb + "|" + cIdToken + "|" + csc_codigo).upper()
         Schema pattern: CHAVE|2|tpAmb|cIdToken(0-999999 sem leading zeros)|SHA1(40 hex)
         """
         tp_amb = self.empresa.ambiente_nfce  # '1' prod, '2' homolog
-        # cIdToken SEM zeros à esquerda — exigido pelo schema NF-e 4.00 (V2)
-        cid_token = str(int(str(self.empresa.csc_id)))
+        # Na URL: cIdToken SEM zeros à esquerda
+        cid_token_url = str(int(str(self.empresa.csc_id)))
         csc_codigo = self.empresa.csc_codigo
 
-        hash_input = f"{chave_acesso}|{tp_amb}|{cid_token}|{csc_codigo}"
+        # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken|cCSC)
+        hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_url}|{csc_codigo}"
         c_hash = hashlib.sha1(hash_input.encode('utf-8')).hexdigest().upper()
 
         url_base = self._get_url_consulta_qrcode()
-        # Formato V2: chave|2(nVersao)|tpAmb|cIdToken|cHashQRCode
-        qr_url = f"{url_base}?p={chave_acesso}|2|{tp_amb}|{cid_token}|{c_hash}"
+        qr_url = f"{url_base}?p={chave_acesso}|2|{tp_amb}|{cid_token_url}|{c_hash}"
         return qr_url
 
     def _get_url_consulta_qrcode(self):
@@ -575,20 +575,20 @@ class NFCeService:
 
         urls = {
             'SP': {
-                '1': 'https://www.nfce.fazenda.sp.gov.br/NFeConsultaPublica/Paginas/ConsultaQRCode.aspx',
-                '2': 'https://homologacao.nfce.fazenda.sp.gov.br/NFCeConsultaPublica',
+                '1': 'https://www.nfce.fazenda.sp.gov.br/qrcode',
+                '2': 'https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode',
             },
             'MG': {
-                '1': 'https://nfce.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
-                '2': 'https://hnfce.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+                '1': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+                '2': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
             },
             'RS': {
                 '1': 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx',
-                '2': 'https://www.sefaz.rs.gov.br/NFCEHOM/NFCE-COM.aspx',
+                '2': 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx',
             },
             'PR': {
-                '1': 'https://www.nfce.sefa.pr.gov.br/nfce/qrcode',
-                '2': 'https://www.nfce.sefa.pr.gov.br/nfce/qrcode',
+                '1': 'http://www.fazenda.pr.gov.br/nfce/qrcode',
+                '2': 'http://www.fazenda.pr.gov.br/nfce/qrcode',
             },
         }
         # SVRS states (default for unregistered states)
@@ -604,6 +604,41 @@ class NFCeService:
             return svrs_urls.get(amb, svrs_urls['2'])
         else:
             # AN/SVAN states
+            return svrs_urls.get(amb, svrs_urls['2'])
+
+    def _get_url_chave(self):
+        """Retorna URL de consulta pública (urlChave) — máx 85 chars no schema NF-e 4.00.
+        Diferente da URL do QR Code que inclui /Paginas/ConsultaQRCode.aspx"""
+        uf = self.empresa.uf
+        amb = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+        urls = {
+            'SP': {
+                '1': 'https://www.nfce.fazenda.sp.gov.br/qrcode',
+                '2': 'https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode',
+            },
+            'MG': {
+                '1': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+                '2': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml',
+            },
+            'RS': {
+                '1': 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx',
+                '2': 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx',
+            },
+            'PR': {
+                '1': 'http://www.fazenda.pr.gov.br/nfce/qrcode',
+                '2': 'http://www.fazenda.pr.gov.br/nfce/qrcode',
+            },
+        }
+        svrs_states = ['AC', 'AL', 'AP', 'DF', 'ES', 'PB', 'PI', 'RN', 'RO', 'RR', 'SC', 'SE', 'TO']
+        svrs_urls = {
+            '1': 'https://nfce.svrs.rs.gov.br/off/gqrcodeoff.aspx',
+            '2': 'https://nfce-homologacao.svrs.rs.gov.br/off/gqrcodeoff.aspx',
+        }
+        if uf in urls:
+            return urls[uf].get(amb, urls[uf]['2'])
+        elif uf in svrs_states:
+            return svrs_urls.get(amb, svrs_urls['2'])
+        else:
             return svrs_urls.get(amb, svrs_urls['2'])
 
     def _gerar_xml_nfce_completo(self, dados):
@@ -669,6 +704,15 @@ class NFCeService:
         etree.SubElement(emit, 'IE').text = ie_digits
         etree.SubElement(emit, 'CRT').text = crt
 
+        # ── dest (destinatário) ───────────────────────────────────────────────
+        cpf_cliente = dados.get('cpf_cliente')
+        cpf_digits = re.sub(r'\D', '', str(cpf_cliente)) if cpf_cliente else ''
+        if cpf_digits and len(cpf_digits) == 11:
+            dest = etree.SubElement(infNFe, 'dest')
+            etree.SubElement(dest, 'CPF').text = cpf_digits
+            etree.SubElement(dest, 'xNome').text = 'CONSUMIDOR'
+            etree.SubElement(dest, 'indIEDest').text = '9'
+
         # ── det (itens) ───────────────────────────────────────────────────────
         all_items = []
         for pedido in order.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']):
@@ -681,6 +725,9 @@ class NFCeService:
         valor_total = float(order.total_amount)
         total_item_sum = 0.0
 
+        total_pis_nf = Decimal('0.00')
+        total_cofins_nf = Decimal('0.00')
+
         for i, item in enumerate(all_items, 1):
             if isinstance(item, dict) and item.get('_fallback'):
                 nome_orig = 'VENDA DE ALIMENTOS'
@@ -689,7 +736,12 @@ class NFCeService:
                 v_prod = valor_total
                 ncm_val = '21069090'
                 cprod = '1'
-                icms_csosn = '102' if crt == '1' else '60'
+                cst_icms_item = '102'
+                cfop_item = cfop[:4]
+                cbenef_item = ''
+                cst_pis_item = '99'
+                aliq_pis_item = Decimal('0.00')
+                aliq_cofins_item = Decimal('0.00')
             else:
                 nome_orig = item.product.name[:120]
                 qty = float(item.quantity)
@@ -699,7 +751,20 @@ class NFCeService:
                 ncm_val = re.sub(r'\D', '', str(ncm_val))
                 if len(ncm_val) not in (2, 8): ncm_val = '21069090'
                 cprod = str(getattr(item.product, 'id', i))
-                icms_csosn = getattr(item.product, 'icms_csosn', '102') or '102'
+                # CFOP do produto (fallback para empresa)
+                _cfop_prod = (getattr(item.product, 'cfop', '') or '').strip()[:4]
+                cfop_item = _cfop_prod if _cfop_prod else cfop[:4]
+                # CST ICMS → CSOSN (060→500, 090→900, default→102)
+                _cst_raw = (getattr(item.product, 'cst_icms', '') or '').strip()
+                _csosn_map = {'060': '500', '090': '900', '500': '500', '900': '900'}
+                cst_icms_item = _csosn_map.get(_cst_raw, '102')
+                # CBENEF
+                _cbenef_raw = (getattr(item.product, 'codigo_cbenef', '') or '').strip()
+                cbenef_item = _cbenef_raw if _cbenef_raw and _cbenef_raw.upper() != 'SEM CBENEF' else ''
+                # PIS/COFINS
+                cst_pis_item = str(getattr(item.product, 'cst_pis_cofins', '') or '99').strip().zfill(2)
+                aliq_pis_item = Decimal(str(getattr(item.product, 'aliq_pis', 0) or 0))
+                aliq_cofins_item = Decimal(str(getattr(item.product, 'aliq_cofins', 0) or 0))
 
             total_item_sum += v_prod
 
@@ -713,8 +778,9 @@ class NFCeService:
             etree.SubElement(prod, 'cEAN').text = 'SEM GTIN'
             etree.SubElement(prod, 'xProd').text = xprod_text
             etree.SubElement(prod, 'NCM').text = ncm_val
-            # CFOP: 5405 quando CST=60 (ST já recolhido); 5102 para demais casos
-            cfop_item = '5405' if (crt != '1' and icms_csosn == '60') else cfop[:4]
+            # cBenef só é válido para CSOSN 900 (regime especial) — SEFAZ rejeita para CSOSN 500
+            if cbenef_item and cst_icms_item == '900':
+                etree.SubElement(prod, 'cBenef').text = cbenef_item
             etree.SubElement(prod, 'CFOP').text = cfop_item
             etree.SubElement(prod, 'uCom').text = 'UN'
             etree.SubElement(prod, 'qCom').text = f'{qty:.4f}'
@@ -730,27 +796,68 @@ class NFCeService:
             imposto = etree.SubElement(det, 'imposto')
             icms = etree.SubElement(imposto, 'ICMS')
             if crt == '1':
-                icms_sn = etree.SubElement(icms, f'ICMSSN{icms_csosn}')
-                etree.SubElement(icms_sn, 'orig').text = '0'
-                etree.SubElement(icms_sn, 'CSOSN').text = icms_csosn
+                if cst_icms_item == '500':
+                    icms_sn = etree.SubElement(icms, 'ICMSSN500')
+                    etree.SubElement(icms_sn, 'orig').text = '0'
+                    etree.SubElement(icms_sn, 'CSOSN').text = '500'
+                elif cst_icms_item == '900':
+                    icms_sn = etree.SubElement(icms, 'ICMSSN900')
+                    etree.SubElement(icms_sn, 'orig').text = '0'
+                    etree.SubElement(icms_sn, 'CSOSN').text = '900'
+                    etree.SubElement(icms_sn, 'modBC').text = '3'
+                    etree.SubElement(icms_sn, 'vBC').text = '0.00'
+                    etree.SubElement(icms_sn, 'pICMS').text = '0.00'
+                    etree.SubElement(icms_sn, 'vICMS').text = '0.00'
+                else:
+                    icms_sn = etree.SubElement(icms, 'ICMSSN102')
+                    etree.SubElement(icms_sn, 'orig').text = '0'
+                    etree.SubElement(icms_sn, 'CSOSN').text = '102'
             else:
                 icms60 = etree.SubElement(icms, 'ICMS60')
                 etree.SubElement(icms60, 'orig').text = '0'
                 etree.SubElement(icms60, 'CST').text = '60'
 
+            # PIS
             pis = etree.SubElement(imposto, 'PIS')
-            pis_outr = etree.SubElement(pis, 'PISOutr')
-            etree.SubElement(pis_outr, 'CST').text = '99'
-            etree.SubElement(pis_outr, 'vBC').text = '0.00'
-            etree.SubElement(pis_outr, 'pPIS').text = '0.00'
-            etree.SubElement(pis_outr, 'vPIS').text = '0.00'
+            _pis_nt = {'04', '05', '06', '07', '08', '09'}
+            if cst_pis_item in _pis_nt:
+                pis_nt = etree.SubElement(pis, 'PISNT')
+                etree.SubElement(pis_nt, 'CST').text = cst_pis_item
+            elif cst_pis_item in ('01', '02') and aliq_pis_item > 0:
+                _v_pis = (Decimal(str(v_prod)) * aliq_pis_item / Decimal('100')).quantize(Decimal('0.01'))
+                total_pis_nf += _v_pis
+                pis_aliq = etree.SubElement(pis, 'PISAliq')
+                etree.SubElement(pis_aliq, 'CST').text = cst_pis_item
+                etree.SubElement(pis_aliq, 'vBC').text = f'{v_prod:.2f}'
+                etree.SubElement(pis_aliq, 'pPIS').text = f'{aliq_pis_item:.4f}'
+                etree.SubElement(pis_aliq, 'vPIS').text = f'{_v_pis:.2f}'
+            else:
+                pis_outr = etree.SubElement(pis, 'PISOutr')
+                etree.SubElement(pis_outr, 'CST').text = cst_pis_item if cst_pis_item else '99'
+                etree.SubElement(pis_outr, 'vBC').text = '0.00'
+                etree.SubElement(pis_outr, 'pPIS').text = '0.00'
+                etree.SubElement(pis_outr, 'vPIS').text = '0.00'
 
+            # COFINS
             cofins = etree.SubElement(imposto, 'COFINS')
-            cofins_outr = etree.SubElement(cofins, 'COFINSOutr')
-            etree.SubElement(cofins_outr, 'CST').text = '99'
-            etree.SubElement(cofins_outr, 'vBC').text = '0.00'
-            etree.SubElement(cofins_outr, 'pCOFINS').text = '0.00'
-            etree.SubElement(cofins_outr, 'vCOFINS').text = '0.00'
+            _cofins_nt = {'04', '05', '06', '07', '08', '09'}
+            if cst_pis_item in _cofins_nt:
+                cofins_nt = etree.SubElement(cofins, 'COFINSNT')
+                etree.SubElement(cofins_nt, 'CST').text = cst_pis_item
+            elif cst_pis_item in ('01', '02') and aliq_cofins_item > 0:
+                _v_cofins = (Decimal(str(v_prod)) * aliq_cofins_item / Decimal('100')).quantize(Decimal('0.01'))
+                total_cofins_nf += _v_cofins
+                cofins_aliq = etree.SubElement(cofins, 'COFINSAliq')
+                etree.SubElement(cofins_aliq, 'CST').text = cst_pis_item
+                etree.SubElement(cofins_aliq, 'vBC').text = f'{v_prod:.2f}'
+                etree.SubElement(cofins_aliq, 'pCOFINS').text = f'{aliq_cofins_item:.4f}'
+                etree.SubElement(cofins_aliq, 'vCOFINS').text = f'{_v_cofins:.2f}'
+            else:
+                cofins_outr = etree.SubElement(cofins, 'COFINSOutr')
+                etree.SubElement(cofins_outr, 'CST').text = cst_pis_item if cst_pis_item else '99'
+                etree.SubElement(cofins_outr, 'vBC').text = '0.00'
+                etree.SubElement(cofins_outr, 'pCOFINS').text = '0.00'
+                etree.SubElement(cofins_outr, 'vCOFINS').text = '0.00'
 
         # ── total ─────────────────────────────────────────────────────────────
         total = etree.SubElement(infNFe, 'total')
@@ -770,8 +877,8 @@ class NFCeService:
         etree.SubElement(icms_tot, 'vII').text = '0.00'
         etree.SubElement(icms_tot, 'vIPI').text = '0.00'
         etree.SubElement(icms_tot, 'vIPIDevol').text = '0.00'
-        etree.SubElement(icms_tot, 'vPIS').text = '0.00'
-        etree.SubElement(icms_tot, 'vCOFINS').text = '0.00'
+        etree.SubElement(icms_tot, 'vPIS').text = f'{total_pis_nf:.2f}'
+        etree.SubElement(icms_tot, 'vCOFINS').text = f'{total_cofins_nf:.2f}'
         etree.SubElement(icms_tot, 'vOutro').text = '0.00'
         etree.SubElement(icms_tot, 'vNF').text = f'{valor_total:.2f}'
 
@@ -780,20 +887,59 @@ class NFCeService:
         etree.SubElement(transp, 'modFrete').text = '9'
 
         # ── pag ───────────────────────────────────────────────────────────────
-        tp_pag = '01'
+        _tp_map = {'dinheiro': '01', 'cartao_credito': '03', 'cartao_debito': '04',
+                   'pix': '17', 'voucher': '15'}
+        # Monta lista de pagamentos: [(tPag, valor), ...]
+        _pagamentos = []
+        _total_pago = Decimal('0.00')
         if hasattr(order, 'checkout') and order.checkout:
-            pm = order.checkout.payment_method
-            tp_pag = {'dinheiro': '01', 'cartao_credito': '03', 'cartao_debito': '04',
-                      'pix': '17', 'voucher': '15'}.get(pm, '01')
+            _checkout = order.checkout
+            if _checkout.is_parcial:
+                for _cp in _checkout.payments.all():
+                    _tp = _tp_map.get(_cp.payment_method, '01')
+                    _pagamentos.append((_tp, Decimal(str(_cp.amount))))
+                    _total_pago += Decimal(str(_cp.amount))
+            else:
+                _tp = _tp_map.get(_checkout.payment_method, '01')
+                _pagamentos.append((_tp, Decimal(str(valor_total))))
+                _total_pago = Decimal(str(valor_total))
+        else:
+            _pagamentos.append(('01', Decimal(str(valor_total))))
+            _total_pago = Decimal(str(valor_total))
+        # Garante ao menos um pagamento
+        if not _pagamentos:
+            _pagamentos.append(('01', Decimal(str(valor_total))))
+            _total_pago = Decimal(str(valor_total))
         pag = etree.SubElement(infNFe, 'pag')
-        det_pag = etree.SubElement(pag, 'detPag')
-        etree.SubElement(det_pag, 'tPag').text = tp_pag
-        etree.SubElement(det_pag, 'vPag').text = f'{valor_total:.2f}'
+        for _tp, _vp in _pagamentos:
+            det_pag = etree.SubElement(pag, 'detPag')
+            etree.SubElement(det_pag, 'tPag').text = _tp
+            etree.SubElement(det_pag, 'vPag').text = f'{_vp:.2f}'
+            # cartão de crédito (03) ou débito (04) exige <card> com tpIntegra
+            if _tp in ('03', '04'):
+                card = etree.SubElement(det_pag, 'card')
+                etree.SubElement(card, 'tpIntegra').text = '2'  # não integrado
+        _troco = _total_pago - Decimal(str(valor_total))
+        if _troco > Decimal('0.00'):
+            etree.SubElement(pag, 'vTroco').text = f'{_troco:.2f}'
+
+        # ── infAdic (informações adicionais) ──────────────────────────────────
+        textos_adicionais = []
+        if crt == '1':
+            textos_adicionais.append('DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL')
+        for _item in all_items:
+            if not (isinstance(_item, dict) and _item.get('_fallback')):
+                _txt = (getattr(_item.product, 'dados_adicionais_nfe', '') or '').strip()
+                if _txt and _txt not in textos_adicionais:
+                    textos_adicionais.append(_txt)
+        if textos_adicionais:
+            inf_adic = etree.SubElement(infNFe, 'infAdic')
+            etree.SubElement(inf_adic, 'infCpl').text = ' | '.join(textos_adicionais)[:5000]
 
         # ── infNFeSupl (NFC-e) — ANTES da Signature, conforme schema NF-e 4.00 ──
         # schema: NFe > infNFe > infNFeSupl > Signature
         qr_code_url = dados.get('qr_code', '')
-        url_consulta = self._get_url_consulta_qrcode()
+        url_consulta = self._get_url_chave()
         if qr_code_url:
             NS = 'http://www.portalfiscal.inf.br/nfe'
             supl = etree.SubElement(NFe, f'{{{NS}}}infNFeSupl')
@@ -936,20 +1082,51 @@ class NFCeService:
         )
 
         import ssl
-        from urllib3.util.ssl_ import create_urllib3_context
+
+        def _make_ssl_ctx(cert_file, key_file):
+            """
+            Cria SSLContext compatível com macOS LibreSSL e Linux OpenSSL.
+            SEFAZ SP produção usa IIS com TLS 1.2 — sem @SECLEVEL (LibreSSL não suporta).
+            """
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            # Forçar TLS 1.2 mínimo
+            try:
+                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+            except Exception:
+                pass
+            # OP_LEGACY_SERVER_CONNECT: necessário para alguns servidores IIS antigos
+            try:
+                ctx.options |= ssl.OP_LEGACY_SERVER_CONNECT
+            except AttributeError:
+                pass
+            # Tentar ciphers permissivos — fallback para default se LibreSSL não suportar @SECLEVEL
+            for _ciphers in ('DEFAULT@SECLEVEL=0', 'DEFAULT@SECLEVEL=1', 'DEFAULT', 'ALL'):
+                try:
+                    ctx.set_ciphers(_ciphers)
+                    break
+                except ssl.SSLError:
+                    continue
+            ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
+            return ctx
 
         class TLSAdapter(HTTPAdapter):
+            def __init__(self, cert_file, key_file, **kwargs):
+                self._cert_file = cert_file
+                self._key_file = key_file
+                super().__init__(**kwargs)
+
             def init_poolmanager(self, *args, **kwargs):
-                ctx = create_urllib3_context()
-                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-                ctx.set_ciphers('DEFAULT@SECLEVEL=1')
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                kwargs['ssl_context'] = ctx
+                kwargs['ssl_context'] = _make_ssl_ctx(self._cert_file, self._key_file)
                 return super().init_poolmanager(*args, **kwargs)
 
+            def proxy_manager_for(self, proxy, **proxy_kwargs):
+                proxy_kwargs['ssl_context'] = _make_ssl_ctx(self._cert_file, self._key_file)
+                return super().proxy_manager_for(proxy, **proxy_kwargs)
+
         session = requests.Session()
-        session.mount('https://', TLSAdapter())
+        session.mount('https://', TLSAdapter(cert_path, key_path))
 
         headers = {'Content-Type': 'application/soap+xml; charset=utf-8'}
         print(f"[SEFAZ] Enviando NFCe para {url}")
@@ -962,7 +1139,6 @@ class NFCeService:
         resp = session.post(
             url,
             data=soap_body.encode('utf-8'),
-            cert=(cert_path, key_path),
             headers=headers,
             verify=False,
             timeout=60,
@@ -1103,6 +1279,8 @@ class NFCeService:
         chave_acesso = dados_nfce['chave_acesso']
         qr_code = dados_nfce['qr_code']
         numero_nfce = dados_nfce['numero']
+        cpf_cliente = dados_nfce.get('cpf_cliente') or ''
+        cpf_digits_cupom = re.sub(r'\D', '', str(cpf_cliente)) if cpf_cliente else ''
 
         # Gerar imagem QR Code
         qr_img_b64 = ''
@@ -1129,16 +1307,29 @@ class NFCeService:
         ambiente_label = "Homologação" if self.empresa.ambiente_nfce == "2" else "Produção"
 
         # Forma de pagamento do checkout
-        payment_display = "Dinheiro"
+        _pm_label = {
+            'dinheiro': 'Dinheiro',
+            'cartao_debito': 'Cartão de Débito',
+            'cartao_credito': 'Cartão de Crédito',
+            'pix': 'PIX',
+            'voucher': 'Voucher',
+        }
+        _pagamentos_cupom = []  # lista de (label, valor)
+        _total_pago_cupom = Decimal('0.00')
         if hasattr(order, 'checkout') and order.checkout:
-            pm_map = {
-                'dinheiro': 'Dinheiro',
-                'cartao_debito': 'Cartão de Débito',
-                'cartao_credito': 'Cartão de Crédito',
-                'pix': 'PIX',
-                'voucher': 'Voucher',
-            }
-            payment_display = pm_map.get(order.checkout.payment_method, order.checkout.get_payment_method_display())
+            _co = order.checkout
+            if _co.is_parcial:
+                for _cp in _co.payments.all():
+                    _pagamentos_cupom.append((_pm_label.get(_cp.payment_method, _cp.payment_method), Decimal(str(_cp.amount))))
+                    _total_pago_cupom += Decimal(str(_cp.amount))
+            else:
+                _pagamentos_cupom.append((_pm_label.get(_co.payment_method, _co.get_payment_method_display()), Decimal(str(order.total_amount))))
+                _total_pago_cupom = Decimal(str(order.total_amount))
+        else:
+            _pagamentos_cupom.append(('Dinheiro', Decimal(str(order.total_amount))))
+            _total_pago_cupom = Decimal(str(order.total_amount))
+        _troco_cupom = _total_pago_cupom - Decimal(str(order.total_amount))
+        payment_display = " + ".join(f"{l} R$ {v:.2f}" for l, v in _pagamentos_cupom)
 
         # Data de emissão formatada
         agora = timezone.localtime(timezone.now())
@@ -1153,6 +1344,16 @@ class NFCeService:
         # Valor aproximado dos tributos (estimativa de 20% sobre o total)
         valor_total = float(order.total_amount)
         tributos_aproximados = valor_total * 0.20
+
+        # Dados adicionais dos produtos para infCpl
+        textos_adicionais_cupom = []
+        if self.empresa.regime_tributario == '1':
+            textos_adicionais_cupom.append('DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL')
+        for _ci in all_items:
+            _txt = (getattr(_ci.product, 'dados_adicionais_nfe', '') or '').strip()
+            if _txt and _txt not in textos_adicionais_cupom:
+                textos_adicionais_cupom.append(_txt)
+        inf_cpl_text = ' | '.join(textos_adicionais_cupom) if textos_adicionais_cupom else ''
 
         html_cupom = f'''
     <!DOCTYPE html>
@@ -1404,7 +1605,7 @@ class NFCeService:
 
         <!-- === CONSUMIDOR === -->
         <div class="consumidor center">
-            <div class="bold">CONSUMIDOR NÃO IDENTIFICADO</div>
+            {f'<div class="bold">CPF: {cpf_digits_cupom[:3]}.{cpf_digits_cupom[3:6]}.{cpf_digits_cupom[6:9]}-{cpf_digits_cupom[9:]}</div>' if len(cpf_digits_cupom) == 11 else '<div class="bold">CONSUMIDOR NÃO IDENTIFICADO</div>'}
         </div>
 
         <!-- === DISCRIMINAÇÃO DOS ITENS === -->
@@ -1451,7 +1652,8 @@ class NFCeService:
         <!-- === FORMA DE PAGAMENTO === -->
         <div class="pagamento">
             <div class="bold">FORMA PAGAMENTO</div>
-            <div>{payment_display} - Valor R$ {valor_total:.2f}</div>
+            {''.join(f'<div>{label} - R$ {valor:.2f}</div>' for label, valor in _pagamentos_cupom)}
+            {f'<div><b>Troco: R$ {_troco_cupom:.2f}</b></div>' if _troco_cupom > Decimal("0.00") else ''}
         </div>
 
         <div class="line"></div>
@@ -1483,6 +1685,9 @@ class NFCeService:
         {f'<div class="protocolo"><div class="bold">PROTOCOLO DE AUTORIZAÇÃO:</div>{resultado_emissao.get("protocolo", "PENDENTE")}<br>{data_emissao}</div>' if resultado_emissao.get('sucesso') else ''}
 
         <div class="line"></div>
+
+        <!-- === INFORMAÇÕES ADICIONAIS === -->
+        {f'<div class="mensagens-legais" style="text-align:left;"><div class="bold" style="text-align:center;">INFORMAÇÕES ADICIONAIS</div>{inf_cpl_text}</div><div class="line"></div>' if inf_cpl_text else ''}
 
         <!-- === INFORMAÇÕES LEGAIS === -->
         <div class="mensagens-legais">

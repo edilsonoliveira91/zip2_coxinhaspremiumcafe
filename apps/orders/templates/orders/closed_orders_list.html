@@ -281,13 +281,15 @@
 
                                           <!-- Cupom Fiscal NFC-e (só quando emitido) -->
                                           {% if order.nfce_numero %}
-                                          <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
+                                          <button type="button"
+                                             onclick="abrirModalCupom('{% url 'orders:cupom_nfce' order.numero %}', '{{ order.numero }}', {{ order.nfce_numero }})"
                                              class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all inline-flex"
-                                             title="Imprimir cupom fiscal NFC-e #{{ order.nfce_numero }}">
+                                             title="Visualizar cupom fiscal NFC-e #{{ order.nfce_numero }}">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                               </svg>
-                                          </a>
+                                          </button>
                                           {% endif %}
 
                                           <!-- Emitir NFC-e -->
@@ -618,5 +620,79 @@ async function imprimirRelatorio(btn) {
   }
 }
 
+</script>
+
+<!-- Modal Cupom Fiscal NFC-e -->
+<div id="modal-cupom-nfce" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col" style="max-height:90vh;">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 flex items-center justify-between rounded-t-2xl flex-shrink-0">
+            <div>
+                <h3 class="text-lg font-bold text-white">Cupom Fiscal NFC-e</h3>
+                <p id="modal-cupom-subtitle" class="text-green-100 text-sm"></p>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Botão abrir em nova aba (para imprimir/PDF) -->
+                <a id="modal-cupom-link" href="#" target="_blank"
+                   class="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-all"
+                   title="Abrir em nova aba para salvar como PDF">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    Abrir / PDF
+                </a>
+                <button onclick="fecharModalCupom()" class="text-white/80 hover:text-white transition-colors ml-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- iframe com o cupom -->
+        <div class="flex-1 overflow-hidden rounded-b-2xl" style="min-height:400px;">
+            <iframe id="modal-cupom-iframe"
+                    src="about:blank"
+                    class="w-full h-full border-0"
+                    style="min-height:500px;"
+                    title="Cupom Fiscal NFC-e">
+            </iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModalCupom(url, numero, nfceNumero) {
+    const modal = document.getElementById('modal-cupom-nfce');
+    const iframe = document.getElementById('modal-cupom-iframe');
+    const link = document.getElementById('modal-cupom-link');
+    const subtitle = document.getElementById('modal-cupom-subtitle');
+
+    subtitle.textContent = 'Comanda #' + numero + ' — NFC-e #' + nfceNumero;
+    link.href = url;
+    iframe.src = url;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModalCupom() {
+    const modal = document.getElementById('modal-cupom-nfce');
+    const iframe = document.getElementById('modal-cupom-iframe');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    iframe.src = 'about:blank';
+    document.body.style.overflow = '';
+}
+
+// Fechar com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModalCupom();
+});
+
+// Fechar clicando fora
+document.getElementById('modal-cupom-nfce').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalCupom();
+});
 </script>
 {% endblock %}
