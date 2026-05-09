@@ -480,9 +480,16 @@ class NFCeService:
                     'modo': 'producao' if self.empresa.ambiente_nfce == '1' else 'homologacao',
                 }
             else:
+                _extra = ''
+                if resultado_sefaz.get('cStat') == '464':
+                    _extra = (
+                        f"\n\nhash_input usado:\n{getattr(self, '_last_qr_hash_input', 'N/A')}"
+                        f"\n\nc_hash gerado:\n{getattr(self, '_last_qr_hash', 'N/A')}"
+                        f"\n\ncsc_id={self.empresa.csc_id!r}  csc_codigo={self.empresa.csc_codigo!r}"
+                    )
                 return {
                     'sucesso': False,
-                    'erro': resultado_sefaz['erro'],
+                    'erro': resultado_sefaz['erro'] + _extra,
                     'cStat': resultado_sefaz.get('cStat', ''),
                     'xMotivo': resultado_sefaz.get('xMotivo', ''),
                 }
@@ -572,6 +579,8 @@ class NFCeService:
         # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken_6digits|cCSC)
         hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_hash}|{csc_codigo}"
         c_hash = hashlib.sha1(hash_input.encode('utf-8')).hexdigest().upper()
+        self._last_qr_hash_input = hash_input
+        self._last_qr_hash = c_hash
 
         print(f"[QRCODE DEBUG] cid_token_url={cid_token_url!r} cid_token_hash={cid_token_hash!r}")
         print(f"[QRCODE DEBUG] csc_codigo={csc_codigo!r} len={len(csc_codigo)}")
