@@ -1066,8 +1066,13 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         try:
             from apps.utils.nfce_service import NFCeService
             
-            # Pega CPF do cliente se foi fornecido
-            cpf_cliente = self.request.POST.get('cpf_cliente')
+            # Pega CPF do cliente se foi fornecido (enviado como JSON)
+            try:
+                import json as _json
+                body = _json.loads(self.request.body)
+                cpf_cliente = body.get('cpf_cliente', '').strip() or None
+            except Exception:
+                cpf_cliente = None
             
             # Cria serviço de NFCe
             nfce_service = NFCeService(empresa)
