@@ -17,6 +17,7 @@ from signxml import XMLSigner, methods
 import requests
 import urllib3
 from requests import Session
+from requests.adapters import HTTPAdapter
 
 # Desabilita warnings SSL para homologação
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -1112,22 +1113,61 @@ class NFCeService:
             '</soap12:Envelope>'
         )
 
+        import ssl as _ssl
+
+        def _build_ssl_ctx(cert_file, key_file):
+            # SEFAZ SP IIS não suporta TLS 1.3 — forçar TLS 1.2 máximo
+            ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
+            ctx.check_hostname = False
+            ctx.verify_mode = _ssl.CERT_NONE
+            try:
+                ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
+            except AttributeError:
+                pass
+            try:
+                ctx.maximum_version = _ssl.TLSVersion.TLSv1_2
+            except AttributeError:
+                pass
+            try:
+                ctx.options |= _ssl.OP_LEGACY_SERVER_CONNECT
+            except AttributeError:
+                pass
+            # Cifras compatíveis com IIS — sem SECLEVEL=0 que anuncia ciphers fracos
+            for _ciphers in (
+                'ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA',
+                'HIGH:!aNULL:!eNULL:!EXPORT:!RC4:!DES:!MD5',
+                'DEFAULT',
+            ):
+                try:
+                    ctx.set_ciphers(_ciphers)
+                    break
+                except _ssl.SSLError:
+                    continue
+            ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
+            return ctx
+
+        class _TLSAdapter(HTTPAdapter):
+            def __init__(self, cert_file, key_file, **kwargs):
+                self._cert_file = cert_file
+                self._key_file = key_file
+                super().__init__(**kwargs)
+            def init_poolmanager(self, *args, **kwargs):
+                kwargs['ssl_context'] = _build_ssl_ctx(self._cert_file, self._key_file)
+                return super().init_poolmanager(*args, **kwargs)
+            def proxy_manager_for(self, proxy, **proxy_kwargs):
+                proxy_kwargs['ssl_context'] = _build_ssl_ctx(self._cert_file, self._key_file)
+                return super().proxy_manager_for(proxy, **proxy_kwargs)
+
         session = requests.Session()
+        session.mount('https://', _TLSAdapter(cert_path, key_path))
 
         headers = {'Content-Type': 'application/soap+xml; charset=utf-8'}
         print(f"[SEFAZ] Enviando NFCe para {url}")
-        # DEBUG: salva XML no arquivo para inspeção
-        import os as _os
-        debug_path = _os.path.join(_os.getcwd(), "nfce_debug_last.xml")
-        with open(debug_path, "w", encoding="utf-8") as _df:
-            _df.write(soap_body)
-        print(f"[DEBUG] XML salvo em {debug_path}")
         resp = session.post(
             url,
             data=soap_body.encode('utf-8'),
             headers=headers,
             verify=False,
-            cert=(cert_path, key_path),
             timeout=60,
         )
         print(f"[SEFAZ] HTTP {resp.status_code}")
