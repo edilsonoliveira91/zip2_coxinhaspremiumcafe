@@ -565,18 +565,16 @@ class NFCeService:
         tp_amb = self.empresa.ambiente_nfce  # '1' prod, '2' homolog
         # Na URL: cIdToken SEM zeros à esquerda
         cid_token_url = str(int(str(self.empresa.csc_id)))
-        csc_codigo = self.empresa.csc_codigo
+        # No hash: cIdToken COM zeros à esquerda até 6 dígitos (NT 2015.002)
+        cid_token_hash = cid_token_url.zfill(6)
+        csc_codigo = self.empresa.csc_codigo.strip()
 
-        # Sanitizar CSC: remover espaços/newlines que quebrariam o hash
-        csc_codigo = csc_codigo.strip()
-
-        # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken|cCSC)
-        hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_url}|{csc_codigo}"
+        # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken_6digits|cCSC)
+        hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_hash}|{csc_codigo}"
         c_hash = hashlib.sha1(hash_input.encode('utf-8')).hexdigest().upper()
 
-        print(f"[QRCODE DEBUG] csc_id_raw={self.empresa.csc_id!r} cid_token_url={cid_token_url!r}")
+        print(f"[QRCODE DEBUG] cid_token_url={cid_token_url!r} cid_token_hash={cid_token_hash!r}")
         print(f"[QRCODE DEBUG] csc_codigo={csc_codigo!r} len={len(csc_codigo)}")
-        print(f"[QRCODE DEBUG] tp_amb={tp_amb!r}")
         print(f"[QRCODE DEBUG] hash_input={hash_input!r}")
         print(f"[QRCODE DEBUG] c_hash={c_hash!r}")
 
