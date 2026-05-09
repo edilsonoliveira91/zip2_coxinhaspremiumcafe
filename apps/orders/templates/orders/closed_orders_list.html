@@ -470,8 +470,13 @@ async function emitirNFCe(numero) {
             toast.className = 'fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium';
             toast.textContent = data.message;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-            setTimeout(() => location.reload(), 1500);
+            setTimeout(() => toast.remove(), 5000);
+            // Abre modal do cupom fiscal automaticamente
+            if (data.cupom_url) {
+                setTimeout(() => abrirModalCupom(data.cupom_url, data.comanda_numero, data.numero_nfce), 600);
+            }
+            // Recarrega página em background para atualizar ícones
+            setTimeout(() => location.reload(), 5000);
         } else {
             // Erro — mostrar painel fixo com detalhes completos
             let erroExistente = document.getElementById('nfce-erro-painel');

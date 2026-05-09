@@ -977,11 +977,15 @@ class EmitirNFCeView(LoginRequiredMixin, View):
                 # Salva dados da NFCe na comanda
                 self._salvar_nfce_na_comanda(comanda, resultado)
                 
+                from django.urls import reverse
+                cupom_url = reverse('orders:cupom_nfce', kwargs={'code': comanda.numero})
                 return JsonResponse({
                     'success': True,
                     'message': 'NFCe emitida com sucesso!',
                     'numero_nfce': resultado['numero_nfce'],
-                    'chave_acesso': resultado['chave_acesso']
+                    'chave_acesso': resultado['chave_acesso'],
+                    'cupom_url': cupom_url,
+                    'comanda_numero': comanda.numero,
                 })
             else:
                 return JsonResponse({
