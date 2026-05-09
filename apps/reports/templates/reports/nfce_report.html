@@ -1,259 +1,156 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Cupons Fiscais Emitidos (NFCe) - {{ block.super }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    @media print {
-        .no-print { display: none !important; }
-        .print-only { display: block !important; }
-    }
-    .print-only { display: none; }
-</style>
-{% endblock %}
+{% block title %}Cupons Fiscais NFC-e - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-6">
-    <!-- Header do Relatório -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <span>Cupons Fiscais Emitidos (NFCe)</span>
-                </h1>
-                <div class="flex space-x-2 no-print">
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                        </svg>
-                        <span>Imprimir</span>
-                    </button>
-                </div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Cupons Fiscais NFC-e</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Relatório de notas emitidas</p>
+        </div>
+        <button onclick="window.print()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Imprimir
+        </button>
+    </div>
+
+    <!-- Cards de resumo -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Cupons emitidos</p>
+                <p class="text-3xl font-bold text-gray-900">{{ total_cupons }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Valor total</p>
+                <p class="text-2xl font-bold text-green-600">R$ {{ total_valor|floatformat:2 }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Ticket médio</p>
+                <p class="text-2xl font-bold text-yellow-600">R$ {{ valor_medio|floatformat:2 }}</p>
             </div>
         </div>
     </div>
 
-    <!-- TOPO: Cards de Estatísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <!-- Total de Cupons -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-blue-100">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Total de Cupons</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ total_cupons }}</p>
-                </div>
+    <!-- Filtros -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+        <form method="GET" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Data início</label>
+                <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                       class="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
             </div>
-        </div>
-
-        <!-- Valor Total -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-green-100">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Valor Total Emitido</p>
-                    <p class="text-3xl font-bold text-green-600">R$ {{ total_valor|floatformat:2 }}</p>
-                </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Data fim</label>
+                <input type="date" name="data_fim" value="{{ data_fim }}"
+                       class="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
             </div>
-        </div>
-
-        <!-- Valor Médio -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-yellow-100">
-                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Valor Médio</p>
-                    <p class="text-3xl font-bold text-yellow-600">R$ {{ valor_medio|floatformat:2 }}</p>
-                </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Nº Comanda</label>
+                <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 42"
+                       class="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 w-36">
             </div>
-        </div>
-
-        <!-- Período -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-purple-100">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Período</p>
-                    <p class="text-sm font-bold text-gray-900">{{ data_inicio|date:"d/m/Y" }}</p>
-                    <p class="text-sm font-bold text-gray-900">até {{ data_fim|date:"d/m/Y" }}</p>
-                </div>
-            </div>
-        </div>
+            <button type="submit"
+                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition-all">
+                Filtrar
+            </button>
+            <a href="{% url 'reports:nfce_report' %}"
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                Limpar
+            </a>
+        </form>
     </div>
 
-    <!-- MEIO: Filtros -->
-    <div class="bg-white rounded-lg shadow border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
-                </svg>
-                <span>Filtros de Busca</span>
-            </h3>
+    <!-- Tabela -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-800">Lista de Cupons</h2>
+            <span class="text-sm text-gray-500">{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }} encontrado{{ total_cupons|pluralize:",s" }}</span>
         </div>
-        <div class="p-6 no-print">
-            <form method="GET" class="space-y-4">
-                <!-- Filtros -->
-                <div class="flex flex-wrap items-center gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
-                        <input type="date" name="data_inicio" value="{{ data_inicio }}" 
-                               class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
-                        <input type="date" name="data_fim" value="{{ data_fim }}" 
-                               class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nº Comanda</label>
-                        <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 1234"
-                          class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent w-48">
-                    </div>
-                    <div class="flex items-end space-x-2">
-                        <button type="submit" class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <span>Filtrar</span>
-                        </button>
-                        <a href="{% url 'reports:nfce_report' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                            Limpar
-                        </a>
-                    </div>
-                </div>
-                
-                <!-- Resumo dos Filtros Ativos -->
-                {% if numero_comanda %}
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p class="text-sm text-blue-800">
-                        <strong>Filtro ativo:</strong> Comanda nº {{ numero_comanda }} 
-                        • Período: {{ data_inicio|date:"d/m/Y" }} até {{ data_fim|date:"d/m/Y" }}
-                    </p>
-                </div>
-                {% endif %}
-            </form>
-        </div>
-    </div>
-
-    <!-- FINAL: Tabela de Cupons Fiscais -->
-    <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span>Lista de Cupons Fiscais</span>
-            </h3>
-            <div class="text-sm text-gray-500">
-                {{ total_cupons }} cupons encontrados
-            </div>
-        </div>
-        
         <div class="overflow-x-auto">
-            <table class="w-full table-fixed divide-y divide-gray-200">
+            <table class="w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Comanda</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">NFCe</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Data/Hora</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Valor</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Protocolo</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6 no-print">Ações</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">NF-e #</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Comanda</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Emitida em</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Protocolo</th>
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cupom</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-100">
                     {% for order in nfce_list %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="flex flex-col items-center">
-                                <div class="text-sm font-medium text-gray-900">#{{ order.code }}</div>
-                                <div class="text-sm text-gray-500">Mesa {{ order.table_number|default:"--" }}</div>
-                            </div>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3">
+                            <span class="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
+                                NF-e #{{ order.nfce_numero }}
+                            </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="text-sm font-medium text-gray-900">{{ order.nfce_numero }}</div>
-                            <div class="text-xs text-gray-500">Série 1</div>
+                        <td class="px-5 py-3 text-sm font-medium text-gray-900">#{{ order.numero }}</td>
+                        <td class="px-5 py-3 text-sm text-gray-600">
+                            {{ order.nfce_emitida_em|date:"d/m/Y" }}<br>
+                            <span class="text-xs text-gray-400">{{ order.nfce_emitida_em|date:"H:i" }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="text-sm text-gray-900">{{ order.created_at|date:"d/m/Y" }}</div>
-                            <div class="text-sm text-gray-500">{{ order.created_at|date:"H:i" }}</div>
+                        <td class="px-5 py-3 text-right text-sm font-bold text-green-600">
+                            R$ {{ order.total_amount|floatformat:2 }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="text-sm font-bold text-green-600">R$ {{ order.total_amount|floatformat:2 }}</div>
-                            {% if order.items.count %}
-                            <div class="text-xs text-gray-500">{{ order.items.count }} item{{ order.items.count|pluralize }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="text-xs text-gray-500 font-mono">{{ order.nfce_protocolo|default:"--" }}</div>
+                        <td class="px-5 py-3">
+                            <span class="text-xs font-mono text-gray-500">{{ order.nfce_protocolo|default:"—" }}</span>
                             {% if order.nfce_chave %}
-                            <div class="text-xs text-gray-400">{{ order.nfce_chave|slice:":15" }}...</div>
+                            <br><span class="text-xs text-gray-400 font-mono">{{ order.nfce_chave|slice:":20" }}…</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center no-print">
-                            <div class="flex justify-center space-x-2">
-                                <button class="text-blue-600 hover:text-blue-900" title="Ver Detalhes" 
-                                        onclick="alert('Visualizar cupom #{{ order.nfce_numero }}')">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                    </svg>
-                                </button>
-                                <a href="{% url 'orders:print' order.id %}" class="text-green-600 hover:text-green-900" title="Imprimir">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                                    </svg>
-                                </a>
-                            </div>
+                        <td class="px-5 py-3 text-center">
+                            <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium rounded-lg transition-all"
+                               title="Ver cupom fiscal">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                Ver cupom
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center">
-                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <h3 class="text-lg font-medium text-gray-900 mb-1">Nenhum cupom fiscal encontrado</h3>
-                                <p class="text-gray-500">Tente ajustar os filtros de busca ou verificar se há NFCe emitidas no período selecionado.</p>
-                            </div>
+                        <td colspan="6" class="px-6 py-16 text-center">
+                            <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="text-gray-500 font-medium">Nenhum cupom fiscal encontrado neste período.</p>
+                            <p class="text-gray-400 text-sm mt-1">Ajuste as datas ou emita uma NFC-e para ver aqui.</p>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
-        <!-- Rodapé da Tabela -->
         {% if total_cupons > 0 %}
-        <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
-            <div class="flex items-center justify-between text-sm text-gray-700">
-                <span>Mostrando {{ nfce_list.count }} de {{ total_cupons }} cupons</span>
-                <span class="font-medium">Total: R$ {{ total_valor|floatformat:2 }}</span>
-            </div>
+        <div class="bg-gray-50 px-6 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-600">
+            <span>{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }}</span>
+            <span class="font-semibold">Total: R$ {{ total_valor|floatformat:2 }}</span>
         </div>
         {% endif %}
     </div>
+
 </div>
 {% endblock %}

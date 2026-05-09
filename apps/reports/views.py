@@ -17,59 +17,49 @@ class BaseReportView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 class NFCeReportView(BaseReportView):
     """Relatório de NFCe emitidas (Cupons Fiscais)"""
     template_name = 'reports/nfce_report.html'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Filtros de data
-        data_inicio = self.request.GET.get('data_inicio')
-        data_fim = self.request.GET.get('data_fim')
+        data_inicio = self.request.GET.get('data_inicio', '')
+        data_fim = self.request.GET.get('data_fim', '')
         numero_comanda = self.request.GET.get('numero_comanda', '').strip()
-        
-        # Se não informado, últimos 30 dias
+
+        today = timezone.localtime().date()
         if not data_inicio:
-            data_inicio = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            data_inicio = today.strftime('%Y-%m-%d')
         if not data_fim:
-            data_fim = timezone.now().strftime('%Y-%m-%d')
-        
-        # Busca comandas com NFCe
+            data_fim = today.strftime('%Y-%m-%d')
+
+        # Busca comandas com NFCe emitida (fechada ou cortesia)
         queryset = Comanda.objects.filter(
-            status='entregue',
+            status__in=['fechada', 'cortesia'],
             nfce_numero__isnull=False,
-            created_at__date__gte=data_inicio,
-            created_at__date__lte=data_fim
+            nfce_emitida_em__date__gte=data_inicio,
+            nfce_emitida_em__date__lte=data_fim,
         )
-        
-        # Filtro por número da comanda se informado
+
         if numero_comanda:
-            queryset = queryset.filter(code__icontains=numero_comanda)
-        
-        queryset = queryset.order_by('-created_at')
-        
+            queryset = queryset.filter(numero__icontains=numero_comanda)
+
+        queryset = queryset.order_by('-nfce_emitida_em')
+
         # Estatísticas
         total_cupons = queryset.count()
         total_valor = queryset.aggregate(total=Sum('total_amount'))['total'] or 0
         valor_medio = total_valor / total_cupons if total_cupons > 0 else 0
-        
-        # Cupons por dia no período
-        cupons_periodo = queryset.extra(
-            select={'day': 'date(created_at)'}
-        ).values('day').annotate(
-            qtd_cupons=Count('id'),
-            valor_dia=Sum('total_amount')
-        ).order_by('-day')[:7]  # Últimos 7 dias com movimento
-        
+
         context.update({
             'nfce_list': queryset,
             'total_cupons': total_cupons,
             'total_valor': total_valor,
             'valor_medio': valor_medio,
-            'cupons_periodo': cupons_periodo,
             'data_inicio': data_inicio,
             'data_fim': data_fim,
             'numero_comanda': numero_comanda,
         })
-        
+
         return context
 
 
