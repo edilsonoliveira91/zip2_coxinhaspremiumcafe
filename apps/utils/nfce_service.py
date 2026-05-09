@@ -1114,64 +1114,54 @@ class NFCeService:
         )
 
         import ssl as _ssl
+        import http.client as _http
+        from urllib.parse import urlparse as _urlparse
 
         def _build_ssl_ctx(cert_file, key_file):
-            # SEFAZ SP IIS não suporta TLS 1.3 — forçar TLS 1.2 máximo
             ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = _ssl.CERT_NONE
+            # Desabilitar TLS 1.3 via options (mais confiável que maximum_version no Nix)
+            for _flag in ('OP_NO_TLSv1_3',):
+                _v = getattr(_ssl, _flag, None)
+                if _v:
+                    ctx.options |= _v
+            # Garantir TLS 1.2 como mínimo
             try:
                 ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
             except AttributeError:
                 pass
-            try:
-                ctx.maximum_version = _ssl.TLSVersion.TLSv1_2
-            except AttributeError:
-                pass
-            try:
-                ctx.options |= _ssl.OP_LEGACY_SERVER_CONNECT
-            except AttributeError:
-                pass
-            # Cifras compatíveis com IIS — sem SECLEVEL=0 que anuncia ciphers fracos
-            for _ciphers in (
-                'ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA',
-                'HIGH:!aNULL:!eNULL:!EXPORT:!RC4:!DES:!MD5',
-                'DEFAULT',
-            ):
-                try:
-                    ctx.set_ciphers(_ciphers)
-                    break
-                except _ssl.SSLError:
-                    continue
+            # OP_LEGACY_SERVER_CONNECT para IIS antigos
+            _legacy = getattr(_ssl, 'OP_LEGACY_SERVER_CONNECT', None)
+            if _legacy:
+                ctx.options |= _legacy
             ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
             return ctx
 
-        class _TLSAdapter(HTTPAdapter):
-            def __init__(self, cert_file, key_file, **kwargs):
-                self._cert_file = cert_file
-                self._key_file = key_file
-                super().__init__(**kwargs)
-            def init_poolmanager(self, *args, **kwargs):
-                kwargs['ssl_context'] = _build_ssl_ctx(self._cert_file, self._key_file)
-                return super().init_poolmanager(*args, **kwargs)
-            def proxy_manager_for(self, proxy, **proxy_kwargs):
-                proxy_kwargs['ssl_context'] = _build_ssl_ctx(self._cert_file, self._key_file)
-                return super().proxy_manager_for(proxy, **proxy_kwargs)
+        parsed = _urlparse(url)
+        host = parsed.hostname
+        port = parsed.port or 443
+        path = parsed.path or '/'
+        if parsed.query:
+            path += '?' + parsed.query
 
-        session = requests.Session()
-        session.mount('https://', _TLSAdapter(cert_path, key_path))
+        ssl_ctx = _build_ssl_ctx(cert_path, key_path)
+        body_bytes = soap_body.encode('utf-8')
 
-        headers = {'Content-Type': 'application/soap+xml; charset=utf-8'}
-        print(f"[SEFAZ] Enviando NFCe para {url}")
-        resp = session.post(
-            url,
-            data=soap_body.encode('utf-8'),
-            headers=headers,
-            verify=False,
-            timeout=60,
+        print(f"[SEFAZ] Enviando NFCe para {url} via http.client (TLS1.2)")
+        conn = _http.HTTPSConnection(host, port=port, context=ssl_ctx, timeout=60)
+        conn.request(
+            'POST', path, body=body_bytes,
+            headers={
+                'Content-Type': 'application/soap+xml; charset=utf-8',
+                'Content-Length': str(len(body_bytes)),
+            }
         )
-        print(f"[SEFAZ] HTTP {resp.status_code}")
-        return resp.text
+        response = conn.getresponse()
+        resp_text = response.read().decode('utf-8')
+        print(f"[SEFAZ] HTTP {response.status}")
+        conn.close()
+        return resp_text
 
 
     def _parsear_resposta_sefaz(self, xml_resposta):
