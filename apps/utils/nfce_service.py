@@ -566,7 +566,7 @@ class NFCeService:
         Gera URL do QR Code da NFCe conforme schema NF-e 4.00 (QRCODE V2 ONLINE).
         Formato V2: <url>?p=<chave>|2|<tpAmb>|<cIdToken>|<cHashQRCode>
         cIdToken: csc_id SEM zeros à esquerda (ex: 1, não 000001)
-        cHashQRCode = SHA1(chave + "|2|" + tpAmb + "|" + cIdToken + "|" + csc_codigo).upper()
+        cHashQRCode = SHA1(chave + "|2|" + tpAmb + "|" + cIdToken + csc_codigo).upper()
         Schema pattern: CHAVE|2|tpAmb|cIdToken(0-999999 sem leading zeros)|SHA1(40 hex)
         """
         tp_amb = self.empresa.ambiente_nfce  # '1' prod, '2' homolog
@@ -576,8 +576,8 @@ class NFCeService:
         cid_token_hash = cid_token_url.zfill(6)
         csc_codigo = self.empresa.csc_codigo.strip()
 
-        # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken_6digits|cCSC)
-        hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_hash}|{csc_codigo}"
+        # NT 2015/002 QRCode V2: SHA1(chNFe|2|tpAmb|cIdToken_6digitscCSC)  -- sem pipe entre cIdToken e cCSC
+        hash_input = f"{chave_acesso}|2|{tp_amb}|{cid_token_hash}{csc_codigo}"
         c_hash = hashlib.sha1(hash_input.encode('utf-8')).hexdigest().upper()
         self._last_qr_hash_input = hash_input
         self._last_qr_hash = c_hash
