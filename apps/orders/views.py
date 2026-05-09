@@ -933,12 +933,13 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         """
         try:
             # Busca a comanda — usa filter+first pois numero não é unique
+            # Aceita fechada e cortesia (cancelada não pode emitir NFC-e)
             comanda = Comanda.objects.filter(
                 numero=code,
-                status='fechada'
+                status__in=['fechada', 'cortesia']
             ).order_by('-created_at').first()
             if not comanda:
-                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está fechada.'})
+                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está em status válido para emissão.'})
             
             # Verifica se já foi emitida NFCe
             if comanda.tem_nfce:
