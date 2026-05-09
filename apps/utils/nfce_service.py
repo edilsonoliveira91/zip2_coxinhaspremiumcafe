@@ -771,10 +771,18 @@ class NFCeService:
                     # Normaliza: aceita '0', '00', '060', '60' → sempre 2 dígitos
                     _cst_norm = _cst_raw.lstrip('0') or '0'
                     _cst_norm = _cst_norm.zfill(2)
-                    # Se CFOP for 5405/6405 → ST (CST 60); se não tiver CST → isenta (40)
                     if _cst_norm not in ('00','10','20','30','40','41','50','51','60','70','90'):
                         _cst_norm = '60' if cfop_item in ('5405','6405') else '40'
                     cst_icms_item = _cst_norm
+                    # Garantir consistência CST ↔ CFOP para CRT=3:
+                    # CST 60 (ST) exige CFOP 5405; CST 00 (tributada) exige CFOP 5101
+                    # CST 40/41 (isenta/não trib.) usa CFOP 5102
+                    if cst_icms_item == '60' and cfop_item not in ('5405', '6405'):
+                        cfop_item = '5405'
+                    elif cst_icms_item in ('40', '41') and cfop_item not in ('5102', '6102', '5405', '6405'):
+                        cfop_item = '5102'
+                    elif cst_icms_item == '00' and cfop_item not in ('5101', '6101', '5102', '6102'):
+                        cfop_item = '5101'
                 # CBENEF
                 _cbenef_raw = (getattr(item.product, 'codigo_cbenef', '') or '').strip()
                 cbenef_item = _cbenef_raw if _cbenef_raw and _cbenef_raw.upper() != 'SEM CBENEF' else ''
@@ -795,8 +803,8 @@ class NFCeService:
             etree.SubElement(prod, 'cEAN').text = 'SEM GTIN'
             etree.SubElement(prod, 'xProd').text = xprod_text
             etree.SubElement(prod, 'NCM').text = ncm_val
-            # cBenef só é válido para CSOSN 900 (regime especial) — SEFAZ rejeita para CSOSN 500
-            if cbenef_item and cst_icms_item == '900':
+            # cBenef: CSOSN 900 (CRT=1) ou CST 90 (CRT=3) — regime especial
+            if cbenef_item and cst_icms_item in ('900', '90'):
                 etree.SubElement(prod, 'cBenef').text = cbenef_item
             etree.SubElement(prod, 'CFOP').text = cfop_item
             etree.SubElement(prod, 'uCom').text = 'UN'
@@ -843,6 +851,20 @@ class NFCeService:
                     icms_rn = etree.SubElement(icms, 'ICMS40')
                     etree.SubElement(icms_rn, 'orig').text = '0'
                     etree.SubElement(icms_rn, 'CST').text = cst_icms_item
+                elif cst_icms_item == '90':
+                    # CST 90: Outras (regime especial SP Decreto 51.597/2007) — CFOP 5101
+                    icms_rn = etree.SubElement(icms, 'ICMS90')
+                    etree.SubElement(icms_rn, 'orig').text = '0'
+                    etree.SubElement(icms_rn, 'CST').text = '90'
+                    etree.SubElement(icms_rn, 'modBC').text = '3'
+                    _prod_obj = getattr(item, 'product', None)
+                    _bc_perc = Decimal(str(getattr(_prod_obj, 'base_calculo_icms', 0) or 0)) / Decimal('100')
+                    _aliq_icms = Decimal(str(getattr(_prod_obj, 'aliq_icms', 0) or 0))
+                    _vbc = (Decimal(str(v_prod)) * _bc_perc).quantize(Decimal('0.01'))
+                    _vicms = (_vbc * _aliq_icms / Decimal('100')).quantize(Decimal('0.01'))
+                    etree.SubElement(icms_rn, 'vBC').text = f'{_vbc:.2f}'
+                    etree.SubElement(icms_rn, 'pICMS').text = f'{_aliq_icms:.2f}'
+                    etree.SubElement(icms_rn, 'vICMS').text = f'{_vicms:.2f}'
                 else:
                     # CST 60: ST já recolhida — CFOP deve ser 5405
                     icms_rn = etree.SubElement(icms, 'ICMS60')
