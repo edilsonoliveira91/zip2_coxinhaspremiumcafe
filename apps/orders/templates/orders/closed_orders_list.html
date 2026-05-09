@@ -281,8 +281,7 @@
 
                                           <!-- Cupom Fiscal NFC-e (só quando emitido) -->
                                           {% if order.nfce_numero %}
-                                          <button type="button"
-                                             onclick="abrirModalCupom('{% url 'orders:cupom_nfce' order.numero %}', '{{ order.numero }}', {{ order.nfce_numero }})"
+                                          <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
                                              class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-all text-xs font-semibold"
                                              title="Visualizar cupom fiscal NFC-e #{{ order.nfce_numero }}">
                                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,7 +289,7 @@
                                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                               </svg>
                                               NF-e #{{ order.nfce_numero }}
-                                          </button>
+                                          </a>
                                           {% endif %}
 
                                           <!-- Emitir NFC-e (só para fechada e cortesia) -->
@@ -474,9 +473,9 @@ async function emitirNFCe(numero, cpf_cliente) {
             toast.textContent = data.message;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
-            // Abre modal do cupom fiscal automaticamente
+            // Abre cupom fiscal em nova aba automaticamente
             if (data.cupom_url) {
-                setTimeout(() => abrirModalCupom(data.cupom_url, data.comanda_numero, data.numero_nfce), 600);
+                setTimeout(() => window.open(data.cupom_url, '_blank'), 600);
             }
             // Recarrega página em background para atualizar ícones
             setTimeout(() => location.reload(), 5000);
@@ -697,8 +696,9 @@ function fecharModalCPF() {
 
 function confirmarEmissaoNFCe() {
     const cpf = document.getElementById('input-cpf-nfce').value.trim();
+    const numero = _nfceNumeroAtual;
     fecharModalCPF();
-    emitirNFCe(_nfceNumeroAtual, cpf || null);
+    emitirNFCe(numero, cpf || null);
 }
 
 function mascararCPFCNPJ(input) {

@@ -917,6 +917,7 @@ class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.conf import settings
 import logging
 
@@ -939,7 +940,12 @@ class EmitirNFCeView(LoginRequiredMixin, View):
                 status__in=['fechada', 'cortesia']
             ).order_by('-created_at').first()
             if not comanda:
-                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está em status válido para emissão.'})
+                # Debug: mostra o status real da comanda para diagnóstico
+                todas = list(Comanda.objects.filter(numero=code).values('id', 'status', 'nfce_numero', 'created_at').order_by('-created_at'))
+                detalhe = f'code={repr(code)} | comandas com esse número: {todas}'
+                import logging
+                logging.getLogger(__name__).error(f'[NFCE] Comanda não encontrada para emissão. {detalhe}')
+                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está em status válido para emissão.', 'detalhe': detalhe})
             
             # Verifica se já foi emitida NFCe
             if comanda.tem_nfce:
@@ -1336,6 +1342,7 @@ class OrderCupomContentView(LoginRequiredMixin, View):
             'tipo': 'cupom_normal'
         })
 
+@method_decorator(xframe_options_exempt, name='dispatch')
 class CupomFiscalPrintView(LoginRequiredMixin, View):
     """
     View para impressão do cupom fiscal NFCe

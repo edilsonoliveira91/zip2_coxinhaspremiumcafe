@@ -4,6 +4,7 @@ import hashlib
 import base64
 import re
 import uuid
+import logging
 from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
@@ -34,7 +35,7 @@ class NFCeService:
         # Verifica se tem certificado configurado
         if hasattr(empresa, 'certificado') and empresa.certificado:
             self.certificado = empresa.certificado
-            print(f"[INFO] Certificado encontrado: {self.certificado.arquivo_pfx.name}")
+            logging.getLogger(__name__).info(f"[NFCE] Certificado encontrado: {self.certificado.arquivo_pfx.name}")
             print("[INFO] Certificado configurado - Modo real disponível")
         else:
             print("[INFO] Nenhum certificado encontrado - Apenas modo simulação")
@@ -53,13 +54,13 @@ class NFCeService:
             # Se tem certificado, tenta emissão real
             if self.certificado:
                 ambiente = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
-                print(f"[INFO] Tentando emissão real em {'PRODUÇÃO' if ambiente == '1' else 'HOMOLOGAÇÃO'}...")
+                logging.getLogger(__name__).info(f"[NFCE] Tentando emissão real em {'PRODUÇÃO' if ambiente == '1' else 'HOMOLOGAÇÃO'}...")
                 try:
                     resultado = self._emitir_nfce_real(dados_nfce)
                 except Exception as e:
                     import traceback
                     tb = traceback.format_exc()
-                    print(f"[ERROR] Falha na emissão real: {e}\n{tb}")
+                    logging.getLogger(__name__).error(f"[NFCE] Falha na emissão real: {e}\n{tb}")
                     # Não faz fallback para simulação — retorna erro real
                     return {
                         'sucesso': False,
@@ -88,7 +89,7 @@ class NFCeService:
             return resultado
             
         except Exception as e:
-            print(f"[ERROR] Erro geral na emissão de NFCe: {e}")
+            logging.getLogger(__name__).error(f"[NFCE] Erro geral na emissão de NFCe: {e}")
             return {
                 'sucesso': False,
                 'erro': f'Erro na emissão: {str(e)}',
@@ -580,10 +581,6 @@ class NFCeService:
         self._last_qr_hash_input = hash_input
         self._last_qr_hash = c_hash
 
-        print(f"[QRCODE DEBUG] cid_token_url={cid_token_url!r}")
-        print(f"[QRCODE DEBUG] csc_codigo={csc_codigo!r} len={len(csc_codigo)}")
-        print(f"[QRCODE DEBUG] hash_input={hash_input!r}")
-        print(f"[QRCODE DEBUG] c_hash={c_hash!r}")
 
         url_base = self._get_url_consulta_qrcode()
         qr_url = f"{url_base}?p={chave_acesso}|2|{tp_amb}|{cid_token_url}|{c_hash}"
