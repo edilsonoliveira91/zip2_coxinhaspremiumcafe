@@ -459,6 +459,17 @@ class NFCeService:
             print("[INFO] Gerando XML da NFCe...")
             xml_content = self._gerar_xml_nfce_completo(dados)
 
+            # Debug pré-assinatura: captura <pag> antes de qualquer modificação de namespace
+            try:
+                _pre_pag_s = xml_content.find('<pag>')
+                _pre_pag_e = xml_content.find('</pag>') + 6
+                if _pre_pag_s >= 0:
+                    print(f"[DEBUG-PRE-SIGN-PAG] {xml_content[_pre_pag_s:_pre_pag_e]}")
+                else:
+                    print(f"[DEBUG-PRE-SIGN-PAG] <pag> nao encontrado no XML gerado!")
+            except Exception as _dpe:
+                print(f"[DEBUG-PRE-SIGN-PAG] Erro: {_dpe}")
+
             # 4. Assinar XML
             print("[INFO] Assinando XML com certificado digital...")
             xml_assinado = self._assinar_xml(xml_content, dados)
@@ -969,8 +980,11 @@ class NFCeService:
         etree.SubElement(transp, 'modFrete').text = '9'
 
         # ── pag ───────────────────────────────────────────────────────────────
+        # WORKAROUND SEFAZ SP: tPag=17 (PIX) é rejeitado com cStat=391 pelo validador de SP.
+        # A SEFAZ SP não processa corretamente o código 17. Workaround padrão: usar tPag=99
+        # (Outros) para PIX. O cupom fiscal local continua exibindo "PIX" corretamente.
         _tp_map = {'dinheiro': '01', 'cartao_credito': '03', 'cartao_debito': '04',
-                   'pix': '17', 'voucher': '15'}
+                   'pix': '99', 'voucher': '15'}
         # Monta lista de pagamentos: [(tPag, valor), ...]
         _pagamentos = []
         _total_pago = Decimal('0.00')
