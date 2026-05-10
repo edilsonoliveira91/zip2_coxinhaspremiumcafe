@@ -33,6 +33,7 @@ urlpatterns = [
     path('finalizadas/', views.ClosedOrdersListView.as_view(), name='closed_orders'),
     path('comanda/<str:code>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce'),
     path('comanda/<str:code>/cupom-nfce/', views.CupomFiscalPrintView.as_view(), name='cupom_nfce'),
+    path('comanda/<str:code>/cancelar-nfce/', views.CancelarNFCeView.as_view(), name='cancelar_nfce'),
     path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
 
     # Rotas baseadas no código do objeto

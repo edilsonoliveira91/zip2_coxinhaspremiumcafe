@@ -1349,9 +1349,219 @@ class NFCeService:
         """Consulta status de uma NFCe na SEFAZ"""
         print(f"[INFO] Consultaria status da NFCe: {chave_acesso}")
         
-    def cancelar_nfce(self, chave_acesso, justificativa):
-        """Cancela uma NFCe"""
-        print(f"[INFO] Cancelaria NFCe: {chave_acesso} - Motivo: {justificativa}")
+    def cancelar_nfce(self, chave_acesso, protocolo, justificativa):
+        """
+        Cancela uma NFC-e enviando evento de cancelamento para o webservice
+        NFeRecepcaoEvento4 da SEFAZ.
+
+        Regras SEFAZ:
+        - Prazo: 30 minutos após autorização (NFC-e SP / SVRS)
+        - Justificativa mínima: 15 caracteres
+        - Protocolo de autorização obrigatório
+        """
+        import tempfile as _tempfile
+        import http.client as _http
+        import ssl as _ssl
+        import uuid as _uuid
+        from urllib.parse import urlparse as _urlparse
+        from cryptography.hazmat.primitives.serialization import pkcs12 as _pkcs12
+        from cryptography.hazmat.primitives import serialization as _serial
+        from lxml import etree as _etree
+
+        NS = 'http://www.portalfiscal.inf.br/nfe'
+        DS = 'http://www.w3.org/2000/09/xmldsig#'
+
+        if not self.certificado:
+            return {'sucesso': False, 'erro': 'Certificado digital não configurado.'}
+
+        justificativa = justificativa.strip()
+        if len(justificativa) < 15:
+            return {'sucesso': False, 'erro': 'Justificativa deve ter no mínimo 15 caracteres.'}
+
+        # CNPJ da empresa (só dígitos)
+        cnpj = re.sub(r'\D', '', self.empresa.cnpj)
+        cuf = chave_acesso[:2]  # cUF da chave de acesso
+        ambient = self.empresa.ambiente_nfce  # '1'=prod, '2'=homolog
+        dh_evento = timezone.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
+        n_seq_evento = '1'
+        tp_evento = '110111'  # cancelamento NFC-e
+
+        # id do evento (prefixo ID + tpEvento + chave + nSeqEvento)
+        id_evento = f'ID{tp_evento}{chave_acesso}{n_seq_evento.zfill(2)}'
+
+        # Monta XML do evento
+        xml_evento = (
+            f'<envEvento versao="1.00" xmlns="{NS}">'
+            f'<idLote>{str(_uuid.uuid4().int)[:15]}</idLote>'
+            f'<evento versao="1.00">'
+            f'<infEvento Id="{id_evento}">'
+            f'<cOrgao>{cuf}</cOrgao>'
+            f'<tpAmb>{ambient}</tpAmb>'
+            f'<CNPJ>{cnpj}</CNPJ>'
+            f'<chNFe>{chave_acesso}</chNFe>'
+            f'<dhEvento>{dh_evento}</dhEvento>'
+            f'<tpEvento>{tp_evento}</tpEvento>'
+            f'<nSeqEvento>{n_seq_evento}</nSeqEvento>'
+            f'<verEvento>1.00</verEvento>'
+            f'<detEvento versao="1.00">'
+            f'<descEvento>Cancelamento</descEvento>'
+            f'<nProt>{protocolo}</nProt>'
+            f'<xJust>{justificativa}</xJust>'
+            f'</detEvento>'
+            f'</infEvento>'
+            f'</evento>'
+            f'</envEvento>'
+        )
+
+        # Carrega certificado
+        cert_path = None
+        key_path = None
+        try:
+            with open(self.certificado.arquivo_pfx.path, 'rb') as _f:
+                pfx_data = _f.read()
+            private_key, certificate, _ = _pkcs12.load_key_and_certificates(
+                pfx_data,
+                self.certificado.senha_pfx.encode('utf-8'),
+            )
+            with _tempfile.NamedTemporaryFile(delete=False, suffix='.pem', mode='wb') as _cf:
+                _cf.write(certificate.public_bytes(_serial.Encoding.PEM))
+                cert_path = _cf.name
+            with _tempfile.NamedTemporaryFile(delete=False, suffix='.key', mode='wb') as _kf:
+                _kf.write(private_key.private_bytes(
+                    encoding=_serial.Encoding.PEM,
+                    format=_serial.PrivateFormat.PKCS8,
+                    encryption_algorithm=_serial.NoEncryption(),
+                ))
+                key_path = _kf.name
+
+            # Assina o XML do evento
+            from signxml import XMLSigner as _XMLSigner, methods as _methods
+            xml_root = _etree.fromstring(xml_evento.encode('utf-8'))
+            with open(cert_path, 'rb') as _cf2:
+                cert_pem = _cf2.read()
+            with open(key_path, 'rb') as _kf2:
+                key_pem = _kf2.read()
+
+            signer = _XMLSigner(
+                method=_methods.enveloped,
+                signature_algorithm='rsa-sha1',
+                digest_algorithm='sha1',
+                c14n_algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+            )
+            signer.namespaces = {None: DS}
+            ref_id = xml_root.find(f'.//{{{NS}}}infEvento').get('Id')
+            signed_root = signer.sign(xml_root, key=key_pem, cert=cert_pem, reference_uri=ref_id)
+            xml_assinado = _etree.tostring(signed_root, encoding='unicode', xml_declaration=False)
+            # Remove xmlns:ds redundante
+            xml_assinado = re.sub(r'\s*xmlns:ds="[^"]*"', '', xml_assinado)
+            xml_assinado = xml_assinado.replace('ds:', '').replace(':ds', '')
+
+            # URL do webservice de eventos
+            uf = self.empresa.uf
+            urls_evento = {
+                'SP': {
+                    '1': 'https://nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx',
+                    '2': 'https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx',
+                },
+            }
+            svrs_evento = {
+                '1': 'https://nfce.svrs.rs.gov.br/ws/Evento/NFeRecepcaoEvento4.asmx',
+                '2': 'https://nfce-homologacao.svrs.rs.gov.br/ws/Evento/NFeRecepcaoEvento4.asmx',
+            }
+            if uf in urls_evento:
+                url_evento = urls_evento[uf].get(ambient, urls_evento[uf]['2'])
+            else:
+                url_evento = svrs_evento.get(ambient, svrs_evento['2'])
+
+            # SOAP envelope
+            soap_evento = (
+                '<?xml version="1.0" encoding="utf-8"?>'
+                '<soap12:Envelope '
+                'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+                'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+                'xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
+                '<soap12:Body>'
+                f'<nfeDadosMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4">'
+                f'{xml_assinado}'
+                '</nfeDadosMsg>'
+                '</soap12:Body>'
+                '</soap12:Envelope>'
+            )
+
+            # Envia via http.client (mesmo padrão da autorização)
+            def _build_ssl_ctx_evento(cert_file, key_file):
+                ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+                for _flag in ('OP_NO_TLSv1_3',):
+                    _v = getattr(_ssl, _flag, None)
+                    if _v:
+                        ctx.options |= _v
+                try:
+                    ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
+                except AttributeError:
+                    pass
+                _legacy = getattr(_ssl, 'OP_LEGACY_SERVER_CONNECT', None)
+                if _legacy:
+                    ctx.options |= _legacy
+                ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
+                return ctx
+
+            parsed = _urlparse(url_evento)
+            host = parsed.hostname
+            port = parsed.port or 443
+            path_url = parsed.path or '/'
+            ssl_ctx = _build_ssl_ctx_evento(cert_path, key_path)
+            body_bytes = soap_evento.encode('utf-8')
+            print(f"[CANCELAMENTO] Enviando evento para {url_evento}")
+            conn = _http.HTTPSConnection(host, port=port, context=ssl_ctx, timeout=60)
+            conn.request(
+                'POST', path_url, body=body_bytes,
+                headers={
+                    'Content-Type': 'application/soap+xml; charset=utf-8',
+                    'Content-Length': str(len(body_bytes)),
+                }
+            )
+            response = conn.getresponse()
+            resp_text = response.read().decode('utf-8')
+            print(f"[CANCELAMENTO] HTTP {response.status}")
+            conn.close()
+
+            # Parseia resposta do evento
+            resp_root = _etree.fromstring(resp_text.encode('utf-8'))
+            ns_dict = {'nfe': NS}
+            cstat_el = resp_root.find('.//nfe:cStat', ns_dict)
+            xmot_el  = resp_root.find('.//nfe:xMotivo', ns_dict)
+            nprot_el = resp_root.find('.//nfe:nProt', ns_dict)
+            c_stat   = cstat_el.text if cstat_el is not None else '000'
+            x_motivo = xmot_el.text  if xmot_el  is not None else 'Sem resposta'
+            n_prot   = nprot_el.text if nprot_el  is not None else ''
+            print(f"[CANCELAMENTO] cStat={c_stat} — {x_motivo}")
+
+            # cStat 135 = Evento registrado e vinculado à NF-e
+            if c_stat in ('135', '155'):
+                return {
+                    'sucesso': True,
+                    'protocolo_cancelamento': n_prot,
+                    'mensagem': x_motivo,
+                    'c_stat': c_stat,
+                }
+            else:
+                return {
+                    'sucesso': False,
+                    'erro': f'SEFAZ cStat={c_stat}: {x_motivo}',
+                    'c_stat': c_stat,
+                }
+
+        except Exception as _e:
+            import traceback
+            print(f"[CANCELAMENTO] Erro: {_e}\n{traceback.format_exc()}")
+            return {'sucesso': False, 'erro': str(_e)}
+        finally:
+            if cert_path and os.path.exists(cert_path):
+                os.remove(cert_path)
+            if key_path and os.path.exists(key_path):
+                os.remove(key_path)
 
 
     # =============== VISTA DE GERAÇÃO DE CUPOM FISCAL (HTML) ===============
@@ -1415,8 +1625,9 @@ class NFCeService:
         _troco_cupom = _total_pago_cupom - Decimal(str(order.total_amount))
         payment_display = " + ".join(f"{l} R$ {v:.2f}" for l, v in _pagamentos_cupom)
 
-        # Data de emissão formatada
-        agora = timezone.localtime(timezone.now())
+        # Data de emissão formatada — usa a data real da emissão, não a data de visualização
+        _dt_emissao = getattr(order, 'nfce_emitida_em', None) or timezone.now()
+        agora = timezone.localtime(_dt_emissao)
         data_emissao = agora.strftime('%d/%m/%Y %H:%M:%S')
 
         # Coletar todos os itens de todos os pedidos da comanda

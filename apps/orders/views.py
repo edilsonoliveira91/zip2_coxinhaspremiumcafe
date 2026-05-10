@@ -1086,6 +1086,9 @@ class EmitirNFCeView(LoginRequiredMixin, View):
             
             # Emite NFCe
             resultado = nfce_service.emitir_nfce(order, cpf_cliente)
+            # Injeta cpf_cliente no resultado para ser salvo na comanda
+            if isinstance(resultado, dict):
+                resultado['cpf_cliente'] = cpf_cliente or ''
             
             return resultado
                     
@@ -1165,7 +1168,8 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         comanda.nfce_protocolo = dados_nfce['protocolo']
         comanda.nfce_emitida_em = timezone.now()
         comanda.nfce_xml_path = dados_nfce.get('xml_path')
-        comanda.save(update_fields=['nfce_numero', 'nfce_chave', 'nfce_protocolo', 'nfce_emitida_em', 'nfce_xml_path'])
+        comanda.nfce_cpf_cliente = dados_nfce.get('cpf_cliente') or ''
+        comanda.save(update_fields=['nfce_numero', 'nfce_chave', 'nfce_protocolo', 'nfce_emitida_em', 'nfce_xml_path', 'nfce_cpf_cliente'])
 
 
 import json
@@ -1386,6 +1390,7 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
                 'chave_acesso': comanda.nfce_chave,
                 'order': comanda,
                 'qr_code': qr_code_url,
+                'cpf_cliente': comanda.nfce_cpf_cliente or '',
             }
 
             resultado_emissao = {
@@ -1400,6 +1405,68 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
 
         except Exception as e:
             return HttpResponse(f'Erro ao gerar cupom: {str(e)}', status=500)
+
+
+class CancelarNFCeView(LoginRequiredMixin, View):
+    """
+    Cancela uma NFC-e já emitida enviando evento de cancelamento para a SEFAZ.
+    Prazo: 30 minutos após autorização (NFC-e SP).
+    """
+
+    def post(self, request, code):
+        import json as _json
+        try:
+            body = _json.loads(request.body)
+        except Exception:
+            body = {}
+
+        justificativa = (body.get('justificativa') or '').strip()
+        if len(justificativa) < 15:
+            return JsonResponse({'success': False, 'message': 'Justificativa deve ter no mínimo 15 caracteres.'})
+
+        comanda = Comanda.objects.filter(
+            numero=code,
+            nfce_numero__isnull=False,
+        ).order_by('-nfce_emitida_em').first()
+
+        if not comanda:
+            return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou NFC-e não emitida.'})
+
+        if comanda.nfce_cancelada:
+            return JsonResponse({'success': False, 'message': 'Esta NFC-e já foi cancelada.'})
+
+        if not comanda.nfce_chave or not comanda.nfce_protocolo:
+            return JsonResponse({'success': False, 'message': 'Chave de acesso ou protocolo de autorização não encontrados.'})
+
+        try:
+            from companys.models import Company
+            empresa = Company.objects.filter(ativa=True).first()
+            if not empresa:
+                return JsonResponse({'success': False, 'message': 'Empresa não configurada.'})
+
+            from apps.utils.nfce_service import NFCeService
+            nfce_service = NFCeService(empresa)
+            resultado = nfce_service.cancelar_nfce(
+                chave_acesso=comanda.nfce_chave,
+                protocolo=comanda.nfce_protocolo,
+                justificativa=justificativa,
+            )
+
+            if resultado['sucesso']:
+                comanda.nfce_cancelada = True
+                comanda.nfce_cancelada_em = timezone.now()
+                comanda.nfce_protocolo_cancelamento = resultado.get('protocolo_cancelamento', '')
+                comanda.save(update_fields=['nfce_cancelada', 'nfce_cancelada_em', 'nfce_protocolo_cancelamento'])
+                return JsonResponse({
+                    'success': True,
+                    'message': f'NFC-e cancelada com sucesso. {resultado.get("mensagem", "")}',
+                    'protocolo_cancelamento': resultado.get('protocolo_cancelamento', ''),
+                })
+            else:
+                return JsonResponse({'success': False, 'message': resultado.get('erro', 'Erro desconhecido')})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Erro ao cancelar: {str(e)}'})
 
 
 class CupomFiscalDirectPrintView(LoginRequiredMixin, View):

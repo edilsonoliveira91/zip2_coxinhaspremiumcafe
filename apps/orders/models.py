@@ -50,6 +50,10 @@ class Comanda(TimeStampedModel):
     nfce_protocolo = models.CharField(max_length=20, null=True, blank=True, verbose_name="Protocolo NFCe")
     nfce_emitida_em = models.DateTimeField(null=True, blank=True, verbose_name="NFCe Emitida em")
     nfce_xml_path = models.CharField(max_length=500, null=True, blank=True, verbose_name="Caminho XML NFCe")
+    nfce_cpf_cliente = models.CharField(max_length=20, null=True, blank=True, verbose_name="CPF Cliente NFCe")
+    nfce_cancelada = models.BooleanField(default=False, verbose_name="NFCe Cancelada")
+    nfce_cancelada_em = models.DateTimeField(null=True, blank=True, verbose_name="NFCe Cancelada em")
+    nfce_protocolo_cancelamento = models.CharField(max_length=20, null=True, blank=True, verbose_name="Protocolo Cancelamento NFCe")
 
     motivo_cancelamento = models.TextField(
         blank=True,
