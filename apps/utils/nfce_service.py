@@ -1166,6 +1166,17 @@ class NFCeService:
             '</soap12:Envelope>'
         )
 
+        # Debug: imprime a seção <pag> do XML para diagnóstico
+        try:
+            _pag_start = soap_body.find('<pag>')
+            _pag_end = soap_body.find('</pag>') + 6
+            if _pag_start >= 0:
+                print(f"[DEBUG-XML-PAG] {soap_body[_pag_start:_pag_end]}")
+            else:
+                print(f"[DEBUG-XML-PAG] ELEMENTO <pag> NAO ENCONTRADO NO SOAP BODY!")
+        except Exception as _de:
+            print(f"[DEBUG-XML-PAG] Erro ao extrair pag: {_de}")
+
         import ssl as _ssl
         import http.client as _http
         from urllib.parse import urlparse as _urlparse
