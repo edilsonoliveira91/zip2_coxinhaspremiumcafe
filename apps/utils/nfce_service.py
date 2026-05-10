@@ -1099,6 +1099,9 @@ class NFCeService:
         signed_root = signer.sign(xml_bytes, key=key_pem, cert=cert_pem, reference_uri=ref_id)
 
         xml_signed = etree.tostring(signed_root, encoding='unicode', xml_declaration=False)
+        # Remove xmlns:ds ANTES de remover o prefixo ds: para evitar criar xmlns="" duplicado
+        # que corromperia o namespace padrão da NFCe e causaria rejeição 391 na SEFAZ
+        xml_signed = re.sub(r'\s*xmlns:ds="[^"]*"', '', xml_signed)
         # Remove prefixo 'ds:' que a SEFAZ rejeita
         xml_signed = xml_signed.replace('ds:', '').replace(':ds', '')
         # Corrige CDATA escapado
