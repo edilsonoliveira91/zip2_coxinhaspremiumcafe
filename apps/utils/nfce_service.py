@@ -992,6 +992,7 @@ class NFCeService:
         if not _pagamentos:
             _pagamentos.append(('01', Decimal(str(valor_total))))
             _total_pago = Decimal(str(valor_total))
+        print(f"[DEBUG-PAG] checkout method={getattr(order.checkout if hasattr(order,'checkout') and order.checkout else object(), 'payment_method', 'SEM_CHECKOUT')} | pagamentos={_pagamentos}")
         pag = etree.SubElement(infNFe, 'pag')
         for _tp, _vp in _pagamentos:
             det_pag = etree.SubElement(pag, 'detPag')
@@ -999,6 +1000,7 @@ class NFCeService:
             etree.SubElement(det_pag, 'vPag').text = f'{_vp:.2f}'
             # cartão de crédito (03) ou débito (04) exige <card> com tpIntegra e tBand
             if _tp in ('03', '04'):
+                print(f"[DEBUG-PAG] Adicionando <card> para tPag={_tp}")
                 card = etree.SubElement(det_pag, 'card')
                 etree.SubElement(card, 'tpIntegra').text = '2'  # não integrado
                 etree.SubElement(card, 'tBand').text = '99'     # 99=Outros (bandeira não identificada)
