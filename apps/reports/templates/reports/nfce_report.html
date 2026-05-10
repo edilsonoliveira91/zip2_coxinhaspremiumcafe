@@ -4,197 +4,609 @@
 {% block title %}Relatório NFC-e{% endblock %}
 
 {% block content %}
-<style>
-@media print {
-    .no-print { display: none !important; }
-}
-</style>
+<!-- Banner de status do último lote -->
+<div id="bannerLote" class="hidden fixed top-4 left-1/2 z-50 w-full max-w-lg px-4" style="transform:translateX(-50%);">
+    <div id="bannerLoteInner" class="rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4">
+        <div id="bannerLoteIcon" class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"></div>
+        <div class="flex-1 min-w-0">
+            <p id="bannerLoteTitulo" class="text-sm font-bold leading-snug"></p>
+            <p id="bannerLoteTexto" class="text-xs mt-0.5 leading-snug opacity-80"></p>
+        </div>
+        <button onclick="document.getElementById('bannerLote').classList.add('hidden')" class="opacity-60 hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+</div>
 
 <div class="flex-1 overflow-hidden">
-  <div class="h-full overflow-y-auto">
+    <div class="h-full overflow-y-auto">
 
-    <!-- Header -->
-    <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-      <div class="px-6 py-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">Relatório NFC-e</h1>
-            <p class="mt-1 text-sm text-gray-600">Cupons fiscais emitidos</p>
-          </div>
-          <div class="hidden md:flex items-center space-x-3">
-            <div class="flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600">{{ total_cupons }}</div>
-                <div class="text-xs text-gray-500">Cupons</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600">R$ {{ total_valor|floatformat:2 }}</div>
-                <div class="text-xs text-gray-500">Total emitido</div>
-              </div>
+        <!-- Header -->
+        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+            <div class="px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Relatório NFC-e</h1>
+                        <p class="mt-1 text-sm text-gray-600">Cupons fiscais emitidos no período</p>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-3">
+                        <!-- Cards rápidos no header -->
+                        <div class="flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-600">{{ total_cupons }}</div>
+                                <div class="text-xs text-gray-500">Emitidos</div>
+                            </div>
+                            <div class="w-px h-8 bg-gray-200"></div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-orange-500">{{ total_sem_nfce }}</div>
+                                <div class="text-xs text-gray-500">Sem NFC-e</div>
+                            </div>
+                            <div class="w-px h-8 bg-gray-200"></div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-gray-900">R$ {{ total_valor|floatformat:2 }}</div>
+                                <div class="text-xs text-gray-500">Total</div>
+                            </div>
+                        </div>
+                        <!-- Baixar XMLs -->
+                        <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}"
+                           style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#f3f4f6;color:#374151;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;text-decoration:none;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Baixar XMLs
+                        </a>
+                        <!-- Gerar Todas -->
+                        <button onclick="abrirModalLote()"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Gerar Todas
+                        </button>
+                        <!-- Imprimir -->
+                        <button onclick="window.print()"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#f3f4f6;color:#374151;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Imprimir
+                        </button>
+                    </div>
+                </div>
             </div>
-            <button onclick="window.print()" class="no-print inline-flex items-center gap-2 px-4 py-3 text-white rounded-xl font-semibold text-sm border-none cursor-pointer" style="background:linear-gradient(135deg,#f97316,#ef4444);">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-              Imprimir
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Conteúdo -->
-    <div class="flex-1 p-6 space-y-6">
-
-      <!-- Filtros -->
-      <form method="get" class="no-print bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
-        <div class="flex items-end gap-4 flex-wrap">
-          <div class="flex-1 min-w-[140px]">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
-            <input type="date" name="data_inicio" value="{{ data_inicio }}"
-                   class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-          </div>
-          <div class="flex-1 min-w-[140px]">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
-            <input type="date" name="data_fim" value="{{ data_fim }}"
-                   class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-          </div>
-          <div class="flex-1 min-w-[140px]">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nº Comanda</label>
-            <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 42"
-                   class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-          </div>
-          <div class="flex-shrink-0">
-            <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-            <button type="submit"
-                    class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors font-medium flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <span>Filtrar</span>
-            </button>
-          </div>
-          <div class="flex-shrink-0">
-            <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-            <a href="?" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium inline-flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              <span>Limpar</span>
-            </a>
-          </div>
-        </div>
-        <div class="mt-3 text-xs text-gray-400">
-          Período: <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>
-          {% if numero_comanda %} · Comanda: <strong>#{{ numero_comanda }}</strong>{% endif %}
-        </div>
-      </form>
-
-      <!-- Cards resumo -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print">
-        <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Cupons emitidos</p>
-            <p class="text-3xl font-bold text-gray-900">{{ total_cupons }}</p>
-          </div>
-        </div>
-        <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Valor total</p>
-            <p class="text-2xl font-bold text-green-600">R$ {{ total_valor|floatformat:2 }}</p>
-          </div>
-        </div>
-        <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Ticket médio</p>
-            <p class="text-2xl font-bold text-yellow-600">R$ {{ valor_medio|floatformat:2 }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabela -->
-      <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Cupons Fiscais</h2>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full table-fixed divide-y divide-gray-200">
-            <thead class="bg-gray-50/50">
-              <tr>
-                <th class="w-28 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NF-e</th>
-                <th class="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comanda</th>
-                <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emitida em</th>
-                <th class="w-28 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protocolo / Chave</th>
-                <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider no-print">Cupom</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              {% for order in nfce_list %}
-              <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-4">
-                  <span class="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-xl">
-                    NF-e #{{ order.nfce_numero }}
-                  </span>
-                </td>
-                <td class="px-4 py-4">
-                  <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0">#</div>
-                    <span class="text-sm font-bold text-gray-900">#{{ order.numero }}</span>
-                  </div>
-                </td>
-                <td class="px-4 py-4">
-                  <div class="text-sm text-gray-900">{{ order.nfce_emitida_em|date:"d/m/Y" }}</div>
-                  <div class="text-xs text-gray-400">{{ order.nfce_emitida_em|date:"H:i" }}</div>
-                </td>
-                <td class="px-4 py-4 text-right">
-                  <span class="text-sm font-bold text-green-600">R$ {{ order.total_amount|floatformat:2 }}</span>
-                </td>
-                <td class="px-4 py-4">
-                  <div class="text-xs font-mono text-gray-500">{{ order.nfce_protocolo|default:"—" }}</div>
-                  {% if order.nfce_chave %}
-                  <div class="text-xs text-gray-400 font-mono">{{ order.nfce_chave|slice:":20" }}…</div>
-                  {% endif %}
-                </td>
-                <td class="px-4 py-4 text-center no-print">
-                  <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
-                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-semibold rounded-xl transition-all">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 p-6 space-y-6">
+
+            <!-- Filtros -->
+            <form method="get" id="filter-form" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                <div class="flex items-end gap-4 flex-wrap">
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}"
+                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nº Comanda</label>
+                        <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 42"
+                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                        <button type="submit"
+                                class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 transition-colors font-medium flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <span>Filtrar</span>
+                        </button>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                        <a href="?"
+                           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center space-x-2"
+                           style="display:inline-flex;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            <span>Limpar</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-gray-400">
+                    Mostrando cupons de <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>{% if numero_comanda %} &middot; Comanda <strong>#{{ numero_comanda }}</strong>{% endif %}
+                </div>
+            </form>
+
+            <!-- Cards Resumo -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Cupons emitidos</p>
+                        <p class="text-3xl font-bold text-gray-900 leading-none mt-1">{{ total_cupons }}</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Valor total</p>
+                        <p class="text-2xl font-bold text-green-600 leading-none mt-1">R$ {{ total_valor|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Ticket médio</p>
+                        <p class="text-2xl font-bold text-yellow-600 leading-none mt-1">R$ {{ valor_medio|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-orange-200 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-orange-500 font-medium uppercase tracking-wide">Sem NFC-e</p>
+                        <p class="text-3xl font-bold text-orange-600 leading-none mt-1">{{ total_sem_nfce }}</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Abas -->
+            <div class="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-1.5 flex gap-1 w-fit">
+                <button id="tab-emitidas" onclick="mostrarAba('emitidas')"
+                        class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-gray-900 text-white shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    Ver cupom
-                  </a>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="6" class="px-6 py-16 text-center">
-                  <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                  <p class="text-gray-500 font-medium">Nenhum cupom fiscal neste período.</p>
-                  <p class="text-gray-400 text-sm mt-1">Ajuste as datas ou emita uma NFC-e para ver aqui.</p>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+                    Emitidos
+                    <span class="px-2 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">{{ total_cupons }}</span>
+                </button>
+                <button id="tab-sem-nfce" onclick="mostrarAba('sem-nfce')"
+                        class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Sem NFC-e
+                    {% if total_sem_nfce > 0 %}
+                    <span class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold">{{ total_sem_nfce }}</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs font-bold">0</span>
+                    {% endif %}
+                </button>
+            </div>
 
-        {% if total_cupons > 0 %}
-        <div class="bg-gray-50/50 px-6 py-3 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
-          <span>{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }} encontrado{{ total_cupons|pluralize:",s" }}</span>
-          <span class="font-semibold">Total: R$ {{ total_valor|floatformat:2 }}</span>
-        </div>
-        {% endif %}
-      </div>
+            <!-- Tabela Emitidas -->
+            <div id="painel-emitidas" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Cupons Fiscais Emitidos</h2>
+                </div>
 
+                <div class="w-full">
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-fixed divide-y divide-gray-200">
+                            <thead class="bg-gray-50/50">
+                                <tr>
+                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NF-e</th>
+                                    <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comanda</th>
+                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emitida em</th>
+                                    <th class="w-36 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protocolo / Chave</th>
+                                    <th class="w-36 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for order in nfce_list %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+
+                                    <!-- NF-e -->
+                                    <td class="w-40 px-4 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                NF
+                                            </div>
+                                            <div class="ml-3 min-w-0">
+                                                <div class="text-sm font-bold text-gray-900">#{{ order.nfce_numero }}</div>
+                                                <div class="text-xs text-gray-400">Série 001</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Comanda -->
+                                    <td class="w-36 px-4 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                #
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-bold text-gray-900">#{{ order.numero }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Emitida em -->
+                                    <td class="w-40 px-4 py-4">
+                                        <div class="text-sm text-gray-900">{{ order.nfce_emitida_em|date:"d/m/Y" }}</div>
+                                        <div class="text-xs text-gray-500">{{ order.nfce_emitida_em|date:"H:i" }}</div>
+                                    </td>
+
+                                    <!-- Valor -->
+                                    <td class="w-36 px-4 py-4 text-right">
+                                        <div class="text-base font-bold text-green-600">R$ {{ order.total_amount|floatformat:2 }}</div>
+                                    </td>
+
+                                    <!-- Protocolo / Chave -->
+                                    <td class="px-4 py-4">
+                                        <div class="text-xs font-mono font-semibold text-gray-700">{{ order.nfce_protocolo|default:"—" }}</div>
+                                        {% if order.nfce_chave %}
+                                        <div class="text-xs text-gray-400 font-mono mt-0.5">{{ order.nfce_chave|slice:":22" }}…</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Ações -->
+                                    <td class="w-36 px-4 py-4">
+                                        <div class="flex items-center justify-center space-x-1">
+                                            <!-- Ver cupom -->
+                                            <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
+                                               class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                                               title="Ver cupom fiscal">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </a>
+                                            <!-- Baixar XML -->
+                                            {% if order.nfce_xml_path %}
+                                            <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ order.nfce_emitida_em|date:'Y-m-d' }}&data_fim={{ order.nfce_emitida_em|date:'Y-m-d' }}&numero_comanda={{ order.numero }}"
+                                               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                               title="Baixar XML NFC-e">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                            </a>
+                                            {% else %}
+                                            <span class="p-2 text-gray-300 cursor-not-allowed rounded-lg" title="XML não disponível">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="px-6 py-16 text-center">
+                                        <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <p class="text-gray-500 font-semibold">Nenhum cupom fiscal no período</p>
+                                        <p class="text-gray-400 text-sm mt-1">Ajuste os filtros ou emita uma NFC-e.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if total_cupons > 0 %}
+                <div class="bg-gray-50/50 px-6 py-3 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+                    <span>{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }} encontrado{{ total_cupons|pluralize:",s" }}</span>
+                    <span class="font-semibold text-green-600">Total: R$ {{ total_valor|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tabela Sem NFC-e -->
+            <div id="painel-sem-nfce" class="hidden bg-white/80 backdrop-blur-sm rounded-3xl border border-orange-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-orange-100 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Comandas sem NFC-e</h2>
+                    <span class="text-xs text-orange-600 font-medium">{{ total_sem_nfce }} pendente{{ total_sem_nfce|pluralize:",s" }}</span>
+                </div>
+
+                <div class="w-full">
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-fixed divide-y divide-gray-200">
+                            <thead class="bg-orange-50/50">
+                                <tr>
+                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comanda</th>
+                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aberta em</th>
+                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechada em</th>
+                                    <th class="w-36 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for order in sem_nfce_list %}
+                                <tr class="hover:bg-orange-50/40 transition-colors">
+                                    <td class="w-40 px-4 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                #
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-bold text-gray-900">#{{ order.numero }}</div>
+                                                <div class="text-xs text-gray-400">{{ order.cliente_nome|default:"Sem nome" }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="w-40 px-4 py-4">
+                                        <div class="text-sm text-gray-900">{{ order.created_at|date:"d/m/Y" }}</div>
+                                        <div class="text-xs text-gray-500">{{ order.created_at|date:"H:i" }}</div>
+                                    </td>
+                                    <td class="w-40 px-4 py-4">
+                                        <div class="text-sm text-gray-900">{{ order.updated_at|date:"d/m/Y" }}</div>
+                                        <div class="text-xs text-gray-500">{{ order.updated_at|date:"H:i" }}</div>
+                                    </td>
+                                    <td class="w-36 px-4 py-4 text-right">
+                                        <div class="text-base font-bold {% if order.status == 'cortesia' %}text-purple-600{% else %}text-green-600{% endif %}">
+                                            R$ {{ order.total_amount|floatformat:2 }}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {% if order.status == 'cortesia' %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
+                                            Cortesia
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-lg">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Não emitida
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center">
+                                        <svg class="w-12 h-12 text-green-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <p class="text-gray-500 font-semibold">Todas as comandas têm NFC-e!</p>
+                                        <p class="text-gray-400 text-sm mt-1">Nenhuma comanda pendente no período.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if total_sem_nfce > 0 %}
+                <div class="bg-orange-50/50 px-6 py-3 border-t border-orange-100 flex items-center justify-between text-sm text-gray-600">
+                    <span>{{ total_sem_nfce }} comanda{{ total_sem_nfce|pluralize:",s" }} sem cupom fiscal</span>
+                    <button onclick="abrirModalLote()"
+                            style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:10px;font-weight:600;font-size:12px;border:none;cursor:pointer;">
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Gerar Todas
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
     </div>
-  </div>
 </div>
+
+<!-- Modal Gerar Todas -->
+<div id="modalLote" class="fixed inset-0 z-50 hidden" style="background:rgba(0,0,0,0.5);">
+    <div class="flex items-center justify-center min-h-full p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+
+            <!-- Etapa 1: Confirmação -->
+            <div id="loteEtapa1">
+                <div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 text-center mb-2">Emitir todas as NFC-e</h2>
+                <p class="text-gray-500 text-center text-sm mb-6">Serão emitidas NFC-e para <strong>todas as comandas finalizadas</strong> que ainda não possuem cupom fiscal. A emissão ocorre uma a uma em segundo plano.</p>
+                <div class="flex gap-3">
+                    <button onclick="fecharModalLote()" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button onclick="iniciarLote()" class="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors">Confirmar</button>
+                </div>
+            </div>
+
+            <!-- Etapa 2: Progresso -->
+            <div id="loteEtapa2" class="hidden">
+                <h2 class="text-xl font-bold text-gray-900 text-center mb-5">Emitindo NFC-e…</h2>
+
+                <div class="bg-gray-100 rounded-full h-3 mb-3 overflow-hidden">
+                    <div id="loteProgressBar" class="h-3 rounded-full transition-all duration-500" style="width:0%;background:linear-gradient(135deg,#f97316,#ef4444)"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mb-5">
+                    <span id="loteProgressText">0 de 0 processados</span>
+                    <span id="loteProgressPct">0%</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <div class="bg-green-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-green-600" id="loteSucesso">0</p>
+                        <p class="text-xs text-green-700 mt-1">Com sucesso</p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-red-600" id="loteErros">0</p>
+                        <p class="text-xs text-red-700 mt-1">Com erro</p>
+                    </div>
+                </div>
+
+                <div id="loteErrosList" class="hidden mb-4">
+                    <p class="text-xs font-semibold text-red-600 mb-2">Comandas com erro:</p>
+                    <div id="loteErrosItems" class="space-y-1 max-h-32 overflow-y-auto"></div>
+                </div>
+
+                <div id="loteBtnFechar" class="hidden">
+                    <button onclick="fecharModalLote(); location.reload();"
+                            class="w-full px-4 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-700 transition-colors">
+                        Concluído — Atualizar página
+                    </button>
+                </div>
+
+                <p id="loteStatus" class="text-center text-xs text-gray-400 mt-3">Processando em segundo plano…</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+let _pollingTimer = null;
+
+function mostrarAba(aba) {
+    const painelEmitidas = document.getElementById('painel-emitidas');
+    const painelSem = document.getElementById('painel-sem-nfce');
+    const tabEmitidas = document.getElementById('tab-emitidas');
+    const tabSem = document.getElementById('tab-sem-nfce');
+    const ATIVO = 'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-gray-900 text-white shadow-sm';
+    const INATIVO = 'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-100';
+
+    if (aba === 'emitidas') {
+        painelEmitidas.classList.remove('hidden');
+        painelSem.classList.add('hidden');
+        tabEmitidas.className = ATIVO;
+        tabSem.className = INATIVO;
+    } else {
+        painelSem.classList.remove('hidden');
+        painelEmitidas.classList.add('hidden');
+        tabSem.className = ATIVO;
+        tabEmitidas.className = INATIVO;
+    }
+}
+
+// Verifica se há resultado de lote anterior ao carregar a página
+async function checkLoteStatus() {
+    try {
+        const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
+        const s = await resp.json();
+        if (!s.running && s.total > 0 && s.completed_at) {
+            const banner = document.getElementById('bannerLote');
+            const inner = document.getElementById('bannerLoteInner');
+            const icon = document.getElementById('bannerLoteIcon');
+            const titulo = document.getElementById('bannerLoteTitulo');
+            const texto = document.getElementById('bannerLoteTexto');
+            const errosLen = (s.erros || []).length;
+            if (errosLen === 0) {
+                inner.className = 'rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4 bg-green-600 text-white';
+                icon.className = 'w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0';
+                icon.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                titulo.textContent = 'Lote concluído com sucesso!';
+                texto.textContent = `${s.sucesso} NFC-e emitida${s.sucesso !== 1 ? 's' : ''} com sucesso.`;
+            } else {
+                inner.className = 'rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4 bg-orange-500 text-white';
+                icon.className = 'w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0';
+                icon.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                titulo.textContent = `Lote concluído — ${s.sucesso} sucesso${s.sucesso !== 1 ? 's' : ''}, ${errosLen} erro${errosLen !== 1 ? 's' : ''}`;
+                texto.textContent = s.erros.map(e => `#${e.comanda}: ${e.erro.substring(0,60)}`).join(' · ');
+            }
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 12000);
+        }
+    } catch(e) { /* silencia */ }
+}
+
+document.addEventListener('DOMContentLoaded', checkLoteStatus);
+
+function abrirModalLote() {
+    document.getElementById('modalLote').classList.remove('hidden');
+    document.getElementById('loteEtapa1').classList.remove('hidden');
+    document.getElementById('loteEtapa2').classList.add('hidden');
+}
+
+function fecharModalLote() {
+    document.getElementById('modalLote').classList.add('hidden');
+    if (_pollingTimer) clearInterval(_pollingTimer);
+}
+
+async function iniciarLote() {
+    document.getElementById('loteEtapa1').classList.add('hidden');
+    document.getElementById('loteEtapa2').classList.remove('hidden');
+
+    try {
+        const resp = await fetch("{% url 'reports:emitir_lote' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+            document.getElementById('loteStatus').textContent = data.message;
+            document.getElementById('loteBtnFechar').classList.remove('hidden');
+            return;
+        }
+
+        _pollingTimer = setInterval(verificarStatus, 3000);
+        verificarStatus();
+
+    } catch(e) {
+        document.getElementById('loteStatus').textContent = 'Erro de conexão.';
+        document.getElementById('loteBtnFechar').classList.remove('hidden');
+    }
+}
+
+async function verificarStatus() {
+    try {
+        const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
+        const s = await resp.json();
+
+        const total = s.total || 1;
+        const proc = s.processados || 0;
+        const pct = Math.round((proc / total) * 100);
+
+        document.getElementById('loteProgressBar').style.width = pct + '%';
+        document.getElementById('loteProgressText').textContent = `${proc} de ${s.total} processados`;
+        document.getElementById('loteProgressPct').textContent = pct + '%';
+        document.getElementById('loteSucesso').textContent = s.sucesso || 0;
+        document.getElementById('loteErros').textContent = (s.erros || []).length;
+
+        if (s.erros && s.erros.length > 0) {
+            document.getElementById('loteErrosList').classList.remove('hidden');
+            const container = document.getElementById('loteErrosItems');
+            container.innerHTML = s.erros.map(e =>
+                `<div class="text-xs bg-red-50 rounded-lg px-3 py-1.5 text-red-700"><strong>#${e.comanda}</strong>: ${e.erro.substring(0, 80)}</div>`
+            ).join('');
+        }
+
+        if (!s.running) {
+            clearInterval(_pollingTimer);
+            document.getElementById('loteStatus').textContent = 'Emissão concluída.';
+            document.getElementById('loteBtnFechar').classList.remove('hidden');
+        }
+
+    } catch(e) {
+        // silencia erros de polling
+    }
+}
+</script>
+
 {% endblock %}

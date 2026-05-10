@@ -49,6 +49,7 @@ class Comanda(TimeStampedModel):
     nfce_chave = models.CharField(max_length=44, null=True, blank=True, verbose_name="Chave de Acesso NFCe")
     nfce_protocolo = models.CharField(max_length=20, null=True, blank=True, verbose_name="Protocolo NFCe")
     nfce_emitida_em = models.DateTimeField(null=True, blank=True, verbose_name="NFCe Emitida em")
+    nfce_xml_path = models.CharField(max_length=500, null=True, blank=True, verbose_name="Caminho XML NFCe")
 
     motivo_cancelamento = models.TextField(
         blank=True,

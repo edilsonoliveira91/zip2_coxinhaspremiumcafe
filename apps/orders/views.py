@@ -1164,7 +1164,8 @@ class EmitirNFCeView(LoginRequiredMixin, View):
         comanda.nfce_chave = dados_nfce['chave_acesso']
         comanda.nfce_protocolo = dados_nfce['protocolo']
         comanda.nfce_emitida_em = timezone.now()
-        comanda.save(update_fields=['nfce_numero', 'nfce_chave', 'nfce_protocolo', 'nfce_emitida_em'])
+        comanda.nfce_xml_path = dados_nfce.get('xml_path')
+        comanda.save(update_fields=['nfce_numero', 'nfce_chave', 'nfce_protocolo', 'nfce_emitida_em', 'nfce_xml_path'])
 
 
 import json

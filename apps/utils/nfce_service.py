@@ -473,12 +473,29 @@ class NFCeService:
 
             if resultado_sefaz['sucesso']:
                 print(f"[SEFAZ] NFCe autorizada! Protocolo: {resultado_sefaz['protocolo']}")
+
+                # Salvar XML assinado em disco
+                xml_path = None
+                try:
+                    from django.conf import settings as _settings
+                    xml_dir = os.path.join(_settings.MEDIA_ROOT, 'nfce_xml')
+                    os.makedirs(xml_dir, exist_ok=True)
+                    xml_filename = f"nfce_{dados['numero']}_{dados['chave_acesso']}.xml"
+                    xml_path = os.path.join(xml_dir, xml_filename)
+                    with open(xml_path, 'w', encoding='utf-8') as _xf:
+                        _xf.write(xml_assinado)
+                    logging.getLogger(__name__).info(f"[NFCE] XML salvo: {xml_path}")
+                except Exception as _xe:
+                    logging.getLogger(__name__).error(f"[NFCE] Falha ao salvar XML: {_xe}")
+
                 return {
                     'sucesso': True,
                     'numero_nfce': dados['numero'],
                     'chave_acesso': dados['chave_acesso'],
                     'protocolo': resultado_sefaz['protocolo'],
                     'modo': 'producao' if self.empresa.ambiente_nfce == '1' else 'homologacao',
+                    'xml_path': xml_path,
+                    'xml_filename': os.path.basename(xml_path) if xml_path else None,
                 }
             else:
                 _extra = ''
@@ -980,10 +997,11 @@ class NFCeService:
             det_pag = etree.SubElement(pag, 'detPag')
             etree.SubElement(det_pag, 'tPag').text = _tp
             etree.SubElement(det_pag, 'vPag').text = f'{_vp:.2f}'
-            # cartão de crédito (03) ou débito (04) exige <card> com tpIntegra
+            # cartão de crédito (03) ou débito (04) exige <card> com tpIntegra e tBand
             if _tp in ('03', '04'):
                 card = etree.SubElement(det_pag, 'card')
                 etree.SubElement(card, 'tpIntegra').text = '2'  # não integrado
+                etree.SubElement(card, 'tBand').text = '99'     # 99=Outros (bandeira não identificada)
         _troco = _total_pago - Decimal(str(valor_total))
         if _troco > Decimal('0.00'):
             etree.SubElement(pag, 'vTroco').text = f'{_troco:.2f}'
