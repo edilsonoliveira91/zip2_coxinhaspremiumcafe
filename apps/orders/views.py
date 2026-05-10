@@ -2191,7 +2191,11 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             linhas.append("\n\n\n\n\n")
             linhas.append("\x1d\x56\x00")
 
-            texto_cupom = "\n".join(linhas)
+            # Se tem NFC-e emitida e não cancelada, usa cupom fiscal
+            if comanda.tem_nfce and not comanda.nfce_cancelada:
+                texto_cupom = self._gerar_cupom_fiscal_escpos(comanda)
+            else:
+                texto_cupom = "\n".join(linhas)
             texto_encoded = urllib.parse.quote(texto_cupom)
             rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
 
@@ -2245,4 +2249,130 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             linhas.append("")
             linhas.append("\x1d\x56\x41")
             content_text = "\n".join(linhas)
+
+            # Se tem NFC-e emitida e não cancelada, gera cupom fiscal em vez do normal
+            if comanda.tem_nfce and not comanda.nfce_cancelada:
+                content_text = self._gerar_cupom_fiscal_escpos(comanda)
+
             return JsonResponse({"type": "bridge", "content_text": content_text})
+
+    def _gerar_cupom_fiscal_escpos(self, comanda):
+        """Gera cupom fiscal NFC-e em formato ESC/POS para impressão térmica."""
+        import re as _re
+        from companys.models import Company
+
+        W = 42
+        empresa = Company.objects.filter(ativa=True).first()
+
+        def centro(txt): return txt.center(W)
+        def linha(ch='-'): return ch * W
+
+        # Coletar itens de todos os pedidos ativos
+        all_items = []
+        for pedido in comanda.pedidos.filter(
+            status__in=['aguardando', 'preparando', 'pronta', 'entregue']
+        ).prefetch_related('items__product'):
+            for item in pedido.items.all():
+                all_items.append(item)
+
+        # Formas de pagamento
+        _pm_label = {
+            'dinheiro': 'Dinheiro', 'cartao_debito': 'Debito',
+            'cartao_credito': 'Credito', 'pix': 'PIX', 'voucher': 'Voucher',
+        }
+        _pagamentos = []
+        _total_pago = Decimal('0.00')
+        try:
+            co = comanda.checkout
+            if co.is_parcial:
+                for cp in co.payments.all():
+                    _pagamentos.append((_pm_label.get(cp.payment_method, cp.payment_method), Decimal(str(cp.amount))))
+                    _total_pago += Decimal(str(cp.amount))
+            else:
+                _pagamentos.append((_pm_label.get(co.payment_method, co.payment_method), Decimal(str(comanda.total_amount))))
+                _total_pago = Decimal(str(comanda.total_amount))
+        except Exception:
+            _pagamentos.append(('Dinheiro', Decimal(str(comanda.total_amount))))
+            _total_pago = Decimal(str(comanda.total_amount))
+
+        _troco = max(Decimal('0.00'), _total_pago - Decimal(str(comanda.total_amount)))
+        dt_emissao = timezone.localtime(comanda.nfce_emitida_em or timezone.now())
+
+        linhas = []
+        linhas.append("\x1B\x40")  # ESC @ reset
+
+        # Cabeçalho empresa
+        if empresa:
+            linhas.append(centro(empresa.nome_fantasia or empresa.razao_social))
+            linhas.append(centro(f"{empresa.logradouro}, {empresa.numero}"))
+            linhas.append(centro(f"{empresa.bairro} - {empresa.cidade}/{empresa.uf}"))
+            cnpj_fmt = _re.sub(r'(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})', r'\1.\2.\3/\4-\5',
+                                _re.sub(r'\D', '', empresa.cnpj))
+            linhas.append(centro(f"CNPJ: {cnpj_fmt}"))
+        else:
+            linhas.append(centro("COXINHAS PREMIUM LTDA"))
+            linhas.append(centro("CNPJ: 10.361.831/0001-23"))
+
+        linhas.append(linha('='))
+        linhas.append(centro("NOTA FISCAL DE CONSUMIDOR"))
+        linhas.append(centro("ELETRONICO - NFC-e"))
+        linhas.append(centro(f"Nr: {comanda.nfce_numero:09d}  Serie: 001"))
+        linhas.append(centro(dt_emissao.strftime('%d/%m/%Y  %H:%M:%S')))
+
+        # CPF/CNPJ do consumidor
+        cpf_digits = _re.sub(r'\D', '', comanda.nfce_cpf_cliente or '')
+        if len(cpf_digits) == 11:
+            cpf_fmt = f"{cpf_digits[:3]}.{cpf_digits[3:6]}.{cpf_digits[6:9]}-{cpf_digits[9:]}"
+            linhas.append(centro(f"CPF: {cpf_fmt}"))
+        elif len(cpf_digits) == 14:
+            linhas.append(centro(f"CNPJ: {cpf_digits}"))
+        else:
+            linhas.append(centro("CONSUMIDOR NAO IDENTIFICADO"))
+
+        linhas.append(linha('-'))
+        linhas.append(f"{'#':<3} {'DESCRICAO':<22} {'QTD':>3} {'VLR':>5} {'TOT':>7}")
+        linhas.append(linha('-'))
+
+        total_geral = Decimal('0.00')
+        for i, item in enumerate(all_items, 1):
+            subtotal = Decimal(str(item.unit_price)) * Decimal(str(item.quantity))
+            total_geral += subtotal
+            nome = (item.product.name or '')[:20]
+            linhas.append(f"{i:<3} {nome:<20} {int(item.quantity):>3} {float(item.unit_price):>5.2f} {float(subtotal):>7.2f}")
+
+        linhas.append(linha('-'))
+        linhas.append(f"{'TOTAL':.<34} R${float(total_geral):>7.2f}")
+        linhas.append(linha('-'))
+
+        for label, valor in _pagamentos:
+            linhas.append(f"{label:<30} R${float(valor):>7.2f}")
+        if _troco > Decimal('0.00'):
+            linhas.append(f"Troco{"":<25} R${float(_troco):>7.2f}")
+
+        linhas.append(linha('-'))
+
+        # Tributos
+        tributos = float(total_geral) * 0.20
+        linhas.append(f"Trib.aprox: R${tributos:.2f} ({tributos/float(total_geral)*100:.1f}%) Fonte:IBPT")
+
+        # Chave de acesso (quebrada em 2 linhas de 22 chars)
+        linhas.append("")
+        linhas.append(centro("Consulte pelo QR Code ou:"))
+        chave = comanda.nfce_chave or ''
+        linhas.append(chave[:22])
+        linhas.append(chave[22:44])
+
+        # Protocolo
+        if comanda.nfce_protocolo:
+            linhas.append("")
+            linhas.append(centro(f"Prot: {comanda.nfce_protocolo}"))
+            linhas.append(centro(dt_emissao.strftime('%d/%m/%Y %H:%M:%S')))
+
+        linhas.append(linha('='))
+        linhas.append(centro("OBRIGADO PELA PREFERENCIA!"))
+        linhas.append("")
+        linhas.append("")
+        linhas.append("")
+        linhas.append("\x1d\x56\x41")  # corte
+
+        return "\n".join(linhas)
