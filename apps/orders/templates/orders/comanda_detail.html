@@ -584,6 +584,13 @@ async function imprimirComanda() {
             return;
         }
 
+        if (data.type === 'fiscal_html') {
+            window.open(data.url, '_blank', 'width=480,height=900');
+            if (label) { label.textContent = 'Imprimir Comanda'; }
+            if (btn) { btn.disabled = false; }
+            return;
+        }
+
         // desktop: enviar via Flask bridge
         const bridgeResp = await fetch(FLASK_BRIDGE_URL, {
             method: 'POST',

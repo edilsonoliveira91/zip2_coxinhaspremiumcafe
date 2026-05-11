@@ -644,44 +644,52 @@ class StockListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     login_url = reverse_lazy('accounts:login')
 
-    def get_queryset(self):
-        qs = StockEntry.objects.select_related('product').order_by('-date', '-created_at')
+    def _get_filters(self):
         q = self.request.GET.get('q', '').strip()
+        date_from = self.request.GET.get('date_from', '').strip()
+        date_to = self.request.GET.get('date_to', '').strip()
+        return q, date_from, date_to
+
+    def get_queryset(self):
+        q, date_from, date_to = self._get_filters()
+        qs = StockEntry.objects.select_related('product').order_by('-date', '-created_at')
         if q:
             qs = qs.filter(product__name__icontains=q)
+        if date_from:
+            qs = qs.filter(date__gte=date_from)
+        if date_to:
+            qs = qs.filter(date__lte=date_to)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .models import StockExit
-        from django.db.models import Subquery, OuterRef, IntegerField
-        from django.db.models.functions import Coalesce
 
-        # Saídas por produto (StockExit)
-        saidas_sub = (
-            StockExit.objects
-            .filter(product=OuterRef('product__id'))
-            .values('product')
-            .annotate(t=Sum('quantity'))
-            .values('t')
-        )
+        q, date_from, date_to = self._get_filters()
 
-        totals_qs = (
-            StockEntry.objects
-            .values('product__id', 'product__name', 'product__category')
-            .annotate(
-                total_qty=Sum('quantity'),
-                total_invested=Sum(F('quantity') * F('unit_cost'))
-            )
-            .order_by('product__category', 'product__name')
-        )
+        # Entradas agrupadas por produto (respeitando filtros de data e busca)
+        totals_qs = StockEntry.objects.values('product__id', 'product__name', 'product__category')
+        if q:
+            totals_qs = totals_qs.filter(product__name__icontains=q)
+        if date_from:
+            totals_qs = totals_qs.filter(date__gte=date_from)
+        if date_to:
+            totals_qs = totals_qs.filter(date__lte=date_to)
+        totals_qs = totals_qs.annotate(
+            total_qty=Sum('quantity'),
+            total_invested=Sum(F('quantity') * F('unit_cost'))
+        ).order_by('product__category', 'product__name')
 
-        # Calcular saídas acumuladas por produto em Python (simples e confiável)
+        # Saídas agrupadas por produto (respeitando filtros de data e busca)
+        exits_qs = StockExit.objects.values('product_id')
+        if q:
+            exits_qs = exits_qs.filter(product__name__icontains=q)
+        if date_from:
+            exits_qs = exits_qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            exits_qs = exits_qs.filter(created_at__date__lte=date_to)
         saidas_por_produto = dict(
-            StockExit.objects
-            .values('product_id')
-            .annotate(t=Sum('quantity'))
-            .values_list('product_id', 't')
+            exits_qs.annotate(t=Sum('quantity')).values_list('product_id', 't')
         )
 
         totals = []
@@ -692,7 +700,9 @@ class StockListView(LoginRequiredMixin, ListView):
             totals.append(t)
 
         context['totals'] = totals
-        context['q'] = self.request.GET.get('q', '')
+        context['q'] = q
+        context['date_from'] = date_from
+        context['date_to'] = date_to
         return context
 
 

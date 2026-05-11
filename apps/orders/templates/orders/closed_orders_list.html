@@ -555,6 +555,11 @@ async function imprimirCupomComanda(url, btn) {
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             return;
         }
+        if (data.type === 'fiscal_html') {
+            window.open(data.url, '_blank', 'width=480,height=900');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
         const bridgeResp = await fetch(FLASK_BRIDGE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

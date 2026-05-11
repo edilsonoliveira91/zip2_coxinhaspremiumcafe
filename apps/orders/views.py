@@ -2191,11 +2191,10 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             linhas.append("\n\n\n\n\n")
             linhas.append("\x1d\x56\x00")
 
-            # Se tem NFC-e emitida e não cancelada, usa cupom fiscal
+            texto_cupom = "\n".join(linhas)
+            # Se tem NFC-e emitida e não cancelada, abre HTML do cupom fiscal
             if comanda.tem_nfce and not comanda.nfce_cancelada:
-                texto_cupom = self._gerar_cupom_fiscal_escpos(comanda)
-            else:
-                texto_cupom = "\n".join(linhas)
+                return JsonResponse({"type": "fiscal_html", "url": f"/orders/comanda/{comanda.numero}/cupom-nfce/?print=auto"})
             texto_encoded = urllib.parse.quote(texto_cupom)
             rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
 
@@ -2250,9 +2249,9 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             linhas.append("\x1d\x56\x41")
             content_text = "\n".join(linhas)
 
-            # Se tem NFC-e emitida e não cancelada, gera cupom fiscal em vez do normal
+            # Se tem NFC-e emitida e não cancelada, abre HTML do cupom fiscal
             if comanda.tem_nfce and not comanda.nfce_cancelada:
-                content_text = self._gerar_cupom_fiscal_escpos(comanda)
+                return JsonResponse({"type": "fiscal_html", "url": f"/orders/comanda/{comanda.numero}/cupom-nfce/?print=auto"})
 
             return JsonResponse({"type": "bridge", "content_text": content_text})
 
@@ -2347,7 +2346,7 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
         for label, valor in _pagamentos:
             linhas.append(f"{label:<30} R${float(valor):>7.2f}")
         if _troco > Decimal('0.00'):
-            linhas.append(f"Troco{"":<25} R${float(_troco):>7.2f}")
+            linhas.append(f"{'Troco':<30} R${float(_troco):>7.2f}")
 
         linhas.append(linha('-'))
 
