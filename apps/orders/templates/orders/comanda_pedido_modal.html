@@ -181,30 +181,12 @@
                 placeholder="Exemplo: Sem cebola, com gelo..."></textarea>
         </div>
 
-        <!-- Adicionais - apenas para Sanduíches -->
+        <!-- Adicionais dinâmicos por produto -->
         <div id="adicionais-section" class="hidden mt-5">
             <div class="border-t border-gray-200 pt-4">
                 <p class="text-gray-700 text-sm font-bold mb-3">🧀 Deseja adicionar complementos?</p>
                 <div class="space-y-2" id="adicionais-checkboxes">
-                    {% for adicional in adicionais %}
-                    <label class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer transition-all">
-                        <div class="flex items-center space-x-3">
-                            <input type="checkbox" class="adicional-checkbox w-4 h-4 accent-orange-500 cursor-pointer rounded"
-                                   data-adicional-id="{{ adicional.id }}"
-                                   data-adicional-name="{{ adicional.name|escapejs }}"
-                                   data-adicional-price="{{ adicional.price }}">
-                            <div>
-                                <span class="text-sm font-semibold text-gray-800">{{ adicional.name }}</span>
-                                {% if adicional.description %}
-                                <p class="text-xs text-gray-500">{{ adicional.description }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="text-sm font-bold text-orange-600 ml-3">+R$ {{ adicional.price|floatformat:2 }}</span>
-                    </label>
-                    {% empty %}
-                    <p class="text-sm text-gray-400 italic">Nenhum complemento cadastrado.</p>
-                    {% endfor %}
+                    <!-- preenchido dinamicamente via JS -->
                 </div>
             </div>
         </div>
@@ -322,30 +304,54 @@
 
     // --- CARRINHO LOGIC COM NOVO MODAL ---
     
-    // Função 1: Abre o modal bonitinho ao invés do "prompt()" feio
-    function addProdutoGridParaCarrinho(id) {
+    // Função 1: Abre o modal e carrega adicionais do produto via API
+    async function addProdutoGridParaCarrinho(id) {
         const card = document.querySelector(`.product-card[data-product-id="${id}"]`);
         if (!card) return;
         const name = card.getAttribute('data-product-name');
         let price = card.getAttribute('data-product-price');
         price = parseFloat(price.replace(',', '.'));
-        const category = card.getAttribute('data-product-category');
         document.getElementById('obsProdutoId').value = id;
         document.getElementById('obsProdutoPreco').value = price;
         document.getElementById('obsNomeProduto').innerText = name;
         document.getElementById('obsInputText').value = "";
-        // Reset e exibir adicionais apenas para sanduíches
-        document.querySelectorAll('.adicional-checkbox').forEach(cb => cb.checked = false);
+
+        // Buscar adicionais do produto via API
         const adicionaisSection = document.getElementById('adicionais-section');
-        if (category === 'sanduiches' && document.querySelectorAll('.adicional-checkbox').length > 0) {
-            adicionaisSection.classList.remove('hidden');
-        } else {
+        const adicionaisContainer = document.getElementById('adicionais-checkboxes');
+        adicionaisContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Carregando...</p>';
+        adicionaisSection.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(`/products/product/${id}/adicionais/`);
+            const data = await resp.json();
+            const lista = (data.adicionais || []).filter(a => a.is_active !== false);
+            if (lista.length === 0) {
+                adicionaisSection.classList.add('hidden');
+                adicionaisContainer.innerHTML = '';
+            } else {
+                adicionaisContainer.innerHTML = lista.map(a => `
+                    <label class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer transition-all">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" class="adicional-checkbox w-4 h-4 accent-orange-500 cursor-pointer rounded"
+                                   data-adicional-id="${a.id}"
+                                   data-adicional-name="${a.name.replace(/"/g, '&quot;')}"
+                                   data-adicional-price="${a.price}">
+                            <span class="text-sm font-semibold text-gray-800">${a.name}</span>
+                        </div>
+                        <span class="text-sm font-bold text-orange-600 ml-3">+R$ ${parseFloat(a.price).toFixed(2).replace('.', ',')}</span>
+                    </label>
+                `).join('');
+            }
+        } catch(e) {
             adicionaisSection.classList.add('hidden');
+            adicionaisContainer.innerHTML = '';
         }
+
         const modal = document.getElementById('modalObservacaoProduto');
         const content = document.getElementById('modalObsContent');
         modal.classList.remove('hidden');
-        void modal.offsetWidth; 
+        void modal.offsetWidth;
         content.classList.remove('scale-95');
         content.classList.add('scale-100');
         setTimeout(() => { document.getElementById('obsInputText').focus(); }, 100);
@@ -380,13 +386,12 @@
             });
             adicionaisExtraPrice += parseFloat(cb.getAttribute('data-adicional-price'));
         });
-        const totalPrice = basePrice + adicionaisExtraPrice;
         const adicionaisKey = selectedAdicionais.map(a => a.id).sort().join(',');
         let cartKey = id + "_" + obs.toLowerCase() + "_" + adicionaisKey;
         if (comandaCart[cartKey]) {
             comandaCart[cartKey].quantity += 1;
         } else {
-            comandaCart[cartKey] = { id, name, price: totalPrice, basePrice, quantity: 1, obs, adicionais: selectedAdicionais };
+            comandaCart[cartKey] = { id, name, price: basePrice, basePrice, quantity: 1, obs, adicionais: selectedAdicionais };
         }
         atualizarVisualCarrinho();
         fecharModalObservacao();
@@ -414,27 +419,37 @@
         
         for (const [id, item] of Object.entries(comandaCart)) {
             hasItems = true;
-            const itemTotal = item.quantity * item.price;
+            const adicionaisTotal = (item.adicionais || []).reduce((s, a) => s + parseFloat(a.price), 0);
+            const unitTotal = item.price + adicionaisTotal;
+            const itemTotal = item.quantity * unitTotal;
             total += itemTotal;
-            let displayName = item.name;
+
+            // Adicionais HTML lines
+            let adicionaisHtml = '';
             if (item.adicionais && item.adicionais.length > 0) {
-                item.adicionais.forEach(a => {
-                    displayName += `<br><span class="text-xs text-green-600 font-semibold mt-0.5 block">+ ${a.name} <span class="text-orange-500">(+R$ ${a.price.toFixed(2).replace('.', ',')})</span></span>`;
-                });
+                adicionaisHtml = item.adicionais.map(a =>
+                    `<div class="flex justify-between items-center mt-1">
+                        <span class="text-xs text-green-700 font-medium">+ ${a.name}</span>
+                        <span class="text-xs text-green-600 font-bold ml-2">+R$ ${parseFloat(a.price).toFixed(2).replace('.', ',')}</span>
+                    </div>`
+                ).join('');
             }
+
+            let obsHtml = '';
             if (item.obs && item.obs.trim() !== "") {
-                displayName += `<br><span class="text-xs text-red-500 font-normal mt-1 block">Obs: ${item.obs}</span>`;
+                obsHtml = `<div class="mt-1 text-xs text-red-500 font-normal">Obs: ${item.obs}</div>`;
             }
 
             const el = document.createElement('div');
             el.className = "bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col";
             el.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <!-- 2. Troca item.name por displayName aqui: -->
-                    <span class="font-bold text-gray-800 text-sm leading-tight w-2/3">${displayName}</span>
-                    <span class="font-bold text-orange-600 text-sm min-w-max">R$ ${(item.price).toFixed(2).replace('.',',')}</span>
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-gray-800 text-sm leading-tight w-2/3">${item.name}</span>
+                    <span class="font-bold text-orange-600 text-sm min-w-max">R$ ${item.price.toFixed(2).replace('.',',')}</span>
                 </div>
-                <div class="flex items-center justify-between border-t border-gray-100 pt-2">
+                ${adicionaisHtml}
+                ${obsHtml}
+                <div class="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
                     <div class="flex items-center space-x-1 bg-gray-50 rounded-lg p-1 border border-gray-200">
                         <button type="button" onclick="changeItemQtd('${id}', -1)" class="w-10 h-9 flex-shrink-0 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200 shadow-sm transition-colors font-black text-xl">-</button>
                         <span class="w-10 text-center font-black text-base select-none">${item.quantity}</span>
@@ -498,7 +513,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.reload();
+                window.location.href = "{% url 'accounts:dashboard' %}";
             } else {
                 alert('Erro ao salvar pedido: ' + data.message);
                 btnSalvar.innerHTML = originalText;

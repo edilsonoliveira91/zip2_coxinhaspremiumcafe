@@ -258,7 +258,7 @@
                                             {{ item.product.name }}
                                         </span>
                                         <div class="flex items-center gap-2">
-                                            <span class="text-green-600 font-bold">R$ {{ item.unit_price }}</span>
+                                            <span class="text-green-600 font-bold">R$ {{ item.unit_price|floatformat:2 }}</span>
                                             {% if pedido.status == 'entregue' %}
                                             <button type="button"
                                                 onclick="removerItem({{ item.id }}, '{{ item.product.name }}', {{ pedido.id }})"
@@ -272,8 +272,8 @@
                                         </div>
                                     </div>
                                     {% if item.observations %}
-                                        <div class="mt-1 text-xs text-red-600 font-semibold bg-red-50 p-1 px-2 rounded-md">
-                                            Obs: {{ item.observations }}
+                                        <div class="mt-1 text-xs text-gray-700 font-semibold bg-gray-50 px-2 py-0.5 rounded-md">
+                                            {{ item.observations }}
                                         </div>
                                     {% endif %}
                                 </li>

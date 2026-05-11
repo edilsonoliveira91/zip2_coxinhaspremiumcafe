@@ -635,6 +635,52 @@ class AdicionalDeleteView(LoginRequiredMixin, PermissionRequiredMixin, ListView)
 
 
 
+class ProdutoAdicionaisView(LoginRequiredMixin, View):
+    """API: lista adicionais de um produto específico (GET) ou cria novo (POST)"""
+    def get(self, request, product_pk):
+        from django.shortcuts import get_object_or_404
+        from .models import Product
+        product = get_object_or_404(Product, pk=product_pk)
+        adicionais = Adicional.objects.filter(product=product, is_active=True).values('id', 'name', 'price')
+        return JsonResponse({'adicionais': list(adicionais)})
+
+    def post(self, request, product_pk):
+        from django.shortcuts import get_object_or_404
+        from .models import Product
+        product = get_object_or_404(Product, pk=product_pk)
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            price_raw = data.get('price', '')
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
+            if not price_raw:
+                return JsonResponse({'success': False, 'message': 'Preço é obrigatório.'})
+            price = _Decimal(str(price_raw).replace(',', '.'))
+            if price <= 0:
+                return JsonResponse({'success': False, 'message': 'Preço deve ser maior que zero.'})
+            adicional = Adicional.objects.create(
+                product=product,
+                name=name,
+                price=price,
+                created_by=request.user,
+            )
+            return JsonResponse({'success': True, 'adicional': {'id': adicional.id, 'name': adicional.name, 'price': str(adicional.price)}})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+class ProdutoAdicionalDeleteView(LoginRequiredMixin, View):
+    """API: remove adicional de um produto (POST)"""
+    def post(self, request, product_pk, adicional_pk):
+        from django.shortcuts import get_object_or_404
+        adicional = get_object_or_404(Adicional, pk=adicional_pk, product_id=product_pk, is_active=True)
+        adicional.is_active = False
+        adicional.updated_by = request.user
+        adicional.save(update_fields=['is_active', 'updated_by', 'updated_at'])
+        return JsonResponse({'success': True})
+
+
 # ==================== VIEWS DE ESTOQUE ====================
 
 class StockListView(LoginRequiredMixin, ListView):

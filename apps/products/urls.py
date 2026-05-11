@@ -14,6 +14,10 @@ urlpatterns = [
     path('product/<int:pk>/update/', views.ProductUpdateView.as_view(), name='product_update'),
     path('product/<int:pk>/delete/', views.ProductDeleteView.as_view(), name='product_delete'),
 
+    # Adicionais por produto (inline no cadastro)
+    path('product/<int:product_pk>/adicionais/', views.ProdutoAdicionaisView.as_view(), name='produto_adicionais'),
+    path('product/<int:product_pk>/adicionais/<int:adicional_pk>/delete/', views.ProdutoAdicionalDeleteView.as_view(), name='produto_adicional_delete'),
+
      # Estoque
     path('estoque/', views.StockListView.as_view(), name='stock_list'),
     path('estoque/entrada/', views.StockEntryCreateView.as_view(), name='stock_create'),

@@ -258,6 +258,15 @@ class Adicional(TimeStampedModel):
     """
     Adicional / complemento disponível para produtos
     """
+    product = models.ForeignKey(
+        'Product',
+        on_delete=models.CASCADE,
+        related_name='adicionais',
+        null=True,
+        blank=True,
+        verbose_name="Produto",
+    )
+
     name = models.CharField(
         max_length=100,
         verbose_name="Nome"

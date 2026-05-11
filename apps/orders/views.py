@@ -47,49 +47,15 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect
 
 
-class OrderDashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class OrderDashboardView(LoginRequiredMixin, View):
     """
-    Dashboard principal das comandas - substitui o dashboard da home
+    Redireciona para o dashboard principal de accounts.
     """
-    permission_required = 'orders.view_order'
-    template_name = 'orders/dashboard.html'
     login_url = reverse_lazy('accounts:login')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        today = timezone.now().date()
-        
-        # Estatísticas do dia
-        orders_today = Comanda.objects.filter(created_at__date=today)
-        
-        context.update({
-            # Comandas por status
-            'aguardando': orders_today.filter(status='aguardando').count(),
-            'preparando': orders_today.filter(status='preparando').count(),
-            'prontas': orders_today.filter(status='pronta').count(),
-            'entregues': orders_today.filter(status='entregue').count(),
-            
-            # Comandas ativas para exibir no dashboard
-            'comandas_ativas': orders_today.exclude(
-                status__in=['entregue', 'cancelada', 'fechada', 'livre']
-            ).order_by('-created_at')[:10],
-            
-            # Produtos para o modal (mantendo compatibilidade)
-            'products': Product.objects.filter(
-                is_active=True,
-                show_in_menu=True
-            ).order_by('category', 'name'),
-            
-            # Estatísticas
-            'total_vendas': orders_today.aggregate(
-                total=Sum('total_amount')
-            )['total'] or 0,
-            
-            'total_comandas': orders_today.count(),
-        })
-        
-        return context
+
+    def get(self, request, *args, **kwargs):
+        from django.shortcuts import redirect
+        return redirect('accounts:dashboard')
 
 
 class OrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -1210,9 +1176,18 @@ def gerar_cupom_texto(order, is_fiscal):
         subtotal = float(item.quantity) * float(item.unit_price)
         total_geral += subtotal
 
+        import re as _re_obs
         nome = item.product.name[:25]
         lines.append(f"{i:03d} {nome}")
-        lines.append(f"{item.quantity:.0f}x{item.unit_price:.2f}     {subtotal:>8.2f}")
+        _adics = _re_obs.findall(r'\+([^(]+)\(R\$([\d.]+)\)', item.observations or '')
+        _extra = sum(float(p) for _, p in _adics)
+        _base = float(item.unit_price) - _extra
+        lines.append(f"{item.quantity:.0f}x{_base:.2f}     {_base * float(item.quantity):>8.2f}")
+        for _aname, _aprice in _adics:
+            lines.append(f"  {int(item.quantity)}x +{_aname.strip()[:22]}  {float(_aprice) * float(item.quantity):>8.2f}")
+        _obs_clean = _re_obs.sub(r'\+[^(]+\(R\$[\d.]+\),?\s*', '', item.observations or '').strip(' |,').strip()
+        if _obs_clean:
+            lines.append(f"   Obs: {_obs_clean[:40]}")
 
     lines.append(line("-"))
     lines.append(f"TOTAL          R$ {total_geral:>10.2f}")
@@ -1790,7 +1765,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
                     unit_price = product.price + extra
-                    labels = ', '.join(f'+{a.name}' for a in adicionais_qs)
+                    labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity
                 total_amount += subtotal
@@ -1863,7 +1838,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
                     unit_price = product.price + extra
-                    labels = ', '.join(f'+{a.name}' for a in adicionais_qs)
+                    labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity
                 total_amount += subtotal
@@ -2338,7 +2313,15 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             subtotal = Decimal(str(item.unit_price)) * Decimal(str(item.quantity))
             total_geral += subtotal
             nome = (item.product.name or '')[:20]
-            linhas.append(f"{i:<3} {nome:<20} {int(item.quantity):>3} {float(item.unit_price):>5.2f} {float(subtotal):>7.2f}")
+            _adics = _re.findall(r'\+([^(]+)\(R\$([\d.]+)\)', item.observations or '')
+            _extra = sum(float(p) for _, p in _adics)
+            _base = float(item.unit_price) - _extra
+            linhas.append(f"{i:<3} {nome:<20} {int(item.quantity):>3} {_base:>5.2f} {_base * float(item.quantity):>7.2f}")
+            for _aname, _aprice in _adics:
+                linhas.append(f"    {int(item.quantity)}x +{_aname.strip():<26}  {float(_aprice) * float(item.quantity):>6.2f}")
+            _obs_clean = _re.sub(r'\+[^(]+\(R\$[\d.]+\),?\s*', '', item.observations or '').strip(' |,').strip()
+            if _obs_clean:
+                linhas.append(f"    Obs: {_obs_clean[:33]}")
 
         linhas.append(linha('-'))
         linhas.append(f"{'TOTAL':.<34} R${float(total_geral):>7.2f}")

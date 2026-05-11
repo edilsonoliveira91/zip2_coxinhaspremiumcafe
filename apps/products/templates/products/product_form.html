@@ -276,6 +276,74 @@
                                     {% endif %}
                                 </div>
 
+                                <!-- Adicionais / Complementos (acima da descrição) -->
+                                {% if product %}
+                                <div class="md:col-span-2">
+                                    <div class="rounded-2xl border border-orange-100 overflow-hidden shadow-sm">
+
+                                        <!-- Cabeçalho com gradiente -->
+                                        <div style="background:linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%);border-bottom:1px solid #fed7aa;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+                                            <div style="display:flex;align-items:center;gap:14px;">
+                                                <div style="background:linear-gradient(135deg,#f97316,#ea580c);border-radius:12px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(249,115,22,.25);">
+                                                    <svg style="width:20px;height:20px;" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p style="font-size:14px;font-weight:700;color:#1f2937;margin:0 0 2px;">Adicionais / Complementos</p>
+                                                    <p style="font-size:12px;color:#9ca3af;margin:0;">Extras que o cliente pode escolher ao fazer o pedido</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" onclick="abrirFormAdicional()"
+                                                style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:10px;font-weight:700;font-size:13px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(249,115,22,0.35);white-space:nowrap;">
+                                                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                Novo Adicional
+                                            </button>
+                                        </div>
+
+                                        <!-- Corpo -->
+                                        <div style="background:#fff;padding:20px 24px 24px;">
+
+                                            <!-- Lista -->
+                                            <div id="lista-adicionais" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+
+                                            <!-- Formulário inline novo adicional -->
+                                            <div id="form-adicional" class="hidden">
+                                                <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:20px 22px;">
+                                                    <p style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.07em;margin:0 0 14px;">Novo adicional</p>
+                                                    <div style="display:grid;grid-template-columns:1fr 140px;gap:16px;margin-bottom:16px;">
+                                                        <div>
+                                                            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nome</label>
+                                                            <input type="text" id="add-nome" placeholder="Ex: Chantilly extra, Granola..."
+                                                                   style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                                                                   onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#d1d5db'">
+                                                        </div>
+                                                        <div>
+                                                            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Preço (R$)</label>
+                                                            <input type="number" id="add-preco" placeholder="0,00" step="0.01" min="0.01"
+                                                                   style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                                                                   onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#d1d5db'">
+                                                        </div>
+                                                    </div>
+                                                    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+                                                        <button type="button" onclick="fecharFormAdicional()"
+                                                            style="padding:9px 18px;background:#f9fafb;color:#6b7280;border-radius:9px;font-size:13px;font-weight:600;border:1.5px solid #e5e7eb;cursor:pointer;">
+                                                            Cancelar
+                                                        </button>
+                                                        <button type="button" onclick="salvarAdicional()"
+                                                            style="padding:9px 22px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer;box-shadow:0 2px 6px rgba(22,163,74,.3);">
+                                                            ✓ Salvar
+                                                        </button>
+                                                    </div>
+                                                    <p id="add-erro" class="text-red-500 text-xs mt-2 hidden"></p>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
                                 <!-- Descrição (span completo) -->
                                 <div class="md:col-span-2 space-y-2">
                                     <label class="block text-sm font-medium text-gray-700 flex items-center">
@@ -445,6 +513,8 @@
                             </div>
                         </div>
 
+
+
                         <!-- Footer com botões -->
                         <div class="p-6 bg-gray-50 border-t border-gray-100">
                             <div class="flex justify-center space-x-4">
@@ -469,6 +539,105 @@
 </div>
 
 <script>
+// ===== ADICIONAIS DO PRODUTO =====
+{% if product %}
+const PRODUTO_ID = {{ product.pk }};
+const URL_ADICIONAIS = "{% url 'products:produto_adicionais' product.pk %}";
+const URL_DEL_BASE   = "{% url 'products:produto_adicional_delete' product.pk 0 %}".replace('/0/', '/');
+
+function renderAdicionais(lista) {
+    const container = document.getElementById('lista-adicionais');
+    if (!lista.length) {
+        container.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;color:#9ca3af;">
+                <svg style="width:40px;height:40px;margin-bottom:10px;opacity:.4;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p style="font-size:13px;font-weight:600;color:#6b7280;margin:0 0 4px;">Nenhum adicional cadastrado ainda.</p>
+                <p style="font-size:12px;color:#9ca3af;margin:0;">Clique em "Novo Adicional" para começar.</p>
+            </div>`;
+        return;
+    }
+    container.innerHTML = lista.map((a, i) => `
+        <div id="add-row-${a.id}"
+             style="display:flex;align-items:center;justify-content:space-between;background:#fafafa;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px 18px;transition:border-color .15s,background .15s;"
+             onmouseenter="this.style.borderColor='#fdba74';this.style.background='#fffbf5';" onmouseleave="this.style.borderColor='#e5e7eb';this.style.background='#fafafa';">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#ea580c;flex-shrink:0;">
+                    ${i + 1}
+                </div>
+                <div style="line-height:1.4;">
+                    <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${a.name}</p>
+                    <p style="font-size:11px;color:#9ca3af;margin:0;">Complemento opcional</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                    + R$ ${parseFloat(a.price).toFixed(2).replace('.', ',')}
+                </span>
+                <button type="button" onclick="deletarAdicional(${a.id})"
+                    style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                    <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Remover
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function carregarAdicionais() {
+    const resp = await fetch(URL_ADICIONAIS);
+    const data = await resp.json();
+    renderAdicionais(data.adicionais || []);
+}
+
+function abrirFormAdicional() {
+    document.getElementById('form-adicional').classList.remove('hidden');
+    document.getElementById('add-nome').focus();
+}
+function fecharFormAdicional() {
+    document.getElementById('form-adicional').classList.add('hidden');
+    document.getElementById('add-nome').value = '';
+    document.getElementById('add-preco').value = '';
+    document.getElementById('add-erro').classList.add('hidden');
+}
+
+async function salvarAdicional() {
+    const name  = document.getElementById('add-nome').value.trim();
+    const price = document.getElementById('add-preco').value.trim();
+    const erro  = document.getElementById('add-erro');
+    if (!name || !price) { erro.textContent = 'Preencha nome e preço.'; erro.classList.remove('hidden'); return; }
+    const resp = await fetch(URL_ADICIONAIS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ name, price })
+    });
+    const data = await resp.json();
+    if (data.success) {
+        fecharFormAdicional();
+        carregarAdicionais();
+    } else {
+        erro.textContent = data.message || 'Erro ao salvar.';
+        erro.classList.remove('hidden');
+    }
+}
+
+async function deletarAdicional(id) {
+    if (!confirm('Remover este adicional?')) return;
+    const url = URL_DEL_BASE + id + '/delete/';
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    const data = await resp.json();
+    if (data.success) carregarAdicionais();
+}
+
+document.addEventListener('DOMContentLoaded', carregarAdicionais);
+{% endif %}
+
 // Preview de imagem simplificado
 document.addEventListener('DOMContentLoaded', function() {
     const imageInput = document.getElementById('id_image');
