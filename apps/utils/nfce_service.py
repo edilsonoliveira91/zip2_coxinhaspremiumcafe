@@ -985,6 +985,8 @@ class NFCeService:
         # (Outros) para PIX. O cupom fiscal local continua exibindo "PIX" corretamente.
         _tp_map = {'dinheiro': '01', 'cartao_credito': '03', 'cartao_debito': '04',
                    'pix': '99', 'voucher': '15'}
+        # xPag obrigatório para tPag=99 (Outros) — SEFAZ 441
+        _xpag_map = {'99': 'PIX'}
         # Monta lista de pagamentos: [(tPag, valor), ...]
         _pagamentos = []
         _total_pago = Decimal('0.00')
@@ -1011,6 +1013,8 @@ class NFCeService:
         for _tp, _vp in _pagamentos:
             det_pag = etree.SubElement(pag, 'detPag')
             etree.SubElement(det_pag, 'tPag').text = _tp
+            if _tp in _xpag_map:
+                etree.SubElement(det_pag, 'xPag').text = _xpag_map[_tp]
             etree.SubElement(det_pag, 'vPag').text = f'{_vp:.2f}'
             # cartão de crédito (03) ou débito (04) exige <card> com tpIntegra e tBand
             if _tp in ('03', '04'):
