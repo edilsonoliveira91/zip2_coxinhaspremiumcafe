@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Relatório de Vendas por Produto{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+    <div class="h-full overflow-y-auto">
+
+        <!-- Header -->
+        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+            <div class="px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Relatório de Vendas</h1>
+                        <p class="mt-1 text-sm text-gray-600">Produtos vendidos no período selecionado</p>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-3">
+                        <div class="flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-orange-500">{{ produtos|length }}</div>
+                                <div class="text-xs text-gray-500">Produtos</div>
+                            </div>
+                            <div class="w-px h-8 bg-gray-200"></div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-blue-600">{{ total_itens }}</div>
+                                <div class="text-xs text-gray-500">Itens vendidos</div>
+                            </div>
+                            <div class="w-px h-8 bg-gray-200"></div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-emerald-600">R$ {{ total_faturado|floatformat:2 }}</div>
+                                <div class="text-xs text-gray-500">Faturado</div>
+                            </div>
+                        </div>
+                        <button onclick="window.print()"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#f3f4f6;color:#374151;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 p-6 space-y-6">
+
+            <!-- Filtros -->
+            <form method="get" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
+                <div class="flex items-end gap-4 flex-wrap">
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar produto</label>
+                        <div class="relative">
+                            <svg class="absolute inset-y-0 left-3 my-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <input type="text" name="q" value="{{ q }}" placeholder="Nome do produto..."
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}"
+                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                        <button type="submit"
+                                class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors font-medium flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                        <a href="{% url 'reports:sells_report' %}"
+                           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            <span>Limpar</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Tabela de produtos vendidos -->
+            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Produtos Vendidos</h2>
+                    <span class="text-sm text-gray-500">{{ data_inicio|slice:"8:10" }}/{{ data_inicio|slice:"5:7" }}/{{ data_inicio|slice:":4" }} até {{ data_fim|slice:"8:10" }}/{{ data_fim|slice:"5:7" }}/{{ data_fim|slice:":4" }}</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50/50">
+                            <tr>
+                                <th class="w-12 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                                <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                                <th class="w-32 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd. Vendida</th>
+                                <th class="w-40 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Faturado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for p in produtos %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="w-12 px-4 py-4 text-center">
+                                    <span class="text-sm font-medium text-gray-400">{{ forloop.counter }}</span>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-9 h-9 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <div class="text-sm font-bold text-gray-900">{{ p.product__name }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="w-36 px-4 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                        {{ p.product__category|default:"—" }}
+                                    </span>
+                                </td>
+                                <td class="w-32 px-4 py-4 text-center">
+                                    <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-orange-100 text-orange-700 text-sm font-bold">
+                                        {{ p.qtd_vendida }}
+                                    </span>
+                                </td>
+                                <td class="w-40 px-4 py-4 text-right">
+                                    <div class="text-base font-bold text-emerald-600">R$ {{ p.total_faturado|floatformat:2 }}</div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-6 py-16 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
+                                        <p class="text-gray-500">{% if q %}Sem resultados para "{{ q }}" no período.{% else %}Nenhuma venda registrada neste período.{% endif %}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if produtos %}
+                        <tfoot class="bg-gray-50 border-t-2 border-gray-300">
+                            <tr>
+                                <td colspan="3" class="px-4 py-4 text-right text-sm font-bold text-gray-700">TOTAL</td>
+                                <td class="px-4 py-4 text-center">
+                                    <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-orange-200 text-orange-800 text-sm font-bold">
+                                        {{ total_itens }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 text-right">
+                                    <div class="text-base font-bold text-emerald-700">R$ {{ total_faturado|floatformat:2 }}</div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

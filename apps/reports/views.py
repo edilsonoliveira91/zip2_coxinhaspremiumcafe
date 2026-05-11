@@ -146,6 +146,54 @@ class SalesReportView(BaseReportView):
         return context
 
 
+class SellsReportView(BaseReportView):
+    """Relatório de Vendas por Produto — lista produto + quantidade vendida no período"""
+    template_name = 'reports/sells_reports.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import F, DecimalField, ExpressionWrapper
+
+        today = timezone.localtime().date()
+        data_inicio = self.request.GET.get('data_inicio', '').strip() or today.strftime('%Y-%m-%d')
+        data_fim = self.request.GET.get('data_fim', '').strip() or today.strftime('%Y-%m-%d')
+        q = self.request.GET.get('q', '').strip()
+
+        items_qs = PedidoItem.objects.filter(
+            pedido__comanda__status__in=['fechada', 'cortesia'],
+            pedido__comanda__updated_at__date__gte=data_inicio,
+            pedido__comanda__updated_at__date__lte=data_fim,
+            pedido__status__in=['aguardando', 'preparando', 'pronta', 'entregue'],
+        )
+        if q:
+            items_qs = items_qs.filter(product__name__icontains=q)
+
+        produtos = (
+            items_qs
+            .values('product__id', 'product__name', 'product__category')
+            .annotate(
+                qtd_vendida=Sum('quantity'),
+                total_faturado=Sum(
+                    ExpressionWrapper(F('quantity') * F('unit_price'), output_field=DecimalField())
+                ),
+            )
+            .order_by('-qtd_vendida')
+        )
+
+        total_itens = sum(p['qtd_vendida'] or 0 for p in produtos)
+        total_faturado = sum(p['total_faturado'] or 0 for p in produtos)
+
+        context.update({
+            'produtos': list(produtos),
+            'total_itens': total_itens,
+            'total_faturado': total_faturado,
+            'data_inicio': data_inicio,
+            'data_fim': data_fim,
+            'q': q,
+        })
+        return context
+
+
 # ─── Estado global da emissão em lote ────────────────────────────────────────
 _lote_state = {
     'running': False,
