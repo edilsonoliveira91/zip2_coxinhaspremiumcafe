@@ -269,7 +269,7 @@
                                           <!-- Alterar Pagamento -->
                                           {% if perms.checkouts.add_checkout or request.user.is_superuser %}
                                           <button type="button"
-                                            onclick="abrirModalPagamento({{ order.id }}, '{{ order.numero }}', '{% if order.checkout %}{{ order.checkout.payment_method }}{% endif %}', {% if order.checkout %}{{ order.checkout.total }}{% else %}{{ order.total_amount }}{% endif %})"
+                                            onclick="abrirModalPagamento({{ order.id }}, '{{ order.numero }}', '{% if order.checkout %}{{ order.checkout.payment_method }}{% endif %}', '{% if order.checkout %}{{ order.checkout.total }}{% else %}{{ order.total_amount }}{% endif %}')"
                                             class="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
                                             title="Alterar método de pagamento">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +424,7 @@ let _parcialLinhasCount = 0;
 
 function abrirModalPagamento(id, numero, metodoAtual, total) {
     _modalPagamentoComanda = id;
-    _modalPagamentoTotal = parseFloat(total) || 0;
+    _modalPagamentoTotal = parseFloat(String(total).replace(',', '.')) || 0;
     _parcialLinhasCount = 0;
     document.getElementById('modal-pagamento-comanda').textContent = '#' + numero;
     document.getElementById('parcial-linhas').innerHTML = '';
