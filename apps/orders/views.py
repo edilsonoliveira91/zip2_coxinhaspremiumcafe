@@ -750,7 +750,7 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
             status__in=['fechada', 'cancelada', 'cortesia'],
             updated_at__date__gte=date_from,
             updated_at__date__lte=date_to,
-        ).select_related('checkout').prefetch_related(
+        ).select_related('checkout', 'created_by').prefetch_related(
             'pedidos__items__product',
             'checkout__payments',
         ).order_by('-updated_at')

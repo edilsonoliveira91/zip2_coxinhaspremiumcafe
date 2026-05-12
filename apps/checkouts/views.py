@@ -255,17 +255,53 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
             nova_nota = (checkout.notes or '') + f'\n[Alterado por {request.user} em {timezone.now().strftime("%d/%m/%Y %H:%M")}]: {metodo_antigo} → {novo_metodo}'
 
             from checkouts.models import CheckoutPayment
+            from decimal import Decimal as _Dec
+
+            METODOS_SIMPLES = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']
 
             with transaction.atomic():
-                rows = Checkout.objects.filter(pk=checkout.pk).update(
-                    payment_method=novo_metodo,
-                    notes=nova_nota,
-                )
-                if rows == 0:
-                    return JsonResponse({'success': False, 'message': 'Checkout não encontrado no banco.'}, status=404)
+                if novo_metodo == 'parcial':
+                    payments = data.get('payments', [])
+                    if len(payments) < 2:
+                        return JsonResponse({'success': False, 'message': 'Pagamento parcial requer pelo menos 2 formas de pagamento.'}, status=400)
 
-                # Sincroniza CheckoutPayment com o novo método (somente para checkouts não-parciais)
-                if novo_metodo != 'parcial':
+                    for p in payments:
+                        if p.get('method') not in METODOS_SIMPLES:
+                            return JsonResponse({'success': False, 'message': f'Método inválido: {p.get("method")}'}, status=400)
+                        try:
+                            amt = _Dec(str(p['amount']))
+                            if amt <= 0:
+                                raise ValueError
+                        except Exception:
+                            return JsonResponse({'success': False, 'message': 'Valores dos pagamentos inválidos.'}, status=400)
+
+                    soma = sum(_Dec(str(p['amount'])) for p in payments)
+                    diferenca = abs(soma - checkout.total)
+                    if diferenca > _Dec('0.02'):
+                        return JsonResponse({
+                            'success': False,
+                            'message': f'A soma dos pagamentos (R$ {soma:.2f}) difere do total da comanda (R$ {checkout.total:.2f}).'
+                        }, status=400)
+
+                    Checkout.objects.filter(pk=checkout.pk).update(
+                        payment_method='parcial',
+                        notes=nova_nota,
+                    )
+                    CheckoutPayment.objects.filter(checkout=checkout).delete()
+                    for p in payments:
+                        CheckoutPayment.objects.create(
+                            checkout_id=checkout.pk,
+                            payment_method=p['method'],
+                            amount=_Dec(str(p['amount'])),
+                        )
+                else:
+                    rows = Checkout.objects.filter(pk=checkout.pk).update(
+                        payment_method=novo_metodo,
+                        notes=nova_nota,
+                    )
+                    if rows == 0:
+                        return JsonResponse({'success': False, 'message': 'Checkout não encontrado no banco.'}, status=404)
+
                     CheckoutPayment.objects.filter(checkout=checkout).delete()
                     CheckoutPayment.objects.create(
                         checkout_id=checkout.pk,
