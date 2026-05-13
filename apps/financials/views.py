@@ -42,11 +42,11 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         else:
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         
-        # Filtrar checkouts por período
+        # Filtrar checkouts por período (usa data de fechamento da comanda)
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            created_at__date__gte=start_date,
-            created_at__date__lte=end_date
+            comanda__updated_at__date__gte=start_date,
+            comanda__updated_at__date__lte=end_date
         ).select_related('comanda')
         
         # Sangrias do período
@@ -118,7 +118,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         total_comandas = checkouts.count()
         
         # ===== LISTA COMBINADA DE COMANDAS E SANGRIAS =====
-        checkouts_list = checkouts.order_by('-created_at')
+        checkouts_list = checkouts.order_by('-comanda__updated_at')
         sangrias_list = Sangria.objects.filter(
             created_at__date__gte=start_date,
             created_at__date__lte=end_date
@@ -141,7 +141,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
                     ) if checkout.payments.exists() else checkout.get_payment_method_display()
                 ),
                 'valor': checkout.total,
-                'data': checkout.created_at,
+                'data': checkout.comanda.updated_at,
                 'item': checkout
             })
 
@@ -164,13 +164,13 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         # Estatísticas de comparação
         today_stats = Checkout.objects.filter(
             status='aprovado',
-            created_at__date=timezone.localtime().date()
+            comanda__updated_at__date=timezone.localtime().date()
         )
 
         yesterday = timezone.localtime().date() - timedelta(days=1)
         yesterday_stats = Checkout.objects.filter(
             status='aprovado',
-            created_at__date=yesterday
+            comanda__updated_at__date=yesterday
         )
         
         context.update({
@@ -239,7 +239,7 @@ class SangriaView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # Buscar dados do dashboard financeiro HOJE
         checkouts_hoje = Checkout.objects.filter(
             status='aprovado',
-            created_at__date=hoje
+            comanda__updated_at__date=hoje
         )
         
         # VALOR INICIAL (mesmo valor fixo do dashboard)
@@ -456,10 +456,10 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         else:
             selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Checkouts aprovados do dia
+        # Checkouts aprovados do dia (filtra por data de fechamento da comanda)
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            created_at__date=selected_date,
+            comanda__updated_at__date=selected_date,
         )
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
@@ -532,7 +532,7 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         """Retorna dict com os totais do dia."""
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            created_at__date=date,
+            comanda__updated_at__date=date,
         )
         # Mesma lógica do FinancialDashboardView:
         #  - não-parciais: usa Checkout.payment_method (reflete alterações do operador)
@@ -609,7 +609,7 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
 
     def post(self, request):
         today = timezone.localtime().date()
-        checkouts = Checkout.objects.filter(status='aprovado', created_at__date=today)
+        checkouts = Checkout.objects.filter(status='aprovado', comanda__updated_at__date=today)
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
@@ -694,8 +694,8 @@ class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            created_at__date__gte=start_date,
-            created_at__date__lte=end_date,
+            comanda__updated_at__date__gte=start_date,
+            comanda__updated_at__date__lte=end_date,
         )
         total_vendas   = checkouts.aggregate(t=Sum('total'))['t'] or Decimal('0.00')
         total_comandas = checkouts.count()

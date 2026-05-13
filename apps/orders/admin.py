@@ -54,9 +54,71 @@ class ComandaAdmin(admin.ModelAdmin):
     list_display = ('numero', 'cliente_nome', 'status', 'total_amount', 'created_at')
     list_filter = (StatusComandaFilter,)
     search_fields = ('numero', 'cliente_nome')
-    readonly_fields = ('total_amount', 'created_at', 'updated_at')
+    readonly_fields = ('total_amount', 'campo_created_at', 'campo_updated_at')
     ordering = ('-created_at',)
     inlines = [PedidoInline]
+    fieldsets = (
+        ('Dados da Comanda', {
+            'fields': ('numero', 'cliente_nome', 'status', 'total_amount', 'motivo_cancelamento')
+        }),
+        ('Datas (editáveis para ajuste de fluxo de caixa)', {
+            'fields': ('campo_created_at', 'campo_updated_at'),
+            'description': '⚠️ Altere apenas para corrigir o fluxo de caixa. "Fechamento" define o dia no relatório.',
+        }),
+    )
+
+    def campo_created_at(self, obj):
+        from django.utils import timezone as _tz
+        from django.utils.html import format_html
+        val = _tz.localtime(obj.created_at).strftime('%d/%m/%Y %H:%M') if obj and obj.pk else ''
+        return format_html(
+            '<input type="text" name="campo_created_at" value="{}" '
+            'placeholder="DD/MM/AAAA HH:MM" '
+            'style="width:200px;font-family:monospace;padding:4px 8px;border:1px solid #ccc;border-radius:4px;" />'
+            '<span style="margin-left:8px;color:#666;font-size:11px;">Formato: DD/MM/AAAA HH:MM</span>',
+            val
+        )
+    campo_created_at.short_description = 'Abertura'
+
+    def campo_updated_at(self, obj):
+        from django.utils import timezone as _tz
+        from django.utils.html import format_html
+        val = _tz.localtime(obj.updated_at).strftime('%d/%m/%Y %H:%M') if obj and obj.pk else ''
+        return format_html(
+            '<input type="text" name="campo_updated_at" value="{}" '
+            'placeholder="DD/MM/AAAA HH:MM" '
+            'style="width:200px;font-family:monospace;padding:4px 8px;border:1px solid #ccc;border-radius:4px;" />'
+            '<span style="margin-left:8px;color:#666;font-size:11px;">Formato: DD/MM/AAAA HH:MM — define o dia no fluxo de caixa</span>',
+            val
+        )
+    campo_updated_at.short_description = 'Fechamento'
+
+    def save_model(self, request, obj, form, change):
+        from datetime import datetime as _dt
+        from django.utils import timezone as _tz
+        super().save_model(request, obj, form, change)
+        updates = {}
+        field_map = {
+            'campo_created_at': 'created_at',
+            'campo_updated_at': 'updated_at',
+        }
+        for post_key, db_field in field_map.items():
+            raw = request.POST.get(post_key, '').strip()
+            if not raw:
+                continue
+            parsed = None
+            for fmt in ('%d/%m/%Y %H:%M', '%Y-%m-%d %H:%M', '%d/%m/%Y', '%Y-%m-%d'):
+                try:
+                    parsed = _dt.strptime(raw, fmt)
+                    break
+                except ValueError:
+                    continue
+            if parsed:
+                if _tz.is_naive(parsed):
+                    parsed = _tz.make_aware(parsed)
+                updates[db_field] = parsed
+        if updates:
+            type(obj).objects.filter(pk=obj.pk).update(**updates)
 
 
 @admin.register(Pedido)

@@ -894,21 +894,27 @@ class EmitirNFCeView(LoginRequiredMixin, View):
     View para emissão de NFCe de uma comanda finalizada
     """
     
-    def post(self, request, code):
+    def post(self, request, code=None, pk=None):
         """
         Processa a emissão de NFCe para uma comanda
         """
         try:
-            # Busca a comanda — usa filter+first pois numero não é unique
-            # Aceita fechada e cortesia (cancelada não pode emitir NFC-e)
-            comanda = Comanda.objects.filter(
-                numero=code,
-                status__in=['fechada', 'cortesia']
-            ).order_by('-created_at').first()
+            # Quando chamado por pk (id único), usa id direto para evitar ambiguidade
+            if pk:
+                comanda = Comanda.objects.filter(
+                    id=pk,
+                    status__in=['fechada', 'cortesia']
+                ).first()
+            else:
+                # Fallback pelo numero (não-único — mantido para compatibilidade)
+                comanda = Comanda.objects.filter(
+                    numero=code,
+                    status__in=['fechada', 'cortesia']
+                ).order_by('-created_at').first()
             if not comanda:
                 # Debug: mostra o status real da comanda para diagnóstico
-                todas = list(Comanda.objects.filter(numero=code).values('id', 'status', 'nfce_numero', 'created_at').order_by('-created_at'))
-                detalhe = f'code={repr(code)} | comandas com esse número: {todas}'
+                todas = list(Comanda.objects.filter(numero=code).values('id', 'status', 'nfce_numero', 'created_at').order_by('-created_at')) if code else []
+                detalhe = f'pk={pk} code={repr(code)} | comandas encontradas: {todas}'
                 import logging
                 logging.getLogger(__name__).error(f'[NFCE] Comanda não encontrada para emissão. {detalhe}')
                 return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou não está em status válido para emissão.', 'detalhe': detalhe})
@@ -951,7 +957,7 @@ class EmitirNFCeView(LoginRequiredMixin, View):
                 self._salvar_nfce_na_comanda(comanda, resultado)
                 
                 from django.urls import reverse
-                cupom_url = reverse('orders:cupom_nfce', kwargs={'code': comanda.numero})
+                cupom_url = reverse('orders:cupom_nfce_id', kwargs={'pk': comanda.id})
                 return JsonResponse({
                     'success': True,
                     'message': 'NFCe emitida com sucesso!',
@@ -1328,21 +1334,31 @@ class CupomFiscalPrintView(LoginRequiredMixin, View):
     View para impressão do cupom fiscal NFCe
     """
     
-    def get(self, request, code):
+    def get(self, request, code=None, pk=None):
         """
         Gera e exibe o cupom fiscal para impressão
         """
         try:
             from companys.models import Company
 
-            # Busca a comanda pelo numero — usa filter+first pois numero não é unique
-            comanda = Comanda.objects.select_related().prefetch_related(
-                'pedidos__items__product'
-            ).filter(
-                numero=code,
-                status__in=['fechada', 'cortesia'],
-                nfce_numero__isnull=False,
-            ).order_by('-nfce_emitida_em').first()
+            # Quando chamado por pk (id único), usa id direto para garantir comanda correta
+            if pk:
+                comanda = Comanda.objects.select_related().prefetch_related(
+                    'pedidos__items__product'
+                ).filter(
+                    id=pk,
+                    status__in=['fechada', 'cortesia'],
+                    nfce_numero__isnull=False,
+                ).first()
+            else:
+                # Fallback pelo numero (não-único — mantido para compatibilidade)
+                comanda = Comanda.objects.select_related().prefetch_related(
+                    'pedidos__items__product'
+                ).filter(
+                    numero=code,
+                    status__in=['fechada', 'cortesia'],
+                    nfce_numero__isnull=False,
+                ).order_by('-nfce_emitida_em').first()
             if not comanda:
                 return HttpResponse("Comanda não encontrada ou NFCe não emitida.", status=404)
 
@@ -1388,7 +1404,7 @@ class CancelarNFCeView(LoginRequiredMixin, View):
     Prazo: 30 minutos após autorização (NFC-e SP).
     """
 
-    def post(self, request, code):
+    def post(self, request, code=None, pk=None):
         import json as _json
         try:
             body = _json.loads(request.body)
@@ -1399,10 +1415,16 @@ class CancelarNFCeView(LoginRequiredMixin, View):
         if len(justificativa) < 15:
             return JsonResponse({'success': False, 'message': 'Justificativa deve ter no mínimo 15 caracteres.'})
 
-        comanda = Comanda.objects.filter(
-            numero=code,
-            nfce_numero__isnull=False,
-        ).order_by('-nfce_emitida_em').first()
+        if pk:
+            comanda = Comanda.objects.filter(
+                id=pk,
+                nfce_numero__isnull=False,
+            ).first()
+        else:
+            comanda = Comanda.objects.filter(
+                numero=code,
+                nfce_numero__isnull=False,
+            ).order_by('-nfce_emitida_em').first()
 
         if not comanda:
             return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou NFC-e não emitida.'})
@@ -1707,8 +1729,8 @@ class ComandaDetailView(LoginRequiredMixin, DetailView):
         # Buscar Categorias ativas a partir do CATEGORY_CHOICES
         categories = [{'id': k, 'name': v} for k, v in Product.CATEGORY_CHOICES]
         
-        # Buscar Todos os Produtos ativos
-        products = Product.objects.filter(show_in_menu=True)
+        # Buscar Todos os Produtos ativos e visíveis no cardápio
+        products = Product.objects.filter(is_active=True, show_in_menu=True)
         
         adicionais = Adicional.objects.filter(is_active=True)
         context['categories'] = categories

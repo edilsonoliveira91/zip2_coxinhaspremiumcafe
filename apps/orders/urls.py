@@ -34,6 +34,10 @@ urlpatterns = [
     path('comanda/<str:code>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce'),
     path('comanda/<str:code>/cupom-nfce/', views.CupomFiscalPrintView.as_view(), name='cupom_nfce'),
     path('comanda/<str:code>/cancelar-nfce/', views.CancelarNFCeView.as_view(), name='cancelar_nfce'),
+    # Rotas por pk (id único) — evita busca por numero (não-único)
+    path('comanda-id/<int:pk>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce_id'),
+    path('comanda-id/<int:pk>/cupom-nfce/', views.CupomFiscalPrintView.as_view(), name='cupom_nfce_id'),
+    path('comanda-id/<int:pk>/cancelar-nfce/', views.CancelarNFCeView.as_view(), name='cancelar_nfce_id'),
     path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
 
     # Rotas baseadas no código do objeto

@@ -290,7 +290,7 @@
 
                                           <!-- Cupom Fiscal NFC-e (só quando emitido) -->
                                           {% if order.nfce_numero %}
-                                          <a href="{% url 'orders:cupom_nfce' order.numero %}" target="_blank"
+                                          <a href="{% url 'orders:cupom_nfce_id' order.id %}" target="_blank"
                                              class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-all text-xs font-semibold"
                                              title="Visualizar cupom fiscal NFC-e #{{ order.nfce_numero }}">
                                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,8 +304,8 @@
                                           <!-- Emitir NFC-e (só para fechada e cortesia) -->
                                           {% if order.status != 'cancelada' %}
                                           <button type="button"
-                                                  id="btn-nfce-{{ order.numero }}"
-                                                  onclick="abrirModalCPF('{{ order.numero }}')"
+                                                  id="btn-nfce-{{ order.id }}"
+                                                  onclick="abrirModalCPF({{ order.id }})"
                                                   class="p-2 {% if order.nfce_numero %}text-green-500 hover:text-green-700{% else %}text-gray-400 hover:text-purple-600 hover:bg-purple-50{% endif %} rounded-lg transition-all"
                                                   title="{% if order.nfce_numero %}NFC-e #{{ order.nfce_numero }} emitida — Re-emitir{% else %}Emitir NFC-e{% endif %}">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,7 +317,7 @@
                                           <!-- Cancelar NFC-e (só quando emitida e não cancelada) -->
                                           {% if order.nfce_numero and not order.nfce_cancelada %}
                                           <button type="button"
-                                                  onclick="abrirModalCancelarNFCe('{{ order.numero }}', '{{ order.nfce_numero }}')"
+                                                  onclick="abrirModalCancelarNFCe({{ order.id }}, '{{ order.nfce_numero }}', '{{ order.numero }}')"
                                                   class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                   title="Cancelar NFC-e #{{ order.nfce_numero }} na SEFAZ">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -624,7 +624,7 @@ async function emitirNFCe(numero, cpf_cliente) {
     }
 
     try {
-        const resp = await fetch(`/orders/comanda/${numero}/emitir-nfce/`, {
+        const resp = await fetch(`/orders/comanda-id/${numero}/emitir-nfce/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -902,9 +902,9 @@ document.getElementById('modal-cpf-nfce').addEventListener('click', function(e) 
 // ===== CANCELAMENTO NFC-e =====
 let _cancelarNFCeNumero = null;
 
-function abrirModalCancelarNFCe(numero, nfceNumero) {
-    _cancelarNFCeNumero = numero;
-    document.getElementById('modal-cancelar-nfce-numero').textContent = 'NFC-e #' + nfceNumero + ' — Comanda #' + numero;
+function abrirModalCancelarNFCe(comanda_id, nfceNumero, comanda_numero) {
+    _cancelarNFCeNumero = comanda_id;
+    document.getElementById('modal-cancelar-nfce-numero').textContent = 'NFC-e #' + nfceNumero + ' — Comanda #' + (comanda_numero || comanda_id);
     document.getElementById('input-justificativa-cancelar').value = '';
     document.getElementById('modal-cancelar-nfce-erro').classList.add('hidden');
     const btn = document.getElementById('btn-confirmar-cancelar-nfce');
@@ -938,7 +938,7 @@ async function confirmarCancelamentoNFCe() {
     btn.disabled = true;
     btn.textContent = 'Cancelando...';
     try {
-        const resp = await fetch(`/orders/comanda/${_cancelarNFCeNumero}/cancelar-nfce/`, {
+        const resp = await fetch(`/orders/comanda-id/${_cancelarNFCeNumero}/cancelar-nfce/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
