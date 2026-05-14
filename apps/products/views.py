@@ -23,30 +23,29 @@ class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     login_url = reverse_lazy('accounts:login')
     
     def get_queryset(self):
-        queryset = Product.objects.all().select_related('created_by')
-        
         # Filtros de pesquisa
         search = self.request.GET.get('search')
         category = self.request.GET.get('category')
         show_in_menu = self.request.GET.get('show_in_menu')
         only_active = self.request.GET.get('only_active')
-        
+
+        # Padrão: mostrar apenas ativos; only_active=false mostra apenas inativos
+        if only_active == 'false':
+            queryset = Product.objects.filter(is_active=False).select_related('created_by')
+        else:
+            queryset = Product.objects.filter(is_active=True).select_related('created_by')
+
         if search:
             queryset = queryset.filter(name__icontains=search)
-            
+
         if category:
             queryset = queryset.filter(category=category)
-            
+
         if show_in_menu == 'true':
             queryset = queryset.filter(show_in_menu=True)
         elif show_in_menu == 'false':
             queryset = queryset.filter(show_in_menu=False)
 
-        if only_active == 'true':
-            queryset = queryset.filter(is_active=True)
-        elif only_active == 'false':
-            queryset = queryset.filter(is_active=False)
-            
         return queryset.order_by('category', 'name')
     
     def get_context_data(self, **kwargs):
