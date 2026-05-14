@@ -178,30 +178,29 @@ class ProductDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
         
         return context
     
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        
+    def form_valid(self, form):
+        # Django 5.x: post() → form_valid() (não mais delete())
         # Verificar se o produto está sendo usado em algum combo ativo
         active_combos = Combo.objects.filter(
             items__product=self.object,
             is_active=True
         ).distinct()
-        
+
         if active_combos.exists():
             combo_names = ', '.join([combo.name for combo in active_combos])
             messages.error(
-                request,
+                self.request,
                 f'Não é possível excluir o produto "{self.object.name}" pois está sendo usado nos combos: {combo_names}'
             )
             return redirect(self.success_url)
-        
+
         # Soft delete
         self.object.is_active = False
-        self.object.updated_by = request.user
+        self.object.updated_by = self.request.user
         self.object.save()
-        
+
         messages.success(
-            request,
+            self.request,
             f'Produto "{self.object.name}" removido com sucesso!'
         )
         return redirect(self.success_url)
@@ -483,16 +482,15 @@ class ComboDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         
         return context
     
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        
+    def form_valid(self, form):
+        # Django 5.x: post() → form_valid() (não mais delete())
         # Soft delete
         self.object.is_active = False
-        self.object.updated_by = request.user
+        self.object.updated_by = self.request.user
         self.object.save()
-        
+
         messages.success(
-            request,
+            self.request,
             f'Combo "{self.object.name}" removido com sucesso!'
         )
         return redirect(self.success_url)
