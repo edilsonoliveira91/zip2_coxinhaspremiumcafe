@@ -4,234 +4,349 @@
 {% block title %}Comissão sobre Vendas{% endblock %}
 
 {% block content %}
-<div class="flex-1 overflow-hidden">
-  <div class="h-full overflow-y-auto">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- Header -->
-    <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-      <div class="px-6 py-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Comissão sobre Vendas</h1>
-            <p class="mt-1 text-sm text-gray-500">Configure o percentual e consulte o valor de comissão por período</p>
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li>
+          <a href="{% url 'financials:dashboard' %}" class="text-gray-500 hover:text-orange-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </a>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-gray-500 ml-1 md:ml-2 text-sm font-medium">Financeiro</span>
+          </div>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-gray-700 ml-1 md:ml-2 text-sm font-semibold">Comissão</span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+
+    {% include 'components/messages.html' %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- ───── Sidebar ───── -->
+      <div class="lg:col-span-3 space-y-6">
+
+        <!-- Info card -->
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+          <div class="flex items-center space-x-3 mb-5">
+            <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h2 class="text-base font-semibold text-gray-900">Comissão</h2>
+          </div>
+          <p class="text-sm text-gray-600 mb-4">Configure o percentual e consulte o valor de comissão por período.</p>
+          <div class="flex items-center space-x-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm text-emerald-700 font-medium">Percentual atual: {{ comissao_pct }}%</span>
           </div>
         </div>
+
+        <!-- Ações Rápidas -->
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+          <div class="flex items-center space-x-3 mb-5">
+            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+            <h2 class="text-base font-semibold text-gray-900">Ações Rápidas</h2>
+          </div>
+          <div class="space-y-3">
+            <a href="{% url 'financials:dashboard' %}"
+               class="w-full group bg-gradient-to-r from-slate-500 to-gray-500 text-white px-5 py-3.5 rounded-2xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md block">
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="text-sm">Dashboard</span>
+              </div>
+            </a>
+            <a href="{% url 'financials:extrato' %}"
+               class="w-full group bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-5 py-3.5 rounded-2xl font-semibold hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg block">
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="text-sm">Extrato</span>
+              </div>
+            </a>
+            <a href="{% url 'financials:sangria' %}"
+               class="w-full group bg-gradient-to-r from-red-500 to-rose-500 text-white px-5 py-3.5 rounded-2xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg block">
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span class="text-sm">Sangria</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
       </div>
-    </div>
+      <!-- ───── /Sidebar ───── -->
 
-    <div class="p-6 space-y-10">
+      <!-- ───── Main Content ───── -->
+      <div class="lg:col-span-9 space-y-6">
 
-      <!-- Seção: Filtros -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Filtros</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
-        </div>
-
-        <form method="get" class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6">
-          <div class="flex flex-wrap items-end gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Data início</label>
-              <input type="date" name="start_date" value="{{ start_date }}"
-                     class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Data fim</label>
-              <input type="date" name="end_date" value="{{ end_date }}"
-                     class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-            </div>
-            <button type="submit"
-                    class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors">
-              Consultar
-            </button>
-          </div>
-          <p class="mt-3 text-xs text-gray-400">Período: {{ start_date_fmt }} a {{ end_date_fmt }}</p>
-        </form>
-
-        {% if request.user.is_superuser or request.user.is_staff %}
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Configurar percentual de comissão</h2>
-          <div class="flex items-end gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Percentual (%)</label>
-              <div class="flex items-center">
-                <input type="number" id="inputPercentual" step="0.01" min="0" max="100"
-                       value="{{ comissao_pct }}"
-                       class="w-32 px-3 py-2 border border-gray-300 rounded-l-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-right">
-                <span class="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-xl text-sm text-gray-500">%</span>
-              </div>
-            </div>
-            <button onclick="salvarComissao()"
-                    class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors">
-              Salvar
-            </button>
-            <span id="msgSalvar" class="text-sm text-emerald-600 hidden"></span>
-          </div>
-          <p class="mt-3 text-xs text-gray-400">Este percentual é aplicado sobre o total de vendas para calcular a comissão do operador.</p>
-        </div>
-        {% endif %}
-      </section>
-
-      <!-- Seção: Resumo -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Resumo do período</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
-          <!-- Total de Vendas -->
-          <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-              </div>
-              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Vendas</span>
-            </div>
-            <p class="text-2xl font-bold text-gray-900">R$ {{ total_vendas|floatformat:2 }}</p>
-            <p class="text-xs text-gray-400 mt-1">{{ total_comandas }} comanda{{ total_comandas|pluralize }}</p>
-          </div>
-
-          <!-- Percentual configurado -->
-          <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                </svg>
-              </div>
-              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Percentual</span>
-            </div>
-            <p class="text-2xl font-bold text-orange-600">{{ comissao_pct }}%</p>
-            <p class="text-xs text-gray-400 mt-1">sobre o total de vendas</p>
-          </div>
-
-          <!-- Valor da Comissão -->
-          <div class="bg-emerald-50 rounded-2xl border border-emerald-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Header card -->
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+          <div class="p-6 border-b border-gray-100">
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+              <div class="w-9 h-9 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center mr-3">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
-              <span class="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Valor da Comissão</span>
+              Comissão sobre Vendas
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 ml-12">Configure o percentual e consulte o valor de comissão por período</p>
+          </div>
+
+          <!-- Filtros -->
+          <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-5 h-5 bg-gradient-to-r from-orange-400 to-pink-400 rounded-md flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Filtros</span>
             </div>
-            <p class="text-2xl font-bold text-emerald-700">R$ {{ valor_comissao|floatformat:2 }}</p>
-            <p class="text-xs text-emerald-500 mt-1">{{ comissao_pct }}% × R$ {{ total_vendas|floatformat:2 }}</p>
+            <form method="get" class="flex flex-wrap items-end gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Data início</label>
+                <input type="date" name="start_date" value="{{ start_date }}"
+                       class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Data fim</label>
+                <input type="date" name="end_date" value="{{ end_date }}"
+                       class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white">
+              </div>
+              <button type="submit"
+                      class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
+                Consultar
+              </button>
+              <span class="text-xs text-gray-400 self-center">{{ start_date_fmt }} até {{ end_date_fmt }}</span>
+            </form>
+          </div>
+
+          {% if request.user.is_superuser or request.user.is_staff %}
+          <!-- Configurar percentual -->
+          <div class="p-6">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-5 h-5 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-md flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Configurar Percentual</span>
+            </div>
+            <div class="flex items-end gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Percentual (%)</label>
+                <div class="flex items-center">
+                  <input type="number" id="inputPercentual" step="0.01" min="0" max="100"
+                         value="{{ comissao_pct }}"
+                         class="w-32 px-3 py-2.5 border border-gray-200 rounded-l-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 text-right bg-white">
+                  <span class="px-3 py-2.5 bg-gray-50 border border-l-0 border-gray-200 rounded-r-xl text-sm text-gray-500">%</span>
+                </div>
+              </div>
+              <button onclick="salvarComissao()"
+                      class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
+                Salvar
+              </button>
+              <span id="msgSalvar" class="text-sm text-emerald-600 hidden self-center"></span>
+            </div>
+            <p class="mt-2 text-xs text-gray-400">Este percentual é aplicado sobre o total de vendas para calcular a comissão do operador.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Cards de Resumo -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+          <!-- Total de Vendas -->
+          <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">Total Vendas</span>
+            </div>
+            <p class="text-xl font-bold text-gray-900">R$ {{ total_vendas|floatformat:2 }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ total_comandas }} comanda{{ total_comandas|pluralize }}</p>
+          </div>
+
+          <!-- Percentual -->
+          <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">Percentual</span>
+            </div>
+            <p class="text-xl font-bold text-orange-600">{{ comissao_pct }}%</p>
+            <p class="text-xs text-gray-400 mt-0.5">sobre total de vendas</p>
+          </div>
+
+          <!-- Valor da Comissão -->
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl shadow-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-emerald-700 uppercase tracking-wide leading-tight">Comissão</span>
+            </div>
+            <p class="text-xl font-bold text-emerald-700">R$ {{ valor_comissao|floatformat:2 }}</p>
+            <p class="text-xs text-emerald-500 mt-0.5">{{ comissao_pct }}% × R$ {{ total_vendas|floatformat:2 }}</p>
           </div>
 
           <!-- Período -->
-          <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
               </div>
-              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</span>
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">Período</span>
             </div>
             <p class="text-sm font-bold text-gray-900">{{ start_date_fmt }}</p>
             <p class="text-xs text-gray-400">até {{ end_date_fmt }}</p>
           </div>
 
         </div>
-      </section>
 
-      <!-- Seção: Formas de pagamento -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Formas de pagamento</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
-        </div>
-
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-sm font-semibold text-gray-800">Vendas por forma de pagamento</h2>
-          </div>
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Comissão ({{ comissao_pct }}%)</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% with methods=total_dinheiro|add:0 %}
-              <tr>
-                <td class="px-6 py-4 text-sm text-gray-700">💵 Dinheiro</td>
-                <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_dinheiro|floatformat:2 }}</td>
-                <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
-                  R$ {% widthratio total_dinheiro 100 comissao_pct %}
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 text-sm text-gray-700">💳 Cartão Débito</td>
-                <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_debito|floatformat:2 }}</td>
-                <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
-                  R$ {% widthratio total_debito 100 comissao_pct %}
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 text-sm text-gray-700">💳 Cartão Crédito</td>
-                <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_credito|floatformat:2 }}</td>
-                <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
-                  R$ {% widthratio total_credito 100 comissao_pct %}
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 text-sm text-gray-700">📱 PIX</td>
-                <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_pix|floatformat:2 }}</td>
-                <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
-                  R$ {% widthratio total_pix 100 comissao_pct %}
-                </td>
-              </tr>
-              {% endwith %}
-              <tr class="bg-emerald-50 font-bold">
-                <td class="px-6 py-4 text-sm text-gray-800">Total Geral</td>
-                <td class="px-6 py-4 text-sm text-right text-gray-900">R$ {{ total_vendas|floatformat:2 }}</td>
-                <td class="px-6 py-4 text-sm text-right text-emerald-700">R$ {{ valor_comissao|floatformat:2 }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Seção: Impostos -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Impostos por produto</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
-        </div>
-
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-red-50 to-orange-50">
-            <h2 class="text-sm font-semibold text-gray-800">Impostos por Produto</h2>
-            <p class="text-xs text-gray-500 mt-0.5">Valores de ICMS + PIS + COFINS calculados sobre o preço de venda</p>
+        <!-- Formas de pagamento -->
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+          <div class="p-5 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-semibold text-gray-900">Vendas por forma de pagamento</h2>
+              <p class="text-xs text-gray-400">Comissão calculada por método</p>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
-              <thead class="bg-gray-50">
+              <thead class="bg-gray-50/70">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Preço</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-orange-700 uppercase" style="background-color:#fff7ed;">💸 Total Imposto</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ICMS</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">PIS</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">COFINS</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Método</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-emerald-600 uppercase tracking-wide">Comissão ({{ comissao_pct }}%)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-700 flex items-center gap-2">
+                    <span class="text-base">💵</span> Dinheiro
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_dinheiro|floatformat:2 }}</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
+                    R$ {% widthratio total_dinheiro 100 comissao_pct %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-700 flex items-center gap-2">
+                    <span class="text-base">💳</span> Cartão Débito
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_debito|floatformat:2 }}</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
+                    R$ {% widthratio total_debito 100 comissao_pct %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-700 flex items-center gap-2">
+                    <span class="text-base">💳</span> Cartão Crédito
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_credito|floatformat:2 }}</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
+                    R$ {% widthratio total_credito 100 comissao_pct %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-700 flex items-center gap-2">
+                    <span class="text-base">📱</span> PIX
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ total_pix|floatformat:2 }}</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-emerald-600">
+                    R$ {% widthratio total_pix 100 comissao_pct %}
+                  </td>
+                </tr>
+                <tr class="bg-emerald-50/60">
+                  <td class="px-6 py-4 text-sm font-bold text-gray-800">Total Geral</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-gray-900">R$ {{ total_vendas|floatformat:2 }}</td>
+                  <td class="px-6 py-4 text-sm text-right font-bold text-emerald-700">R$ {{ valor_comissao|floatformat:2 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Impostos por produto -->
+        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+          <div class="p-5 border-b border-gray-100 flex items-center gap-3" style="background:linear-gradient(to right,#fff7ed,#ffedd5);">
+            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-semibold text-gray-900">Impostos por Produto</h2>
+              <p class="text-xs text-gray-500">ICMS + PIS + COFINS calculados sobre o preço de venda</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50/70">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Produto</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoria</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Preço</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide" style="color:#c2410c;">💸 Imposto</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">ICMS</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">PIS</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">COFINS</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
                 {% for p in produtos_com_imposto %}
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-orange-50/40 transition-colors">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ p.name }}</td>
                   <td class="px-6 py-4 text-sm text-gray-500">{{ p.category }}</td>
                   <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">R$ {{ p.price|floatformat:2 }}</td>
-                  <td class="px-6 py-4 text-sm text-right font-bold" style="background-color:#fff7ed;{% if p.total_tax %}color:#dc2626;{% else %}color:#9ca3af;{% endif %}">
+                  <td class="px-6 py-4 text-sm text-right font-bold" style="{% if p.total_tax %}color:#dc2626;{% else %}color:#9ca3af;{% endif %}">
                     {% if p.total_tax %}R$ {{ p.total_tax|floatformat:2 }}{% else %}–{% endif %}
                   </td>
                   <td class="px-6 py-4 text-sm text-right text-gray-600">R$ {{ p.icms|floatformat:2 }}</td>
@@ -240,14 +355,23 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">Nenhum produto cadastrado.</td>
+                  <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center gap-2">
+                      <svg class="w-12 h-12 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                      <p class="text-sm text-gray-400">Nenhum produto cadastrado.</p>
+                    </div>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
         </div>
-      </section>
+
+      </div>
+      <!-- ───── /Main Content ───── -->
 
     </div>
   </div>
@@ -269,14 +393,12 @@ async function salvarComissao() {
     });
     const data = await resp.json();
     msg.textContent = data.message;
-    msg.className = data.success
-      ? 'text-sm text-emerald-600'
-      : 'text-sm text-red-600';
+    msg.className = data.success ? 'text-sm text-emerald-600 self-center' : 'text-sm text-red-600 self-center';
     msg.classList.remove('hidden');
     setTimeout(() => msg.classList.add('hidden'), 3000);
   } catch(e) {
     msg.textContent = 'Erro ao conectar com o servidor.';
-    msg.className = 'text-sm text-red-600';
+    msg.className = 'text-sm text-red-600 self-center';
     msg.classList.remove('hidden');
   }
 }

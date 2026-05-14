@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'companys',
     'reports',
     'config',
+    'kiosk',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,717 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#ea8828">
+  <link rel="manifest" href="/kiosk/manifest.json">
+  <title>Mesa {{ numero }} — Cardápio</title>
+  {% tailwind_css %}
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+
+    /* ── Layout principal ── */
+    .layout { display: flex; height: 100vh; background: #f5f0eb; }
+
+    /* ── Sidebar esquerda ── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #1a0a00 0%, #3b1200 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo img {
+      width: 100%;
+      height: auto;
+      filter: brightness(0) invert(1) sepia(1) saturate(0.3) brightness(0.85);
+      opacity: 0.9;
+    }
+
+    .sidebar-mesa {
+      padding: 10px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-mesa span {
+      color: rgba(255,255,255,0.35);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display: block;
+    }
+    .sidebar-mesa strong {
+      color: #ea8828;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    /* Categorias */
+    .cat-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cat-list::-webkit-scrollbar { display: none; }
+
+    .cat-btn {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.65);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cat-btn:active { transform: scale(0.97); }
+    .cat-btn.active {
+      background: linear-gradient(to right, #ea8828, #d4600a);
+      color: white;
+      box-shadow: 0 4px 16px rgba(234,136,40,0.35);
+    }
+    .cat-btn .cat-count {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.15);
+      color: inherit;
+      padding: 2px 7px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .cat-btn.active .cat-count { background: rgba(255,255,255,0.25); }
+
+    /* Botão carrinho no rodapé da sidebar */
+    .sidebar-footer {
+      padding: 14px 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .carrinho-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(to right, #ea8828, #d4600a);
+      color: white;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.08s;
+      box-shadow: 0 4px 20px rgba(234,136,40,0.4);
+    }
+    .carrinho-btn:active { transform: scale(0.97); }
+    .carrinho-total { font-size: 13px; font-weight: 700; opacity: 0.85; }
+
+    /* ── Área principal ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Topbar */
+    .topbar {
+      background: white;
+      border-bottom: 1px solid #e8e0d8;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-title { font-size: 18px; font-weight: 700; color: #1a0a00; }
+    .topbar-sub { font-size: 12px; color: #9a8070; margin-top: 1px; }
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #9a8070;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: #f5f0eb;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .back-btn:active { background: #ecddd2; }
+
+    /* Conteúdo scrollável */
+    .content { flex: 1; overflow-y: auto; }
+    .content::-webkit-scrollbar { width: 4px; }
+    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar-thumb { background: #ddd3c8; border-radius: 4px; }
+
+    /* ── Slideshow ── */
+    .slideshow { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    .slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slide.active { opacity: 1; }
+    .slide img { width: 100%; height: 100%; object-fit: cover; }
+    .slide-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .slide-placeholder p { color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 500; margin: 0; }
+    .slide-placeholder strong { color: white; font-size: 28px; font-weight: 800; margin: 0; }
+
+    /* Dots do slide */
+    .slide-dots {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .dot.active { background: white; width: 24px; border-radius: 4px; }
+
+    /* ── Lista de produtos ── */
+    .produtos-lista { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .produto-item {
+      background: white;
+      border-radius: 18px;
+      border: 2px solid transparent;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .produto-item:active { transform: scale(0.99); }
+    .produto-item.selected {
+      border-color: #ea8828;
+      box-shadow: 0 4px 20px rgba(234,136,40,0.2);
+    }
+    .produto-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 14px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #f5f0eb;
+    }
+    .produto-img-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 14px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .produto-info { flex: 1; min-width: 0; }
+    .produto-nome { font-size: 16px; font-weight: 700; color: #1a0a00; margin: 0 0 4px; }
+    .produto-desc { font-size: 13px; color: #9a8070; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .produto-preco { font-size: 20px; font-weight: 800; color: #d4600a; flex-shrink: 0; }
+    .produto-add {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(to right, #ea8828, #d4600a);
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.08s;
+      box-shadow: 0 4px 12px rgba(234,136,40,0.4);
+    }
+    .produto-add:active { transform: scale(0.9); }
+    .produto-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #ea8828;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .produto-badge.show { display: flex; }
+
+    /* ── Drawer Carrinho ── */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 40; }
+    .overlay.open { display: block; }
+    .drawer {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: 380px;
+      background: white;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      box-shadow: -8px 0 40px rgba(0,0,0,0.2);
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #f0e8e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .drawer-header h2 { font-size: 20px; font-weight: 800; color: #1a0a00; margin: 0; }
+    .drawer-close {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      border: none;
+      background: #f5f0eb;
+      color: #9a8070;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px 24px; }
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f0eb;
+    }
+    .drawer-item-nome { flex: 1; font-size: 14px; font-weight: 600; color: #1a0a00; }
+    .drawer-item-preco { font-size: 13px; color: #9a8070; }
+    .qty-ctrl { display: flex; align-items: center; gap: 8px; }
+    .qty-btn {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      border: none;
+      background: #f5f0eb;
+      color: #1a0a00;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:active { background: #ecddd2; }
+    .qty-num { font-size: 16px; font-weight: 700; color: #1a0a00; width: 24px; text-align: center; }
+    .drawer-footer { padding: 16px 24px; border-top: 1px solid #f0e8e0; flex-shrink: 0; }
+    .obs-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #f0e8e0;
+      border-radius: 14px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      color: #1a0a00;
+      margin-bottom: 14px;
+    }
+    .obs-input:focus { border-color: #ea8828; }
+    .total-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .total-label { font-size: 16px; font-weight: 600; color: #9a8070; }
+    .total-value { font-size: 26px; font-weight: 800; color: #d4600a; }
+    .btn-enviar {
+      width: 100%;
+      height: 60px;
+      border-radius: 18px;
+      border: none;
+      background: linear-gradient(to right, #ea8828, #d4600a);
+      color: white;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(234,136,40,0.4);
+      transition: transform 0.08s, opacity 0.2s;
+    }
+    .btn-enviar:disabled { opacity: 0.25; box-shadow: none; cursor: default; }
+    .btn-enviar:not(:disabled):active { transform: scale(0.98); }
+
+    .empty-state { padding: 60px 24px; text-align: center; color: #c5b0a0; }
+    .empty-state p { font-size: 15px; margin: 8px 0 0; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ESQUERDA ── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+      <img src="{% static 'img/logo/logocompleto-coxinhaspremiumcafe.png' %}" alt="Logo">
+    </div>
+
+    <div class="sidebar-mesa">
+      <span>Mesa</span>
+      <strong>{{ numero }}</strong>
+    </div>
+
+    <div class="cat-list">
+      <button class="cat-btn active" data-cat="slides" onclick="mostrarSlides()">
+        🏠 Início
+      </button>
+      {% for nome_cat, dados in categorias.items %}
+      <button class="cat-btn" data-cat="{{ dados.slug }}" onclick="mostrarCategoria('{{ dados.slug }}', this)">
+        <span>{{ nome_cat }}</span>
+        <span class="cat-count">{{ dados.produtos|length }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="carrinho-btn" onclick="abrirDrawer()">
+        <span>🛒 Minha Conta</span>
+        <span class="carrinho-total" id="sidebar-total">R$ 0,00</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── ÁREA PRINCIPAL ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Bem-vindo!</div>
+        <div class="topbar-sub" id="topbar-sub">Selecione uma categoria para ver os produtos</div>
+      </div>
+      <a href="{% url 'kiosk:entrada' %}" class="back-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Trocar mesa
+      </a>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="content" id="content">
+
+      <!-- Slideshow (inicial) -->
+      <div id="view-slides" class="slideshow">
+
+        <!-- Slide 1 -->
+        <div class="slide active">
+          <div class="slide-placeholder" style="background: linear-gradient(135deg, #3b1200, #6b2400);">
+            <img src="{% static 'img/logo/logocompleto-coxinhaspremiumcafe.png' %}"
+                 style="width:240px;filter:brightness(0) invert(1) sepia(1) saturate(0.3) brightness(0.9);opacity:0.9">
+            <strong style="color:white;font-size:26px;margin-top:16px;">Bem-vindo ao nosso cardápio!</strong>
+            <p style="color:rgba(255,255,255,0.6);font-size:15px;">Escolha uma categoria ao lado para começar</p>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide">
+          <div class="slide-placeholder" style="background: linear-gradient(135deg, #d4600a, #ea8828);">
+            <strong>🥐 Salgados Fresquinhos</strong>
+            <p>Feitos na hora para você</p>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide">
+          <div class="slide-placeholder" style="background: linear-gradient(135deg, #1a3a4a, #0d5c6e);">
+            <strong>☕ Cafés Especiais</strong>
+            <p>Grãos selecionados todo dia</p>
+          </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide">
+          <div class="slide-placeholder" style="background: linear-gradient(135deg, #2d4a1a, #3d6b22);">
+            <strong>🥤 Bebidas Geladas</strong>
+            <p>Sucos naturais e refrescos</p>
+          </div>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide">
+          <div class="slide-placeholder" style="background: linear-gradient(135deg, #4a1a3a, #6b225a);">
+            <strong>🍰 Doces & Sobremesas</strong>
+            <p>Para adoçar o seu dia</p>
+          </div>
+        </div>
+
+        <!-- Dots -->
+        <div class="slide-dots" id="slide-dots"></div>
+      </div>
+
+      <!-- Lista de produtos (oculta inicialmente) -->
+      <div id="view-produtos" style="display:none;">
+        <div class="produtos-lista" id="produtos-lista"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Overlay + Drawer ── -->
+<div class="overlay" id="overlay" onclick="fecharDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2>🛒 Minha Conta — Mesa {{ numero }}</h2>
+    <button class="drawer-close" onclick="fecharDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-footer">
+    <textarea class="obs-input" id="observacoes" rows="2" placeholder="Alguma observação? (sem cebola, bem passado...)"></textarea>
+    <div class="total-row">
+      <span class="total-label">Total do pedido</span>
+      <span class="total-value" id="drawer-total">R$ 0,00</span>
+    </div>
+    <button class="btn-enviar" id="btn-enviar" onclick="enviarPedido()" disabled>
+      Enviar pedido para o balcão
+    </button>
+  </div>
+</div>
+
+<!-- Dados dos produtos em JSON -->
+<script>
+const PRODUTOS_POR_CAT = {{ produtos_json|safe }};
+
+const URL_ENVIAR = "{% url 'kiosk:enviar_pedido' numero %}";
+const CSRF = "{{ csrf_token }}";
+const carrinho = {}; // { id: { nome, preco, qty } }
+
+// ── Slideshow ──
+const slides = document.querySelectorAll('.slide');
+const dotsEl = document.getElementById('slide-dots');
+let slideAtual = 0, slideTimer = null;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => irParaSlide(i);
+  dotsEl.appendChild(d);
+});
+
+function irParaSlide(n) {
+  slides[slideAtual].classList.remove('active');
+  dotsEl.children[slideAtual].classList.remove('active');
+  slideAtual = n;
+  slides[slideAtual].classList.add('active');
+  dotsEl.children[slideAtual].classList.add('active');
+}
+
+function proximoSlide() {
+  irParaSlide((slideAtual + 1) % slides.length);
+}
+
+function iniciarSlideshow() {
+  clearInterval(slideTimer);
+  slideTimer = setInterval(proximoSlide, 4000);
+}
+
+function pararSlideshow() {
+  clearInterval(slideTimer);
+}
+
+iniciarSlideshow();
+
+// ── Mostrar slideshow ──
+function mostrarSlides() {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-cat="slides"]').classList.add('active');
+  document.getElementById('view-slides').style.display = '';
+  document.getElementById('view-produtos').style.display = 'none';
+  document.getElementById('topbar-title').textContent = 'Bem-vindo!';
+  document.getElementById('topbar-sub').textContent = 'Selecione uma categoria para ver os produtos';
+  iniciarSlideshow();
+}
+
+// ── Mostrar categoria ──
+function mostrarCategoria(slug, btn) {
+  pararSlideshow();
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const cat = PRODUTOS_POR_CAT[slug];
+  if (!cat) return;
+
+  document.getElementById('topbar-title').textContent = cat.nome;
+  document.getElementById('topbar-sub').textContent = cat.itens.length + ' produto' + (cat.itens.length !== 1 ? 's' : '') + ' disponível' + (cat.itens.length !== 1 ? 'is' : '');
+
+  const lista = document.getElementById('produtos-lista');
+  lista.innerHTML = cat.itens.map(p => {
+    const imgHtml = p.img
+      ? `<img src="${p.img}" alt="${p.nome}" class="produto-img">`
+      : `<div class="produto-img-placeholder"><svg width="32" height="32" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`;
+    const qty = carrinho[p.id] ? carrinho[p.id].qty : 0;
+    return `
+      <div class="produto-item" id="item-${p.id}">
+        ${imgHtml}
+        <div class="produto-info">
+          <p class="produto-nome">${p.nome}</p>
+          ${p.desc ? `<p class="produto-desc">${p.desc}</p>` : ''}
+        </div>
+        <span class="produto-preco">R$ ${p.preco.toFixed(2).replace('.',',')}</span>
+        <div class="produto-badge ${qty > 0 ? 'show' : ''}" id="badge-${p.id}">${qty}</div>
+        <button class="produto-add" onclick="adicionar(${p.id}, '${p.nome.replace(/'/g,"\\'")}', ${p.preco})">+</button>
+      </div>`;
+  }).join('');
+
+  document.getElementById('view-slides').style.display = 'none';
+  document.getElementById('view-produtos').style.display = '';
+
+  // Scroll ao topo
+  document.getElementById('content').scrollTop = 0;
+}
+
+// ── Carrinho ──
+function adicionar(id, nome, preco) {
+  if (carrinho[id]) carrinho[id].qty++;
+  else carrinho[id] = { nome, preco, qty: 1 };
+  atualizarUI(id);
+}
+
+function removerUm(id) {
+  if (!carrinho[id]) return;
+  carrinho[id].qty--;
+  if (carrinho[id].qty <= 0) delete carrinho[id];
+  atualizarUI(id);
+  renderDrawer();
+}
+
+function atualizarUI(changedId) {
+  // Badge no card
+  if (changedId) {
+    const badge = document.getElementById('badge-' + changedId);
+    if (badge) {
+      const qty = carrinho[changedId] ? carrinho[changedId].qty : 0;
+      badge.textContent = qty;
+      badge.classList.toggle('show', qty > 0);
+    }
+  }
+
+  // Total sidebar
+  const total = Object.values(carrinho).reduce((s, i) => s + i.qty * i.preco, 0);
+  const totalStr = 'R$ ' + total.toFixed(2).replace('.', ',');
+  document.getElementById('sidebar-total').textContent = totalStr;
+  document.getElementById('drawer-total').textContent = totalStr;
+
+  // Botão enviar
+  const qtd = Object.values(carrinho).reduce((s, i) => s + i.qty, 0);
+  document.getElementById('btn-enviar').disabled = qtd === 0;
+}
+
+function renderDrawer() {
+  const body = document.getElementById('drawer-body');
+  const ids = Object.keys(carrinho);
+  if (ids.length === 0) {
+    body.innerHTML = '<div class="empty-state"><div style="font-size:48px">🛒</div><p>Carrinho vazio</p></div>';
+    return;
+  }
+  body.innerHTML = ids.map(id => {
+    const item = carrinho[id];
+    return `
+      <div class="drawer-item">
+        <div style="flex:1">
+          <div class="drawer-item-nome">${item.nome}</div>
+          <div class="drawer-item-preco">R$ ${item.preco.toFixed(2).replace('.',',')} cada</div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="removerUm(${id})">−</button>
+          <span class="qty-num">${item.qty}</span>
+          <button class="qty-btn" onclick="adicionar(${id}, '${item.nome.replace(/'/g,"\\'")}', ${item.preco}); renderDrawer()">+</button>
+        </div>
+        <div style="min-width:80px;text-align:right;font-weight:700;color:#d4600a;">
+          R$ ${(item.qty * item.preco).toFixed(2).replace('.',',')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function abrirDrawer() {
+  renderDrawer();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function fecharDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── Enviar pedido ──
+async function enviarPedido() {
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const itens = Object.keys(carrinho).map(id => ({ id: parseInt(id), qty: carrinho[id].qty }));
+  const obs = document.getElementById('observacoes').value.trim();
+
+  try {
+    const resp = await fetch(URL_ENVIAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ itens, observacoes: obs }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      window.location.href = '/kiosk/confirmacao/' + data.pedido_id + '/';
+    } else {
+      alert('Erro: ' + (data.erro || 'Tente novamente'));
+      btn.disabled = false;
+      btn.textContent = 'Enviar pedido para o balcão';
+    }
+  } catch (e) {
+    alert('Erro de conexão. Tente novamente.');
+    btn.disabled = false;
+    btn.textContent = 'Enviar pedido para o balcão';
+  }
+}
+</script>
+
+</body>
+</html>

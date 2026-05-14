@@ -899,14 +899,10 @@ class RawMaterialDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteV
     success_url = reverse_lazy('products:rawmaterial_list')
     login_url = reverse_lazy('accounts:login')
 
-    def get(self, request, *args, **kwargs):
-        # No confirmation page — delete directly via POST from list
-        return self.post(request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
-        obj = self.get_object()
-        messages.success(request, f'Matéria prima "{obj.name}" removida com sucesso!')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Django 5.x: post() → form_valid() (não mais delete())
+        messages.success(self.request, f'Matéria prima "{self.object.name}" removida com sucesso!')
+        return super().form_valid(form)
 
 class ProdutoListaPDFView(LoginRequiredMixin, View):
     """Gera PDF com lista de produtos (somente nomes, sem preço)."""
