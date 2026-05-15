@@ -9,4 +9,10 @@ urlpatterns = [
     path('mesa/<str:numero>/enviar/', views.enviar_pedido, name='enviar_pedido'),
     path('confirmacao/<int:pedido_id>/', views.confirmacao, name='confirmacao'),
     path('manifest.json', views.manifest, name='manifest'),
+
+    # Display Mesa — slides do carrossel
+    path('display/imagens/', views.slide_list, name='slide_list'),
+    path('display/imagens/novo/', views.slide_create, name='slide_create'),
+    path('display/imagens/<int:pk>/editar/', views.slide_update, name='slide_update'),
+    path('display/imagens/<int:pk>/excluir/', views.slide_delete, name='slide_delete'),
 ]

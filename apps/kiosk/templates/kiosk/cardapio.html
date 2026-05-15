@@ -196,6 +196,7 @@
 </head>
 <body>
 
+
 <div class="layout">
 
   <!-- SIDEBAR -->
@@ -242,33 +243,21 @@
 
       <!-- Slideshow -->
       <div id="view-slides" class="slideshow">
-        <div class="slide active">
-          <div class="slide-placeholder" style="background: linear-gradient(135deg, #3b1200, #6b2400);">
-            <img src="{% static 'img/logo/logocompleto-coxinhaspremiumcafe.png' %}" style="width:240px;filter:brightness(0) invert(1) sepia(1) saturate(0.3) brightness(0.9);opacity:0.9">
-            <strong style="color:white;font-size:26px;margin-top:16px;">Bem-vindo ao nosso cardápio!</strong>
-            <p style="color:rgba(255,255,255,0.6);font-size:15px;">Escolha uma categoria ao lado para começar</p>
+        {% if slides %}
+          {% for slide in slides %}
+          <div class="slide {% if forloop.first %}active{% endif %}">
+            <img src="{{ slide.image.url }}" alt="{{ slide.title }}">
           </div>
-        </div>
-        <div class="slide">
-          <div class="slide-placeholder" style="background: linear-gradient(135deg, #d4600a, #ea8828);">
-            <strong>🥐 Salgados Fresquinhos</strong><p>Feitos na hora para você</p>
+          {% endfor %}
+        {% else %}
+          <div class="slide active">
+            <div class="slide-placeholder" style="background: linear-gradient(135deg, #3b1200, #6b2400);">
+              <img src="{% static 'img/logo/logocompleto-coxinhaspremiumcafe.png' %}" style="width:240px;filter:brightness(0) invert(1) sepia(1) saturate(0.3) brightness(0.9);opacity:0.9">
+              <strong style="color:white;font-size:26px;margin-top:16px;">Bem-vindo ao nosso cardápio!</strong>
+              <p style="color:rgba(255,255,255,0.6);font-size:15px;">Escolha uma categoria ao lado para começar</p>
+            </div>
           </div>
-        </div>
-        <div class="slide">
-          <div class="slide-placeholder" style="background: linear-gradient(135deg, #1a3a4a, #0d5c6e);">
-            <strong>☕ Cafés Especiais</strong><p>Grãos selecionados todo dia</p>
-          </div>
-        </div>
-        <div class="slide">
-          <div class="slide-placeholder" style="background: linear-gradient(135deg, #2d4a1a, #3d6b22);">
-            <strong>🥤 Bebidas Geladas</strong><p>Sucos naturais e refrescos</p>
-          </div>
-        </div>
-        <div class="slide">
-          <div class="slide-placeholder" style="background: linear-gradient(135deg, #4a1a3a, #6b225a);">
-            <strong>🍰 Doces & Sobremesas</strong><p>Para adoçar o seu dia</p>
-          </div>
-        </div>
+        {% endif %}
         <div class="slide-dots" id="slide-dots"></div>
       </div>
 

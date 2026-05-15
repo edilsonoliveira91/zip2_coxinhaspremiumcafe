@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ action }} Imagem — Display Mesa{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-8">
+
+  <div class="mb-6">
+    <a href="{% url 'kiosk:slide_list' %}"
+       class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-orange-600 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Voltar
+    </a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">{{ action }} Imagem</h1>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium
+      {% if msg.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+      {% elif msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+      {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="bg-white rounded-2xl shadow border border-gray-100 p-6">
+    <form method="post" enctype="multipart/form-data" class="flex flex-col gap-5">
+      {% csrf_token %}
+
+      <!-- Imagem -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">
+          Imagem{% if action == 'Adicionar' %} <span class="text-red-500">*</span>{% endif %}
+        </label>
+        {% if slide and slide.image %}
+        <div class="mb-2">
+          <img src="{{ slide.image.url }}" alt="{{ slide.title }}"
+               class="w-full h-40 object-cover rounded-xl border border-gray-200">
+          <p class="text-xs text-gray-400 mt-1">Deixe em branco para manter a imagem atual.</p>
+        </div>
+        {% endif %}
+        <input type="file" name="image" accept="image/*"
+               class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                      file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100
+                      border border-gray-200 rounded-xl p-1 cursor-pointer">
+      </div>
+
+      <!-- Título -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Título (opcional)</label>
+        <input type="text" name="title" value="{{ slide.title|default:'' }}" maxlength="120"
+               placeholder="Ex: Promoção de hoje"
+               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+      </div>
+
+      <!-- Ordem -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Ordem de exibição</label>
+        <input type="number" name="order" value="{{ slide.order|default:0 }}" min="0" max="999"
+               class="w-32 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+        <p class="text-xs text-gray-400 mt-1">Menor número aparece primeiro.</p>
+      </div>
+
+      <!-- Ativo -->
+      <div class="flex items-center gap-3">
+        <input type="checkbox" name="is_active" id="is_active"
+               {% if action == 'Adicionar' or slide.is_active %}checked{% endif %}
+               class="w-4 h-4 accent-orange-500 cursor-pointer">
+        <label for="is_active" class="text-sm font-semibold text-gray-700 cursor-pointer">Ativo</label>
+      </div>
+
+      <!-- Botões -->
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition-colors shadow">
+          Salvar
+        </button>
+        <a href="{% url 'kiosk:slide_list' %}"
+           class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors">
+          Cancelar
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,8 @@
 import json
 from decimal import Decimal
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 
 from products.models import Product
 from orders.models import Comanda, Pedido, PedidoItem
+from .models import KioskSlide
 
 
 def entrada(request):
@@ -16,7 +19,8 @@ def entrada(request):
         numero = request.POST.get('numero', '').strip()
         if numero:
             return redirect('kiosk:cardapio', numero=numero)
-    return render(request, 'kiosk/entrada.html')
+    slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
+    return render(request, 'kiosk/entrada.html', {'slides': slides})
 
 
 def cardapio(request, numero):
@@ -57,10 +61,13 @@ def cardapio(request, numero):
             ],
         }
 
+    slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
+
     context = {
         'numero': numero,
         'categorias': categorias,
         'produtos_json': json.dumps(produtos_json_data, ensure_ascii=False),
+        'slides': slides,
     }
     return render(request, 'kiosk/cardapio.html', context)
 
@@ -157,3 +164,81 @@ def manifest(request):
         ]
     }
     return JsonResponse(data, content_type='application/manifest+json')
+
+
+# ─── Display Mesa — gerenciamento de slides ────────────────────────────────────────────
+
+@login_required
+def slide_list(request):
+    """Lista todos os slides do carrossel do kiosk."""
+    slides = KioskSlide.objects.all()
+    return render(request, 'kiosk/slide_list.html', {'slides': slides})
+
+
+@login_required
+def slide_create(request):
+    """Cadastra um novo slide."""
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        title = request.POST.get('title', '').strip()
+        order = request.POST.get('order', 0)
+        is_active = request.POST.get('is_active') == 'on'
+
+        if not image:
+            messages.error(request, 'Selecione uma imagem.')
+            return render(request, 'kiosk/slide_form.html', {'action': 'Adicionar'})
+
+        try:
+            order = int(order)
+        except (ValueError, TypeError):
+            order = 0
+
+        KioskSlide.objects.create(
+            image=image,
+            title=title,
+            order=order,
+            is_active=is_active,
+        )
+        messages.success(request, 'Slide adicionado com sucesso!')
+        return redirect('kiosk:slide_list')
+
+    return render(request, 'kiosk/slide_form.html', {'action': 'Adicionar'})
+
+
+@login_required
+def slide_update(request, pk):
+    """Edita um slide existente."""
+    slide = get_object_or_404(KioskSlide, pk=pk)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        order = request.POST.get('order', 0)
+        is_active = request.POST.get('is_active') == 'on'
+        image = request.FILES.get('image')
+
+        try:
+            order = int(order)
+        except (ValueError, TypeError):
+            order = 0
+
+        slide.title = title
+        slide.order = order
+        slide.is_active = is_active
+        if image:
+            slide.image = image
+        slide.save()
+        messages.success(request, 'Slide atualizado com sucesso!')
+        return redirect('kiosk:slide_list')
+
+    return render(request, 'kiosk/slide_form.html', {'action': 'Editar', 'slide': slide})
+
+
+@login_required
+def slide_delete(request, pk):
+    """Remove um slide."""
+    slide = get_object_or_404(KioskSlide, pk=pk)
+    if request.method == 'POST':
+        slide.delete()
+        messages.success(request, 'Slide removido.')
+        return redirect('kiosk:slide_list')
+    return render(request, 'kiosk/slide_confirm_delete.html', {'slide': slide})
