@@ -1,11 +1,11 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.generic import RedirectView
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from pinpads.views import mercadopago_webhook
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve
 
 @csrf_exempt
 def health_check(request):
@@ -31,6 +31,9 @@ urlpatterns = [
     path('webhook/mercadopago/payment/', mercadopago_webhook, name='mercadopago_webhook'),
 ]
 
-# Serve media files both in development and production
-# (Railway volume mounted at /app/media handles persistence)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files in both development and production.
+# NOTE: django.conf.urls.static.static() returns [] when DEBUG=False,
+# so we use re_path + serve directly to bypass that restriction.
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
