@@ -91,13 +91,10 @@
     /* Produtos */
     .produtos-lista { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
     .produto-item {
-      background: white; border-radius: 18px; border: 2px solid transparent;
+      background: white; border-radius: 18px; border: 2px solid #f0e8e0;
       padding: 14px 16px; display: flex; align-items: center; gap: 16px;
-      cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 120px;
-      width: 100%; text-align: left; font-family: inherit;
     }
-    .produto-item:active { transform: scale(0.99); box-shadow: 0 4px 20px rgba(234,136,40,0.2); border-color: #ea8828; }
     .produto-img { width: 116px; height: 116px; border-radius: 14px; object-fit: cover; flex-shrink: 0; background: #f5f0eb; }
     .produto-img-placeholder {
       width: 116px; height: 116px; border-radius: 14px; flex-shrink: 0;
@@ -105,16 +102,34 @@
       display: flex; align-items: center; justify-content: center;
     }
     .produto-info { flex: 1; min-width: 0; }
-    .produto-nome { font-size: 17px; font-weight: 700; color: #1a0a00; margin: 0 0 5px; }
+    .produto-nome { font-size: 20px; font-weight: 800; color: #1a0a00; margin: 0 0 5px; line-height: 1.2; }
     .produto-desc { font-size: 13px; color: #9a8070; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .produto-has-adicional { display: inline-block; font-size: 11px; font-weight: 600; color: #d4600a; background: #fff3e0; padding: 2px 8px; border-radius: 20px; }
-    .produto-preco { font-size: 22px; font-weight: 800; color: #d4600a; flex-shrink: 0; }
+    .produto-preco { font-size: 26px; font-weight: 900; color: #d4600a; }
     .produto-badge {
       width: 28px; height: 28px; border-radius: 50%; background: #ea8828;
       color: white; font-size: 13px; font-weight: 800;
       display: none; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .produto-badge.show { display: flex; }
+    /* Botão Adicionar */
+    .btn-adicionar {
+      display: flex; align-items: center; gap: 7px;
+      background: linear-gradient(to right, #ea8828, #d4600a);
+      color: white; border: none; border-radius: 14px;
+      padding: 12px 18px; font-size: 15px; font-weight: 800;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(234,136,40,0.4);
+      transition: transform 0.08s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .btn-adicionar:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(234,136,40,0.3); }
+    .btn-adicionar svg { flex-shrink: 0; }
+    /* Coluna direita do card */
+    .produto-right {
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 10px; flex-shrink: 0;
+    }
 
     /* Modal Adicionais */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; }
@@ -192,6 +207,97 @@
     .btn-enviar:not(:disabled):active { transform: scale(0.98); }
     .empty-state { padding: 60px 24px; text-align: center; color: #c5b0a0; }
     .empty-state p { font-size: 15px; margin: 8px 0 0; }
+
+    /* ── Responsividade para tablets pequenos (≤ 1024px) ── */
+    @media (max-width: 1024px) {
+      .sidebar { width: 190px; }
+      .sidebar-logo img { width: 78px; }
+      .sidebar-mesa strong { font-size: 17px; }
+      .cat-btn { padding: 10px 12px; font-size: 12px; }
+      .carrinho-btn { padding: 11px; font-size: 13px; }
+      .topbar { padding: 10px 16px; }
+      .topbar-title { font-size: 16px; }
+      .produtos-lista { padding: 12px 14px; gap: 8px; }
+      .produto-item { padding: 11px 13px; gap: 12px; min-height: 100px; }
+      .produto-img, .produto-img-placeholder { width: 96px; height: 96px; }
+      .produto-nome { font-size: 15px; }
+      .produto-desc { font-size: 12px; }
+      .produto-preco { font-size: 21px; }
+      .btn-adicionar { padding: 10px 15px; font-size: 14px; border-radius: 12px; }
+      .drawer { width: 340px; }
+      .modal-adicionais { width: 480px; }
+      .modal-produto-titulo h3 { font-size: 17px; }
+      .modal-total-value { font-size: 22px; }
+      .btn-modal-confirmar { height: 50px; font-size: 15px; padding: 0 22px; }
+      .btn-modal-pular { height: 50px; font-size: 13px; padding: 0 16px; }
+    }
+
+    /* ── Tablet 8–9" (≤ 900px) ── */
+    @media (max-width: 900px) {
+      .sidebar { width: 170px; }
+      .sidebar-logo { padding: 6px 10px 5px; min-height: 44px; }
+      .sidebar-logo img { width: 68px; }
+      .sidebar-mesa { padding: 5px 12px 6px; }
+      .sidebar-mesa strong { font-size: 15px; }
+      .sidebar-mesa span { font-size: 9px; }
+      .cat-list { padding: 8px 8px; gap: 4px; }
+      .cat-btn { padding: 9px 10px; font-size: 11.5px; border-radius: 12px; }
+      .sidebar-footer { padding: 10px 8px; }
+      .carrinho-btn { padding: 10px; font-size: 12px; border-radius: 14px; }
+      .topbar { padding: 8px 14px; }
+      .topbar-title { font-size: 15px; }
+      .topbar-sub { font-size: 11px; }
+      .back-btn { font-size: 12px; padding: 7px 11px; }
+      .produtos-lista { padding: 10px 12px; gap: 7px; }
+      .produto-item { padding: 10px 12px; gap: 10px; min-height: 88px; border-radius: 16px; }
+      .produto-img, .produto-img-placeholder { width: 84px; height: 84px; border-radius: 12px; }
+      .produto-nome { font-size: 14px; margin-bottom: 3px; }
+      .produto-desc { font-size: 11px; }
+      .produto-has-adicional { font-size: 10px; padding: 2px 6px; }
+      .produto-preco { font-size: 18px; }
+      .produto-nome { font-size: 17px; }
+      .btn-adicionar { padding: 9px 13px; font-size: 13px; border-radius: 11px; gap: 5px; }
+      .btn-adicionar svg { width: 14px; height: 14px; }
+      .produto-badge { width: 24px; height: 24px; font-size: 11px; }
+      .drawer { width: 310px; }
+      .drawer-header { padding: 16px 18px; }
+      .drawer-header h2 { font-size: 17px; }
+      .drawer-body { padding: 12px 18px; }
+      .drawer-footer { padding: 12px 18px; }
+      .total-value { font-size: 22px; }
+      .btn-enviar { height: 52px; font-size: 15px; }
+      .modal-adicionais { width: min(440px, 92vw); }
+      .modal-header { padding: 16px 18px 12px; }
+      .modal-produto-img { width: 68px; height: 68px; }
+      .modal-produto-titulo h3 { font-size: 15px; }
+      .modal-produto-titulo p { font-size: 14px; }
+      .modal-body { padding: 12px 18px; }
+      .modal-footer { padding: 12px 18px; gap: 12px; }
+      .modal-total-value { font-size: 20px; }
+      .btn-modal-confirmar { height: 46px; font-size: 14px; padding: 0 18px; }
+      .btn-modal-pular { height: 46px; font-size: 12px; padding: 0 14px; }
+      .adicional-row { padding: 11px 12px; }
+      .adicional-nome { font-size: 13px; }
+      .slide-placeholder strong { font-size: 22px; }
+      .slide-placeholder p { font-size: 13px; }
+    }
+
+    /* ── Altura reduzida (tablet landscape ≤ 700px de altura) ── */
+    @media (max-height: 700px) {
+      .sidebar-logo { min-height: 40px; padding: 5px 10px 4px; }
+      .sidebar-logo img { width: 64px; }
+      .cat-btn { padding: 8px 10px; }
+      .topbar { padding: 7px 14px; }
+      .produto-item { min-height: 80px; }
+      .produto-img, .produto-img-placeholder { width: 76px; height: 76px; }
+      .produto-nome { font-size: 16px; }
+      .produto-preco { font-size: 17px; }
+      .btn-adicionar { padding: 8px 12px; font-size: 13px; }
+      .drawer-header { padding: 12px 16px; }
+      .drawer-footer { padding: 10px 16px; }
+      .modal-adicionais { max-height: 80vh; }
+      .btn-enviar { height: 46px; }
+    }
   </style>
 </head>
 <body>
@@ -379,18 +485,26 @@ function mostrarCategoria(slug, btn) {
       ? `<span class="produto-has-adicional">+ ${p.adicionais.length} adicional${p.adicionais.length > 1 ? 'is' : ''}</span>`
       : '';
     return `
-      <button class="produto-item" id="item-${p.id}" onclick="clicouProduto(${p.id})">
+      <div class="produto-item" id="item-${p.id}">
         ${imgHtml}
         <div class="produto-info">
           <p class="produto-nome">${p.nome}</p>
           ${p.desc ? `<p class="produto-desc">${p.desc}</p>` : ''}
           ${tagAdicional}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
+        <div class="produto-right">
           <span class="produto-preco">R$ ${p.preco.toFixed(2).replace('.',',')}</span>
-          <div class="produto-badge ${totalQty > 0 ? 'show' : ''}" id="badge-${p.id}">${totalQty}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="produto-badge ${totalQty > 0 ? 'show' : ''}" id="badge-${p.id}">${totalQty}</div>
+            <button class="btn-adicionar" onclick="clicouProduto(${p.id})">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+              </svg>
+              Adicionar
+            </button>
+          </div>
         </div>
-      </button>`;
+      </div>`;
   }).join('');
   document.getElementById('view-slides').style.display = 'none';
   document.getElementById('view-produtos').style.display = '';
