@@ -43,6 +43,15 @@ def cardapio(request, numero):
                     'desc': (p.description or '')[:60],
                     'preco': float(p.price),
                     'img': p.image.url if p.image else '',
+                    'adicionais': [
+                        {
+                            'id': a.pk,
+                            'nome': a.name,
+                            'desc': a.description or '',
+                            'preco': float(a.price),
+                        }
+                        for a in p.adicionais.all()
+                    ],
                 }
                 for p in dados['produtos']
             ],
@@ -85,11 +94,24 @@ def enviar_pedido(request, numero):
         for item in itens:
             produto = get_object_or_404(Product, pk=item['id'])
             qty = int(item.get('qty', 1))
+            adicionais_ids = item.get('adicionais', [])
+            preco_adicional = Decimal('0.00')
+            obs_partes = []
+            for aid in adicionais_ids:
+                try:
+                    ad = produto.adicionais.get(pk=aid)
+                    preco_adicional += ad.price
+                    obs_partes.append(ad.name)
+                except Exception:
+                    pass
+            unit_price = produto.price + preco_adicional
+            obs_item = ' + '.join(obs_partes)
             PedidoItem.objects.create(
                 pedido=pedido,
                 product=produto,
                 quantity=qty,
-                unit_price=produto.price,
+                unit_price=unit_price,
+                observations=obs_item,
             )
 
         # Atualiza totais
