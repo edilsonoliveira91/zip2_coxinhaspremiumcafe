@@ -31,5 +31,6 @@ urlpatterns = [
     path('webhook/mercadopago/payment/', mercadopago_webhook, name='mercadopago_webhook'),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files both in development and production
+# (Railway volume mounted at /app/media handles persistence)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
