@@ -1930,7 +1930,12 @@ class CancelarComandaView(LoginRequiredMixin, View):
             messages.error(request, 'Sem permissão para cancelar comandas.')
             return redirect('orders:comanda_detail', numero=numero)
 
-        comanda = get_object_or_404(Comanda, numero=numero, status='em_uso')
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=['em_uso', 'aguardando_caixa']
+        ).order_by('-created_at').first()
+        if not comanda:
+            from django.http import Http404
+            raise Http404("Comanda não encontrada ou já cancelada")
         motivo = request.POST.get('motivo_cancelamento', '').strip() or 'Sem motivo informado.'
 
         with transaction.atomic():
