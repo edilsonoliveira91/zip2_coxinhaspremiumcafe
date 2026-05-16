@@ -60,7 +60,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         
         # TESTE: Remover filtro de data
         comandas_abertas = Comanda.objects.filter(
-            status='em_uso'
+            status__in=['em_uso', 'aguardando_caixa']
         ).order_by('-created_at')
 
                 # ---> LÓGICA DE TEMPO DA CONFIGURAÇÃO <---
@@ -87,6 +87,15 @@ class HomeView(LoginRequiredMixin, TemplateView):
                     if espera_minutos > limit_minutes:
                         comanda.is_delayed = True
                         break # Já achou um atrasado na comanda, vira vermelho e escapa do loop
+
+            # Label de exibição: mesa (kiosk) ou comanda normal
+            if comanda.cliente_nome and comanda.cliente_nome.upper().startswith('MESA'):
+                comanda.display_label = comanda.cliente_nome
+                mesa_part = comanda.cliente_nome.split()[-1] if ' ' in comanda.cliente_nome else comanda.numero
+                comanda.display_badge = mesa_part
+            else:
+                comanda.display_label = f"Comanda {comanda.numero}"
+                comanda.display_badge = comanda.numero
         
         # Estatísticas das comandas
         stats_comandas = {

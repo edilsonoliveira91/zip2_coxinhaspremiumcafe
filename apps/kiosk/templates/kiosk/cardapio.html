@@ -208,6 +208,17 @@
     .empty-state { padding: 60px 24px; text-align: center; color: #c5b0a0; }
     .empty-state p { font-size: 15px; margin: 8px 0 0; }
 
+    /* ── Toast notificação ── */
+    #toast-pedido {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #15803d; color: white; font-size: 16px; font-weight: 700;
+      padding: 14px 28px; border-radius: 50px; z-index: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      opacity: 0; transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast-pedido.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
     /* ── Responsividade para tablets pequenos (≤ 1024px) ── */
     @media (max-width: 1024px) {
       .sidebar { width: 190px; }
@@ -324,7 +335,7 @@
     </div>
     <div class="sidebar-footer">
       <button class="carrinho-btn" onclick="abrirDrawer()">
-        <span>🛒 Minha Conta</span>
+        <span>MEU PEDIDO</span>
         <span class="carrinho-total" id="sidebar-total">R$ 0,00</span>
       </button>
     </div>
@@ -337,12 +348,18 @@
         <div class="topbar-title" id="topbar-title">Bem-vindo!</div>
         <div class="topbar-sub" id="topbar-sub">Selecione uma categoria para ver os produtos</div>
       </div>
-      <a href="{% url 'kiosk:entrada' %}" class="back-btn">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Trocar mesa
-      </a>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button onclick="abrirVerConta()" style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:20px;border:2px solid #ea8828;background:rgba(234,136,40,0.12);color:#ea8828;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.03em;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Ver Conta
+        </button>
+        <a href="{% url 'kiosk:entrada' %}" class="back-btn">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Trocar mesa
+        </a>
+      </div>
     </div>
 
     <div class="content" id="content">
@@ -372,6 +389,49 @@
         <div class="produtos-lista" id="produtos-lista"></div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- Toast pedido enviado -->
+<div id="toast-pedido"></div>
+
+<!-- Overlay + Drawer Ver Conta -->
+<div class="overlay" id="overlay-conta" onclick="fecharVerConta()"></div>
+<div class="drawer" id="drawer-conta">
+  <div class="drawer-header">
+    <h2>📋 Mesa {{ numero }}</h2>
+    <button class="drawer-close" onclick="fecharVerConta()">✕</button>
+  </div>
+  <div class="drawer-body" id="conta-lista"></div>
+  <div class="drawer-footer">
+    <div class="total-row">
+      <span class="total-label">Total da conta</span>
+      <span class="total-value" id="conta-total">R$ 0,00</span>
+    </div>
+    <button class="btn-enviar" onclick="confirmarFechamento()" style="margin-top:4px;background:linear-gradient(to right,#b91c1c,#7f1d1d);">
+      Fechar conta
+    </button>
+  </div>
+</div>
+
+<!-- Tela Conta Fechada -->
+<div id="tela-conta-fechada" style="display:none;position:fixed;inset:0;background:#0f0500;z-index:400;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;">
+  <div style="font-size:80px;margin-bottom:24px;">✅</div>
+  <p style="color:#ea8828;font-size:22px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 16px;">Conta fechada</p>
+  <p style="color:white;font-size:32px;font-weight:900;line-height:1.3;margin:0 0 12px;">Dirija-se ao caixa e informe o número da sua mesa</p>
+  <p style="color:#ea8828;font-size:72px;font-weight:900;margin:0;" id="tela-mesa-numero"></p>
+</div>
+
+<!-- Modal Confirmação Fechamento -->
+<div id="modal-fechamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:32px 28px;width:90%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+    <p style="font-size:40px;margin:0 0 12px;">🧾</p>
+    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 8px;">Fechar a conta?</h3>
+    <p style="font-size:14px;color:#9a8070;margin:0 0 24px;">Você será direcionado ao caixa para efetuar o pagamento.</p>
+    <div style="display:flex;gap:12px;">
+      <button onclick="cancelarFechamento()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Não, voltar</button>
+      <button onclick="executarFechamento()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#b91c1c,#7f1d1d);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(185,28,28,0.4);">Sim, fechar</button>
     </div>
   </div>
 </div>
@@ -426,6 +486,9 @@
 <script>
 const PRODUTOS_POR_CAT = {{ produtos_json|safe }};
 const URL_ENVIAR = "{% url 'kiosk:enviar_pedido' numero %}";
+const URL_CONTA  = "{% url 'kiosk:ver_conta' numero %}";
+const URL_FECHAR = "{% url 'kiosk:fechar_mesa' numero %}";
+const URL_STATUS = "{% url 'kiosk:status_mesa' numero %}";
 const CSRF = "{{ csrf_token }}";
 
 // carrinho: { chave: { chave, produto_id, nome, preco_base, adicionais, preco_total, qty } }
@@ -700,18 +763,109 @@ async function enviarPedido() {
     });
     const data = await resp.json();
     if (data.ok) {
-      window.location.href = '/kiosk/confirmacao/' + data.pedido_id + '/';
+      // Limpa carrinho e fecha drawer
+      Object.keys(carrinho).forEach(k => delete carrinho[k]);
+      document.getElementById('observacoes').value = '';
+      renderDrawer();
+      fecharDrawer();
+      mostrarSlides();
+      mostrarToast('✅ Pedido enviado com sucesso!');
+      btn.textContent = 'Enviar pedido para o balcão';
     } else {
-      alert('Erro: ' + (data.erro || 'Tente novamente'));
+      mostrarToast('❌ Erro: ' + (data.erro || 'Tente novamente'), true);
       btn.disabled = false;
       btn.textContent = 'Enviar pedido para o balcão';
     }
   } catch (e) {
-    alert('Erro de conexão. Tente novamente.');
+    mostrarToast('❌ Erro de conexão. Tente novamente.', true);
     btn.disabled = false;
     btn.textContent = 'Enviar pedido para o balcão';
   }
 }
+
+function mostrarToast(msg, erro = false) {
+  const t = document.getElementById('toast-pedido');
+  t.textContent = msg;
+  t.style.background = erro ? '#7f1d1d' : '#15803d';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Ver Conta ──────────────────────────────────────────────
+async function abrirVerConta() {
+  const lista = document.getElementById('conta-lista');
+  const totalEl = document.getElementById('conta-total');
+  lista.innerHTML = '<div class="empty-state"><p>Carregando...</p></div>';
+  totalEl.textContent = 'R$ 0,00';
+  document.getElementById('drawer-conta').classList.add('open');
+  document.getElementById('overlay-conta').classList.add('open');
+  try {
+    const resp = await fetch(URL_CONTA);
+    const data = await resp.json();
+    if (!data.itens || data.itens.length === 0) {
+      lista.innerHTML = '<div class="empty-state"><p>Nenhum pedido registrado ainda.</p></div>';
+    } else {
+      lista.innerHTML = data.itens.map(item => `
+        <div class="drawer-item">
+          <div style="flex:1;min-width:0;">
+            <div class="drawer-item-nome">${item.qty}× ${item.nome}</div>
+            ${item.obs ? '<div class="drawer-item-sub">+ ' + item.obs + '</div>' : ''}
+            <div class="drawer-item-preco">R$ ${item.unit_price.toFixed(2).replace('.', ',')} cada</div>
+          </div>
+          <div style="font-size:15px;font-weight:800;color:#d4600a;flex-shrink:0;margin-left:12px;">
+            R$ ${item.subtotal.toFixed(2).replace('.', ',')}
+          </div>
+        </div>`).join('');
+      totalEl.textContent = 'R$ ' + data.total;
+    }
+  } catch(e) {
+    lista.innerHTML = '<div class="empty-state"><p>Erro ao carregar conta.</p></div>';
+  }
+}
+
+function fecharVerConta() {
+  document.getElementById('drawer-conta').classList.remove('open');
+  document.getElementById('overlay-conta').classList.remove('open');
+}
+
+// ── Fechar Conta ───────────────────────────────────────────
+function confirmarFechamento() {
+  const modal = document.getElementById('modal-fechamento');
+  modal.style.display = 'flex';
+}
+
+function cancelarFechamento() {
+  document.getElementById('modal-fechamento').style.display = 'none';
+}
+
+async function executarFechamento() {
+  document.getElementById('modal-fechamento').style.display = 'none';
+  fecharVerConta();
+  // Sinaliza para o dashboard que a mesa está aguardando caixa
+  try { await fetch(URL_FECHAR, { method: 'POST', headers: { 'X-CSRFToken': CSRF } }); } catch(e) {}
+  const tela = document.getElementById('tela-conta-fechada');
+  document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
+  tela.style.display = 'flex';
+  setTimeout(() => {
+    window.location.href = "{% url 'kiosk:entrada' %}";
+  }, 5000);
+}
+
+// ── Polling: detecta fechamento remoto pelo caixa ──────────
+setInterval(async () => {
+  // Não interrompe se a tela de conta fechada já está visível
+  if (document.getElementById('tela-conta-fechada').style.display === 'flex') return;
+  try {
+    const r = await fetch(URL_STATUS);
+    const d = await r.json();
+    if (d.status !== 'em_uso') {
+      const tela = document.getElementById('tela-conta-fechada');
+      document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
+      tela.style.display = 'flex';
+      setTimeout(() => { window.location.href = "{% url 'kiosk:entrada' %}"; }, 5000);
+    }
+  } catch(e) {}
+}, 5000);
 </script>
 
 </body>

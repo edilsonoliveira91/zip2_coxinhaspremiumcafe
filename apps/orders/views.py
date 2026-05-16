@@ -1714,13 +1714,16 @@ class ComandaDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         numero = self.kwargs.get('numero')
-        # Pega a comanda ativa com esse número
+        # Pega a comanda ativa (em uso ou aguardando caixa) com esse número
         comanda = Comanda.objects.filter(
-            numero=numero, status='em_uso'
+            numero=numero, status__in=['em_uso', 'aguardando_caixa']
         ).order_by('-created_at').first()
         if comanda is None:
-            # Fallback: qualquer comanda com esse número (ex.: recém-cancelada)
-            comanda = get_object_or_404(Comanda, numero=numero)
+            # Fallback: comanda mais recente com esse número
+            comanda = Comanda.objects.filter(numero=numero).order_by('-created_at').first()
+            if comanda is None:
+                from django.http import Http404
+                raise Http404("Comanda não encontrada")
         return comanda
 
     def get_context_data(self, **kwargs):
@@ -1898,6 +1901,24 @@ class NovoPedidoView(LoginRequiredMixin, View):
             url += '?modal=open'
         return redirect(url)
 
+
+
+class FechaMesaCaixaView(LoginRequiredMixin, View):
+    """Caixa/superuser fecha a mesa do cliente (aguardando_caixa), acessível pelo dashboard."""
+    def post(self, request, numero):
+        if not (request.user.is_superuser or getattr(request.user, 'is_caixa', False)):
+            from django.http import JsonResponse
+            return JsonResponse({'ok': False, 'erro': 'Sem permissão'}, status=403)
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=['em_uso', 'aguardando_caixa']
+        ).order_by('-created_at').first()
+        if not comanda:
+            from django.http import JsonResponse
+            return JsonResponse({'ok': False, 'erro': 'Comanda não encontrada'}, status=404)
+        comanda.status = 'aguardando_caixa'
+        comanda.save(update_fields=['status'])
+        from django.http import JsonResponse
+        return JsonResponse({'ok': True})
 
 
 class CancelarComandaView(LoginRequiredMixin, View):

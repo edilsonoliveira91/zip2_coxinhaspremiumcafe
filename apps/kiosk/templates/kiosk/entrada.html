@@ -174,23 +174,77 @@
 
   </div>
 
+  <!-- Modal: mesa já aberta -->
+  <div id="modal-mesa-aberta" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:100; align-items:center; justify-content:center;">
+    <div style="background:#2a0e00; border:2px solid #ea8828; border-radius:24px; padding:40px 48px; text-align:center; max-width:380px; width:90%;">
+      <div style="font-size:48px; margin-bottom:16px;">⚠️</div>
+      <p style="color:#fff; font-size:20px; font-weight:800; margin-bottom:8px;">Mesa já está aberta!</p>
+      <p style="color:rgba(255,255,255,0.6); font-size:15px; margin-bottom:32px;">A <strong id="modal-mesa-numero" style="color:#ea8828;"></strong> já possui pedidos em andamento.<br>Deseja continuar mesmo assim?</p>
+      <div style="display:flex; gap:16px; justify-content:center;">
+        <button id="modal-nao" style="flex:1; height:56px; border-radius:14px; border:2px solid rgba(255,255,255,0.2); background:transparent; color:white; font-size:16px; font-weight:700; cursor:pointer;">
+          Não, trocar mesa
+        </button>
+        <button id="modal-sim" style="flex:1; height:56px; border-radius:14px; border:none; background:linear-gradient(to right,#ea8828,#d4600a); color:white; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 20px rgba(234,136,40,0.4);">
+          Sim, abrir mesmo assim
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const input = document.getElementById('mesa-input');
-    const btn   = document.getElementById('btn-confirm');
+    const input  = document.getElementById('mesa-input');
+    const btn    = document.getElementById('btn-confirm');
+    const form   = document.getElementById('form-entrada');
+    const modal  = document.getElementById('modal-mesa-aberta');
+    const modalNum = document.getElementById('modal-mesa-numero');
+    let   confirmedOpen = false;
 
     input.addEventListener('input', function () {
-      // Limitar a 2 dígitos
       if (this.value.length > 2) this.value = this.value.slice(0, 2);
       btn.disabled = this.value.trim() === '' || parseInt(this.value) < 1;
+      confirmedOpen = false;
     });
 
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !btn.disabled) {
-        document.getElementById('form-entrada').submit();
-      }
+      if (e.key === 'Enter' && !btn.disabled) tentarAbrir();
     });
 
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      tentarAbrir();
+    });
 
+    async function tentarAbrir() {
+      const numero = input.value.trim();
+      if (!numero) return;
+      if (confirmedOpen) { form.submit(); return; }
+      try {
+        const resp = await fetch('/kiosk/?check=' + encodeURIComponent(numero));
+        const data = await resp.json();
+        if (data.aberta) {
+          const pad = numero.padStart(2, '0');
+          modalNum.textContent = 'MESA ' + pad;
+          modal.style.display = 'flex';
+        } else {
+          form.submit();
+        }
+      } catch (e) {
+        form.submit(); // se falhar, abre normalmente
+      }
+    }
+
+    document.getElementById('modal-sim').addEventListener('click', function () {
+      modal.style.display = 'none';
+      confirmedOpen = true;
+      form.submit();
+    });
+
+    document.getElementById('modal-nao').addEventListener('click', function () {
+      modal.style.display = 'none';
+      input.value = '';
+      btn.disabled = true;
+      input.focus();
+    });
   </script>
 
 </body>

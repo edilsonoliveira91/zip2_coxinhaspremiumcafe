@@ -15,6 +15,12 @@ from .models import KioskSlide
 
 def entrada(request):
     """Tela inicial do kiosk — teclado numérico para digitar o número da mesa."""
+    # AJAX: verifica se mesa já está aberta
+    if request.method == 'GET' and request.GET.get('check'):
+        numero = request.GET.get('check', '').strip()
+        aberta = Comanda.objects.filter(numero=numero, status='em_uso').exists()
+        return JsonResponse({'aberta': aberta})
+
     if request.method == 'POST':
         numero = request.POST.get('numero', '').strip()
         if numero:
@@ -25,6 +31,19 @@ def entrada(request):
 
 def cardapio(request, numero):
     """Tela principal de pedido — categorias, produtos e carrinho."""
+    # Abre (ou recupera) a comanda da mesa assim que o cardápio é acessado
+    numero_limpo = str(numero).strip()
+    mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+    mesa_label = f"MESA {mesa_numero}"
+    comanda_mesa, created = Comanda.objects.get_or_create(
+        numero=numero,
+        status='em_uso',
+        defaults={'cliente_nome': mesa_label},
+    )
+    if not created and not comanda_mesa.cliente_nome:
+        comanda_mesa.cliente_nome = mesa_label
+        comanda_mesa.save(update_fields=['cliente_nome'])
+
     produtos = Product.objects.filter(show_in_menu=True).order_by('category', 'name')
 
     # Agrupar por categoria
@@ -83,12 +102,20 @@ def enviar_pedido(request, numero):
         if not itens:
             return JsonResponse({'erro': 'Carrinho vazio'}, status=400)
 
+        # Normaliza e marca a mesa
+        numero_limpo = str(numero).strip()
+        mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+        mesa_label = f"MESA {mesa_numero}"
+
         # Busca ou cria comanda em_uso para esta mesa
-        comanda, _ = Comanda.objects.get_or_create(
+        comanda, created = Comanda.objects.get_or_create(
             numero=numero,
             status='em_uso',
-            defaults={'status': 'em_uso'},
+            defaults={'status': 'em_uso', 'cliente_nome': mesa_label},
         )
+        if not created and not comanda.cliente_nome:
+            comanda.cliente_nome = mesa_label
+            comanda.save(update_fields=['cliente_nome'])
 
         # Cria o pedido
         pedido = Pedido.objects.create(
@@ -128,6 +155,43 @@ def enviar_pedido(request, numero):
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         return JsonResponse({'erro': str(e)}, status=400)
+
+
+def status_mesa(request, numero):
+    """Retorna o status atual da comanda da mesa (para polling do kiosk)."""
+    comanda = Comanda.objects.filter(numero=numero).order_by('-created_at').first()
+    return JsonResponse({'status': comanda.status if comanda else 'livre'})
+
+
+def fechar_mesa(request, numero):
+    """Marca a comanda da mesa como aguardando_caixa (cliente indo pagar)."""
+    comanda = Comanda.objects.filter(numero=numero, status='em_uso').first()
+    if not comanda:
+        return JsonResponse({'ok': False, 'erro': 'Comanda não encontrada'})
+    comanda.status = 'aguardando_caixa'
+    comanda.save(update_fields=['status'])
+    return JsonResponse({'ok': True})
+
+
+def ver_conta(request, numero):
+    """Retorna JSON com todos os itens pedidos da mesa e o total."""
+    comanda = Comanda.objects.filter(numero=numero, status='em_uso').first()
+    if not comanda:
+        return JsonResponse({'itens': [], 'total': '0,00'})
+
+    itens = []
+    for pedido in comanda.pedidos.exclude(status='cancelado').order_by('created_at'):
+        for item in pedido.items.all():
+            itens.append({
+                'nome': item.product.name,
+                'qty': item.quantity,
+                'unit_price': float(item.unit_price),
+                'subtotal': float(item.unit_price * item.quantity),
+                'obs': item.observations or '',
+            })
+
+    total = float(comanda.total_amount)
+    return JsonResponse({'itens': itens, 'total': f"{total:.2f}".replace('.', ',')})
 
 
 def confirmacao(request, pedido_id):

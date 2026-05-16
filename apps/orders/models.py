@@ -13,6 +13,7 @@ class Comanda(TimeStampedModel):
         ('livre', 'Livre'),
         ('em_uso', 'Em Uso'),
         ('fechada', 'Fechada'),
+        ('aguardando_caixa', 'Aguardando Caixa'),
         ('cancelada', 'Cancelada'),
         ('cortesia', 'Cortesia'),
     ]

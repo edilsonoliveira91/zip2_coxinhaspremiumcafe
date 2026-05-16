@@ -93,9 +93,11 @@
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
                                 <div onclick="window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
-                                    style="{% if comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
+                                    style="{% if comanda.status == 'aguardando_caixa' %} border-color: #6b7280 !important; border-width: 2px !important; {% elif comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
                                     class="group relative border-2 cursor-pointer
-                                    {% if comanda.is_delayed %} 
+                                    {% if comanda.status == 'aguardando_caixa' %}
+                                        bg-gray-100 border-gray-400
+                                    {% elif comanda.is_delayed %} 
                                         bg-red-100 border-4 border-red-600 shadow-xl shadow-red-500/50 animate-pulse 
                                     {% elif comanda.has_pending %} 
                                         bg-yellow-100 border-yellow-400 shadow-md shadow-yellow-200/50
@@ -109,23 +111,42 @@
                                 
                                     <!-- Header da comanda -->
                                     <div class="flex items-center space-x-3 mb-2">
-                                        <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
-                                            {{ comanda.numero }}
+                                        <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
+                                            {{ comanda.display_badge }}
                                         </div>
                                         <div>
-                                            <p class="font-black text-gray-900 text-lg">Comanda {{ comanda.numero }}</p>
+                                            <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
+                                            {% if comanda.status == 'aguardando_caixa' %}
+                                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">⬛ MESA FECHADA</p>
+                                            {% else %}
                                             <p class="text-xs text-gray-500 font-medium">
                                                 <span class="text-gray-400 font-normal">Aberta às</span> 
                                                 {{ comanda.created_at|time:"H:i" }}
                                             </p>
+                                            {% endif %}
                                         </div>
                                     </div>
 
-                                    <!-- Botão Detalhes -->
-                                    <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
-                                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105">
+                                    <!-- Botões -->
+                                    {% if comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_superuser or comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_caixa %}
+                                    <div style="display:flex;gap:6px;">
+                                      <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'" 
+                                              class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-3 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                                          Detalhes
+                                      </button>
+                                      {% if comanda.status == 'em_uso' %}
+                                      <button onclick="event.stopPropagation(); abrirModalFecharMesa('{{ comanda.numero }}')"
+                                              style="background:#b91c1c;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='#b91c1c'" class="flex-1 text-white py-2 px-3 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                                          Fechar Mesa
+                                      </button>
+                                      {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'" 
+                                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
                                         Detalhes
                                     </button>
+                                    {% endif %}
 
             
                                 </div>
@@ -740,6 +761,21 @@ document.addEventListener('fullscreenchange', function() {
 </script>
 
 <script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 function imprimirComanda(comandaCode) {
     console.log('🖨️ Iniciando impressão para comanda:', comandaCode);
     
@@ -798,6 +834,63 @@ function imprimirComanda(comandaCode) {
         btn.innerHTML = originalText;
         btn.disabled = false;
     });
+}
+</script>
+
+<!-- Modal Fechar Mesa (sempre presente para caixa/superuser) -->
+<div id="modal-fechar-mesa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:28px 24px;width:90%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <p style="font-size:36px;margin:0 0 10px;">🧾</p>
+    <h3 style="font-size:18px;font-weight:800;color:#111827;margin:0 0 8px;">Fechar Mesa <span id="modal-fechar-mesa-num"></span>?</h3>
+    <p style="font-size:13px;color:#6b7280;margin:0 0 22px;">O tablet do cliente será redirecionado para a tela inicial automaticamente.</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="fecharModalFecharMesa()" style="flex:1;height:46px;border-radius:12px;border:2px solid #e5e7eb;background:white;color:#6b7280;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button id="btn-confirmar-fechar-mesa" onclick="confirmarFecharMesaCaixa()" style="flex:1;height:46px;border-radius:12px;border:none;background:#b91c1c;color:white;font-size:14px;font-weight:800;cursor:pointer;">Sim, fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _mesaParaFechar = null;
+
+function abrirModalFecharMesa(numero) {
+    _mesaParaFechar = numero;
+    document.getElementById('modal-fechar-mesa-num').textContent = numero;
+    document.getElementById('modal-fechar-mesa').style.display = 'flex';
+}
+
+function fecharModalFecharMesa() {
+    document.getElementById('modal-fechar-mesa').style.display = 'none';
+    _mesaParaFechar = null;
+}
+
+async function confirmarFecharMesaCaixa() {
+    const numero = _mesaParaFechar;
+    if (!numero) return;
+    const btnConfirm = document.getElementById('btn-confirmar-fechar-mesa');
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = 'Fechando...';
+    try {
+        const csrf = getCookie('csrftoken');
+        const resp = await fetch('/orders/comanda/' + numero + '/fechar-mesa/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf },
+        });
+        const data = await resp.json();
+        fecharModalFecharMesa();
+        if (data.ok) {
+            mostrarNotificacao('✅ Mesa ' + numero + ' fechada — cliente a caminho do caixa', 'success');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            mostrarNotificacao('❌ ' + (data.erro || 'Erro ao fechar'), 'error');
+        }
+    } catch(e) {
+        fecharModalFecharMesa();
+        mostrarNotificacao('❌ Erro de conexão', 'error');
+    } finally {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = 'Sim, fechar';
+    }
 }
 </script>
 
