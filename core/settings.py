@@ -214,6 +214,12 @@ REDE_SANDBOX = config('REDE_SANDBOX', default=True, cast=bool)
 REDE_PV = config('REDE_PV', default='')  # Número de filiação
 REDE_INTEGRATION_KEY = config('REDE_INTEGRATION_KEY', default='')  # Chave de integração
 
+#====================================================
+# CONFIGURAÇÕES DA IMPRESSORA DE REDE (RawBT / p910nd)
+#====================================================
+PRINTER_NETWORK_IP = config('PRINTER_NETWORK_IP', default='192.168.10.184')
+PRINTER_NETWORK_PORT = config('PRINTER_NETWORK_PORT', default=9100, cast=int)
+
 # Configurações de logging para payment providers
 LOGGING = {
     'version': 1,

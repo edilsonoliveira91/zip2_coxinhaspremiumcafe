@@ -3,6 +3,7 @@ import tempfile
 import os
 from datetime import datetime
 from django.utils import timezone as dj_timezone
+from django.conf import settings as django_settings
 
 class EpsonTMT20XService:
     """
@@ -310,111 +311,82 @@ class EpsonTMT20XService:
     
     def _enviar_para_epson(self, conteudo):
         """
-        Envio multiplataforma otimizado
+        Envio multiplataforma otimizado.
+        Tenta USB primeiro; se todos os métodos USB falharem, cai no fallback de rede (RawBT/p910nd).
         """
         try:
             import subprocess
             import platform
             import tempfile
             import os
-            
+
             sistema = platform.system()
             print(f"[DEBUG] Sistema: {sistema}, Impressora: {self.printer_name}")
-            
+
             if sistema == "Linux":
-                # LINUX - Múltiplos métodos
-                success = False
-                
-                # Método 1: Tentar lp (se existir)
+                # Método 1: Tentar lp (CUPS)
                 try:
-                    result = subprocess.run([
-                        'lp', '-d', self.printer_name
-                    ], input=conteudo, text=True, capture_output=True, timeout=10)
-                    
+                    result = subprocess.run(
+                        ['lp', '-d', self.printer_name],
+                        input=conteudo, text=True, capture_output=True, timeout=10
+                    )
                     if result.returncode == 0:
                         print(f"[EPSON] ✓ Enviado via lp")
                         return True
                     else:
                         print(f"[EPSON] ✗ lp falhou: {result.stderr}")
-                        
                 except FileNotFoundError:
                     print(f"[EPSON] ✗ Comando lp não encontrado")
                 except Exception as e:
                     print(f"[EPSON] ✗ Erro lp: {e}")
-                
-                # Método 2: Escrever direto no device USB
-                usb_devices = [
-                    '/dev/usb/lp0',
-                    '/dev/lp0', 
-                    f'/dev/{self.printer_name.lower()}',
-                    '/dev/ttyUSB0'
-                ]
-                
+
+                # Método 2: Device USB direto
+                usb_devices = ['/dev/usb/lp0', '/dev/lp0', '/dev/ttyUSB0']
                 for device in usb_devices:
-                    try:
-                        print(f"[EPSON] Tentando device: {device}")
-                        with open(device, 'wb') as f:
-                            f.write(conteudo.encode('utf-8'))
-                        print(f"[EPSON] ✓ Enviado via {device}")
-                        return True
-                    except Exception as e:
-                        print(f"[EPSON] ✗ Device {device} falhou: {e}")
-                        continue
-                
-                # Método 3: Via netcat (se for impressora de rede)
+                    if os.path.exists(device):
+                        try:
+                            print(f"[EPSON] Tentando device: {device}")
+                            with open(device, 'wb') as f:
+                                f.write(conteudo.encode('utf-8'))
+                            print(f"[EPSON] ✓ Enviado via {device}")
+                            return True
+                        except Exception as e:
+                            print(f"[EPSON] ✗ Device {device} falhou: {e}")
+
+                # Fallback: Rede (RawBT / p910nd) — quando não há USB disponível
                 try:
-                    # Tentar IP local da impressora
-                    result = subprocess.run([
-                        'nc', '-w', '3', '192.168.1.100', '9100'
-                    ], input=conteudo, text=True, capture_output=True, timeout=10)
-                    
-                    if result.returncode == 0:
-                        print(f"[EPSON] ✓ Enviado via rede")
+                    printer_ip = getattr(django_settings, 'PRINTER_NETWORK_IP', '192.168.10.184')
+                    printer_port = getattr(django_settings, 'PRINTER_NETWORK_PORT', 9100)
+                    print(f"[EPSON] USB não encontrado — tentando rede {printer_ip}:{printer_port}")
+                    sucesso = self._enviar_rede(conteudo, ip=printer_ip, porta=printer_port)
+                    if sucesso:
+                        print(f"[EPSON] ✓ Enviado via rede {printer_ip}:{printer_port}")
                         return True
-                        
+                    else:
+                        print(f"[EPSON] ✗ Rede falhou")
                 except Exception as e:
-                    print(f"[EPSON] ✗ Rede falhou: {e}")
-                
-                # Método 4: Instalar CUPS e tentar novamente
-                try:
-                    print("[EPSON] Tentando instalar CUPS...")
-                    subprocess.run(['apt-get', 'update'], capture_output=True)
-                    subprocess.run(['apt-get', 'install', '-y', 'cups'], capture_output=True)
-                    
-                    # Tentar lp novamente
-                    result = subprocess.run([
-                        'lp', '-d', self.printer_name
-                    ], input=conteudo, text=True, capture_output=True, timeout=10)
-                    
-                    if result.returncode == 0:
-                        print(f"[EPSON] ✓ Enviado via lp (após instalar CUPS)")
-                        return True
-                        
-                except Exception as e:
-                    print(f"[EPSON] ✗ Instalação CUPS falhou: {e}")
-                
+                    print(f"[EPSON] ✗ Erro fallback rede: {e}")
+
                 return False
-                
+
             elif sistema == "Darwin":  # macOS
-                # MACOS (método original)
-                result = subprocess.run([
-                    'lp', '-d', self.printer_name
-                ], input=conteudo, text=True, capture_output=True)
-                
+                result = subprocess.run(
+                    ['lp', '-d', self.printer_name],
+                    input=conteudo, text=True, capture_output=True
+                )
                 return result.returncode == 0
-                
+
             elif sistema == "Windows":
-                # WINDOWS (método anterior)
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='cp1252') as f:
                     f.write(conteudo)
                     temp_file = f.name
-                
+
                 methods = [
                     ['powershell', '-Command', f'Get-Content "{temp_file}" | Out-Printer -Name "{self.printer_name}"'],
                     ['copy', '/B', temp_file, self.printer_name],
                     ['print', '/D:' + self.printer_name, temp_file]
                 ]
-                
+
                 for i, cmd in enumerate(methods, 1):
                     try:
                         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
@@ -424,15 +396,13 @@ class EpsonTMT20XService:
                             return True
                     except Exception as e:
                         print(f"[EPSON] ✗ Windows método {i}: {e}")
-                        continue
-                
+
                 os.unlink(temp_file)
                 return False
-                
+
         except Exception as e:
             print(f"[EPSON] ✗ Erro geral: {e}")
             return False
-    
     def _enviar_usb(self, conteudo):
         """Envio via USB (Linux/macOS)"""
         try:
