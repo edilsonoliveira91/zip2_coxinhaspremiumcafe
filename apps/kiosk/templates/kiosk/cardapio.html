@@ -63,6 +63,7 @@
     .topbar {
       background: white; border-bottom: 1px solid #e8e0d8; padding: 12px 24px;
       display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+      overflow: hidden;
     }
     .topbar-title { font-size: 18px; font-weight: 700; color: #1a0a00; }
     .topbar-sub { font-size: 12px; color: #9a8070; margin-top: 1px; }
@@ -344,17 +345,17 @@
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div>
-        <div class="topbar-title" id="topbar-title">Bem-vindo!</div>
-        <div class="topbar-sub" id="topbar-sub">Selecione uma categoria para ver os produtos</div>
+      <div style="flex:1;min-width:0;overflow:hidden;">
+        <div class="topbar-title" id="topbar-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Bem-vindo!</div>
+        <div class="topbar-sub" id="topbar-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Selecione uma categoria para ver os produtos</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <button onclick="abrirVerConta()" style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:20px;border:2px solid #ea8828;background:rgba(234,136,40,0.12);color:#ea8828;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.03em;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+        <button onclick="abrirVerConta()" style="display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:20px;border:2px solid #ea8828;background:rgba(234,136,40,0.12);color:#ea8828;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.03em;white-space:nowrap;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           Ver Conta
         </button>
-        <a href="{% url 'kiosk:entrada' %}" class="back-btn">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="{% url 'kiosk:entrada' %}" class="back-btn" style="white-space:nowrap;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
           </svg>
           Trocar mesa
