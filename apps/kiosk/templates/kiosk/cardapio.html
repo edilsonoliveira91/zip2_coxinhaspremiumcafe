@@ -311,10 +311,43 @@
       .modal-adicionais { max-height: 80vh; }
       .btn-enviar { height: 46px; }
     }
+
+    /* ── Lightbox ampliação de imagem ── */
+    #lightbox-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    #lightbox-overlay.open { display: flex; }
+    #lightbox-img {
+      max-width: 88vw; max-height: 80vh;
+      border-radius: 20px; object-fit: contain;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: lb-in 0.18s ease;
+    }
+    @keyframes lb-in {
+      from { opacity: 0; transform: scale(0.88); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    #lightbox-close {
+      position: absolute; top: 20px; right: 20px;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); border: none;
+      color: white; font-size: 26px; font-weight: 300;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .produto-img { cursor: zoom-in; }
   </style>
 </head>
 <body>
 
+
+<!-- Lightbox ampliação de imagem -->
+<div id="lightbox-overlay" onclick="fecharLightbox()">
+  <button id="lightbox-close" onclick="fecharLightbox()">&#x2715;</button>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()">
+</div>
 
 <div class="layout">
 
@@ -543,7 +576,7 @@ function mostrarCategoria(slug, btn) {
   const lista = document.getElementById('produtos-lista');
   lista.innerHTML = cat.itens.map(p => {
     const imgHtml = p.img
-      ? `<img src="${p.img}" alt="${p.nome}" class="produto-img">`
+      ? `<img src="${p.img}" alt="${p.nome}" class="produto-img" onclick="abrirLightbox('${p.img}', '${p.nome}')">`
       : `<div class="produto-img-placeholder"><svg width="40" height="40" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`;
     const totalQty = totalQtyParaProduto(p.id);
     const tagAdicional = p.adicionais && p.adicionais.length > 0
@@ -868,6 +901,23 @@ setInterval(async () => {
     }
   } catch(e) {}
 }, 5000);
+</script>
+
+<script>
+function abrirLightbox(src, alt) {
+  const overlay = document.getElementById('lightbox-overlay');
+  const img = document.getElementById('lightbox-img');
+  img.src = src;
+  img.alt = alt || '';
+  overlay.classList.add('open');
+}
+function fecharLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') fecharLightbox();
+});
 </script>
 
 <script>
