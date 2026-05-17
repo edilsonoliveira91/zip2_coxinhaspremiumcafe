@@ -11,6 +11,7 @@ class Product(TimeStampedModel):
     """
     CATEGORY_CHOICES = [
         ('bebidas', 'Bebidas'),
+        ('cafes_premium', 'Cafés Premium'),
         ('cafes', 'Cafés'),
         ('salgados', 'Salgados'),
         ('minisalgados', 'Mini Salgados'),
