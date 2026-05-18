@@ -941,41 +941,33 @@ setInterval(async () => {
 </script>
 
 <script>
-// ── Timer de inatividade pós-pedido (15s → volta ao Início) ──
+// ── Timer de inatividade (30s sem interação → volta ao Início) ──
 let _inativoTimer = null;
-let _pedidoEnviado = false;
-
-function iniciarTimerInatividade() {
-  _pedidoEnviado = true;
-  clearTimeout(_inativoTimer);
-  _inativoTimer = setTimeout(() => {
-    if (_pedidoEnviado) {
-      _pedidoEnviado = false;
-      mostrarSlides();
-    }
-  }, 15000);
-}
 
 function resetarTimerInatividade() {
-  if (!_pedidoEnviado) return;
   clearTimeout(_inativoTimer);
   _inativoTimer = setTimeout(() => {
-    if (_pedidoEnviado) {
-      _pedidoEnviado = false;
+    // Não volta se algum modal/drawer estiver aberto
+    const drawerAberto = document.getElementById('drawer')?.classList.contains('open');
+    const modalAberto  = document.getElementById('modal-adicionais')?.classList.contains('open');
+    const lightboxAberto = document.getElementById('lightbox-overlay')?.classList.contains('open');
+    const telaFechada  = document.getElementById('tela-conta-fechada')?.style.display === 'flex';
+    if (!drawerAberto && !modalAberto && !lightboxAberto && !telaFechada) {
       mostrarSlides();
     }
-  }, 15000);
+  }, 30000);
 }
 
-function cancelarTimerInatividade() {
-  _pedidoEnviado = false;
-  clearTimeout(_inativoTimer);
-}
+function iniciarTimerInatividade() { resetarTimerInatividade(); }
+function cancelarTimerInatividade() { clearTimeout(_inativoTimer); }
 
-// Reseta o timer a cada toque/clique do usuário
+// Reseta o timer a cada toque/clique/scroll do usuário
 ['touchstart', 'click', 'scroll'].forEach(ev => {
   document.addEventListener(ev, () => resetarTimerInatividade(), { passive: true });
 });
+
+// Inicia imediatamente ao carregar a página
+resetarTimerInatividade();
 </script>
 
 <script>

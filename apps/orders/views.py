@@ -1753,27 +1753,6 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
             if not items:
                 return JsonResponse({'success': False, 'message': 'O pedido não pode ficar vazio.'})
 
-            # Verificar estoque antes de processar (excluindo itens atuais do pedido)
-            product_qtds = {}
-            for item_data in items:
-                pid = int(item_data['product_id'])
-                qty = int(item_data['quantity'])
-                product_qtds[pid] = product_qtds.get(pid, 0) + qty
-
-            erros_estoque = []
-            for product_id, qty_solicitada in product_qtds.items():
-                saldo = _get_saldo_estoque(product_id, exclude_pedido_id=pedido.pk)
-                if qty_solicitada > saldo:
-                    prod = Product.objects.get(id=product_id)
-                    erros_estoque.append('PRODUTO FORA DE ESTOQUE')
-
-            if erros_estoque:
-                return JsonResponse({
-                    'success': False,
-                    'out_of_stock': True,
-                    'message': '; '.join(set(erros_estoque))
-                })
-
             # Remove itens antigos
             pedido.items.all().delete()
             
@@ -1822,27 +1801,6 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
 
             comanda = get_object_or_404(Comanda, numero=numero, status='em_uso')
-
-            # Verificar estoque antes de criar o pedido
-            product_qtds = {}
-            for item in items:
-                pid = int(item['product_id'])
-                qty = int(item['quantity'])
-                product_qtds[pid] = product_qtds.get(pid, 0) + qty
-
-            erros_estoque = []
-            for product_id, qty_solicitada in product_qtds.items():
-                saldo = _get_saldo_estoque(product_id)
-                if qty_solicitada > saldo:
-                    prod = Product.objects.get(id=product_id)
-                    erros_estoque.append('PRODUTO FORA DE ESTOQUE')
-
-            if erros_estoque:
-                return JsonResponse({
-                    'success': False,
-                    'out_of_stock': True,
-                    'message': '; '.join(set(erros_estoque))
-                })
 
             # Criar um novo Pedido na comanda
             pedido = Pedido.objects.create(
