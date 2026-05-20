@@ -19,7 +19,7 @@
 
     /* Sidebar */
     .sidebar {
-      width: 220px; flex-shrink: 0;
+      width: 400px; flex-shrink: 0;
       background: linear-gradient(180deg, #1a0a00 0%, #3b1200 100%);
       display: flex; flex-direction: column; overflow: hidden;
       height: 100%; max-height: 100%;
@@ -39,14 +39,14 @@
     .cat-list { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px; display: flex; flex-direction: column; gap: 5px; }
     .cat-list::-webkit-scrollbar { display: none; }
     .cat-btn {
-      width: 100%; padding: 12px 14px; border-radius: 14px; border: none;
+      width: 100%; padding: 12px 14px; min-height: 50px; border-radius: 14px; border: none;
       background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65);
-      font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+      font-size: 30px; font-weight: 600; text-align: left; cursor: pointer;
       transition: all 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
     .cat-btn:active { transform: scale(0.97); }
     .cat-btn.active { background: linear-gradient(to right, #ea8828, #d4600a); color: white; box-shadow: 0 4px 16px rgba(234,136,40,0.35); }
-    .cat-btn .cat-count { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.15); color: inherit; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+    .cat-btn .cat-count { font-size: 20px; font-weight: 700; background: rgba(255,255,255,0.15); color: inherit; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
     .cat-btn.active .cat-count { background: rgba(255,255,255,0.25); }
     .sidebar-footer { padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
     .carrinho-btn {
@@ -223,10 +223,10 @@
 
     /* ── Responsividade para tablets pequenos (≤ 1024px) ── */
     @media (max-width: 1024px) {
-      .sidebar { width: 190px; }
+      .sidebar { width: 400px; }
       .sidebar-logo img { width: 78px; }
       .sidebar-mesa strong { font-size: 17px; }
-      .cat-btn { padding: 10px 12px; font-size: 12px; }
+      .cat-btn { padding: 10px 12px; font-size: 30px; min-height: 50px; }
       .carrinho-btn { padding: 11px; font-size: 13px; }
       .topbar { padding: 10px 16px; }
       .topbar-title { font-size: 16px; }
@@ -247,14 +247,14 @@
 
     /* ── Tablet 8–9" (≤ 900px) ── */
     @media (max-width: 900px) {
-      .sidebar { width: 170px; }
+      .sidebar { width: 400px; }
       .sidebar-logo { padding: 6px 10px 5px; min-height: 44px; }
       .sidebar-logo img { width: 68px; }
       .sidebar-mesa { padding: 5px 12px 6px; }
       .sidebar-mesa strong { font-size: 15px; }
       .sidebar-mesa span { font-size: 9px; }
       .cat-list { padding: 8px 8px; gap: 4px; }
-      .cat-btn { padding: 9px 10px; font-size: 11.5px; border-radius: 12px; }
+      .cat-btn { padding: 9px 10px; font-size: 30px; min-height: 50px; border-radius: 12px; }
       .sidebar-footer { padding: 10px 8px; }
       .carrinho-btn { padding: 10px; font-size: 12px; border-radius: 14px; }
       .topbar { padding: 8px 14px; }
@@ -520,7 +520,7 @@
   </div>
 </div>
 
-<!-- Modal Adicionais -->
+<!-- Modal Seleções (Opcional obrigatório + Adicionais) -->
 <div class="modal-overlay" id="modal-overlay" onclick="fecharModalAdicionais()"></div>
 <div class="modal-adicionais" id="modal-adicionais">
   <div class="modal-header">
@@ -532,8 +532,15 @@
     <button class="modal-close" onclick="fecharModalAdicionais()">✕</button>
   </div>
   <div class="modal-body">
-    <h4>Escolha seus adicionais</h4>
-    <div id="modal-adicionais-lista"></div>
+    <h4 id="modal-etapa-titulo">Escolha seu opcional obrigatório</h4>
+
+    <div id="modal-opcional-etapa" style="display:none;">
+      <div id="modal-opcional-lista"></div>
+    </div>
+
+    <div id="modal-adicional-etapa" style="display:none;">
+      <div id="modal-adicionais-lista"></div>
+    </div>
   </div>
   <div class="modal-footer">
     <div>
@@ -541,8 +548,8 @@
       <div class="modal-total-value" id="modal-total">R$ 0,00</div>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn-modal-pular" onclick="pularAdicionais()">Sem adicionais</button>
-      <button class="btn-modal-confirmar" onclick="confirmarAdicionais()">Adicionar ao carrinho</button>
+      <button id="btn-modal-secundario" class="btn-modal-pular" onclick="acaoSecundariaModal()">Sem adicionais</button>
+      <button id="btn-modal-principal" class="btn-modal-confirmar" onclick="acaoPrincipalModal()">Adicionar ao carrinho</button>
     </div>
   </div>
 </div>
@@ -608,6 +615,9 @@ function mostrarCategoria(slug, btn) {
       ? `<img src="${p.img}" alt="${p.nome}" class="produto-img" onclick="abrirLightbox('${p.img}', '${p.nome}')">`
       : `<div class="produto-img-placeholder"><svg width="40" height="40" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`;
     const totalQty = totalQtyParaProduto(p.id);
+    const tagOpcional = p.opcionais_obrigatorios && p.opcionais_obrigatorios.length > 0
+      ? `<span class="produto-has-adicional" style="background:#dbeafe;color:#1d4ed8;">Escolha obrigatória</span>`
+      : '';
     const tagAdicional = p.adicionais && p.adicionais.length > 0
       ? `<span class="produto-has-adicional">+ ${p.adicionais.length} adicional${p.adicionais.length > 1 ? 'is' : ''}</span>`
       : '';
@@ -617,7 +627,7 @@ function mostrarCategoria(slug, btn) {
         <div class="produto-info">
           <p class="produto-nome">${p.nome}</p>
           ${p.desc ? `<p class="produto-desc">${p.desc}</p>` : ''}
-          ${tagAdicional}
+          ${tagOpcional}${tagAdicional}
         </div>
         <div class="produto-right">
           <span class="produto-preco">R$ ${p.preco.toFixed(2).replace('.',',')}</span>
@@ -648,10 +658,12 @@ function clicouProduto(produtoId) {
     if (found) { produto = found; break; }
   }
   if (!produto) return;
-  if (produto.adicionais && produto.adicionais.length > 0) {
+  const temOpcionalObrigatorio = produto.opcionais_obrigatorios && produto.opcionais_obrigatorios.length > 0;
+  const temAdicionais = produto.adicionais && produto.adicionais.length > 0;
+  if (temOpcionalObrigatorio || temAdicionais) {
     abrirModalAdicionais(produto);
   } else {
-    adicionarAoCarrinho(produto, []);
+    adicionarAoCarrinho(produto, null, []);
   }
 }
 
@@ -659,14 +671,27 @@ function totalQtyParaProduto(produtoId) {
   return Object.values(carrinho).filter(i => i.produto_id === produtoId).reduce((s, i) => s + i.qty, 0);
 }
 
-function adicionarAoCarrinho(produto, adicionaisSelecionados) {
+function adicionarAoCarrinho(produto, opcionalSelecionado, adicionaisSelecionados) {
+  const opcionalId = opcionalSelecionado ? opcionalSelecionado.id : 'sem';
   const ids = adicionaisSelecionados.map(a => a.id).sort().join('_');
-  const chave = produto.id + '_' + ids;
-  const precoTotal = produto.preco + adicionaisSelecionados.reduce((s, a) => s + a.preco, 0);
+  const chave = produto.id + '_' + opcionalId + '_' + ids;
+  const precoTotal = produto.preco
+    + (opcionalSelecionado ? opcionalSelecionado.preco : 0)
+    + adicionaisSelecionados.reduce((s, a) => s + a.preco, 0);
+
   if (carrinho[chave]) {
     carrinho[chave].qty++;
   } else {
-    carrinho[chave] = { chave, produto_id: produto.id, nome: produto.nome, preco_base: produto.preco, adicionais: adicionaisSelecionados, preco_total: precoTotal, qty: 1 };
+    carrinho[chave] = {
+      chave,
+      produto_id: produto.id,
+      nome: produto.nome,
+      preco_base: produto.preco,
+      opcional_obrigatorio: opcionalSelecionado,
+      adicionais: adicionaisSelecionados,
+      preco_total: precoTotal,
+      qty: 1,
+    };
   }
   atualizarUI(produto.id);
   cancelarTimerInatividade();
@@ -674,9 +699,13 @@ function adicionarAoCarrinho(produto, adicionaisSelecionados) {
   iniciarLembrete();
 }
 
-// ── Modal Adicionais ──
+// ── Modal Seleções (opcional obrigatório + adicionais) ──
+let opcionalSelecionadoAtual = null;
+let etapaModalAtual = 'adicionais';
+
 function abrirModalAdicionais(produto) {
   produtoAtual = produto;
+  opcionalSelecionadoAtual = null;
   document.getElementById('modal-produto-nome').textContent = produto.nome;
   document.getElementById('modal-produto-preco').textContent = 'R$ ' + produto.preco.toFixed(2).replace('.',',');
   const imgEl = document.getElementById('modal-produto-img');
@@ -685,8 +714,22 @@ function abrirModalAdicionais(produto) {
   } else {
     imgEl.innerHTML = `<svg width="36" height="36" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`;
   }
-  const lista = document.getElementById('modal-adicionais-lista');
-  lista.innerHTML = produto.adicionais.map(a => `
+
+  const listaOpc = document.getElementById('modal-opcional-lista');
+  const opcionais = produto.opcionais_obrigatorios || [];
+  listaOpc.innerHTML = opcionais.map(o => `
+    <label class="adicional-row" onclick="calcularTotalModal()">
+      <input type="radio" name="opcional-obrigatorio" class="adicional-check" value="${o.id}" data-preco="${o.preco}" data-nome="${o.nome.replace(/"/g,'&quot;')}">
+      <div class="adicional-info">
+        <span class="adicional-nome">${o.nome}</span>
+        ${o.desc ? `<span class="adicional-desc">${o.desc}</span>` : ''}
+      </div>
+      <span class="adicional-preco">${o.preco > 0 ? ('+ R$ ' + o.preco.toFixed(2).replace('.',',')) : 'Sem acréscimo'}</span>
+    </label>`).join('');
+
+  const listaAdd = document.getElementById('modal-adicionais-lista');
+  const adicionais = produto.adicionais || [];
+  listaAdd.innerHTML = adicionais.map(a => `
     <label class="adicional-row" onclick="calcularTotalModal()">
       <input type="checkbox" class="adicional-check" value="${a.id}" data-preco="${a.preco}" data-nome="${a.nome.replace(/"/g,'&quot;')}">
       <div class="adicional-info">
@@ -695,41 +738,118 @@ function abrirModalAdicionais(produto) {
       </div>
       <span class="adicional-preco">+ R$ ${a.preco.toFixed(2).replace('.',',')}</span>
     </label>`).join('');
+
+  const temOpcional = opcionais.length > 0;
+  const temAdicional = adicionais.length > 0;
+  if (temOpcional) {
+    mudarEtapaModal('opcional');
+  } else if (temAdicional) {
+    mudarEtapaModal('adicionais');
+  } else {
+    adicionarAoCarrinho(produtoAtual, null, []);
+    return;
+  }
+
   calcularTotalModal();
   document.getElementById('modal-adicionais').classList.add('open');
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function mudarEtapaModal(etapa) {
+  etapaModalAtual = etapa;
+  const etapaOpc = document.getElementById('modal-opcional-etapa');
+  const etapaAdd = document.getElementById('modal-adicional-etapa');
+  const titulo = document.getElementById('modal-etapa-titulo');
+  const btnSec = document.getElementById('btn-modal-secundario');
+  const btnPri = document.getElementById('btn-modal-principal');
+
+  if (etapa === 'opcional') {
+    etapaOpc.style.display = '';
+    etapaAdd.style.display = 'none';
+    titulo.textContent = 'Escolha 1 opcional obrigatório';
+    btnSec.style.display = 'none';
+    btnPri.textContent = (produtoAtual.adicionais && produtoAtual.adicionais.length > 0) ? 'Próximo' : 'Adicionar ao carrinho';
+  } else {
+    etapaOpc.style.display = 'none';
+    etapaAdd.style.display = '';
+    titulo.textContent = 'Escolha seus adicionais';
+    btnSec.style.display = '';
+    btnSec.textContent = 'Sem adicionais';
+    btnPri.textContent = 'Adicionar ao carrinho';
+  }
 }
 
 function fecharModalAdicionais() {
   document.getElementById('modal-adicionais').classList.remove('open');
   document.getElementById('modal-overlay').classList.remove('open');
   produtoAtual = null;
+  opcionalSelecionadoAtual = null;
 }
 
 function calcularTotalModal() {
   if (!produtoAtual) return;
-  let extra = 0;
-  document.querySelectorAll('.adicional-check:checked').forEach(c => extra += parseFloat(c.dataset.preco));
-  const total = produtoAtual.preco + extra;
+
+  const opcionalChecked = document.querySelector('input[name="opcional-obrigatorio"]:checked');
+  if (opcionalChecked) {
+    opcionalSelecionadoAtual = {
+      id: parseInt(opcionalChecked.value),
+      nome: opcionalChecked.dataset.nome,
+      preco: parseFloat(opcionalChecked.dataset.preco),
+    };
+  }
+
+  let extraAdd = 0;
+  document.querySelectorAll('#modal-adicionais-lista .adicional-check:checked').forEach(c => extraAdd += parseFloat(c.dataset.preco));
+  const extraOpcional = opcionalSelecionadoAtual ? opcionalSelecionadoAtual.preco : 0;
+
+  const total = produtoAtual.preco + extraOpcional + extraAdd;
   document.getElementById('modal-total').textContent = 'R$ ' + total.toFixed(2).replace('.',',');
 }
 
-function pularAdicionais() {
+function acaoSecundariaModal() {
   if (!produtoAtual) return;
-  adicionarAoCarrinho(produtoAtual, []);
+  adicionarAoCarrinho(produtoAtual, opcionalSelecionadoAtual, []);
   fecharModalAdicionais();
 }
 
-function confirmarAdicionais() {
+function acaoPrincipalModal() {
   if (!produtoAtual) return;
-  const selecionados = Array.from(document.querySelectorAll('.adicional-check:checked')).map(c => ({
+
+  if (etapaModalAtual === 'opcional') {
+    const opcionalChecked = document.querySelector('input[name="opcional-obrigatorio"]:checked');
+    if (!opcionalChecked) {
+      mostrarToast('⚠️ Escolha uma opção obrigatória.', true);
+      return;
+    }
+    opcionalSelecionadoAtual = {
+      id: parseInt(opcionalChecked.value),
+      nome: opcionalChecked.dataset.nome,
+      preco: parseFloat(opcionalChecked.dataset.preco),
+    };
+
+    if (produtoAtual.adicionais && produtoAtual.adicionais.length > 0) {
+      mudarEtapaModal('adicionais');
+      calcularTotalModal();
+      return;
+    }
+
+    adicionarAoCarrinho(produtoAtual, opcionalSelecionadoAtual, []);
+    fecharModalAdicionais();
+    return;
+  }
+
+  const selecionados = Array.from(document.querySelectorAll('#modal-adicionais-lista .adicional-check:checked')).map(c => ({
     id: parseInt(c.value),
     nome: c.dataset.nome,
     preco: parseFloat(c.dataset.preco),
   }));
-  adicionarAoCarrinho(produtoAtual, selecionados);
+  adicionarAoCarrinho(produtoAtual, opcionalSelecionadoAtual, selecionados);
   fecharModalAdicionais();
 }
+
+// Compatibilidade com handlers antigos
+function pularAdicionais() { acaoSecundariaModal(); }
+function confirmarAdicionais() { acaoPrincipalModal(); }
 
 // ── Atualizar UI ──
 function atualizarUI(produtoId) {
@@ -775,6 +895,9 @@ function renderDrawer() {
   }
   body.innerHTML = chaves.map(chave => {
     const item = carrinho[chave];
+    const linhaOpcional = item.opcional_obrigatorio
+      ? `<div class="drawer-item-sub">Opcional: ${item.opcional_obrigatorio.nome} ${item.opcional_obrigatorio.preco > 0 ? ('<span style="color:#1d4ed8;font-weight:700;">+ R$ ' + item.opcional_obrigatorio.preco.toFixed(2).replace('.',',') + '</span>') : ''}</div>`
+      : '';
     const linhasAdicionais = item.adicionais.length > 0
       ? item.adicionais.map(a =>
           `<div class="drawer-item-sub">+ ${a.nome} <span style="color:#d4600a;font-weight:700;">R$ ${a.preco.toFixed(2).replace('.',',')}</span></div>`
@@ -785,7 +908,7 @@ function renderDrawer() {
       <div class="drawer-item">
         <div style="flex:1">
           <div class="drawer-item-nome">${item.nome} <span style="color:#9a8070;font-size:12px;font-weight:600;">R$ ${item.preco_base.toFixed(2).replace('.',',')}</span></div>
-          ${linhasAdicionais}
+          ${linhaOpcional}${linhasAdicionais}
           <div class="drawer-item-preco">Total unitário: R$ ${item.preco_total.toFixed(2).replace('.',',')}</div>
         </div>
         <div class="qty-ctrl">
@@ -822,6 +945,7 @@ async function enviarPedido() {
   const itens = Object.values(carrinho).map(item => ({
     id: item.produto_id,
     qty: item.qty,
+    opcional_obrigatorio: item.opcional_obrigatorio ? item.opcional_obrigatorio.id : null,
     adicionais: item.adicionais.map(a => a.id),
   }));
   const obs = document.getElementById('observacoes').value.trim();
@@ -1029,6 +1153,38 @@ function setRealVH() {
 }
 setRealVH();
 window.addEventListener('resize', setRealVH);
+</script>
+
+<script>
+// ── Polling de atualização do catálogo ─────────────────────────────────────
+// Recarrega apenas se o catálogo mudou E o carrinho está vazio.
+(function() {
+  const POLL_INTERVAL = 30000; // 30 segundos
+  const CATALOG_VERSION_URL = '{% url "kiosk:catalog_version" %}';
+  let currentVersion = '{{ catalog_version_initial }}';
+
+  function carrinhoEstaVazio() {
+    return Object.keys(carrinho).length === 0;
+  }
+
+  function verificarVersao() {
+    fetch(CATALOG_VERSION_URL, { cache: 'no-store' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.version && data.version !== currentVersion) {
+          if (carrinhoEstaVazio()) {
+            location.reload();
+          }
+          // Se carrinho não está vazio, armazena a nova versão para
+          // que na próxima verificação (após o pedido ser enviado) recarregue.
+          currentVersion = data.version;
+        }
+      })
+      .catch(function() { /* ignora erros de rede silenciosamente */ });
+  }
+
+  setInterval(verificarVersao, POLL_INTERVAL);
+})();
 </script>
 </body>
 </html>
