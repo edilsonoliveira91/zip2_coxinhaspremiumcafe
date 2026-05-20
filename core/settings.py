@@ -20,8 +20,9 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='sua-chave-de-desenvolvimento')
 DEBUG = config('DEBUG', default=False, cast=bool)
+OFFLINE_MODE = config('OFFLINE_MODE', default=False, cast=bool)
 
-if DEBUG:
+if DEBUG or OFFLINE_MODE:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
