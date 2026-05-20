@@ -415,7 +415,7 @@
     <div class="topbar">
       <div style="flex:1;min-width:0;overflow:hidden;">
         <div class="topbar-title" id="topbar-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Bem-vindo!</div>
-        <div class="topbar-sub" id="topbar-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Selecione uma categoria para ver os produtos</div>
+        <div class="topbar-sub" id="topbar-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">A paixão do brasileiro em versão <strong>Premium</strong></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
         <button onclick="abrirVerConta()" style="display:flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:2px solid #ea8828;background:rgba(234,136,40,0.12);color:#ea8828;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.03em;white-space:nowrap;">
@@ -596,7 +596,7 @@ function mostrarSlides() {
   document.getElementById('view-slides').style.display = '';
   document.getElementById('view-produtos').style.display = 'none';
   document.getElementById('topbar-title').textContent = 'Bem-vindo!';
-  document.getElementById('topbar-sub').textContent = 'Selecione uma categoria para ver os produtos';
+  document.getElementById('topbar-sub').innerHTML = 'A paixão do brasileiro em versão <strong>Premium</strong>';
   iniciarSlideshow();
 }
 
