@@ -18,7 +18,7 @@ LOCAL_HOST      = "localhost"
 LOCAL_PORT      = "5432"
 LOCAL_DB        = "coxinhas_local"
 LOCAL_USER      = "postgres"
-LOCAL_PASSWORD  = "postgres"   # senha definida na instalação local
+LOCAL_PASSWORD  = "Oliver169352"
 
 PG_BIN          = r"C:\Program Files\PostgreSQL\18\bin"
 DUMP_FILE       = r"C:\coxinhas_sync\dump.sql"
