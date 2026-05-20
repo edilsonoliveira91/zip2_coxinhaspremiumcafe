@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL("DELETE FROM checkouts_checkout CASCADE;", "SELECT 1;"),
+        migrations.RunSQL("DELETE FROM checkouts_checkout;", "SELECT 1;"),
         migrations.AddField(
             model_name='checkout',
             name='comanda',
