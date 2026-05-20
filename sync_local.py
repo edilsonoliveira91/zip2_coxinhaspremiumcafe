@@ -2,6 +2,9 @@ import subprocess
 import sys
 import time
 import logging
+import os
+import urllib.request
+from pathlib import Path
 from datetime import datetime
 
 # ── Configurações ────────────────────────────────────────────────────────────
@@ -21,6 +24,10 @@ PG_BIN          = r"C:\Program Files\PostgreSQL\18\bin"
 DUMP_FILE       = r"C:\coxinhas_sync\dump.sql"
 LOG_FILE        = r"C:\coxinhas_sync\sync.log"
 INTERVAL        = 60  # segundos
+
+RAILWAY_URL     = "https://zip2coxinhaspremiumcafe-production.up.railway.app"
+MEDIA_LOCAL     = r"C:\Users\User\Documents\coxinhas\media"
+
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -78,7 +85,52 @@ def sync():
         return False
 
     log("Sync concluído com sucesso.")
+
+    # 3. Sync de imagens
+    sync_media()
+
     return True
+
+def sync_media():
+    """Baixa do Railway imagens que ainda não existem localmente."""
+    # Tabelas e colunas com imagens
+    queries = [
+        "SELECT image FROM products_product WHERE image IS NOT NULL AND image != ''",
+        "SELECT image FROM products_comboproduct WHERE image IS NOT NULL AND image != ''",
+        "SELECT image FROM kiosk_kioskslide WHERE image IS NOT NULL AND image != ''",
+    ]
+    env_local = {**os.environ, "PGPASSWORD": LOCAL_PASSWORD}
+    paths = []
+    for sql in queries:
+        r = subprocess.run([
+            rf"{PG_BIN}\psql.exe",
+            "-h", LOCAL_HOST, "-p", LOCAL_PORT,
+            "-U", LOCAL_USER, "-d", LOCAL_DB,
+            "-t", "-c", sql,
+        ], env=env_local, capture_output=True, text=True)
+        for line in r.stdout.splitlines():
+            line = line.strip()
+            if line:
+                paths.append(line)
+
+    downloaded = 0
+    for rel_path in paths:
+        dest = Path(MEDIA_LOCAL) / rel_path
+        if dest.exists():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        url = f"{RAILWAY_URL}/media/{rel_path}"
+        try:
+            urllib.request.urlretrieve(url, dest)
+            downloaded += 1
+        except Exception as e:
+            log(f"  Erro ao baixar {rel_path}: {e}", "warning")
+
+    if downloaded:
+        log(f"Imagens sincronizadas: {downloaded} arquivo(s) baixado(s).")
+    else:
+        log("Imagens: nenhuma nova para baixar.")
+
 
 if __name__ == "__main__":
     log("=== Serviço de sync Railway → Local iniciado ===")
