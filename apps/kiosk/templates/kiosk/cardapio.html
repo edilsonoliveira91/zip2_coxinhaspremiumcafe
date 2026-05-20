@@ -117,17 +117,16 @@
     /* Botão Adicionar */
     /* ── Stepper +/- ── */
     .stepper { display: flex; align-items: center; border-radius: 50px; border: 2px solid rgba(234,136,40,0.45); background: white; overflow: hidden; flex-shrink: 0; }
-    .stepper.stepper-empty { border: none; background: none; }
     .stepper-btn {
       width: 52px; height: 52px; border: none; cursor: pointer;
       font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center;
       transition: all 0.12s; font-family: inherit; flex-shrink: 0; line-height: 1;
     }
     .stepper-minus { background: transparent; color: #d4600a; }
-    .stepper-minus:active { background: rgba(234,136,40,0.1); }
+    .stepper-minus:disabled { color: rgba(212,96,10,0.25); cursor: default; }
+    .stepper-minus:not(:disabled):active { background: rgba(234,136,40,0.1); }
     .stepper-plus { background: linear-gradient(to right, #ea8828, #d4600a); color: white; }
     .stepper-plus:active { filter: brightness(0.9); }
-    .stepper-solo { border-radius: 50px !important; box-shadow: 0 4px 14px rgba(234,136,40,0.45); }
     .stepper-qty { min-width: 42px; text-align: center; font-size: 22px; font-weight: 800; color: #d4600a; user-select: none; }
     /* Coluna direita do card */
     .produto-right {
@@ -645,15 +644,11 @@ function mostrarCategoria(slug, btn) {
 let produtoAtual = null;
 
 function stepperHTML(pid, qty) {
-  if (qty > 0) {
-    return '<div class="stepper" id="stepper-' + pid + '">'
-      + '<button class="stepper-btn stepper-minus" onclick="decrementarProduto(' + pid + ')">&#8722;</button>'
-      + '<span class="stepper-qty">' + qty + '</span>'
-      + '<button class="stepper-btn stepper-plus" onclick="clicouProduto(' + pid + ')">+</button>'
-      + '</div>';
-  }
-  return '<div class="stepper stepper-empty" id="stepper-' + pid + '">'
-    + '<button class="stepper-btn stepper-plus stepper-solo" onclick="clicouProduto(' + pid + ')">+</button>'
+  const disabledMinus = qty === 0 ? ' disabled' : '';
+  return '<div class="stepper" id="stepper-' + pid + '">'
+    + '<button class="stepper-btn stepper-minus"' + disabledMinus + ' onclick="decrementarProduto(' + pid + ')">&#8722;</button>'
+    + '<span class="stepper-qty" id="stepper-qty-' + pid + '">' + qty + '</span>'
+    + '<button class="stepper-btn stepper-plus" onclick="clicouProduto(' + pid + ')">+</button>'
     + '</div>';
 }
 
@@ -873,18 +868,11 @@ function confirmarAdicionais() { acaoPrincipalModal(); }
 function atualizarUI(produtoId) {
   if (produtoId !== undefined) {
     const qty = totalQtyParaProduto(produtoId);
-    const stepperEl = document.getElementById('stepper-' + produtoId);
-    if (stepperEl) {
-      if (qty > 0) {
-        stepperEl.className = 'stepper';
-        stepperEl.innerHTML =
-          '<button class="stepper-btn stepper-minus" onclick="decrementarProduto(' + produtoId + ')">&#8722;</button>'
-          + '<span class="stepper-qty">' + qty + '</span>'
-          + '<button class="stepper-btn stepper-plus" onclick="clicouProduto(' + produtoId + ')">+</button>';
-      } else {
-        stepperEl.className = 'stepper stepper-empty';
-        stepperEl.innerHTML = '<button class="stepper-btn stepper-plus stepper-solo" onclick="clicouProduto(' + produtoId + ')">+</button>';
-      }
+    const qtyEl = document.getElementById('stepper-qty-' + produtoId);
+    if (qtyEl) {
+      qtyEl.textContent = qty;
+      const minusBtn = qtyEl.previousElementSibling;
+      if (minusBtn) minusBtn.disabled = qty === 0;
     }
   }
   const total = Object.values(carrinho).reduce((s, i) => s + i.qty * i.preco_total, 0);
