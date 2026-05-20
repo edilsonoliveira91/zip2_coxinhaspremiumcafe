@@ -615,19 +615,12 @@ function mostrarCategoria(slug, btn) {
       ? `<img src="${p.img}" alt="${p.nome}" class="produto-img" onclick="abrirLightbox('${p.img}', '${p.nome}')">`
       : `<div class="produto-img-placeholder"><svg width="40" height="40" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`;
     const totalQty = totalQtyParaProduto(p.id);
-    const tagOpcional = p.opcionais_obrigatorios && p.opcionais_obrigatorios.length > 0
-      ? `<span class="produto-has-adicional" style="background:#dbeafe;color:#1d4ed8;">Escolha obrigatória</span>`
-      : '';
-    const tagAdicional = p.adicionais && p.adicionais.length > 0
-      ? `<span class="produto-has-adicional">+ ${p.adicionais.length} adicional${p.adicionais.length > 1 ? 'is' : ''}</span>`
-      : '';
     return `
       <div class="produto-item" id="item-${p.id}">
         ${imgHtml}
         <div class="produto-info">
           <p class="produto-nome">${p.nome}</p>
           ${p.desc ? `<p class="produto-desc">${p.desc}</p>` : ''}
-          ${tagOpcional}${tagAdicional}
         </div>
         <div class="produto-right">
           <span class="produto-preco">R$ ${p.preco.toFixed(2).replace('.',',')}</span>
