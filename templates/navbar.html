@@ -188,8 +188,8 @@
                     </div>
                     {% endif %}
 
-                    <!-- Dropdown Caixa (Requer Permissão Financeira) -->
-                    {% if perms.financials.view_financial or request.user.is_superuser %}
+                    <!-- Dropdown Caixa (Requer Permissão Financeira ou Caixa ADM) -->
+                    {% if perms.financials.view_financial or perms.financials.view_caixaadm or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpen: false }">
                         <button @click="dropdownOpen = !dropdownOpen" 
                                 @click.away="dropdownOpen = false"
@@ -231,13 +231,14 @@
                                     </svg>
                                     <span>Valor Inicial</span>
                                 </a>
-                                {% if request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
+                                {% if perms.financials.view_financial or request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
                                 <a href="{% url 'financials:fechamento_diario' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                     <span>Fechamento de Caixa</span>
                                 </a>
+                                {% endif %}
                                 {% if perms.financials.view_caixaadm or request.user.is_superuser %}
                                 <a href="{% url 'financials:caixa_adm' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +246,6 @@
                                     </svg>
                                     <span>Caixa ADM</span>
                                 </a>
-                                {% endif %}
                                 {% endif %}
                             </div>
                         </div>

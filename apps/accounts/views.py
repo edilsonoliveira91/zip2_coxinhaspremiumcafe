@@ -222,6 +222,8 @@ def get_permissions_by_app():
         # financials
         'sangria':                 'Sangria',
         'fechamentocaixadiario':   'Fechamento Diário de Caixa',
+        'caixaadm':                'Caixa ADM (Malotes)',
+        'despesamalote':           'Despesa do Malote',
         # pinpads
         'pinpad':                  'Maquininha (Pinpad)',
         # companys
