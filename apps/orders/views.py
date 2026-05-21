@@ -791,8 +791,8 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
         )
 
         # Troco inicial (SystemConfig)
-        from config.models import SystemConfig
-        troco_inicial = SystemConfig.get_settings().troco_inicial
+        from config.models import ConfigTrocoInicial
+        troco_inicial = ConfigTrocoInicial.get_settings().troco_inicial
 
         # Totais por método de pagamento (para impressão do relatório)
         approved_qs = Checkout.objects.filter(
@@ -1864,7 +1864,7 @@ class NovoPedidoView(LoginRequiredMixin, View):
 class FechaMesaCaixaView(LoginRequiredMixin, View):
     """Caixa/superuser fecha a mesa do cliente (aguardando_caixa), acessível pelo dashboard."""
     def post(self, request, numero):
-        if not (request.user.is_superuser or getattr(request.user, 'is_caixa', False)):
+        if not (getattr(request.user, 'is_caixa', False) or request.user.has_perm('checkouts.change_checkout')):
             from django.http import JsonResponse
             return JsonResponse({'ok': False, 'erro': 'Sem permissão'}, status=403)
         comanda = Comanda.objects.filter(
@@ -1884,7 +1884,7 @@ class CancelarComandaView(LoginRequiredMixin, View):
     Cancela uma comanda inteira, registrando motivo e finalizando todos os pedidos ativos.
     """
     def post(self, request, numero):
-        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+        if not request.user.has_perm('orders.change_order'):
             messages.error(request, 'Sem permissão para cancelar comandas.')
             return redirect('orders:comanda_detail', numero=numero)
 
@@ -1939,7 +1939,7 @@ class CortesiaComandaView(LoginRequiredMixin, View):
     mas NÃO gera fluxo de caixa nem registra no financeiro.
     """
     def post(self, request, numero):
-        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+        if not request.user.has_perm('orders.change_order'):
             messages.error(request, 'Sem permissão para registrar cortesia.')
             return redirect('orders:comanda_detail', numero=numero)
 
@@ -2016,7 +2016,7 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
     Requer superuser ou permissão change_order.
     """
     def post(self, request, item_pk):
-        if not (request.user.is_superuser or request.user.has_perm('orders.change_order')):
+        if not request.user.has_perm('orders.change_order'):
             return JsonResponse({'success': False, 'message': 'Sem permissão.'}, status=403)
         item = get_object_or_404(PedidoItem, pk=item_pk)
         pedido = item.pedido
@@ -2108,7 +2108,7 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
     login_url = '/accounts/login/'
 
     def test_func(self):
-        return self.request.user.is_caixa or self.request.user.is_superuser
+        return self.request.user.is_caixa or self.request.user.has_perm('checkouts.view_checkout')
 
     def get(self, request, numero=None, pk=None):
         # Quando chamado por PK (reimpressão da lista de finalizadas), busca pelo ID exato

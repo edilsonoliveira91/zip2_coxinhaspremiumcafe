@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Produtos Ativos - Disponibilidade{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
+            <div class="mb-6 lg:mb-0">
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mr-4 shadow">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                    </div>
+                    Produtos Ativos
+                </h1>
+                <p class="text-gray-600 mt-2">Gerencie a disponibilidade de produtos e opcionais no sistema</p>
+            </div>
+        </div>
+
+        {% if produtos_com_opcionais %}
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- ── Sidebar de Filtros ── -->
+            <div class="lg:col-span-3">
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
+                    <!-- Título dos filtros -->
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Pesquisa por nome -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pesquisar</label>
+                            <input
+                                id="search-input"
+                                type="text"
+                                placeholder="Nome do produto..."
+                                oninput="filtrarProdutos()"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                            >
+                        </div>
+
+                        <!-- Filtro por Categoria -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                            <div class="relative">
+                            <select
+                                id="category-filter"
+                                onchange="filtrarProdutos()"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition bg-white appearance-none pr-8"
+                            >
+                                <option value="">Todas as categorias</option>
+                                {% regroup produtos_com_opcionais by product.get_category_display as categorias_list %}
+                                {% for cat in categorias_list %}
+                                <option value="{{ cat.grouper }}">{{ cat.grouper }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="flex space-x-2 pt-1">
+                            <button
+                                onclick="filtrarProdutos()"
+                                class="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-orange-600 hover:to-pink-600 transition-all"
+                            >
+                                Filtrar
+                            </button>
+                            <button
+                                onclick="limparFiltros()"
+                                class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-xl text-sm font-semibold hover:bg-gray-300 transition-colors"
+                            >
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Contador -->
+                    <div class="mt-6 pt-4 border-t border-gray-100 text-center">
+                        <p class="text-xs text-gray-500">
+                            Exibindo <span id="total-visivel" class="font-bold text-gray-800">{{ produtos_com_opcionais|length }}</span>
+                            de {{ produtos_com_opcionais|length }} produto{{ produtos_com_opcionais|length|pluralize }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Lista Principal ── -->
+            <div class="lg:col-span-9">
+                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
+
+                    <!-- Header da listagem -->
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-xl font-semibold text-gray-900">Lista de Produtos</h2>
+                        <p class="text-sm text-gray-500 mt-1">Marque ou desmarque o checkbox para ativar/desativar. Clique no produto para ver os sabores.</p>
+                    </div>
+
+                    <!-- Grid de produtos -->
+                    <div class="p-6">
+                        <div class="space-y-3" id="lista-produtos">
+                            {% for item in produtos_com_opcionais %}
+                            <div class="produto-card bg-white border-2 border-gray-100 rounded-2xl transition-all hover:border-gray-200 hover:shadow-md"
+                                 data-nome="{{ item.product.name|lower }}"
+                                 data-categoria="{{ item.product.get_category_display }}">
+
+                                <!-- Linha do Produto -->
+                                <div class="produto-header cursor-pointer p-4 flex items-center justify-between hover:bg-gray-50 rounded-2xl transition-colors"
+                                     onclick="toggleOpcionais(this)">
+
+                                    <div class="flex items-center space-x-4 flex-1 min-w-0">
+                                        <!-- Checkbox -->
+                                        <input
+                                            type="checkbox"
+                                            class="toggle-product w-5 h-5 rounded cursor-pointer flex-shrink-0"
+                                            data-product-id="{{ item.product.id }}"
+                                            {% if item.product.is_active %}checked{% endif %}
+                                            onclick="event.stopPropagation()"
+                                        >
+                                        <!-- Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="text-sm font-semibold text-gray-900 truncate">{{ item.product.name }}</h3>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                                    {{ item.product.get_category_display }}
+                                                </span>
+                                                <span class="text-sm font-bold text-orange-600">R$ {{ item.product.price|floatformat:2 }}</span>
+                                                {% if item.opcionais %}
+                                                <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                                    {{ item.opcionais|length }} sabor{{ item.opcionais|length|pluralize }}
+                                                </span>
+                                                {% endif %}
+                                                {% if item.tem_opcionais_inativos %}
+                                                <span class="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
+                                                    ⚠️ Sabores inativos
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Status + chevron -->
+                                    <div class="flex items-center space-x-3 ml-4 flex-shrink-0">
+                                        <span class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap
+                                            {% if item.product.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                            {% if item.product.is_active %}✓ Ativo{% else %}✕ Inativo{% endif %}
+                                        </span>
+                                        {% if item.opcionais %}
+                                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Opcionais (recolhido) -->
+                                {% if item.opcionais %}
+                                <div class="opcionais-container border-t border-gray-100" style="display:none;">
+                                    <div class="bg-gray-50 px-4 py-3 space-y-1.5 max-h-72 overflow-y-auto rounded-b-2xl">
+                                        {% for opcional in item.opcionais %}
+                                        <label class="flex items-center justify-between p-2 bg-white rounded-xl hover:bg-blue-50 transition-colors cursor-pointer">
+                                            <div class="flex items-center space-x-3 flex-1">
+                                                <input
+                                                    type="checkbox"
+                                                    class="toggle-opcional w-4 h-4 cursor-pointer rounded"
+                                                    data-opcional-id="{{ opcional.id }}"
+                                                    {% if opcional.is_active %}checked{% endif %}
+                                                    onclick="event.stopPropagation()"
+                                                >
+                                                <span class="text-sm font-medium text-gray-800">{{ opcional.name }}</span>
+                                                {% if opcional.price > 0 %}
+                                                <span class="text-xs text-gray-400">(+R$ {{ opcional.price|floatformat:2 }})</span>
+                                                {% endif %}
+                                            </div>
+                                            <span class="text-xs font-semibold ml-3 whitespace-nowrap {% if opcional.is_active %}text-green-600{% else %}text-red-500{% endif %}">
+                                                {% if opcional.is_active %}✓ Ativo{% else %}✕ Inativo{% endif %}
+                                            </span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Sem resultados -->
+                        <div id="sem-resultados" class="hidden py-16 text-center">
+                            <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <p class="text-gray-500 font-medium">Nenhum produto encontrado</p>
+                            <p class="text-gray-400 text-sm mt-1">Tente outro nome ou categoria</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-10 text-center">
+            <svg class="w-14 h-14 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-yellow-800 font-medium">Nenhum produto cadastrado no sistema</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-5 right-5 hidden z-50">
+    <div class="bg-white shadow-2xl rounded-2xl p-4 max-w-xs border-l-4 text-sm" id="toast-content"></div>
+</div>
+
+<style>
+    input[type="checkbox"].toggle-product,
+    input[type="checkbox"].toggle-opcional { accent-color: #f97316; }
+    .produto-card { transition: box-shadow 0.2s ease; }
+</style>
+
+<script>
+// ── Filtrar por nome e categoria ────────────────────────────────────────────
+function filtrarProdutos() {
+    const termo    = (document.getElementById('search-input').value || '').trim().toLowerCase();
+    const categoria = document.getElementById('category-filter').value;
+    const cards    = document.querySelectorAll('.produto-card');
+    let visivel = 0;
+
+    cards.forEach(card => {
+        const ok = (!termo || card.dataset.nome.includes(termo))
+                && (!categoria || card.dataset.categoria === categoria);
+        card.style.display = ok ? '' : 'none';
+        if (ok) visivel++;
+    });
+
+    document.getElementById('total-visivel').textContent = visivel;
+    const semRes = document.getElementById('sem-resultados');
+    const lista  = document.getElementById('lista-produtos');
+    semRes.classList.toggle('hidden', visivel > 0);
+    lista.style.display = visivel === 0 ? 'none' : '';
+}
+
+function limparFiltros() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
+    filtrarProdutos();
+}
+
+// ── Expandir / Recolher sabores ─────────────────────────────────────────────
+function toggleOpcionais(header) {
+    const container = header.parentElement.querySelector('.opcionais-container');
+    const icon      = header.querySelector('.chevron-icon');
+    if (!container) return;
+    const aberto = container.style.display !== 'none';
+    container.style.display = aberto ? 'none' : 'block';
+    if (icon) icon.style.transform = aberto ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+// ── Toast ───────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+    const map = {
+        success: { border:'#16a34a', bg:'#f0fdf4', text:'#15803d', icon:'✓' },
+        error:   { border:'#dc2626', bg:'#fef2f2', text:'#991b1b', icon:'✕' },
+    };
+    const s = map[type] || map.success;
+    const el = document.getElementById('toast-content');
+    el.style.borderColor = s.border;
+    el.style.backgroundColor = s.bg;
+    el.innerHTML = `<span style="color:${s.text};font-weight:600;">${s.icon} ${msg}</span>`;
+    const toast = document.getElementById('toast');
+    toast.classList.remove('hidden');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// ── Toggle produto ──────────────────────────────────────────────────────────
+document.querySelectorAll('.toggle-product').forEach(cb => {
+    cb.addEventListener('change', function () {
+        fetch('', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ action: 'toggle_product', product_id: this.dataset.productId })
+        })
+        .then(r => r.json())
+        .then(d => { if (d.status === 'success') { showToast(d.message, 'success'); location.reload(); }
+                     else { showToast(d.message || 'Erro', 'error'); this.checked = !this.checked; } })
+        .catch(() => { showToast('Erro ao processar', 'error'); this.checked = !this.checked; });
+    });
+});
+
+// ── Toggle opcional ─────────────────────────────────────────────────────────
+document.querySelectorAll('.toggle-opcional').forEach(cb => {
+    cb.addEventListener('change', function () {
+        fetch('', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ action: 'toggle_opcional', opcional_id: this.dataset.opcionalId })
+        })
+        .then(r => r.json())
+        .then(d => { if (d.status === 'success') { showToast(d.message, 'success'); location.reload(); }
+                     else { showToast(d.message || 'Erro', 'error'); this.checked = !this.checked; } })
+        .catch(() => { showToast('Erro ao processar', 'error'); this.checked = !this.checked; });
+    });
+});
+</script>
+{% endblock %}

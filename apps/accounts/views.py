@@ -14,7 +14,7 @@ from django.views import View
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 import json
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
 from django.shortcuts import render, get_object_or_404
 from .forms import UserPermissionForm
 from apps.impressao.services import epson_service
@@ -175,7 +175,7 @@ def is_superuser(user):
 
 
 @login_required
-@user_passes_test(is_superuser)
+@permission_required("accounts.view_user", raise_exception=True)
 def user_list(request):
     """Lista todos os usuários do sistema"""
     users = User.objects.all().order_by('-date_joined')
@@ -183,38 +183,112 @@ def user_list(request):
 
 
 def get_permissions_by_app():
+    # ── Tradução: app label → nome em português ──────────────────────────
+    APP_LABELS_PT = {
+        'accounts':  'Usuários e Acessos',
+        'orders':    'Pedidos e Comandas',
+        'products':  'Produtos e Estoque',
+        'checkouts': 'Caixa',
+        'financials':'Financeiro',
+        'pinpads':   'Maquininhas (Pinpads)',
+        'companys':  'Empresa',
+        'reports':   'Relatórios',
+        'config':    'Configurações do Sistema',
+        'kiosk':     'Kiosk (Autoatendimento)',
+        'utils':     'Utilitários',
+    }
+
+    # ── Tradução: model name (lower) → nome em português ─────────────────
+    MODEL_NAMES_PT = {
+        # accounts
+        'user':                    'Usuário',
+        # orders
+        'comanda':                 'Comanda',
+        'pedido':                  'Pedido',
+        'pedidoitem':              'Item do Pedido',
+        # products
+        'product':                 'Produto',
+        'combo':                   'Combo',
+        'comboitem':               'Item do Combo',
+        'adicional':               'Adicional',
+        'opcionalobrigatorio':     'Opcional Obrigatório',
+        'stockentry':              'Entrada de Estoque',
+        'stockexit':               'Saída de Estoque',
+        'rawmaterial':             'Matéria-Prima',
+        # checkouts
+        'checkout':                'Fechamento de Caixa',
+        'sessaocaixa':             'Sessão de Caixa',
+        'checkoutpayment':         'Pagamento do Caixa',
+        # financials
+        'sangria':                 'Sangria',
+        'fechamentocaixadiario':   'Fechamento Diário de Caixa',
+        # pinpads
+        'pinpad':                  'Maquininha (Pinpad)',
+        # companys
+        'company':                 'Empresa',
+        # reports
+        'report':                  'Relatório',
+        # config
+        'systemconfig':            'Configuração do Sistema (legado)',
+        'configtempoespera':        'Tempo de Espera',
+        'configtrocoinicial':        'Troco Inicial',
+        'configquebracaixa':         'Quebra de Caixa',
+        'configcomissao':            'Comissão',
+    }
+
+    excluded_apps = {
+        'admin', 'auth', 'contenttypes', 'sessions', 'messages',
+        'staticfiles', 'tailwind', 'django_browser_reload', 'theme', 'impressao',
+    }
+
+    # Apenas CRUD padrão do Django (sem permissões customizadas)
+    STANDARD_ACTIONS = {'add', 'view', 'change', 'delete'}
+
+    app_configs = [
+        app_config for app_config in apps.get_app_configs()
+        if app_config.label not in excluded_apps
+    ]
+    app_configs = sorted(
+        app_configs,
+        key=lambda x: APP_LABELS_PT.get(x.label, x.verbose_name).lower()
+    )
+
     permissions_by_app = {}
-    # Nomes das pastas/apps registradas no Django que queremos controlar:
-    relevant_apps = ['products', 'orders', 'financials', 'pinpads', 'companies', 'config']
-    
-    for app_label in relevant_apps:
-        try:
-            app_config = apps.get_app_config(app_label)
-            # Puxa só as permissões dos modelos deste app
-            app_permissions = Permission.objects.filter(
-                content_type__app_label=app_label
-            ).order_by('content_type__model', 'codename')
-            
-            permissions_by_model = {}
-            for perm in app_permissions:
-                model_name = perm.content_type.model
-                if model_name not in permissions_by_model:
-                    permissions_by_model[model_name] = {
-                        'name': perm.content_type.name.title(),
-                        'permissions': []
-                    }
-                permissions_by_model[model_name]['permissions'].append(perm)
-                
-            if permissions_by_model:
-                app_name = app_config.verbose_name if hasattr(app_config, 'verbose_name') else app_label.title()
-                permissions_by_app[app_name] = permissions_by_model
-        except LookupError:
+    for app_config in app_configs:
+        app_permissions = Permission.objects.filter(
+            content_type__app_label=app_config.label
+        ).order_by('content_type__model', 'codename')
+
+        # filtra só as 4 permissões CRUD padrão (codename exato: add_model, view_model, etc.)
+        app_permissions = [
+            perm for perm in app_permissions
+            if perm.codename in {
+                f'{action}_{perm.content_type.model}' for action in STANDARD_ACTIONS
+            }
+        ]
+
+        if not app_permissions:
             continue
-            
+
+        permissions_by_model = {}
+        for perm in app_permissions:
+            model_name = perm.content_type.model
+            if model_name not in permissions_by_model:
+                display_name = MODEL_NAMES_PT.get(model_name, perm.content_type.name.title())
+                permissions_by_model[model_name] = {
+                    'name': display_name,
+                    'permissions': []
+                }
+            permissions_by_model[model_name]['permissions'].append(perm)
+
+        if permissions_by_model:
+            app_display = APP_LABELS_PT.get(app_config.label, app_config.verbose_name)
+            permissions_by_app[app_display] = permissions_by_model
+
     return permissions_by_app
 
 @login_required
-@user_passes_test(is_superuser)
+@permission_required("accounts.add_user", raise_exception=True)
 def user_create(request):
     """Cria um novo usuário com permissões dinâmicas"""
     if request.method == 'POST':
@@ -243,7 +317,7 @@ def user_create(request):
     })
 
 @login_required
-@user_passes_test(is_superuser)
+@permission_required("accounts.change_user", raise_exception=True)
 def user_edit(request, user_id):
     """Edita as permissões de um usuário existente (dinamicamente)"""
     user_to_edit = get_object_or_404(User, id=user_id)
@@ -284,7 +358,7 @@ def user_edit(request, user_id):
 
 
 @login_required
-@user_passes_test(is_superuser)
+@permission_required("accounts.delete_user", raise_exception=True)
 def user_delete(request, user_id):
     """Deleta um usuário"""
     user_to_delete = get_object_or_404(User, id=user_id)

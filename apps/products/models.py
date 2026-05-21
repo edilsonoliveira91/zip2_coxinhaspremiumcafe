@@ -143,6 +143,9 @@ class Product(TimeStampedModel):
         verbose_name = "Produto"
         verbose_name_plural = "Produtos"
         ordering = ['category', 'name']
+        permissions = [
+            ('manage_product_availability', 'Pode gerenciar disponibilidade de produtos e opcionais'),
+        ]
 
     def __str__(self):
         return f"{self.name} - R$ {self.price}"
@@ -289,6 +292,48 @@ class Adicional(TimeStampedModel):
     class Meta:
         verbose_name = 'Adicional'
         verbose_name_plural = 'Adicionais'
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} - R$ {self.price:.2f}"
+
+
+class OpcionalObrigatorio(TimeStampedModel):
+    """
+    Opção obrigatória de um produto (ex.: sabor do sorvete).
+    Cliente deve escolher exatamente uma no kiosk.
+    """
+    product = models.ForeignKey(
+        'Product',
+        on_delete=models.CASCADE,
+        related_name='opcionais_obrigatorios',
+        null=True,
+        blank=True,
+        verbose_name="Produto",
+    )
+
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Nome"
+    )
+
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Descrição"
+    )
+
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Preço"
+    )
+
+    class Meta:
+        verbose_name = 'Opcional Obrigatório'
+        verbose_name_plural = 'Opcionais Obrigatórios'
         ordering = ['name']
 
     def __str__(self):

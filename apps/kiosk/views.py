@@ -1,4 +1,5 @@
 import json
+from django.db.models import Max
 from decimal import Decimal
 
 from django.contrib import messages
@@ -8,7 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from products.models import Product
+from products.models import Product, OpcionalObrigatorio
 from orders.models import Comanda, Pedido, PedidoItem
 from .models import KioskSlide
 
@@ -44,7 +45,7 @@ def cardapio(request, numero):
         comanda_mesa.cliente_nome = mesa_label
         comanda_mesa.save(update_fields=['cliente_nome'])
 
-    produtos = Product.objects.filter(show_in_menu=True).order_by('category', 'name')
+    produtos = Product.objects.filter(show_in_menu=True, is_active=True).order_by('category', 'name')
 
     # Agrupar por categoria
     categorias = {}
@@ -66,6 +67,15 @@ def cardapio(request, numero):
                     'desc': (p.description or '')[:60],
                     'preco': float(p.price),
                     'img': p.image.url if p.image else '',
+                    'opcionais_obrigatorios': [
+                        {
+                            'id': o.pk,
+                            'nome': o.name,
+                            'desc': o.description or '',
+                            'preco': float(o.price),
+                        }
+                        for o in p.opcionais_obrigatorios.filter(is_active=True)
+                    ],
                     'adicionais': [
                         {
                             'id': a.pk,
@@ -82,11 +92,21 @@ def cardapio(request, numero):
 
     slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
 
+    # Versão atual do catálogo para polling de atualizações
+    from django.db.models import Max
+    from django.utils import timezone
+    ts_p = Product.objects.aggregate(v=Max('updated_at'))['v']
+    ts_o = OpcionalObrigatorio.objects.aggregate(v=Max('updated_at'))['v']
+    ts_s = KioskSlide.objects.aggregate(v=Max('created_at'))['v']
+    candidates = [t for t in (ts_p, ts_o, ts_s) if t is not None]
+    catalog_version_initial = max(candidates).isoformat() if candidates else timezone.now().isoformat()
+
     context = {
         'numero': numero,
         'categorias': categorias,
         'produtos_json': json.dumps(produtos_json_data, ensure_ascii=False),
         'slides': slides,
+        'catalog_version_initial': catalog_version_initial,
     }
     return render(request, 'kiosk/cardapio.html', context)
 
@@ -128,18 +148,36 @@ def enviar_pedido(request, numero):
         for item in itens:
             produto = get_object_or_404(Product, pk=item['id'])
             qty = int(item.get('qty', 1))
+            opcional_id = item.get('opcional_obrigatorio')
             adicionais_ids = item.get('adicionais', [])
-            preco_adicional = Decimal('0.00')
+
+            # Valida opcional obrigatório quando existir no produto
+            opcionais_produto = produto.opcionais_obrigatorios.filter(is_active=True)
+            opcional_escolhido = None
+            if opcionais_produto.exists():
+                if not opcional_id:
+                    return JsonResponse({'erro': f'Escolha obrigatória não informada para {produto.name}'}, status=400)
+                opcional_escolhido = opcionais_produto.filter(pk=opcional_id).first()
+                if not opcional_escolhido:
+                    return JsonResponse({'erro': f'Opção obrigatória inválida para {produto.name}'}, status=400)
+
+            preco_extras = Decimal('0.00')
             obs_partes = []
+
+            if opcional_escolhido:
+                preco_extras += opcional_escolhido.price
+                obs_partes.append(f"Opcional: {opcional_escolhido.name}")
+
             for aid in adicionais_ids:
                 try:
                     ad = produto.adicionais.get(pk=aid)
-                    preco_adicional += ad.price
-                    obs_partes.append(ad.name)
+                    preco_extras += ad.price
+                    obs_partes.append(f"Adicional: {ad.name}")
                 except Exception:
                     pass
-            unit_price = produto.price + preco_adicional
-            obs_item = ' + '.join(obs_partes)
+
+            unit_price = produto.price + preco_extras
+            obs_item = ' | '.join(obs_partes)
             PedidoItem.objects.create(
                 pedido=pedido,
                 product=produto,
@@ -306,3 +344,19 @@ def slide_delete(request, pk):
         messages.success(request, 'Slide removido.')
         return redirect('kiosk:slide_list')
     return render(request, 'kiosk/slide_confirm_delete.html', {'slide': slide})
+
+
+def catalog_version(request):
+    """Retorna a versão atual do catálogo (maior updated_at de produtos, opcionais e slides).
+    Usado pelo kiosk para detectar mudanças e recarregar apenas quando o carrinho estiver vazio.
+    """
+    from django.utils import timezone
+
+    ts_product   = Product.objects.aggregate(v=Max('updated_at'))['v']
+    ts_opcional  = OpcionalObrigatorio.objects.aggregate(v=Max('updated_at'))['v']
+    ts_slide     = KioskSlide.objects.aggregate(v=Max('created_at'))['v']
+
+    candidates = [t for t in (ts_product, ts_opcional, ts_slide) if t is not None]
+    version = max(candidates).isoformat() if candidates else timezone.now().isoformat()
+
+    return JsonResponse({'version': version})

@@ -4,8 +4,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.views import View
+from django.http import JsonResponse
 from django.db import transaction
-from .models import Product, Combo, ComboItem, RawMaterial
+from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
 from .models import StockEntry
 from .forms import StockEntryForm
@@ -498,9 +499,8 @@ class ComboDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 # ==================== VIEWS DE ADICIONAIS ====================
 
 import json
-from django.http import JsonResponse
 from decimal import Decimal as _Decimal
-from .models import Adicional
+from .models import Adicional, OpcionalObrigatorio
 
 
 class AdicionalListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -675,6 +675,53 @@ class ProdutoAdicionalDeleteView(LoginRequiredMixin, View):
         adicional.is_active = False
         adicional.updated_by = request.user
         adicional.save(update_fields=['is_active', 'updated_by', 'updated_at'])
+        return JsonResponse({'success': True})
+
+
+class ProdutoOpcionaisObrigatoriosView(LoginRequiredMixin, View):
+    """API: lista opcionais obrigatórios de um produto (GET) ou cria novo (POST)."""
+    def get(self, request, product_pk):
+        from django.shortcuts import get_object_or_404
+        from .models import Product
+        product = get_object_or_404(Product, pk=product_pk)
+        opcionais = OpcionalObrigatorio.objects.filter(product=product, is_active=True).values('id', 'name', 'price')
+        return JsonResponse({'opcionais': list(opcionais)})
+
+    def post(self, request, product_pk):
+        from django.shortcuts import get_object_or_404
+        from .models import Product
+        product = get_object_or_404(Product, pk=product_pk)
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            price_raw = data.get('price', 0)
+
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
+
+            price = _Decimal(str(price_raw).replace(',', '.'))
+            if price < 0:
+                return JsonResponse({'success': False, 'message': 'Preço não pode ser negativo.'})
+
+            opcional = OpcionalObrigatorio.objects.create(
+                product=product,
+                name=name,
+                price=price,
+                created_by=request.user,
+            )
+            return JsonResponse({'success': True, 'opcional': {'id': opcional.id, 'name': opcional.name, 'price': str(opcional.price)}})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+class ProdutoOpcionalObrigatorioDeleteView(LoginRequiredMixin, View):
+    """API: remove opcional obrigatório de um produto (POST)."""
+    def post(self, request, product_pk, opcional_pk):
+        from django.shortcuts import get_object_or_404
+        opcional = get_object_or_404(OpcionalObrigatorio, pk=opcional_pk, product_id=product_pk, is_active=True)
+        opcional.is_active = False
+        opcional.updated_by = request.user
+        opcional.save(update_fields=['is_active', 'updated_by', 'updated_at'])
         return JsonResponse({'success': True})
 
 
@@ -1046,3 +1093,75 @@ class ProdutoNFCeCSVView(LoginRequiredMixin, PermissionRequiredMixin, View):
         filename = f"produtos_nfce_{timezone.now().strftime('%Y%m%d_%H%M')}.csv"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+# ==================== PRODUTOS ATIVOS (Controle de Disponibilidade) ====================
+
+class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Vista para listar todos os produtos com seus opcionais obrigatórios.
+    Permite ativar/desativar produtos e opcionais via checkbox.
+    Requer permissão: products.manage_product_availability
+    """
+    template_name = 'products/produtos_ativos.html'
+    permission_required = 'products.manage_product_availability'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Obtém todos os produtos ordenados por categoria e nome
+        products = Product.objects.select_related('created_by').prefetch_related(
+            'opcionais_obrigatorios'
+        ).order_by('category', 'name')
+        
+        # Formata dados para o template
+        produtos_com_opcionais = []
+        for product in products:
+            produtos_com_opcionais.append({
+                'product': product,
+                'opcionais': product.opcionais_obrigatorios.all().order_by('name'),
+                'tem_opcionais_inativos': product.opcionais_obrigatorios.filter(is_active=False).exists(),
+            })
+        
+        context['produtos_com_opcionais'] = produtos_com_opcionais
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Processa ativação/desativação de produtos e opcionais via POST."""
+        import json
+        
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')
+            
+            if action == 'toggle_product':
+                product_id = data.get('product_id')
+                product = get_object_or_404(Product, id=product_id)
+                product.is_active = not product.is_active
+                product.updated_by = request.user
+                product.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Produto {product.name} foi {"ativado" if product.is_active else "desativado"}',
+                    'is_active': product.is_active,
+                })
+            
+            elif action == 'toggle_opcional':
+                opcional_id = data.get('opcional_id')
+                opcional = get_object_or_404(OpcionalObrigatorio, id=opcional_id)
+                opcional.is_active = not opcional.is_active
+                opcional.updated_by = request.user
+                opcional.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Opcional {opcional.name} foi {"ativado" if opcional.is_active else "desativado"}',
+                    'is_active': opcional.is_active,
+                })
+        
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'JSON inválido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+from django.http import JsonResponse

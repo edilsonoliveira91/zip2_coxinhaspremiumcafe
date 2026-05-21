@@ -344,6 +344,68 @@
                                 </div>
                                 {% endif %}
 
+                                <!-- Opcionais Obrigatórios (escolha única no kiosk) -->
+                                {% if product %}
+                                <div class="md:col-span-2">
+                                    <div class="rounded-2xl border border-blue-100 overflow-hidden shadow-sm">
+
+                                        <div style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+                                            <div style="display:flex;align-items:center;gap:14px;">
+                                                <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:12px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.25);">
+                                                    <svg style="width:20px;height:20px;" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p style="font-size:14px;font-weight:700;color:#1f2937;margin:0 0 2px;">Opcional Obrigatório (escolha única)</p>
+                                                    <p style="font-size:12px;color:#6b7280;margin:0;">Ex.: sabor do sorvete. O cliente é obrigado a escolher 1 opção.</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" onclick="abrirFormOpcional()"
+                                                style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:10px;font-weight:700;font-size:13px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,0.35);white-space:nowrap;">
+                                                <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                Novo Opcional
+                                            </button>
+                                        </div>
+
+                                        <div style="background:#fff;padding:20px 24px 24px;">
+                                            <div id="lista-opcionais" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+
+                                            <div id="form-opcional" class="hidden">
+                                                <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:14px;padding:20px 22px;">
+                                                    <p style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin:0 0 14px;">Novo opcional obrigatório</p>
+                                                    <div style="display:grid;grid-template-columns:1fr 140px;gap:16px;margin-bottom:16px;">
+                                                        <div>
+                                                            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nome</label>
+                                                            <input type="text" id="opc-nome" placeholder="Ex: Chocolate, Morango, Baunilha..."
+                                                                   style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                                                                   onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d1d5db'">
+                                                        </div>
+                                                        <div>
+                                                            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Preço (R$)</label>
+                                                            <input type="number" id="opc-preco" placeholder="0,00" step="0.01" min="0"
+                                                                   style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                                                                   onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d1d5db'">
+                                                        </div>
+                                                    </div>
+                                                    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+                                                        <button type="button" onclick="fecharFormOpcional()"
+                                                            style="padding:9px 18px;background:#f9fafb;color:#6b7280;border-radius:9px;font-size:13px;font-weight:600;border:1.5px solid #e5e7eb;cursor:pointer;">
+                                                            Cancelar
+                                                        </button>
+                                                        <button type="button" onclick="salvarOpcional()"
+                                                            style="padding:9px 22px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,.3);">
+                                                            ✓ Salvar
+                                                        </button>
+                                                    </div>
+                                                    <p id="opc-erro" class="text-red-500 text-xs mt-2 hidden"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
                                 <!-- Descrição (span completo) -->
                                 <div class="md:col-span-2 space-y-2">
                                     <label class="block text-sm font-medium text-gray-700 flex items-center">
@@ -544,6 +606,8 @@
 const PRODUTO_ID = {{ product.pk }};
 const URL_ADICIONAIS = "{% url 'products:produto_adicionais' product.pk %}";
 const URL_DEL_BASE   = "{% url 'products:produto_adicional_delete' product.pk 0 %}".replace('/0/', '/');
+const URL_OPCIONAIS = "{% url 'products:produto_opcionais_obrigatorios' product.pk %}";
+const URL_OPC_DEL_BASE = "{% url 'products:produto_opcional_obrigatorio_delete' product.pk 0 %}".replace('/0/', '/');
 
 function renderAdicionais(lista) {
     const container = document.getElementById('lista-adicionais');
@@ -635,7 +699,92 @@ async function deletarAdicional(id) {
     if (data.success) carregarAdicionais();
 }
 
-document.addEventListener('DOMContentLoaded', carregarAdicionais);
+function renderOpcionais(lista) {
+    const container = document.getElementById('lista-opcionais');
+    if (!lista.length) {
+        container.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;color:#9ca3af;">
+                <p style="font-size:13px;font-weight:600;color:#6b7280;margin:0 0 4px;">Nenhum opcional obrigatório cadastrado.</p>
+                <p style="font-size:12px;color:#9ca3af;margin:0;">Clique em "Novo Opcional" para cadastrar sabores/opções.</p>
+            </div>`;
+        return;
+    }
+    container.innerHTML = lista.map((o, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1.5px solid #dbeafe;border-radius:12px;padding:14px 18px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#1d4ed8;flex-shrink:0;">
+                    ${i + 1}
+                </div>
+                <div style="line-height:1.4;">
+                    <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${o.name}</p>
+                    <p style="font-size:11px;color:#6b7280;margin:0;">Escolha obrigatória no kiosk</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                    ${parseFloat(o.price || 0).toFixed(2).replace('.', ',') === '0,00' ? 'Sem acréscimo' : ('+ R$ ' + parseFloat(o.price).toFixed(2).replace('.', ','))}
+                </span>
+                <button type="button" onclick="deletarOpcional(${o.id})"
+                    style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                    Remover
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function carregarOpcionais() {
+    const resp = await fetch(URL_OPCIONAIS);
+    const data = await resp.json();
+    renderOpcionais(data.opcionais || []);
+}
+
+function abrirFormOpcional() {
+    document.getElementById('form-opcional').classList.remove('hidden');
+    document.getElementById('opc-nome').focus();
+}
+function fecharFormOpcional() {
+    document.getElementById('form-opcional').classList.add('hidden');
+    document.getElementById('opc-nome').value = '';
+    document.getElementById('opc-preco').value = '';
+    document.getElementById('opc-erro').classList.add('hidden');
+}
+
+async function salvarOpcional() {
+    const name = document.getElementById('opc-nome').value.trim();
+    const price = document.getElementById('opc-preco').value.trim() || '0';
+    const erro = document.getElementById('opc-erro');
+    if (!name) { erro.textContent = 'Preencha o nome.'; erro.classList.remove('hidden'); return; }
+    const resp = await fetch(URL_OPCIONAIS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ name, price })
+    });
+    const data = await resp.json();
+    if (data.success) {
+        fecharFormOpcional();
+        carregarOpcionais();
+    } else {
+        erro.textContent = data.message || 'Erro ao salvar opcional.';
+        erro.classList.remove('hidden');
+    }
+}
+
+async function deletarOpcional(id) {
+    if (!confirm('Remover este opcional obrigatório?')) return;
+    const url = URL_OPC_DEL_BASE + id + '/delete/';
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    const data = await resp.json();
+    if (data.success) carregarOpcionais();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarAdicionais();
+    carregarOpcionais();
+});
 {% endif %}
 
 // Preview de imagem simplificado

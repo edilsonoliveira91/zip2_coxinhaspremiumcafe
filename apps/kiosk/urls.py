@@ -18,4 +18,7 @@ urlpatterns = [
     path('display/imagens/novo/', views.slide_create, name='slide_create'),
     path('display/imagens/<int:pk>/editar/', views.slide_update, name='slide_update'),
     path('display/imagens/<int:pk>/excluir/', views.slide_delete, name='slide_delete'),
+
+    # Versão do catálogo — usada pelo polling do kiosk
+    path('api/catalog-version/', views.catalog_version, name='catalog_version'),
 ]
