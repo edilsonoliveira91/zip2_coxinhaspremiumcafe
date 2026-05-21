@@ -970,6 +970,12 @@ class CaixaAdmView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         context['total_em_caixa'] = concluidos.aggregate(
             total=Sum('fechamento__total_final')
         )['total'] or 0
+        context['total_a_receber_dinheiro'] = pendentes.aggregate(
+            total=Sum('fechamento__total_dinheiro')
+        )['total'] or 0
+        context['total_em_caixa_dinheiro'] = concluidos.aggregate(
+            total=Sum('fechamento__total_dinheiro')
+        )['total'] or 0
         return context
 
 
