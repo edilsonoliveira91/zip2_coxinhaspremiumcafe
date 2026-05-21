@@ -106,9 +106,45 @@ def write_sync_log(started_at, finished_at, status, error_message=None,
         ))
         cur.close()
         conn.close()
-        log(f"SyncLog gravado: {status} | {duration:.1f}s | {records_downloaded} registros")
+        log(f"SyncLog gravado (local): {status} | {duration:.1f}s | {records_downloaded} registros")
     except Exception as e:
-        log(f"Erro ao gravar SyncLog: {e}", "error")
+        log(f"Erro ao gravar SyncLog local: {e}", "error")
+
+    # Tambem grava no Railway (remoto) para ter historico em ambos
+    try:
+        conn_r = psycopg2.connect(
+            host=REMOTE_HOST,
+            port=int(REMOTE_PORT),
+            dbname=REMOTE_DB,
+            user=REMOTE_USER,
+            password=REMOTE_PASSWORD,
+            connect_timeout=10,
+        )
+        conn_r.autocommit = True
+        cur_r = conn_r.cursor()
+        cur_r.execute("""
+            INSERT INTO utils_synclog
+                (started_at, finished_at, duration_seconds, direction,
+                 status, error_message, records_downloaded, records_uploaded,
+                 records_created, records_updated, records_deleted,
+                 images_downloaded, tables_synced, sync_from_datetime,
+                 triggered_by, local_server_ip)
+            VALUES
+                (%s, %s, %s, 'railway_to_local',
+                 %s, %s, %s, 0,
+                 0, 0, 0,
+                 %s, %s, NULL,
+                 'automatic', %s)
+        """, (
+            started_at, finished_at, duration,
+            status, error_message, records_downloaded,
+            images_downloaded, tables_str, local_ip,
+        ))
+        cur_r.close()
+        conn_r.close()
+        log(f"SyncLog gravado (Railway): {status}")
+    except Exception as e:
+        log(f"Erro ao gravar SyncLog no Railway: {e}", "error")
 
 
 def count_local_records():
