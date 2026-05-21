@@ -24,6 +24,7 @@ urlpatterns = [
     path('comanda/<str:numero>/cortesia/', views.CortesiaComandaView.as_view(), name='cortesia_comanda'),
     path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),
+    path('comanda/<str:numero>/imprimir-novos/', views.ImprimirPedidosNaoImpressosView.as_view(), name='imprimir_pedidos_novos'),
     path('item/<int:item_pk>/remover/', views.RemoverItemPedidoView.as_view(), name='remover_item'),
     
     # CRUD de comandas
@@ -32,6 +33,7 @@ urlpatterns = [
 
     # Comandas finalizadas
     path('finalizadas/', views.ClosedOrdersListView.as_view(), name='closed_orders'),
+    path('comanda-id/<int:pk>/cancelar-finalizada/', views.CancelarComandaFinalizadaView.as_view(), name='cancelar_comanda_finalizada'),
     path('comanda/<str:code>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce'),
     path('comanda/<str:code>/cupom-nfce/', views.CupomFiscalPrintView.as_view(), name='cupom_nfce'),
     path('comanda/<str:code>/cancelar-nfce/', views.CancelarNFCeView.as_view(), name='cancelar_nfce'),
@@ -39,7 +41,7 @@ urlpatterns = [
     path('comanda-id/<int:pk>/emitir-nfce/', views.EmitirNFCeView.as_view(), name='emitir_nfce_id'),
     path('comanda-id/<int:pk>/cupom-nfce/', views.CupomFiscalPrintView.as_view(), name='cupom_nfce_id'),
     path('comanda-id/<int:pk>/cancelar-nfce/', views.CancelarNFCeView.as_view(), name='cancelar_nfce_id'),
-    path('finalizadas/<str:code>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
+    path('finalizadas/<str:lookup>/', views.ClosedOrderDetailView.as_view(), name='closed_order_detail'),
 
     # Rotas baseadas no código do objeto
     path('<str:code>/', views.OrderDetailView.as_view(), name='detail'),

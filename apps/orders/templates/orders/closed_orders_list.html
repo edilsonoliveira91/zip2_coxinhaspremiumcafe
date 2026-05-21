@@ -147,7 +147,7 @@
                                                 #
                                             </div>
                                             <div class="ml-3 min-w-0 flex-1">
-                                                <div class="text-sm font-bold text-gray-900 truncate">#{{ order.numero }}</div>
+                                                <a href="{% url 'orders:closed_order_detail' order.id %}" class="text-sm font-bold text-gray-900 truncate hover:text-indigo-600 transition-colors">#{{ order.numero }}</a>
                                                 {% if order.status == 'cancelada' %}
                                                 <span class="inline-flex items-center px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded">CANCELADA</span>
                                                 {% elif order.status == 'cortesia' %}
@@ -257,7 +257,7 @@
                                         <div class="flex items-center justify-center space-x-1">
 
                                           <!-- Visualizar -->
-                                          <a href="{% url 'orders:closed_order_detail' order.numero %}"
+                                          <a href="{% url 'orders:closed_order_detail' order.id %}"
                                             class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                             title="Visualizar comanda">
                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,6 +327,18 @@
                                           {% endif %}
                                           {% if order.nfce_cancelada %}
                                           <span class="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-600 rounded-lg" title="NFC-e cancelada na SEFAZ">Cancelada</span>
+                                          {% endif %}
+
+                                          <!-- Cancelar Comanda Finalizada (somente permissão específica ou superuser) -->
+                                          {% if order.status != 'cancelada' and request.user.is_superuser or order.status != 'cancelada' and perms.orders.cancel_closed_comanda %}
+                                          <button type="button"
+                                                  onclick="abrirModalCancelarComandaFinalizada({{ order.id }}, '{{ order.numero }}')"
+                                                  class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                  title="Cancelar comanda finalizada #{{ order.numero }}">
+                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                              </svg>
+                                          </button>
                                           {% endif %}
 
                                         </div>
@@ -1077,4 +1089,128 @@ document.getElementById('modal-cupom-nfce').addEventListener('click', function(e
     if (e.target === this) fecharModalCupom();
 });
 </script>
+
+<!-- Modal Cancelar Comanda Finalizada -->
+<div id="modal-cancelar-comanda-finalizada" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-white">Cancelar Comanda Finalizada</h3>
+                <p id="modal-cancelar-comanda-subtitle" class="text-red-100 text-sm"></p>
+            </div>
+            <button onclick="fecharModalCancelarComandaFinalizada()" class="text-white/80 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-4 font-medium">
+                ⚠️ Esta ação <strong>não pode ser desfeita</strong>. A comanda será marcada como cancelada e todos os pedidos pendentes serão encerrados.
+            </p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                Observação <span class="text-red-500">*</span>
+                <span class="text-gray-400 font-normal">(obrigatória)</span>
+            </label>
+            <textarea id="input-motivo-cancelar-comanda"
+                      rows="4"
+                      maxlength="500"
+                      placeholder="Descreva o motivo do cancelamento..."
+                      class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
+            <p id="modal-cancelar-comanda-erro" class="text-red-500 text-sm mt-2 hidden"></p>
+        </div>
+        <div class="border-t border-gray-100 px-6 py-4 flex space-x-3">
+            <button onclick="fecharModalCancelarComandaFinalizada()"
+                class="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
+                Voltar
+            </button>
+            <button id="btn-confirmar-cancelar-comanda" onclick="confirmarCancelamentoComandaFinalizada()"
+                class="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all">
+                Confirmar Cancelamento
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let _cancelarComandaFinalizadaId = null;
+
+function abrirModalCancelarComandaFinalizada(id, numero) {
+    _cancelarComandaFinalizadaId = id;
+    document.getElementById('modal-cancelar-comanda-subtitle').textContent = 'Comanda #' + numero;
+    document.getElementById('input-motivo-cancelar-comanda').value = '';
+    document.getElementById('modal-cancelar-comanda-erro').classList.add('hidden');
+    document.getElementById('btn-confirmar-cancelar-comanda').disabled = false;
+    document.getElementById('btn-confirmar-cancelar-comanda').textContent = 'Confirmar Cancelamento';
+    const modal = document.getElementById('modal-cancelar-comanda-finalizada');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.getElementById('input-motivo-cancelar-comanda').focus();
+}
+
+function fecharModalCancelarComandaFinalizada() {
+    const modal = document.getElementById('modal-cancelar-comanda-finalizada');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    _cancelarComandaFinalizadaId = null;
+}
+
+async function confirmarCancelamentoComandaFinalizada() {
+    const motivo = document.getElementById('input-motivo-cancelar-comanda').value.trim();
+    const erroEl = document.getElementById('modal-cancelar-comanda-erro');
+    const btn = document.getElementById('btn-confirmar-cancelar-comanda');
+
+    erroEl.classList.add('hidden');
+
+    if (!motivo) {
+        erroEl.textContent = 'Preencha a observação antes de confirmar.';
+        erroEl.classList.remove('hidden');
+        document.getElementById('input-motivo-cancelar-comanda').focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Cancelando...';
+
+    try {
+        const url = `/orders/comanda-id/${_cancelarComandaFinalizadaId}/cancelar-finalizada/`;
+        const formData = new FormData();
+        formData.append('motivo', motivo);
+
+        const resp = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            fecharModalCancelarComandaFinalizada();
+            // Recarrega a página para refletir o novo status
+            window.location.reload();
+        } else {
+            erroEl.textContent = data.error || 'Erro ao cancelar. Tente novamente.';
+            erroEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar Cancelamento';
+        }
+    } catch (e) {
+        erroEl.textContent = 'Erro de comunicação. Tente novamente.';
+        erroEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Confirmar Cancelamento';
+    }
+}
+
+// Fechar com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModalCancelarComandaFinalizada();
+});
+
+// Fechar clicando fora
+document.getElementById('modal-cancelar-comanda-finalizada').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalCancelarComandaFinalizada();
+});
+</script>
+
 {% endblock %}

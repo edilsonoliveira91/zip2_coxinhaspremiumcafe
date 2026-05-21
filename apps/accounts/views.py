@@ -73,12 +73,15 @@ class HomeView(LoginRequiredMixin, TemplateView):
             comanda.is_delayed = False # Padrão: não está atrasada
             comanda.has_pending = False # Padrão: tudo entregue ou vazia
             
-            # Pega TODOS os pedidos que não estão finalizados/entregues
-            pedidos_pendentes = comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta'])
+            # Pega TODOS os pedidos que não estão finalizados/entregues (avaliado como lista p/ eficiência)
+            pedidos_pendentes = list(comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta']))
             
             # Se encontrou algum pedido não entregue, fica amarela!
-            if pedidos_pendentes.exists():
+            if pedidos_pendentes:
                 comanda.has_pending = True
+            
+            # Pedidos não impressos ainda
+            comanda.tem_nao_impressos = any(not p.impresso for p in pedidos_pendentes)
             
             # Das pendentes, a gente checa se tem atraso (apenas as que tão aguardando/preparando entram no tempo crítico)
             for pedido in pedidos_pendentes:

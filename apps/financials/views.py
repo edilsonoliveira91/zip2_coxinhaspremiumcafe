@@ -631,9 +631,19 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
 
         historico = FechamentoCaixaDiario.objects.select_related('fechado_por').order_by('-data')[:30]
 
+        # Totais de malotes
+        agg_aberto = CaixaAdm.objects.filter(concluido=False).aggregate(
+            total=Sum('fechamento__total_final')
+        )
+        agg_enviado = CaixaAdm.objects.filter(concluido=True).aggregate(
+            total=Sum('fechamento__total_final')
+        )
+
         context.update({
             'dias_abertos': dias_abertos,
             'historico': historico,
+            'total_malote_aberto': agg_aberto['total'] or Decimal('0.00'),
+            'total_malote_enviado': agg_enviado['total'] or Decimal('0.00'),
         })
         return context
 

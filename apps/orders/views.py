@@ -2,7 +2,7 @@ from datetime import datetime
 from django.shortcuts import redirect
 from django.views.generic import DetailView
 from products.models import Product
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
@@ -840,42 +840,53 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
 
 class ClosedOrderDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
-    Detalhes de uma comanda finalizada específica
+    Detalhes de uma comanda finalizada específica (fechada, cancelada ou cortesia).
+    Aceita tanto pk (inteiro) quanto numero (string) como lookup.
     """
     permission_required = 'orders.view_order'
     model = Comanda
     template_name = 'orders/closed_order_detail.html'
     context_object_name = 'order'
-    slug_field = 'code'
-    slug_url_kwarg = 'code'
     login_url = reverse_lazy('accounts:login')
-    
-    def get_queryset(self):
-        """Garante que só comandas finalizadas sejam acessadas"""
-        return Comanda.objects.filter(status='fechada')
-    
+
+    def get_object(self, queryset=None):
+        lookup = self.kwargs.get('lookup', '')
+        qs = Comanda.objects.filter(
+            status__in=['fechada', 'cancelada', 'cortesia']
+        ).select_related('checkout', 'created_by').prefetch_related(
+            'checkout__payments',
+            'pedidos__items__product',
+        )
+        # Tenta por pk primeiro (somente se for inteiro puro sem zeros à esquerda)
+        if lookup.isdigit() and not (len(lookup) > 1 and lookup[0] == '0'):
+            try:
+                return qs.get(pk=int(lookup))
+            except Comanda.DoesNotExist:
+                pass
+        # Fallback: busca pelo numero (o mais recente)
+        obj = qs.filter(numero=lookup).order_by('-created_at').first()
+        if obj is None:
+            raise Http404("Comanda não encontrada.")
+        return obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Estatísticas da comanda
-        comanda = self.get_object()
-        
-        # Tempo total de atendimento
-        if order.created_at and order.delivered_at:
-            duration = order.delivered_at - order.created_at
-            context['duration_minutes'] = duration.total_seconds() // 60
-        
-        # Próxima e anterior comanda finalizada (para navegação)
-        context['next_order'] = Comanda.objects.filter(
-            status='entregue',
-            delivered_at__gt=order.delivered_at
-        ).order_by('updated_at').first()
-        
-        context['prev_order'] = Comanda.objects.filter(
-            status='entregue',
-            delivered_at__lt=order.delivered_at
-        ).order_by('-updated_at').first()
-        
+        comanda = self.object
+
+        # Checkout e pagamentos
+        checkout = getattr(comanda, 'checkout', None)
+        payments = checkout.payments.all() if checkout else []
+
+        # Pedidos agrupados (ativos + cancelados separados)
+        pedidos_ativos = [p for p in comanda.pedidos.all() if p.status != 'cancelado']
+        pedidos_cancelados = [p for p in comanda.pedidos.all() if p.status == 'cancelado']
+
+        context.update({
+            'checkout': checkout,
+            'payments': payments,
+            'pedidos_ativos': pedidos_ativos,
+            'pedidos_cancelados': pedidos_cancelados,
+        })
         return context
 
 
@@ -886,6 +897,42 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.conf import settings
 import logging
+
+class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
+    """
+    Cancela uma comanda que já está finalizada (fechada/cortesia).
+    Requer permissão 'orders.cancel_closed_comanda' ou superusuário.
+    """
+    def post(self, request, pk):
+        if not (request.user.is_superuser or request.user.has_perm('orders.cancel_closed_comanda')):
+            return JsonResponse({'success': False, 'error': 'Sem permissão para cancelar comanda finalizada.'}, status=403)
+
+        try:
+            comanda = Comanda.objects.get(pk=pk, status__in=['fechada', 'cortesia'])
+        except Comanda.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Comanda não encontrada ou não está finalizada.'}, status=404)
+
+        motivo = request.POST.get('motivo', '').strip()
+        if not motivo:
+            return JsonResponse({'success': False, 'error': 'Observação é obrigatória.'}, status=400)
+
+        with transaction.atomic():
+            comanda.status = 'cancelada'
+            comanda.motivo_cancelamento = f'[CANCELAMENTO PÓS-FECHAMENTO] {motivo}'
+            comanda.save(update_fields=['status', 'motivo_cancelamento'])
+
+            # Cancela pedidos que ainda não foram cancelados
+            comanda.pedidos.exclude(status='cancelado').update(
+                status='cancelado',
+                motivo_cancelamento=f'Comanda cancelada pós-fechamento. Motivo: {motivo}',
+            )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Comanda #{comanda.numero} cancelada com sucesso.',
+            'comanda_id': comanda.pk,
+        })
+
 
 # Adicione no final do arquivo views.py:
 
@@ -2033,6 +2080,10 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
 class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
+        # Marcar como impresso
+        if not pedido.impresso:
+            pedido.impresso = True
+            pedido.save(update_fields=['impresso'])
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
         is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
@@ -2098,6 +2149,90 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             content_text = "\n".join(linhas)
             return JsonResponse({"type": "bridge", "content_text": content_text})
 
+
+
+class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
+    """
+    Imprime todos os pedidos ainda não impressos de uma comanda.
+    Chamado pelo botão de impressão no card da tela principal.
+    """
+    def get(self, request, numero):
+        comanda = get_object_or_404(Comanda, numero=numero)
+        pedidos = list(
+            comanda.pedidos
+            .filter(impresso=False, status__in=['aguardando', 'preparando', 'pronta'])
+            .prefetch_related('items__product')
+            .order_by('id')
+        )
+
+        if not pedidos:
+            return JsonResponse({'type': 'none', 'message': 'Nenhum pedido pendente para imprimir'})
+
+        # Marcar todos como impressos antes de retornar
+        pedido_ids = [p.id for p in pedidos]
+        Pedido.objects.filter(id__in=pedido_ids).update(impresso=True)
+
+        ua = request.META.get('HTTP_USER_AGENT', '').lower()
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
+
+        if is_mobile:
+            all_lines = []
+            for pedido in pedidos:
+                all_lines.append(str(" COPA / COZINHA ").center(48, "-"))
+                all_lines.append(str(" Ticket de Preparo ").center(48, " "))
+                all_lines.append("-" * 48)
+                all_lines.append(f"COMANDA: {pedido.comanda.numero}")
+                all_lines.append(f"PEDIDO: #{pedido.pedido_seq}")
+                data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+                all_lines.append(f"DATA: {data_formatada}")
+                all_lines.append("-" * 48)
+                all_lines.append("ITENS PARA PREPARAR:\n")
+                for item in pedido.items.all():
+                    all_lines.append(f"{item.quantity}x {item.product.name}")
+                    if item.observations:
+                        all_lines.append(f"   Obs: {item.observations}")
+                if pedido.observations:
+                    all_lines.append("-" * 48)
+                    all_lines.append("OBSERVACOES GERAIS:")
+                    all_lines.append(pedido.observations)
+                all_lines.append("-" * 48)
+                all_lines.append(str("Fim do Pedido").center(48, " "))
+                all_lines.append("\n\n\n\n\n")
+                all_lines.append("\x1d\x56\x00")
+            texto_cupom = "\n".join(all_lines)
+            texto_encoded = urllib.parse.quote(texto_cupom)
+            rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+            return JsonResponse({"type": "rawbt", "intent_url": rawbt_intent})
+        else:
+            all_content = []
+            for pedido in pedidos:
+                linhas = []
+                linhas.append(str(" COPA / COZINHA ").center(42, "-"))
+                linhas.append("Ticket de Preparo".center(42))
+                linhas.append("-" * 42)
+                linhas.append(f"COMANDA: {pedido.comanda.numero}")
+                linhas.append(f"PEDIDO: #{pedido.pedido_seq}")
+                data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+                linhas.append(f"DATA: {data_formatada}")
+                linhas.append("-" * 42)
+                linhas.append("ITENS PARA PREPARAR:")
+                linhas.append("")
+                for item in pedido.items.select_related('product').all():
+                    linhas.append(f"  {item.quantity}x {item.product.name}")
+                    if hasattr(item, 'observations') and item.observations:
+                        linhas.append(f"     Obs: {item.observations}")
+                if pedido.observations:
+                    linhas.append("-" * 42)
+                    linhas.append("OBS GERAIS:")
+                    linhas.append(pedido.observations)
+                linhas.append("-" * 42)
+                linhas.append("Fim do Pedido".center(42))
+                linhas.append("")
+                linhas.append("")
+                linhas.append("")
+                linhas.append("\x1d\x56\x41")
+                all_content.append("\n".join(linhas))
+            return JsonResponse({"type": "bridge_multi", "contents": all_content})
 
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):

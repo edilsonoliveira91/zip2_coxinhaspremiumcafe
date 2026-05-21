@@ -92,9 +92,9 @@
                             
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
-                                <div onclick="window.location.href='/orders/comanda/' + '{{ comanda.numero }}' + '/'" 
+                                <div
                                     style="{% if comanda.status == 'aguardando_caixa' %} border-color: #6b7280 !important; border-width: 2px !important; {% elif comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
-                                    class="group relative border-2 cursor-pointer
+                                    class="group relative border-2
                                     {% if comanda.status == 'aguardando_caixa' %}
                                         bg-gray-100 border-gray-400
                                     {% elif comanda.is_delayed %} 
@@ -102,29 +102,39 @@
                                     {% elif comanda.has_pending %} 
                                         bg-yellow-100 border-yellow-400 shadow-md shadow-yellow-200/50
                                     {% else %} 
-                                        bg-white border-gray-200 hover:border-gray-300 
+                                        bg-white border-gray-200
                                     {% endif %}
-                                    rounded-2xl p-3 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 "
+                                    rounded-2xl p-3 transition-all duration-300"
                                     data-comanda 
                                     data-numero="{{ comanda.numero }}" 
                                     data-mesa="{{ comanda.cliente_nome }}">
                                 
                                     <!-- Header da comanda -->
-                                    <div class="flex items-center space-x-3 mb-2">
-                                        <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
-                                            {{ comanda.display_badge }}
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
+                                                {{ comanda.display_badge }}
+                                            </div>
+                                            <div>
+                                                <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
+                                                {% if comanda.status == 'aguardando_caixa' %}
+                                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">⬛ MESA FECHADA</p>
+                                                {% else %}
+                                                <p class="text-xs text-gray-500 font-medium">
+                                                    <span class="text-gray-400 font-normal">Aberta às</span> 
+                                                    {{ comanda.created_at|time:"H:i" }}
+                                                </p>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
-                                            {% if comanda.status == 'aguardando_caixa' %}
-                                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">⬛ MESA FECHADA</p>
-                                            {% else %}
-                                            <p class="text-xs text-gray-500 font-medium">
-                                                <span class="text-gray-400 font-normal">Aberta às</span> 
-                                                {{ comanda.created_at|time:"H:i" }}
-                                            </p>
-                                            {% endif %}
-                                        </div>
+                                        <!-- Botão quadrado: imprimir pedidos não entregues -->
+                                        <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.numero %}', this)"
+                                                title="Imprimir pedidos não impressos"
+                                                class="btn-imprimir-novos w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all active:scale-95">
+                                            <svg class="w-5 h-5 btn-imprimir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                            </svg>
+                                        </button>
                                     </div>
 
                                     <!-- Botões -->
@@ -224,6 +234,73 @@
 <script src="{% static 'js/utils.js' %}"></script>
 
 <script>
+
+const FLASK_BRIDGE_URL_HOME = 'https://localhost:5001/print';
+
+async function imprimirPedidosNovos(url, btn) {
+    const iconSVG = btn.querySelector('.btn-imprimir-icon');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    // Spinner enquanto carrega
+    btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+
+    try {
+        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await resp.json();
+
+        if (data.type === 'none') {
+            // Nenhum pedido pendente: restaura sem fazer nada
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            return;
+        }
+
+        if (data.type === 'rawbt') {
+            window.location.href = data.intent_url;
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            return;
+        }
+
+        if (data.type === 'bridge_multi') {
+            // Enviar cada ticket para o bridge em sequência
+            let sucesso = true;
+            for (const conteudo of data.contents) {
+                try {
+                    const r = await fetch(FLASK_BRIDGE_URL_HOME, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: conteudo })
+                    });
+                    const rd = await r.json();
+                    if (!rd.success) { sucesso = false; break; }
+                } catch (e) {
+                    sucesso = false;
+                    break;
+                }
+            }
+            if (sucesso) {
+                // Sucesso: ícone check verde, depois restaura
+                btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                btn.style.background = '#16a34a';
+                btn.style.borderColor = '#15803d';
+                btn.style.color = '#fff';
+                setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
+            } else {
+                alert('Erro ao conectar com a impressora.');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+            return;
+        }
+    } catch (e) {
+        console.error('Erro ao imprimir:', e);
+        alert('Erro ao conectar com a impressora.');
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
 function openOrderModal() {
     const modal = document.getElementById('orderModal');
     if (modal) {

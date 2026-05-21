@@ -1,411 +1,488 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Comanda #{{ order.code }} - Finalizada{% endblock %}
+{% block title %}Comanda #{{ order.numero }} — Detalhes{% endblock %}
 
 {% block content %}
 <div class="flex-1 overflow-hidden">
-    <div class="h-full overflow-y-auto">
-        <!-- Header -->
-        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 text-gray-900">
-            <div class="px-6 py-8">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center space-x-4">
-                            <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h1 class="text-3xl font-bold">Comanda #{{ order.code }}</h1>
-                                <p class="text-gray-600">{{ order.name }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4 flex items-center space-x-6 text-gray-600">
-                            <div class="flex items-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Finalizada em {{ order.delivered_at|date:"d/m/Y H:i" }}</span>
-                            </div>
-                            {% if duration_minutes %}
-                            <div class="flex items-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                <span>{{ duration_minutes|floatformat:0 }} minutos de atendimento</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Valor total destacado -->
-                    <div class="text-right">
-                        <div class="text-4xl font-bold">R$ {{ order.total_amount|floatformat:2 }}</div>
-                        <div class="text-gray-600">Total da comanda</div>
-                    </div>
-                </div>
+  <div class="h-full overflow-y-auto">
+
+    <!-- Header -->
+    <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+      <div class="px-6 py-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <a href="{% url 'orders:closed_orders' %}"
+               class="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </a>
+            <div>
+              <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-gray-900">Comanda #{{ order.numero }}</h1>
+                {% if order.status == 'fechada' %}
+                  <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase tracking-wide">Finalizada</span>
+                {% elif order.status == 'cancelada' %}
+                  <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full uppercase tracking-wide">Cancelada</span>
+                {% elif order.status == 'cortesia' %}
+                  <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full uppercase tracking-wide">Cortesia</span>
+                {% endif %}
+              </div>
+              <p class="text-sm text-gray-500 mt-0.5">
+                Aberta em {{ order.created_at|date:"d/m/Y H:i" }}
+                {% if order.updated_at %} · Fechada em {{ order.updated_at|date:"d/m/Y H:i" }}{% endif %}
+              </p>
             </div>
+          </div>
+          <!-- Ações rápidas -->
+          <div class="flex items-center gap-2">
+            <button onclick="window.print()"
+                    class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+              </svg>
+              Imprimir
+            </button>
+            {% if order.status != 'cancelada' and request.user.is_superuser or order.status != 'cancelada' and perms.orders.cancel_closed_comanda %}
+            <button onclick="abrirModalCancelar()"
+                    class="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Cancelar Comanda
+            </button>
+            {% endif %}
+          </div>
         </div>
-
-        <!-- Navegação -->
-        <div class="bg-white border-b border-gray-200 px-6 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Voltar -->
-                <a href="{% url 'orders:closed_orders' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Comandas Finalizadas
-                </a>
-
-                <!-- Navegação entre comandas -->
-                <div class="flex items-center space-x-2">
-                    {% if prev_order %}
-                    <a href="{% url 'orders:closed_order_detail' prev_order.code %}"
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                       title="Comanda anterior: #{{ prev_order.code }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                        </svg>
-                    </a>
-                    {% endif %}
-                    
-                    {% if next_order %}
-                    <a href="{% url 'orders:closed_order_detail' next_order.code %}"
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                       title="Próxima comanda: #{{ next_order.code }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                    {% endif %}
-                </div>
-
-                <!-- Ações -->
-                <div class="flex items-center space-x-2">
-                    <a href="{% url 'orders:print' order.code %}" 
-                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                        </svg>
-                        Imprimir
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Conteúdo Principal -->
-        <div class="flex-1 p-6 space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Informações da Comanda -->
-                <div class="lg:col-span-2 space-y-6">
-                    
-                    <!-- Itens da Comanda -->
-                    <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                                Itens da Comanda
-                                <span class="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
-                                    {{ order.items.count }} {% if order.items.count == 1 %}item{% else %}itens{% endif %}
-                                </span>
-                            </h2>
-                        </div>
-                        
-                        <div class="p-6">
-                            <div class="space-y-4">
-                                {% for item in order.items.all %}
-                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                                    <div class="flex items-center space-x-4">
-                                        {% if item.product.image %}
-                                        <img src="{{ item.product.image.url }}" 
-                                             alt="{{ item.product.name }}" 
-                                             class="w-12 h-12 object-cover rounded-xl">
-                                        {% else %}
-                                        <div class="w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-400 rounded-xl flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                            </svg>
-                                        </div>
-                                        {% endif %}
-                                        
-                                        <div>
-                                            <h3 class="font-medium text-gray-900">{{ item.product.name }}</h3>
-                                            <p class="text-sm text-gray-500">{{ item.product.get_category_display }}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="text-right">
-                                        <div class="text-lg font-semibold text-gray-900">
-                                            {{ item.quantity }}x R$ {{ item.unit_price|floatformat:2 }}
-                                        </div>
-                                        <div class="text-sm font-medium text-orange-600">
-                                            = R$ {{ item.total_price|floatformat:2 }}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            
-                            <!-- Total -->
-                            <div class="mt-6 pt-6 border-t border-gray-200">
-                                <div class="flex items-center justify-between">
-                                    <div class="text-lg font-medium text-gray-900">Total da Comanda</div>
-                                    <div class="text-2xl font-bold text-green-600">
-                                        R$ {{ order.total_amount|floatformat:2 }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Observações -->
-                    {% if order.observations %}
-                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                            </svg>
-                            Observações
-                        </h2>
-                        <div class="p-4 bg-blue-50 rounded-2xl">
-                            <p class="text-gray-700">{{ order.observations }}</p>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Sidebar com Informações -->
-                <div class="space-y-6">
-                    
-                    <!-- Status e Timeline -->
-                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Timeline da Comanda
-                        </h2>
-                        
-                        <div class="space-y-4">
-                            <!-- Criada -->
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">Comanda Criada</div>
-                                    <div class="text-sm text-gray-500">{{ order.created_at|date:"d/m/Y H:i" }}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Iniciada -->
-                            {% if order.started_at %}
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">Preparo Iniciado</div>
-                                    <div class="text-sm text-gray-500">{{ order.started_at|date:"d/m/Y H:i" }}</div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Finalizada -->
-                            {% if order.finished_at %}
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">Comanda Pronta</div>
-                                    <div class="text-sm text-gray-500">{{ order.finished_at|date:"d/m/Y H:i" }}</div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Entregue -->
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">Comanda Entregue</div>
-                                    <div class="text-sm text-gray-500">{{ order.delivered_at|date:"d/m/Y H:i" }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Informações de Pagamento -->
-                    {% if order.checkout %}
-                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            Informações de Pagamento
-                        </h2>
-                        
-                        <div class="space-y-4">
-                            <!-- Forma de Pagamento -->
-                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-xl">
-                                <span class="text-gray-700 font-medium">Forma de Pagamento:</span>
-                                <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                                    {% if order.checkout.payment_method == 'dinheiro' %}
-                                        💵 Dinheiro
-                                    {% elif order.checkout.payment_method == 'cartao_credito' %}
-                                        💳 Cartão de Crédito
-                                    {% elif order.checkout.payment_method == 'cartao_debito' %}
-                                        💳 Cartão de Débito
-                                    {% elif order.checkout.payment_method == 'pix' %}
-                                        📱 PIX
-                                    {% elif order.checkout.payment_method == 'voucher' %}
-                                        🎫 Voucher
-                                    {% else %}
-                                        {{ order.checkout.get_payment_method_display }}
-                                    {% endif %}
-                                </span>
-                            </div>
-
-                            <!-- Status do Pagamento -->
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Status do Pagamento:</span>
-                                <span class="inline-flex px-2 py-1 
-                                    {% if order.checkout.status == 'aprovado' %}bg-green-100 text-green-800
-                                    {% elif order.checkout.status == 'pendente' %}bg-yellow-100 text-yellow-800
-                                    {% elif order.checkout.status == 'cancelado' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}
-                                    rounded-full text-xs font-medium">
-                                    {{ order.checkout.get_status_display }}
-                                </span>
-                            </div>
-
-                            <!-- Valores do Checkout -->
-                            <div class="space-y-2 pt-2 border-t border-gray-200">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Subtotal:</span>
-                                    <span class="font-medium">R$ {{ order.checkout.subtotal|floatformat:2 }}</span>
-                                </div>
-                                
-                                {% if order.checkout.desconto > 0 %}
-                                <div class="flex justify-between text-red-600">
-                                    <span>Desconto:</span>
-                                    <span class="font-medium">- R$ {{ order.checkout.desconto|floatformat:2 }}</span>
-                                </div>
-                                {% endif %}
-                                
-                                {% if order.checkout.taxa_servico > 0 %}
-                                <div class="flex justify-between text-blue-600">
-                                    <span>Taxa de Serviço:</span>
-                                    <span class="font-medium">+ R$ {{ order.checkout.taxa_servico|floatformat:2 }}</span>
-                                </div>
-                                {% endif %}
-                                
-                                <div class="flex justify-between text-lg font-bold text-green-600 pt-2 border-t border-gray-200">
-                                    <span>Total Pago:</span>
-                                    <span>R$ {{ order.checkout.total|floatformat:2 }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Informações específicas do pagamento em dinheiro -->
-                            {% if order.checkout.payment_method == 'dinheiro' and order.checkout.received_amount %}
-                            <div class="p-3 bg-blue-50 rounded-xl space-y-2">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-700">Valor Recebido:</span>
-                                    <span class="font-medium text-blue-700">R$ {{ order.checkout.received_amount|floatformat:2 }}</span>
-                                </div>
-                                {% if order.checkout.change_amount > 0 %}
-                                <div class="flex justify-between">
-                                    <span class="text-gray-700">Troco:</span>
-                                    <span class="font-medium text-blue-700">R$ {{ order.checkout.change_amount|floatformat:2 }}</span>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-
-                            <!-- Data do pagamento -->
-                            {% if order.checkout.created_at %}
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Pago em:</span>
-                                <span class="font-medium">{{ order.checkout.created_at|date:"d/m/Y H:i" }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <!-- Caso não tenha checkout registrado -->
-                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                            </svg>
-                            Informações de Pagamento
-                        </h2>
-                        <div class="p-4 bg-orange-50 rounded-2xl text-center">
-                            <p class="text-orange-700">Informações de pagamento não registradas</p>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Informações Adicionais -->
-                    <div class="bg-white rounded-3xl border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Informações
-                        </h2>
-                        
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Código:</span>
-                                <span class="font-medium">#{{ order.code }}</span>
-                            </div>
-                            
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">ID:</span>
-                                <span class="font-medium">{{ order.id }}</span>
-                            </div>
-                            
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="inline-flex px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                    Entregue
-                                </span>
-                            </div>
-                            
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Criado por:</span>
-                                <span class="font-medium">{{ order.created_by.username|default:"Sistema" }}</span>
-                            </div>
-                            
-                            {% if order.updated_by %}
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Atualizado por:</span>
-                                <span class="font-medium">{{ order.updated_by.username }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Conteúdo principal -->
+    <div class="p-6 space-y-6 max-w-6xl mx-auto">
+
+      {% include 'components/messages.html' %}
+
+      <!-- Alerta cancelamento -->
+      {% if order.status == 'cancelada' and order.motivo_cancelamento %}
+      <div class="bg-red-50 border border-red-200 rounded-2xl px-6 py-4 flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="text-sm font-semibold text-red-700">Motivo do cancelamento</p>
+          <p class="text-sm text-red-600 mt-0.5">{{ order.motivo_cancelamento }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Grid: info + pagamento -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Informações da Comanda -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Informações
+          </h2>
+          <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Número</dt>
+              <dd class="font-semibold text-gray-800">#{{ order.numero }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Cliente</dt>
+              <dd class="font-semibold text-gray-800">{{ order.cliente_nome|default:"Não informado" }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Operador</dt>
+              <dd class="font-semibold text-gray-800">{% if order.created_by %}{{ order.created_by.get_full_name|default:order.created_by.username }}{% else %}—{% endif %}</dd>
+            </div>
+            {% if checkout and checkout.processed_by %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Caixa</dt>
+              <dd class="font-semibold text-gray-800">{{ checkout.processed_by.get_full_name|default:checkout.processed_by.username }}</dd>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Abertura</dt>
+              <dd class="font-semibold text-gray-800">{{ order.created_at|date:"d/m/Y H:i" }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Fechamento</dt>
+              <dd class="font-semibold text-gray-800">{{ order.updated_at|date:"d/m/Y H:i" }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Status</dt>
+              <dd>
+                {% if order.status == 'fechada' %}
+                  <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">Finalizada</span>
+                {% elif order.status == 'cancelada' %}
+                  <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">Cancelada</span>
+                {% elif order.status == 'cortesia' %}
+                  <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">Cortesia</span>
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Pagamento -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            Pagamento
+          </h2>
+          {% if checkout %}
+          <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Subtotal</dt>
+              <dd class="font-semibold text-gray-800">R$ {{ checkout.subtotal|floatformat:2 }}</dd>
+            </div>
+            {% if checkout.desconto %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Desconto</dt>
+              <dd class="font-semibold text-red-600">– R$ {{ checkout.desconto|floatformat:2 }}</dd>
+            </div>
+            {% endif %}
+            {% if checkout.taxa_servico %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Taxa de serviço</dt>
+              <dd class="font-semibold text-gray-800">R$ {{ checkout.taxa_servico|floatformat:2 }}</dd>
+            </div>
+            {% endif %}
+            <div class="border-t border-gray-100 pt-3 flex justify-between">
+              <dt class="font-semibold text-gray-700">Total</dt>
+              <dd class="text-lg font-bold text-gray-900">R$ {{ checkout.total|floatformat:2 }}</dd>
+            </div>
+            <div class="border-t border-gray-100 pt-3 space-y-2">
+              {% if checkout.payment_method == 'parcial' %}
+                {% for p in payments %}
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 capitalize">{{ p.get_payment_method_display }}</dt>
+                  <dd class="font-semibold text-gray-800">R$ {{ p.amount|floatformat:2 }}</dd>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500">Forma de pagamento</dt>
+                  <dd>
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                      {{ checkout.get_payment_method_display }}
+                    </span>
+                  </dd>
+                </div>
+              {% endif %}
+            </div>
+            {% if checkout.notes %}
+            <div class="border-t border-gray-100 pt-3">
+              <dt class="text-gray-400 text-xs mb-1">Observações</dt>
+              <dd class="text-sm text-gray-600">{{ checkout.notes }}</dd>
+            </div>
+            {% endif %}
+          </dl>
+          {% else %}
+          <p class="text-sm text-gray-400">Nenhum checkout registrado.</p>
+          {% endif %}
+        </div>
+
+        <!-- NFC-e -->
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+            </svg>
+            NFC-e
+          </h2>
+          {% if order.nfce_numero %}
+          <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Número</dt>
+              <dd class="font-semibold text-gray-800">#{{ order.nfce_numero }}</dd>
+            </div>
+            {% if order.nfce_emitida_em %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Emitida em</dt>
+              <dd class="font-semibold text-gray-800">{{ order.nfce_emitida_em|date:"d/m/Y H:i" }}</dd>
+            </div>
+            {% endif %}
+            {% if order.nfce_protocolo %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Protocolo</dt>
+              <dd class="font-mono text-xs text-gray-700 break-all">{{ order.nfce_protocolo }}</dd>
+            </div>
+            {% endif %}
+            {% if order.nfce_cpf_cliente %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">CPF</dt>
+              <dd class="font-semibold text-gray-800">{{ order.nfce_cpf_cliente }}</dd>
+            </div>
+            {% endif %}
+            {% if order.nfce_cancelada %}
+            <div class="border-t border-red-100 pt-3">
+              <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">NFC-e Cancelada</span>
+              {% if order.nfce_cancelada_em %}
+              <p class="text-xs text-gray-400 mt-1">em {{ order.nfce_cancelada_em|date:"d/m/Y H:i" }}</p>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="border-t border-gray-100 pt-3">
+              <a href="{% url 'orders:cupom_nfce_id' order.id %}" target="_blank"
+                 class="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Ver cupom fiscal
+              </a>
+            </div>
+            {% endif %}
+          </dl>
+          {% else %}
+          <p class="text-sm text-gray-400">NFC-e não emitida.</p>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Pedidos -->
+      <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Pedidos
+          </h2>
+          <span class="text-xs text-gray-400">{{ pedidos_ativos|length }} pedido{{ pedidos_ativos|length|pluralize:"s" }} ativo{{ pedidos_ativos|length|pluralize:"s" }}</span>
+        </div>
+
+        {% if pedidos_ativos %}
+        <div class="divide-y divide-gray-100">
+          {% for pedido in pedidos_ativos %}
+          <div class="px-6 py-4">
+            <!-- Cabeçalho do pedido -->
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                  {{ pedido.pedido_seq }}
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Pedido #{{ pedido.pedido_seq }}</p>
+                  <p class="text-xs text-gray-400">{{ pedido.created_at|date:"d/m H:i" }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-base font-bold text-gray-900">R$ {{ pedido.total_amount|floatformat:2 }}</p>
+                <span class="text-xs px-2 py-0.5 rounded-full
+                  {% if pedido.status == 'entregue' %}bg-green-100 text-green-700
+                  {% elif pedido.status == 'pronta' %}bg-blue-100 text-blue-700
+                  {% elif pedido.status == 'preparando' %}bg-yellow-100 text-yellow-700
+                  {% else %}bg-gray-100 text-gray-600{% endif %}
+                  font-semibold">
+                  {{ pedido.get_status_display }}
+                </span>
+              </div>
+            </div>
+            <!-- Observação do pedido -->
+            {% if pedido.observations %}
+            <p class="text-xs text-gray-500 italic mb-3 pl-11">{{ pedido.observations }}</p>
+            {% endif %}
+            <!-- Itens -->
+            <div class="pl-11 space-y-1">
+              {% for item in pedido.items.all %}
+              <div class="flex items-center justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 text-xs font-bold rounded-md flex-shrink-0">{{ item.quantity }}</span>
+                  <div>
+                    <span class="text-gray-800 font-medium">{{ item.product.name }}</span>
+                    {% if item.observations %}
+                    <p class="text-xs text-gray-400 italic">{{ item.observations }}</p>
+                    {% endif %}
+                  </div>
+                </div>
+                <span class="font-semibold text-gray-700 flex-shrink-0 ml-3">R$ {{ item.total_price|floatformat:2 }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+          <p class="text-gray-400 text-sm">Nenhum pedido ativo nesta comanda.</p>
+        </div>
+        {% endif %}
+
+        <!-- Total geral -->
+        <div class="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-600">Total da Comanda</span>
+          <span class="text-xl font-bold text-gray-900">R$ {{ order.total_amount|floatformat:2 }}</span>
+        </div>
+      </div>
+
+      <!-- Pedidos cancelados (colapsável) -->
+      {% if pedidos_cancelados %}
+      <div class="bg-white rounded-2xl border border-red-100 overflow-hidden">
+        <details>
+          <summary class="px-6 py-4 flex items-center justify-between cursor-pointer select-none">
+            <h2 class="text-base font-semibold text-red-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+              </svg>
+              Pedidos Cancelados
+            </h2>
+            <span class="text-xs text-red-400 font-medium">{{ pedidos_cancelados|length }} pedido{{ pedidos_cancelados|length|pluralize:"s" }}</span>
+          </summary>
+          <div class="divide-y divide-red-50 bg-red-50/30">
+            {% for pedido in pedidos_cancelados %}
+            <div class="px-6 py-4 opacity-70">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center text-red-600 text-xs font-bold">
+                    {{ pedido.pedido_seq }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-600 line-through">Pedido #{{ pedido.pedido_seq }}</p>
+                    <p class="text-xs text-gray-400">{{ pedido.created_at|date:"d/m H:i" }}</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">Cancelado</span>
+              </div>
+              {% if pedido.motivo_cancelamento %}
+              <p class="text-xs text-red-500 italic pl-11">{{ pedido.motivo_cancelamento }}</p>
+              {% endif %}
+              <div class="pl-11 mt-2 space-y-1">
+                {% for item in pedido.items.all %}
+                <div class="flex items-center justify-between text-sm py-0.5">
+                  <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 flex items-center justify-center bg-red-100 text-red-500 text-xs font-bold rounded">{{ item.quantity }}</span>
+                    <span class="text-gray-500 line-through">{{ item.product.name }}</span>
+                  </div>
+                  <span class="text-gray-400 line-through ml-3">R$ {{ item.total_price|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
 </div>
+
+<!-- Modal Cancelar Comanda -->
+{% if order.status != 'cancelada' and request.user.is_superuser or order.status != 'cancelada' and perms.orders.cancel_closed_comanda %}
+<div id="modal-cancelar" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
+      <div>
+        <h3 class="text-lg font-bold text-white">Cancelar Comanda</h3>
+        <p class="text-red-100 text-sm">Comanda #{{ order.numero }}</p>
+      </div>
+      <button onclick="fecharModalCancelar()" class="text-white/80 hover:text-white transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="p-6">
+      <p class="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-4 font-medium">
+        ⚠️ Esta ação <strong>não pode ser desfeita</strong>. A comanda será marcada como cancelada.
+      </p>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Observação <span class="text-red-500">*</span>
+      </label>
+      <textarea id="input-motivo"
+                rows="4"
+                maxlength="500"
+                placeholder="Descreva o motivo do cancelamento..."
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
+      <p id="modal-erro" class="text-red-500 text-sm mt-2 hidden"></p>
+    </div>
+    <div class="border-t border-gray-100 px-6 py-4 flex space-x-3">
+      <button onclick="fecharModalCancelar()"
+          class="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
+        Voltar
+      </button>
+      <button id="btn-confirmar-cancelar" onclick="confirmarCancelamento()"
+          class="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all">
+        Confirmar Cancelamento
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirModalCancelar() {
+    document.getElementById('input-motivo').value = '';
+    document.getElementById('modal-erro').classList.add('hidden');
+    document.getElementById('btn-confirmar-cancelar').disabled = false;
+    document.getElementById('btn-confirmar-cancelar').textContent = 'Confirmar Cancelamento';
+    const modal = document.getElementById('modal-cancelar');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.getElementById('input-motivo').focus();
+}
+
+function fecharModalCancelar() {
+    const modal = document.getElementById('modal-cancelar');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function confirmarCancelamento() {
+    const motivo = document.getElementById('input-motivo').value.trim();
+    const erroEl = document.getElementById('modal-erro');
+    const btn = document.getElementById('btn-confirmar-cancelar');
+    erroEl.classList.add('hidden');
+
+    if (!motivo) {
+        erroEl.textContent = 'Preencha a observação antes de confirmar.';
+        erroEl.classList.remove('hidden');
+        document.getElementById('input-motivo').focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Cancelando...';
+
+    try {
+        const url = '{% url "orders:cancelar_comanda_finalizada" order.id %}';
+        const formData = new FormData();
+        formData.append('motivo', motivo);
+        const resp = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        });
+        const data = await resp.json();
+        if (data.success) {
+            window.location.href = '{% url "orders:closed_orders" %}';
+        } else {
+            erroEl.textContent = data.error || 'Erro ao cancelar. Tente novamente.';
+            erroEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar Cancelamento';
+        }
+    } catch (e) {
+        erroEl.textContent = 'Erro de comunicação. Tente novamente.';
+        erroEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Confirmar Cancelamento';
+    }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModalCancelar(); });
+document.getElementById('modal-cancelar').addEventListener('click', function(e) { if (e.target === this) fecharModalCancelar(); });
+</script>
+{% endif %}
+
 {% endblock %}

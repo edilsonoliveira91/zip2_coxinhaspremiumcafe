@@ -75,6 +75,7 @@ class Comanda(TimeStampedModel):
             ('add_order', 'Pode criar comandas'),
             ('change_order', 'Pode editar comandas'),
             ('delete_order', 'Pode excluir comandas'),
+            ('cancel_closed_comanda', 'Pode cancelar comanda finalizada'),
         ]
 
     def __str__(self):
@@ -159,6 +160,11 @@ class Pedido(TimeStampedModel):
         null=True,
         blank=True,
         verbose_name="Entregue em"
+    )
+
+    impresso = models.BooleanField(
+        default=False,
+        verbose_name="Impresso"
     )
 
     # Campos para NFCe
