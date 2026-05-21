@@ -5,182 +5,203 @@
 
 {% block content %}
 <div class="flex-1 overflow-hidden">
-  <div class="h-full overflow-y-auto bg-gray-50">
+  <div class="h-full overflow-y-auto">
 
-    <!-- HEADER -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div style="width:40px;height:40px;background:linear-gradient(135deg,#f97316,#ef4444);border-radius:12px;display:flex;align-items:center;justify-content:center;">
-            <svg style="width:20px;height:20px;" fill="none" stroke="#fff" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-lg font-bold text-gray-900 leading-tight">Fechamento de Caixa</h1>
-            <p class="text-xs text-gray-400">{{ today_fmt }} &middot; {{ extrato.total_comandas }} comanda{{ extrato.total_comandas|pluralize }}</p>
-          </div>
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="px-6 py-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Fechamento de Caixa</h1>
+          <p class="text-gray-500 mt-1">Dias com movimento pendentes de fechamento</p>
         </div>
-        {% if fechamento_hoje %}
-        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#dcfce7;color:#15803d;border-radius:9999px;font-size:12px;font-weight:700;">
-          <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
-          Fechado por {{ fechamento_hoje.fechado_por.get_full_name|default:fechamento_hoje.fechado_por.username }}
-        </span>
-        {% endif %}
+        <div class="text-right">
+          <div class="text-sm text-gray-500">Dias pendentes</div>
+          <div id="contador-pendentes" class="text-4xl font-bold text-orange-600">{{ dias_abertos|length }}</div>
+          <div id="ultima-atualizacao" class="text-xs text-gray-400 mt-1">— ao vivo</div>
+        </div>
       </div>
     </div>
 
-    <div class="max-w-3xl mx-auto px-4 py-6 space-y-5">
+    <div class="p-6 space-y-6">
 
       {% include 'components/messages.html' %}
 
-      <!-- EXTRATO DO DIA -->
-      <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;overflow:hidden;">
+      <!-- GRID DE CARDS: 4 por linha -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
-        <div style="padding:18px 22px 14px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:14px;font-weight:700;color:#111827;">Extrato do Dia &mdash; {{ today_fmt }}</div>
-            <div style="font-size:12px;color:#9ca3af;margin-top:1px;">Resumo atual (ainda nao fechado){% if fechamento_hoje %} &mdash; Fechamento registrado{% endif %}</div>
-          </div>
-          <a href="{% url 'financials:extrato' %}?date={{ today }}"
-             style="font-size:12px;color:#f97316;font-weight:600;text-decoration:none;">
-            Ver extrato completo &rarr;
-          </a>
-        </div>
+        {% for dia in dias_abertos %}
+        <div id="card-{{ dia.data_iso }}" class="bg-white rounded-3xl border border-gray-200 hover:shadow-lg transition-shadow flex flex-col overflow-hidden">
 
-        <!-- Linhas resumo -->
-        <div>
-          {% with e=extrato %}
-
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
-            <span style="font-size:13px;color:#6b7280;">Troco Inicial</span>
-            <span style="font-size:13px;font-weight:600;color:#92400e;">R$ {{ e.valor_inicial|floatformat:2 }}</span>
-          </div>
-
-          <div style="padding:6px 22px 3px;background:#f9fafb;">
-            <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;">Entradas</span>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
-            <span style="font-size:13px;color:#374151;">Dinheiro</span>
-            <span style="font-size:13px;font-weight:600;color:#16a34a;">R$ {{ e.total_dinheiro|floatformat:2 }}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
-            <span style="font-size:13px;color:#374151;">Cartao Debito</span>
-            <span style="font-size:13px;font-weight:600;color:#7c3aed;">R$ {{ e.total_debito|floatformat:2 }}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
-            <span style="font-size:13px;color:#374151;">Cartao Credito</span>
-            <span style="font-size:13px;font-weight:600;color:#2563eb;">R$ {{ e.total_credito|floatformat:2 }}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;">
-            <span style="font-size:13px;color:#374151;">PIX</span>
-            <span style="font-size:13px;font-weight:600;color:#0891b2;">R$ {{ e.total_pix|floatformat:2 }}</span>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;padding:10px 22px;background:#f0fdf4;border-bottom:1px solid #e5e7eb;">
-            <span style="font-size:12px;font-weight:700;color:#15803d;">Total Entradas</span>
-            <span style="font-size:13px;font-weight:800;color:#15803d;">R$ {{ e.total_entradas|floatformat:2 }}</span>
-          </div>
-
-          {% if e.qtd_canceladas %}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
-            <div>
-              <span style="font-size:13px;color:#374151;">Canceladas</span>
-              <span style="font-size:11px;color:#f87171;margin-left:6px;">{{ e.qtd_canceladas }} comanda{{ e.qtd_canceladas|pluralize }} — não entra no caixa</span>
+          <!-- Cabeçalho do card -->
+          <div class="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-base font-bold text-gray-900 whitespace-nowrap">{{ dia.data_fmt }}</span>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Total em caixa</div>
             </div>
-            <span style="font-size:13px;font-weight:600;color:#dc2626;">R$ {{ e.total_canceladas|floatformat:2 }}</span>
-          </div>
-          {% endif %}
-
-          {% if e.qtd_cortesias %}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#faf5ff;">
-            <div>
-              <span style="font-size:13px;color:#374151;">Cortesia</span>
-              <span style="font-size:11px;color:#c084fc;margin-left:6px;">{{ e.qtd_cortesias }} comanda{{ e.qtd_cortesias|pluralize }} — não entra no caixa</span>
+            <div class="text-right flex-shrink-0">
+              <div id="qtd-comandas-{{ dia.data_iso }}" class="text-xs text-gray-400 mb-2">{{ dia.extrato.total_comandas }} comanda{{ dia.extrato.total_comandas|pluralize }}</div>
+              <div id="total-final-header-{{ dia.data_iso }}" class="text-2xl font-bold whitespace-nowrap {% if dia.eh_hoje %}text-orange-600{% else %}text-emerald-600{% endif %}">
+                R$ {{ dia.extrato.total_final|floatformat:2 }}
+              </div>
             </div>
-            <span style="font-size:13px;font-weight:600;color:#7c3aed;">R$ {{ e.total_cortesias|floatformat:2 }}</span>
-          </div>
-          {% endif %}
-
-          {% if e.total_sangrias > 0 %}
-          <div style="display:flex;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #f9fafb;background:#fff5f5;">
-            <span style="font-size:13px;color:#374151;">Sangria</span>
-            <span style="font-size:13px;font-weight:600;color:#dc2626;">- R$ {{ e.total_sangrias|floatformat:2 }}</span>
-          </div>
-          {% endif %}
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 22px;background:#1f2937;">
-            <span style="font-size:13px;font-weight:700;color:#fff;">TOTAL EM CAIXA</span>
-            <span style="font-size:22px;font-weight:900;color:#4ade80;">R$ {{ e.total_final|floatformat:2 }}</span>
           </div>
 
-          {% endwith %}
+          <!-- Valores -->
+          <div class="px-6 py-4 flex-1 space-y-2">
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Dinheiro</span>
+              <span id="dinheiro-{{ dia.data_iso }}" class="text-sm font-bold text-green-600">R$ {{ dia.extrato.total_dinheiro|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Débito</span>
+              <span id="debito-{{ dia.data_iso }}" class="text-sm font-bold text-purple-600">R$ {{ dia.extrato.total_debito|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Crédito</span>
+              <span id="credito-{{ dia.data_iso }}" class="text-sm font-bold text-blue-600">R$ {{ dia.extrato.total_credito|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">PIX</span>
+              <span id="pix-{{ dia.data_iso }}" class="text-sm font-bold text-cyan-600">R$ {{ dia.extrato.total_pix|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Troco Inicial</span>
+              <span id="troco-{{ dia.data_iso }}" class="text-sm font-bold text-amber-600">R$ {{ dia.extrato.valor_inicial|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Sangrias</span>
+              <span id="sangrias-{{ dia.data_iso }}" class="text-sm font-bold text-red-600">- R$ {{ dia.extrato.total_sangrias|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Cortesia</span>
+              <span id="cortesias-{{ dia.data_iso }}" class="text-sm font-medium text-purple-500">{{ dia.extrato.qtd_cortesias|default:"0" }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Canceladas</span>
+              <span id="canceladas-{{ dia.data_iso }}" class="text-sm font-medium text-red-400">{{ dia.extrato.qtd_canceladas|default:"0" }}</span>
+            </div>
+
+            <!-- Linha separadora + total -->
+            <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Final</span>
+              <span id="total-final-{{ dia.data_iso }}" class="text-base font-extrabold {% if dia.eh_hoje %}text-orange-600{% else %}text-emerald-600{% endif %}">
+                R$ {{ dia.extrato.total_final|floatformat:2 }}
+              </span>
+            </div>
+
+          </div>
+
+          <!-- Formulário de fechamento -->
+          <div class="px-6 pb-6 pt-8 border-t border-gray-100">
+            <form method="post" action="{% url 'financials:realizar_fechamento' %}" id="form-{{ dia.data_iso }}">
+              {% csrf_token %}
+              <input type="hidden" name="data" value="{{ dia.data_iso }}">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Observação</label>
+              <textarea name="observacao" rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 mb-4"
+                placeholder="Ex: movimento normal..."></textarea>
+              <button type="button" onclick="confirmarFechamento('{{ dia.data_iso }}', '{{ dia.data_fmt }}')"
+                style="background-color: #16a34a; color: white; width: 100%; padding: 10px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; font-size: 14px; transition: all 0.2s; margin-bottom: 10px;"
+                onmouseover="this.style.opacity='0.9'; this.style.transform='scale(1.02)'"
+                onmouseout="this.style.opacity='1'; this.style.transform='scale(1)'">
+                Fechar Caixa — {{ dia.data_fmt }}
+              </button>
+            </form>
+          </div>
+
         </div>
-      </div>
-
-      <!-- FORM FECHAR CAIXA -->
-      <form method="post" action="{% url 'financials:realizar_fechamento' %}" id="form-fechamento">
-        {% csrf_token %}
-        <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;padding:20px 22px;">
-          <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:12px;">
-            {% if fechamento_hoje %}Atualizar Fechamento{% else %}Fechar Caixa Agora{% endif %}
-          </div>
-          <div style="margin-bottom:14px;">
-            <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:6px;">Observacao (opcional)</label>
-            <textarea name="observacao" rows="2"
-                      style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;resize:none;"
-                      placeholder="Ex: movimento normal, cheque devolvido...">{% if fechamento_hoje %}{{ fechamento_hoje.observacao }}{% endif %}</textarea>
-          </div>
-          <button type="button" onclick="confirmarFechamento()"
-                  style="width:100%;padding:12px;background:{% if fechamento_hoje %}#2563eb{% else %}#16a34a{% endif %};color:#fff;border-radius:12px;font-weight:700;font-size:15px;border:none;cursor:pointer;">
-            {% if fechamento_hoje %}
-              Atualizar Fechamento do Dia
-            {% else %}
-              Confirmar Fechamento do Caixa
-            {% endif %}
-          </button>
+        {% empty %}
+        <div class="col-span-4 bg-white rounded-3xl border border-gray-200 p-12 text-center">
+          
+          <p class="text-lg font-bold text-gray-700">Todos os caixas estão fechados!</p>
+          <p class="text-sm text-gray-400 mt-1">Nenhum dia pendente de fechamento.</p>
         </div>
-      </form>
+        {% endfor %}
 
-      <!-- HISTORICO -->
+      </div><!-- /grid -->
+
+      <!-- HISTÓRICO -->
       {% if historico %}
-      <div style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;overflow:hidden;">
-        <div style="padding:16px 22px 12px;border-bottom:1px solid #f3f4f6;">
-          <div style="font-size:14px;font-weight:700;color:#111827;">Historico de Fechamentos</div>
-          <div style="font-size:12px;color:#9ca3af;">Ultimos {{ historico|length }} fechamentos arquivados</div>
+      <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">Histórico de Fechamentos</h2>
+          <span class="text-xs text-gray-400">Últimos {{ historico|length }} fechamentos</span>
         </div>
-        <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f9fafb;">
-                <th style="padding:10px 16px;text-align:left;font-weight:600;color:#6b7280;">Data</th>
-                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Dinheiro</th>
-                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Debito</th>
-                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Credito</th>
-                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">PIX</th>
-                <th style="padding:10px 16px;text-align:right;font-weight:600;color:#6b7280;">Total</th>
-                <th style="padding:10px 16px;text-align:left;font-weight:600;color:#6b7280;">Fechado por</th>
+        <div class="overflow-x-auto">
+          <table class="w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dinheiro</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Débito</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Crédito</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">PIX</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechado por</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observação</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Malote</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
               {% for f in historico %}
-              <tr style="border-top:1px solid #f3f4f6;{% if f.data == today|date:'Y-m-d' %}background:#fffbeb;{% endif %}">
-                <td style="padding:10px 16px;font-weight:600;color:#374151;">
-                  {{ f.data|date:"d/m/Y" }}
-                  {% if forloop.first and f.data == today|date:"Y-m-d" %}
-                    <span style="margin-left:6px;background:#fef9c3;color:#854d0e;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">HOJE</span>
+              <tr id="row-malote-{{ f.id }}" class="transition-colors {% if f.malote %}bg-green-50{% else %}hover:bg-gray-50{% endif %}">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-semibold text-gray-900">{{ f.data|date:"d/m/Y" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    R$ {{ f.total_dinheiro|floatformat:2 }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    R$ {{ f.total_debito|floatformat:2 }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    R$ {{ f.total_credito|floatformat:2 }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                    R$ {{ f.total_pix|floatformat:2 }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <div class="text-sm font-bold text-emerald-600">R$ {{ f.total_final|floatformat:2 }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-600">{{ f.fechado_por.get_full_name|default:f.fechado_por.username }}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-500 max-w-xs truncate">{{ f.observacao|default:"—" }}</div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                  {% if f.malote %}
+                  <button disabled
+                    style="padding:6px 14px; background:#d1fae5; border:1px solid #6ee7b7; border-radius:8px; font-size:11px; font-weight:600; color:#065f46; cursor:default;">
+                    ✓ MALOTE ENVIADO
+                  </button>
+                  {% else %}
+                  <button
+                    id="btn-malote-{{ f.id }}"
+                    onclick="abrirModalMalote({{ f.id }}, '{{ f.data|date:"d/m/Y" }}')"
+                    style="padding:6px 14px; background:#3b82f6; border:none; border-radius:8px; font-size:11px; font-weight:600; color:#fff; cursor:pointer;">
+                    ENVIAR MALOTE
+                  </button>
                   {% endif %}
                 </td>
-                <td style="padding:10px 16px;text-align:right;color:#16a34a;font-weight:600;">R$ {{ f.total_dinheiro|floatformat:2 }}</td>
-                <td style="padding:10px 16px;text-align:right;color:#7c3aed;font-weight:600;">R$ {{ f.total_debito|floatformat:2 }}</td>
-                <td style="padding:10px 16px;text-align:right;color:#2563eb;font-weight:600;">R$ {{ f.total_credito|floatformat:2 }}</td>
-                <td style="padding:10px 16px;text-align:right;color:#0891b2;font-weight:600;">R$ {{ f.total_pix|floatformat:2 }}</td>
-                <td style="padding:10px 16px;text-align:right;font-weight:800;color:#111827;">R$ {{ f.total_final|floatformat:2 }}</td>
-                <td style="padding:10px 16px;color:#6b7280;font-size:12px;">{{ f.fechado_por.get_full_name|default:f.fechado_por.username }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -193,34 +214,277 @@
   </div>
 </div>
 
-<!-- Modal de confirmacao -->
-<div id="modal-confirmar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:20px;padding:28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
-    <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px;">Confirmar Fechamento</div>
-    <div style="font-size:14px;color:#6b7280;margin-bottom:20px;">
-      Ao confirmar, os valores atuais do caixa de <strong>{{ today_fmt }}</strong> serao arquivados.
-      Voce pode refazer o fechamento a qualquer momento.
+<!-- Modal de confirmação -->
+<div id="modal-confirmar" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); border:1px solid #e5e7eb; width:100%; max-width:320px; margin:0 auto;">
+    <div style="padding:20px 20px 12px;">
+      <p style="font-size:14px; font-weight:600; color:#111827; margin:0 0 6px;">Confirmar fechamento</p>
+      <p style="font-size:12px; color:#9ca3af; margin:0;" id="modal-texto">Os valores serão arquivados.</p>
     </div>
-    <div style="display:flex;gap:10px;">
+    <div style="padding:0 20px 20px; display:flex; gap:8px;">
       <button onclick="document.getElementById('modal-confirmar').style.display='none'"
-              style="flex:1;padding:11px;background:#f3f4f6;border-radius:10px;font-weight:600;border:none;cursor:pointer;font-size:14px;">
+        style="flex:1; padding:9px; background:#f3f4f6; border:none; border-radius:8px; font-size:13px; font-weight:500; color:#4b5563; cursor:pointer;">
         Cancelar
       </button>
-      <button onclick="document.getElementById('form-fechamento').submit()"
-              style="flex:1;padding:11px;background:#16a34a;color:#fff;border-radius:10px;font-weight:700;border:none;cursor:pointer;font-size:14px;">
-        Fechar Caixa
+      <button onclick="submeterFechamento()"
+        style="flex:1; padding:9px; background:#2563eb; border:none; border-radius:8px; font-size:13px; font-weight:600; color:#fff; cursor:pointer;">
+        Sim
       </button>
     </div>
   </div>
 </div>
 
 <script>
-function confirmarFechamento() {
-  const m = document.getElementById('modal-confirmar');
-  m.style.display = 'flex';
+var formIdAtual = null;
+
+function confirmarFechamento(dataIso, dataFmt) {
+  formIdAtual = 'form-' + dataIso;
+  document.getElementById('modal-texto').innerHTML =
+    'Os valores do caixa de <strong>' + dataFmt + '</strong> serão arquivados. Você pode refazer a qualquer momento.';
+  document.getElementById('modal-confirmar').style.display = 'flex';
 }
+
+function submeterFechamento() {
+  if (formIdAtual) {
+    document.getElementById(formIdAtual).submit();
+  }
+}
+
 document.getElementById('modal-confirmar').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
+// ===== Polling: atualiza cards a cada 30s =====
+var EXTRATO_URL = "{% url 'financials:extrato_abertos' %}";
+
+function fmtBR(val) {
+  return parseFloat(val).toFixed(2).replace('.', ',');
+}
+
+function atualizarCards() {
+  fetch(EXTRATO_URL, {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var dias = data.dias || [];
+      document.getElementById('contador-pendentes').textContent = dias.length;
+
+      dias.forEach(function(d) {
+        var iso = d.data_iso;
+
+        // Se o card ainda não existe na página, recarrega (novo dia com comandas)
+        if (!document.getElementById('card-' + iso)) {
+          location.reload();
+          return;
+        }
+
+        function set(id, val) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = val;
+        }
+
+        var n = parseInt(d.total_comandas);
+        set('qtd-comandas-' + iso, n + ' comanda' + (n !== 1 ? 's' : ''));
+        set('total-final-header-' + iso, 'R$ ' + fmtBR(d.total_final));
+        set('total-final-' + iso,        'R$ ' + fmtBR(d.total_final));
+        set('dinheiro-' + iso,           'R$ ' + fmtBR(d.total_dinheiro));
+        set('debito-' + iso,             'R$ ' + fmtBR(d.total_debito));
+        set('credito-' + iso,            'R$ ' + fmtBR(d.total_credito));
+        set('pix-' + iso,                'R$ ' + fmtBR(d.total_pix));
+        set('troco-' + iso,              'R$ ' + fmtBR(d.valor_inicial));
+        set('sangrias-' + iso,           '- R$ ' + fmtBR(d.total_sangrias));
+        set('cortesias-' + iso,          d.qtd_cortesias);
+        set('canceladas-' + iso,         d.qtd_canceladas);
+      });
+
+      // Atualizar horário
+      var agora = new Date();
+      var hm = agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      var el = document.getElementById('ultima-atualizacao');
+      if (el) el.textContent = 'Atualizado ' + hm;
+    })
+    .catch(function() {}); // silencia erros de rede
+}
+
+// Primeira atualização imediata e depois a cada 30s
+atualizarCards();
+setInterval(atualizarCards, 30000);
+
 </script>
+
+<!-- Modal confirmação de malote -->
+<div id="modal-malote" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:9998; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); border:1px solid #e5e7eb; width:100%; max-width:320px; margin:0 auto;">
+    <div style="padding:20px 20px 12px;">
+      <p style="font-size:14px; font-weight:600; color:#111827; margin:0 0 6px;">Enviar Malote</p>
+      <p style="font-size:12px; color:#6b7280; margin:0;" id="modal-malote-texto">Confirma o envio do malote?</p>
+    </div>
+    <div style="padding:0 20px 20px; display:flex; gap:8px;">
+      <button onclick="fecharModalMalote()"
+        style="flex:1; padding:9px; background:#f3f4f6; border:none; border-radius:8px; font-size:13px; font-weight:500; color:#4b5563; cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="confirmarEnvioMalote()"
+        style="flex:1; padding:9px; background:#2563eb; border:none; border-radius:8px; font-size:13px; font-weight:600; color:#fff; cursor:pointer;">
+        Sim, enviar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Notificação malote -->
+<div id="notif-malote" style="display:none; position:fixed; bottom:24px; right:24px; z-index:10000; background:#065f46; color:#fff; border-radius:10px; padding:14px 20px; font-size:13px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,0.18);">
+  ✓ Malote enviado com sucesso!
+</div>
+
+<script>
+var maloteFechamentoIdAtual = null;
+var maloteDateFmtAtual = null;
+var maloteUrl = "{% url 'financials:enviar_malote' %}";
+var csrfToken = "{{ csrf_token }}";
+
+function abrirModalMalote(fechamentoId, dateFmt) {
+  maloteFechamentoIdAtual = fechamentoId;
+  maloteDateFmtAtual = dateFmt;
+  document.getElementById('modal-malote-texto').innerHTML =
+    'Tem certeza que deseja enviar o malote do dia <strong>' + dateFmt + '</strong>?';
+  document.getElementById('modal-malote').style.display = 'flex';
+}
+
+function fecharModalMalote() {
+  document.getElementById('modal-malote').style.display = 'none';
+  maloteFechamentoIdAtual = null;
+}
+
+function confirmarEnvioMalote() {
+  if (!maloteFechamentoIdAtual) return;
+  var id = maloteFechamentoIdAtual;
+  fecharModalMalote();
+
+  var formData = new FormData();
+  formData.append('fechamento_id', id);
+  formData.append('csrfmiddlewaretoken', csrfToken);
+
+  fetch(maloteUrl, {
+    method: 'POST',
+    body: formData,
+    credentials: 'same-origin',
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      var row = document.getElementById('row-malote-' + id);
+      var btn = document.getElementById('btn-malote-' + id);
+      if (row) {
+        row.style.backgroundColor = '#f0fdf4';
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.style.background = '#d1fae5';
+        btn.style.border = '1px solid #6ee7b7';
+        btn.style.color = '#065f46';
+        btn.style.cursor = 'default';
+        btn.textContent = '✓ MALOTE ENVIADO';
+        btn.removeAttribute('onclick');
+      }
+      var notif = document.getElementById('notif-malote');
+      notif.style.display = 'block';
+      setTimeout(function() { notif.style.display = 'none'; }, 3000);
+    }
+  })
+  .catch(function() {});
+}
+
+document.getElementById('modal-malote').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalMalote();
+});
+</script>
+
+<!-- Modal confirmação de malote -->
+<div id="modal-malote" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:9998; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); border:1px solid #e5e7eb; width:100%; max-width:320px; margin:0 auto;">
+    <div style="padding:20px 20px 12px;">
+      <p style="font-size:14px; font-weight:600; color:#111827; margin:0 0 6px;">Enviar Malote</p>
+      <p style="font-size:12px; color:#6b7280; margin:0;" id="modal-malote-texto">Confirma o envio do malote?</p>
+    </div>
+    <div style="padding:0 20px 20px; display:flex; gap:8px;">
+      <button onclick="fecharModalMalote()"
+        style="flex:1; padding:9px; background:#f3f4f6; border:none; border-radius:8px; font-size:13px; font-weight:500; color:#4b5563; cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="confirmarEnvioMalote()"
+        style="flex:1; padding:9px; background:#2563eb; border:none; border-radius:8px; font-size:13px; font-weight:600; color:#fff; cursor:pointer;">
+        Sim, enviar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Notificação malote -->
+<div id="notif-malote" style="display:none; position:fixed; bottom:24px; right:24px; z-index:10000; background:#065f46; color:#fff; border-radius:10px; padding:14px 20px; font-size:13px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,0.18);">
+  ✓ Malote enviado com sucesso!
+</div>
+
+<script>
+var maloteFechamentoIdAtual = null;
+var maloteDateFmtAtual = null;
+var maloteUrl = "{% url 'financials:enviar_malote' %}";
+var csrfToken = "{{ csrf_token }}";
+
+function abrirModalMalote(fechamentoId, dateFmt) {
+  maloteFechamentoIdAtual = fechamentoId;
+  maloteDateFmtAtual = dateFmt;
+  document.getElementById('modal-malote-texto').innerHTML =
+    'Tem certeza que deseja enviar o malote do dia <strong>' + dateFmt + '</strong>?';
+  document.getElementById('modal-malote').style.display = 'flex';
+}
+
+function fecharModalMalote() {
+  document.getElementById('modal-malote').style.display = 'none';
+  maloteFechamentoIdAtual = null;
+}
+
+function confirmarEnvioMalote() {
+  if (!maloteFechamentoIdAtual) return;
+  var id = maloteFechamentoIdAtual;
+  fecharModalMalote();
+
+  var formData = new FormData();
+  formData.append('fechamento_id', id);
+  formData.append('csrfmiddlewaretoken', csrfToken);
+
+  fetch(maloteUrl, {
+    method: 'POST',
+    body: formData,
+    credentials: 'same-origin',
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      var row = document.getElementById('row-malote-' + id);
+      var btn = document.getElementById('btn-malote-' + id);
+      if (row) {
+        row.style.backgroundColor = '#f0fdf4';
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.style.background = '#d1fae5';
+        btn.style.border = '1px solid #6ee7b7';
+        btn.style.color = '#065f46';
+        btn.style.cursor = 'default';
+        btn.textContent = '✓ MALOTE ENVIADO';
+        btn.removeAttribute('onclick');
+      }
+      var notif = document.getElementById('notif-malote');
+      notif.style.display = 'block';
+      setTimeout(function() { notif.style.display = 'none'; }, 3000);
+    }
+  })
+  .catch(function() {});
+}
+
+document.getElementById('modal-malote').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalMalote();
+});
+</script>
+
 {% endblock %}

@@ -10,9 +10,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria, FechamentoCaixaDiario
+from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote
 from django.views import View
-from config.models import SystemConfig
+from config.models import ConfigTrocoInicial
 from products.models import Product
 
 
@@ -92,7 +92,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         }
 
         # Valor inicial vindo das configurações do sistema
-        valor_inicial = SystemConfig.get_settings().troco_inicial
+        valor_inicial = ConfigTrocoInicial.get_settings().troco_inicial
         payment_stats['valor_inicial'] = {
             'total': valor_inicial,
             'count': 1,
@@ -198,7 +198,7 @@ class SangriaView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
     Página principal de sangrias
     """
-    permission_required = 'financials.can_add_sangria'
+    permission_required = 'financials.add_sangria'
     template_name = 'financial_sangria.html'
     login_url = reverse_lazy('accounts:login')
     
@@ -243,7 +243,7 @@ class SangriaView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         
         # VALOR INICIAL (mesmo valor fixo do dashboard)
-        valor_inicial = SystemConfig.get_settings().troco_inicial
+        valor_inicial = ConfigTrocoInicial.get_settings().troco_inicial
         
         # DINHEIRO recebido HOJE 
         dinheiro_recebido_hoje = checkouts_hoje.filter(
@@ -340,7 +340,7 @@ class ListarSangriasView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     API para listar sangrias com filtros via AJAX
     """
-    permission_required = 'financials.can_view_sangria'
+    permission_required = 'financials.view_sangria'
     
     def get(self, request):
         try:
@@ -409,11 +409,11 @@ class ExcluirSangriaView(LoginRequiredMixin, PermissionRequiredMixin, View):
         try:
             sangria = Sangria.objects.get(id=sangria_id)
             
-            # Verificar se é superusuário
-            if not request.user.is_superuser:
+            # Verificar permissão de exclusão
+            if not request.user.has_perm('financials.delete_sangria'):
                 return JsonResponse({
                     'success': False,
-                    'message': 'Acesso negado. Apenas superusuários podem excluir sangrias.'
+                    'message': 'Sem permissão para excluir sangrias.'
                 }, status=403)
             
             # Guardar dados para resposta antes de deletar
@@ -482,7 +482,7 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         total_sangrias = sangrias.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
 
-        valor_inicial = SystemConfig.get_settings().troco_inicial
+        valor_inicial = ConfigTrocoInicial.get_settings().troco_inicial
 
         total_entradas = total_dinheiro + total_debito + total_credito + total_pix
         total_final    = total_entradas - total_sangrias
@@ -532,7 +532,7 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         """Retorna dict com os totais do dia."""
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            comanda__updated_at__date=date,
+            processed_at__date=date,
         )
         # Mesma lógica do FinancialDashboardView:
         #  - não-parciais: usa Checkout.payment_method (reflete alterações do operador)
@@ -549,7 +549,7 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
             return simples + parcial
 
         sangrias_qs = Sangria.objects.filter(created_at__date=date)
-        valor_inicial  = SystemConfig.get_settings().troco_inicial
+        valor_inicial  = ConfigTrocoInicial.get_settings().troco_inicial
         total_dinheiro = _soma('dinheiro')
         total_debito   = _soma('cartao_debito')
         total_credito  = _soma('cartao_credito')
@@ -585,15 +585,54 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.localtime().date()
-        extrato = self._calcular_extrato(today)
-        fechamento_hoje = FechamentoCaixaDiario.objects.filter(data=today).first()
+        data_inicio = today - timedelta(days=60)
+
+        # Datas que têm checkouts aprovados nos últimos 60 dias
+        datas_com_checkout = set(
+            Checkout.objects
+            .filter(status='aprovado', processed_at__date__gte=data_inicio)
+            .values_list('processed_at__date', flat=True)
+            .distinct()
+        )
+
+        # Mapa data → fechamento existente
+        fechamentos_map = {
+            f.data: f
+            for f in FechamentoCaixaDiario.objects.filter(data__gte=data_inicio).select_related('fechado_por')
+        }
+
+        # Um dia aparece como card aberto se:
+        #   - Não tem fechamento E tem checkouts, OU
+        #   - Tem fechamento MAS existe algum checkout processado DEPOIS do fechamento
+        datas_abertas = []
+        for data in sorted(datas_com_checkout, reverse=True):
+            if data not in fechamentos_map:
+                datas_abertas.append(data)
+            else:
+                fech = fechamentos_map[data]
+                tem_novo = Checkout.objects.filter(
+                    status='aprovado',
+                    processed_at__date=data,
+                    processed_at__gt=fech.updated_at,
+                ).exists()
+                if tem_novo:
+                    datas_abertas.append(data)
+
+        dias_abertos = []
+        for data in datas_abertas:
+            extrato = self._calcular_extrato(data)
+            dias_abertos.append({
+                'data': data,
+                'data_fmt': data.strftime('%d/%m/%Y'),
+                'data_iso': data.strftime('%Y-%m-%d'),
+                'eh_hoje': data == today,
+                'extrato': extrato,
+            })
+
         historico = FechamentoCaixaDiario.objects.select_related('fechado_por').order_by('-data')[:30]
 
         context.update({
-            'today_fmt': today.strftime('%d/%m/%Y'),
-            'today': today.strftime('%Y-%m-%d'),
-            'extrato': extrato,
-            'fechamento_hoje': fechamento_hoje,
+            'dias_abertos': dias_abertos,
             'historico': historico,
         })
         return context
@@ -608,8 +647,18 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
     login_url = reverse_lazy('accounts:login')
 
     def post(self, request):
-        today = timezone.localtime().date()
-        checkouts = Checkout.objects.filter(status='aprovado', comanda__updated_at__date=today)
+        from datetime import date as date_type
+        from django.shortcuts import redirect
+        from django.contrib import messages as django_messages
+
+        # Aceita data do POST (YYYY-MM-DD), senão usa hoje
+        data_str = request.POST.get('data', '').strip()
+        try:
+            target_date = date_type.fromisoformat(data_str)
+        except (ValueError, TypeError):
+            target_date = timezone.localtime().date()
+
+        checkouts = Checkout.objects.filter(status='aprovado', comanda__updated_at__date=target_date)
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
@@ -621,8 +670,8 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
                        .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
             return simples + parcial
 
-        sangrias_qs = Sangria.objects.filter(created_at__date=today)
-        valor_inicial  = SystemConfig.get_settings().troco_inicial
+        sangrias_qs = Sangria.objects.filter(created_at__date=target_date)
+        valor_inicial  = ConfigTrocoInicial.get_settings().troco_inicial
         total_dinheiro = _soma('dinheiro')
         total_debito   = _soma('cartao_debito')
         total_credito  = _soma('cartao_credito')
@@ -634,7 +683,7 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
         observacao = request.POST.get('observacao', '').strip()
 
         fechamento, created = FechamentoCaixaDiario.objects.update_or_create(
-            data=today,
+            data=target_date,
             defaults={
                 'fechado_por':    request.user,
                 'valor_inicial':  valor_inicial,
@@ -650,15 +699,102 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
             }
         )
 
-        from django.contrib import messages as django_messages
+        data_fmt = target_date.strftime('%d/%m/%Y')
         if created:
-            django_messages.success(request, f'Caixa do dia {today.strftime("%d/%m/%Y")} fechado com sucesso!')
+            django_messages.success(request, f'Caixa do dia {data_fmt} fechado com sucesso!')
         else:
-            django_messages.success(request, f'Fechamento do dia {today.strftime("%d/%m/%Y")} atualizado.')
+            django_messages.success(request, f'Fechamento do dia {data_fmt} atualizado.')
 
-        from django.shortcuts import redirect
         return redirect('financials:fechamento_diario')
 
+
+
+class ExtratoAbertosAPIView(LoginRequiredMixin, View):
+    """
+    GET: retorna JSON com extrato de todos os dias abertos (sem fechamento formal).
+    Usado pelo polling JS do template fechamento_diario.html.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request):
+        from datetime import timedelta as _td
+        today = timezone.localtime().date()
+        data_inicio = today - _td(days=60)
+
+        datas_com_checkout = (
+            Checkout.objects
+            .filter(status='aprovado', processed_at__date__gte=data_inicio)
+            .values_list('processed_at__date', flat=True)
+            .distinct()
+        )
+        # Mapa data → fechamento existente
+        fechamentos_map = {
+            f.data: f
+            for f in FechamentoCaixaDiario.objects.filter(data__gte=data_inicio)
+        }
+
+        datas_abertas = []
+        for data in sorted(set(datas_com_checkout), reverse=True):
+            if data not in fechamentos_map:
+                datas_abertas.append(data)
+            else:
+                fech = fechamentos_map[data]
+                tem_novo = Checkout.objects.filter(
+                    status='aprovado',
+                    processed_at__date=data,
+                    processed_at__gt=fech.updated_at,
+                ).exists()
+                if tem_novo:
+                    datas_abertas.append(data)
+
+        # Reutiliza a mesma lógica de _calcular_extrato inline
+        from orders.models import Comanda as _Comanda
+        dias = []
+        for data in datas_abertas:
+            checkouts = Checkout.objects.filter(status='aprovado', processed_at__date=data)
+            parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
+
+            def _soma(method, _ckts=checkouts, _pids=parcial_ids):
+                simples = (_ckts.exclude(payment_method='parcial')
+                           .filter(payment_method=method)
+                           .aggregate(t=Sum('total'))['t'] or Decimal('0.00'))
+                parcial = (CheckoutPayment.objects
+                           .filter(checkout_id__in=_pids, payment_method=method)
+                           .aggregate(t=Sum('amount'))['t'] or Decimal('0.00'))
+                return simples + parcial
+
+            sangrias_qs = Sangria.objects.filter(created_at__date=data)
+            valor_inicial  = ConfigTrocoInicial.get_settings().troco_inicial
+            total_dinheiro = _soma('dinheiro')
+            total_debito   = _soma('cartao_debito')
+            total_credito  = _soma('cartao_credito')
+            total_pix      = _soma('pix')
+            total_sangrias = sangrias_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+            total_entradas = total_dinheiro + total_debito + total_credito + total_pix
+            total_final    = total_entradas - total_sangrias
+
+            canceladas_qs = _Comanda.objects.filter(status='cancelada', updated_at__date=data)
+            cortesias_qs  = _Comanda.objects.filter(status='cortesia',  updated_at__date=data)
+            qtd_canceladas = canceladas_qs.count()
+            qtd_cortesias  = cortesias_qs.count()
+
+            dias.append({
+                'data_iso': data.isoformat(),
+                'data_fmt': data.strftime('%d/%m/%Y'),
+                'eh_hoje': data == today,
+                'total_comandas': checkouts.count(),
+                'total_final':    str(total_final),
+                'total_dinheiro': str(total_dinheiro),
+                'total_debito':   str(total_debito),
+                'total_credito':  str(total_credito),
+                'total_pix':      str(total_pix),
+                'total_sangrias': str(total_sangrias),
+                'valor_inicial':  str(valor_inicial),
+                'qtd_canceladas': qtd_canceladas,
+                'qtd_cortesias':  qtd_cortesias,
+            })
+
+        return JsonResponse({'dias': dias})
 
 class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
@@ -757,7 +893,7 @@ class SalvarComissaoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     login_url = reverse_lazy('accounts:login')
 
     def post(self, request):
-        if not (request.user.is_superuser or request.user.is_staff):
+        if not request.user.has_perm('config.change_configcomissao'):
             return JsonResponse({'success': False, 'message': 'Sem permissão para alterar a comissão.'}, status=403)
         try:
             data = json.loads(request.body)
@@ -772,3 +908,118 @@ class SalvarComissaoView(LoginRequiredMixin, PermissionRequiredMixin, View):
         config.comissao_percentual = pct
         config.save()
         return JsonResponse({'success': True, 'message': f'Comissão atualizada para {pct}%.'})
+
+
+class EnviarMaloteView(LoginRequiredMixin, View):
+    """
+    POST: cria um registro CaixaAdm (malote) para o fechamento informado.
+    Retorna JSON { ok, malote_id, enviado_em }.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from django.shortcuts import get_object_or_404
+        fechamento_id = request.POST.get('fechamento_id')
+        fechamento = get_object_or_404(FechamentoCaixaDiario, pk=fechamento_id)
+
+        malote, created = CaixaAdm.objects.get_or_create(
+            fechamento=fechamento,
+            defaults={'enviado_por': request.user},
+        )
+        return JsonResponse({
+            'ok': True,
+            'created': created,
+            'malote_id': malote.pk,
+            'enviado_em': malote.enviado_em.strftime('%d/%m/%Y %H:%M'),
+        })
+
+
+class CaixaAdmView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Lista todos os malotes enviados em cards, para conferência administrativa.
+    """
+    permission_required = 'financials.view_caixaadm'
+    template_name = 'financials/caixa_adm.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = (
+            CaixaAdm.objects
+            .select_related('fechamento', 'enviado_por', 'concluido_por')
+            .prefetch_related('despesas', 'despesas__registrado_por')
+            .order_by('-fechamento__data')
+        )
+        pendentes = qs.filter(concluido=False)
+        concluidos = qs.filter(concluido=True)
+        context['malotes'] = pendentes
+        context['malotes_concluidos'] = concluidos
+        context['total_a_receber'] = pendentes.aggregate(
+            total=Sum('fechamento__total_final')
+        )['total'] or 0
+        context['total_em_caixa'] = concluidos.aggregate(
+            total=Sum('fechamento__total_final')
+        )['total'] or 0
+        return context
+
+
+class RegistrarDespesaMaloteView(LoginRequiredMixin, View):
+    """
+    POST: registra uma despesa vinculada a um malote.
+    Aceita multipart/form-data (pode ter arquivo comprovante).
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from django.shortcuts import get_object_or_404
+        malote_id = request.POST.get('malote_id')
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        descricao = request.POST.get('descricao', '').strip()
+        comprovante = request.FILES.get('comprovante')
+
+        if not malote_id or not valor_raw or not descricao:
+            return JsonResponse({'ok': False, 'error': 'Campos obrigatórios faltando.'}, status=400)
+
+        try:
+            valor = Decimal(valor_raw)
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
+
+        malote = get_object_or_404(CaixaAdm, pk=malote_id)
+
+        despesa = DespesaMalote.objects.create(
+            malote=malote,
+            valor=valor,
+            descricao=descricao,
+            comprovante=comprovante,
+            registrado_por=request.user,
+        )
+        return JsonResponse({
+            'ok': True,
+            'despesa_id': despesa.pk,
+            'valor': str(despesa.valor),
+            'descricao': despesa.descricao,
+            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+        })
+
+
+class ConcluirMaloteView(LoginRequiredMixin, View):
+    """
+    POST: marca um malote como concluído/conferido.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from django.shortcuts import get_object_or_404
+        malote_id = request.POST.get('malote_id')
+        malote = get_object_or_404(CaixaAdm, pk=malote_id)
+        if not malote.concluido:
+            malote.concluido = True
+            malote.concluido_por = request.user
+            malote.concluido_em = timezone.now()
+            malote.save()
+        return JsonResponse({
+            'ok': True,
+            'concluido_em': malote.concluido_em.strftime('%d/%m/%Y %H:%M'),
+            'concluido_por': malote.concluido_por.get_full_name() or malote.concluido_por.username,
+        })

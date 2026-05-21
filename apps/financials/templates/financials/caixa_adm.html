@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Caixa ADM{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+  <div class="h-full overflow-y-auto">
+
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="px-6 py-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Caixa ADM</h1>
+          <p class="text-gray-500 mt-1">Malotes recebidos para conferência</p>
+        </div>
+        <div class="flex items-center gap-6">
+          <!-- Card pendentes -->
+          <div class="text-center">
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Pendentes</div>
+            <div class="text-4xl font-bold text-indigo-600">{{ malotes|length }}</div>
+          </div>
+          <!-- Divisor -->
+          <div class="w-px h-12 bg-gray-200"></div>
+          <!-- Card a receber -->
+          <div class="text-center">
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">A Receber</div>
+            <div class="text-2xl font-bold text-amber-500">R$ {{ total_a_receber|floatformat:2 }}</div>
+          </div>
+          <!-- Divisor -->
+          <div class="w-px h-12 bg-gray-200"></div>
+          <!-- Card em caixa -->
+          <div class="text-center">
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Conferido</div>
+            <div class="text-2xl font-bold text-emerald-600">R$ {{ total_em_caixa|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+
+      {% include 'components/messages.html' %}
+
+      <!-- GRID DE CARDS (pendentes) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+
+        {% for malote in malotes %}
+        {% with f=malote.fechamento %}
+        <div class="bg-white rounded-3xl border border-gray-200 hover:shadow-lg transition-shadow flex flex-col overflow-hidden">
+
+          <!-- Cabeçalho do card -->
+          <div class="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-base font-bold text-gray-900 whitespace-nowrap">{{ f.data|date:"d/m/Y" }}</span>
+                <span style="background:#e0e7ff; color:#3730a3; border-radius:9999px; padding:2px 8px; font-size:11px; font-weight:600;">
+                  ADM
+                </span>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Total em caixa</div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <div class="text-xs text-gray-400 mb-2">{{ f.total_comandas }} comanda{{ f.total_comandas|pluralize }}</div>
+              <div class="text-2xl font-bold text-emerald-600 whitespace-nowrap">
+                R$ {{ f.total_final|floatformat:2 }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Valores -->
+          <div class="px-6 py-4 flex-1 space-y-2">
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Dinheiro</span>
+              <span class="text-sm font-bold text-green-600">R$ {{ f.total_dinheiro|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Débito</span>
+              <span class="text-sm font-bold text-purple-600">R$ {{ f.total_debito|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Crédito</span>
+              <span class="text-sm font-bold text-blue-600">R$ {{ f.total_credito|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">PIX</span>
+              <span class="text-sm font-bold text-cyan-600">R$ {{ f.total_pix|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Troco Inicial</span>
+              <span class="text-sm font-bold text-amber-600">R$ {{ f.valor_inicial|floatformat:2 }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Sangrias</span>
+              <span class="text-sm font-bold text-red-600">- R$ {{ f.total_sangrias|floatformat:2 }}</span>
+            </div>
+
+            <!-- Linha separadora + total -->
+            <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Final</span>
+              <span class="text-base font-extrabold text-emerald-600">
+                R$ {{ f.total_final|floatformat:2 }}
+              </span>
+            </div>
+
+          </div>
+
+          <!-- Rodapé -->
+          <div class="px-6 pb-6 pt-4 border-t border-gray-100 space-y-2">
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-400">Enviado em</span>
+              <span class="text-xs font-medium text-gray-700">{{ malote.enviado_em|date:"d/m/Y H:i" }}</span>
+            </div>
+
+            {% if f.observacao %}
+            <div class="pt-1">
+              <div class="text-xs text-gray-400 mb-0.5">Observação</div>
+              <div class="text-xs text-gray-600 italic">{{ f.observacao }}</div>
+            </div>
+            {% endif %}
+
+            {% if malote.despesas.all %}
+            <div class="pt-2 border-t border-gray-100 mt-2">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Despesas</div>
+              {% for despesa in malote.despesas.all %}
+              <div style="background:#fef9f0; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                  <span style="font-size:12px; color:#374151; font-weight:600;">{{ despesa.descricao }}</span>
+                  <span style="font-size:12px; font-weight:700; color:#dc2626;">R$ {{ despesa.valor|floatformat:2 }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:10px; color:#9ca3af;">{{ despesa.registrado_em|date:"d/m/Y H:i" }}</span>
+                  {% if despesa.comprovante %}
+                  <a href="{{ despesa.comprovante.url }}" target="_blank" style="font-size:10px; color:#2563eb; font-weight:600; text-decoration:underline;">
+                    📎 Ver comprovante
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="pt-2" style="display:flex; gap:8px; margin-bottom:10px;">
+              <button onclick="abrirModalDespesa({{ malote.id }})" style="flex:1; text-align:center; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:8px 0; font-size:12px; font-weight:700; color:#991b1b; cursor:pointer;">
+                Despesa
+              </button>
+              <button onclick="concluirMalote({{ malote.id }}, this)" style="flex:1; text-align:center; background:#d1fae5; border:1px solid #6ee7b7; border-radius:8px; padding:8px 0; font-size:12px; font-weight:700; color:#065f46; cursor:pointer;">
+                ✓ Concluir
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="col-span-4 bg-white rounded-3xl border border-gray-200 p-12 text-center">
+          <p class="text-lg font-bold text-gray-700">Nenhum malote pendente</p>
+          <p class="text-sm text-gray-400 mt-1">Os malotes enviados do Fechamento de Caixa aparecerão aqui.</p>
+        </div>
+        {% endfor %}
+
+      </div><!-- /grid -->
+
+      <!-- LISTA DE MALOTES CONCLUÍDOS -->
+      {% if malotes_concluidos %}
+      <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+          <h2 class="text-base font-semibold text-gray-800">Malotes Conferidos</h2>
+          <span style="background:#d1fae5; color:#065f46; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:700;">{{ malotes_concluidos|length }}</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Data</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Total</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Despesas</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Concluído por</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Concluído em</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in malotes_concluidos %}
+              {% with f=m.fechamento %}
+              <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:600; color:#111827;">{{ f.data|date:"d/m/Y" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#059669;">R$ {{ f.total_final|floatformat:2 }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#dc2626; font-weight:600;">
+                  {% if m.despesas.all %}
+                    {{ m.despesas.count }} despesa{{ m.despesas.count|pluralize }}
+                  {% else %}
+                    <span style="color:#9ca3af;">—</span>
+                  {% endif %}
+                </td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151;">{{ m.concluido_por.get_full_name|default:m.concluido_por.username }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280;">{{ m.concluido_em|date:"d/m/Y H:i" }}</td>
+                <td style="padding:12px 16px; text-align:center;">
+                  <button onclick="abrirDetalhesMalote('detalhe-malote-{{ m.id }}')" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:600; color:#1d4ed8; cursor:pointer;">
+                    Ver detalhes
+                  </button>
+                </td>
+              </tr>
+              {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+        <!-- Divs ocultos com detalhes de cada malote concluído -->
+        {% for m in malotes_concluidos %}
+        {% with f=m.fechamento %}
+        <div id="detalhe-malote-{{ m.id }}" style="display:none;">
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:20px; font-weight:800; color:#111827;">{{ f.data|date:"d/m/Y" }}</span>
+              <span style="background:#e0e7ff; color:#3730a3; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:600;">ADM</span>
+              <span style="background:#d1fae5; color:#065f46; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:600;">✓ Conferido</span>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Dinheiro</div>
+              <div style="font-size:14px; font-weight:700; color:#16a34a;">R$ {{ f.total_dinheiro|floatformat:2 }}</div>
+            </div>
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Débito</div>
+              <div style="font-size:14px; font-weight:700; color:#7c3aed;">R$ {{ f.total_debito|floatformat:2 }}</div>
+            </div>
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Crédito</div>
+              <div style="font-size:14px; font-weight:700; color:#2563eb;">R$ {{ f.total_credito|floatformat:2 }}</div>
+            </div>
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">PIX</div>
+              <div style="font-size:14px; font-weight:700; color:#0891b2;">R$ {{ f.total_pix|floatformat:2 }}</div>
+            </div>
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Troco Inicial</div>
+              <div style="font-size:14px; font-weight:700; color:#d97706;">R$ {{ f.valor_inicial|floatformat:2 }}</div>
+            </div>
+            <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Sangrias</div>
+              <div style="font-size:14px; font-weight:700; color:#dc2626;">- R$ {{ f.total_sangrias|floatformat:2 }}</div>
+            </div>
+          </div>
+          <div style="background:#ecfdf5; border:1px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span style="font-size:13px; font-weight:600; color:#065f46;">Total Final</span>
+            <span style="font-size:18px; font-weight:800; color:#065f46;">R$ {{ f.total_final|floatformat:2 }}</span>
+          </div>
+          {% if m.despesas.all %}
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Despesas</div>
+            {% for despesa in m.despesas.all %}
+            <div style="background:#fef9f0; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#374151;">{{ despesa.descricao }}</div>
+                <div style="font-size:11px; color:#9ca3af;">{{ despesa.registrado_em|date:"d/m/Y H:i" }}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:14px; font-weight:700; color:#dc2626;">R$ {{ despesa.valor|floatformat:2 }}</div>
+                {% if despesa.comprovante %}
+                <a href="{{ despesa.comprovante.url }}" target="_blank" style="font-size:11px; color:#2563eb; font-weight:600;">📎 comprovante</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div style="border-top:1px solid #e5e7eb; padding-top:12px; display:flex; justify-content:space-between; font-size:12px; color:#6b7280;">
+            <span>Concluído por: <strong style="color:#374151;">{{ m.concluido_por.get_full_name|default:m.concluido_por.username }}</strong></span>
+            <span>{{ m.concluido_em|date:"d/m/Y H:i" }}</span>
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL DETALHES MALOTE ===== -->
+<div id="modal-detalhes" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:520px; margin:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3); max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="font-size:18px; font-weight:700; color:#111827;">Detalhes do Malote</h2>
+      <button onclick="fecharDetalhes()" style="background:none; border:none; font-size:20px; color:#9ca3af; cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-detalhes-corpo"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL DESPESA ===== -->
+<div id="modal-despesa" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:440px; margin:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h2 style="font-size:18px; font-weight:700; color:#111827; margin-bottom:4px;">Registrar Despesa</h2>
+    <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">Vincule uma despesa a este malote</p>
+    <form id="form-despesa" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" id="despesa-malote-id" name="malote_id" value="">
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Valor da despesa *</label>
+        <div style="position:relative;">
+          <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#6b7280; font-size:14px;">R$</span>
+          <input id="despesa-valor" name="valor" type="text" inputmode="decimal" placeholder="0,00"
+            style="width:100%; padding:10px 12px 10px 36px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; outline:none; box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Descrição *</label>
+        <input id="despesa-descricao" name="descricao" type="text" placeholder="Ex: Troco, compra de material..."
+          style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; outline:none; box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Comprovante (opcional)</label>
+        <label for="despesa-comprovante" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border:2px dashed #d1d5db; border-radius:8px; cursor:pointer; background:#f9fafb;">
+          <svg xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;color:#6b7280;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span id="comprovante-label" style="font-size:13px; color:#6b7280;">Foto ou documento (JPG, PNG, PDF)</span>
+        </label>
+        <input id="despesa-comprovante" name="comprovante" type="file" accept="image/*,.pdf" style="display:none;" onchange="atualizarLabelComprovante(this)">
+      </div>
+      <div id="despesa-erro" style="display:none; background:#fee2e2; color:#991b1b; border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:12px;"></div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="fecharModalDespesa()" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; font-weight:600; color:#374151; background:#fff; cursor:pointer;">
+          Cancelar
+        </button>
+        <button type="button" onclick="salvarDespesa()" style="flex:1; padding:10px; border:none; border-radius:8px; font-size:14px; font-weight:600; color:#fff; background:#dc2626; cursor:pointer;">
+          Registrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Notificação despesa -->
+<div id="notif-despesa" style="display:none; position:fixed; bottom:24px; right:24px; background:#065f46; color:#fff; border-radius:12px; padding:14px 20px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+  ✓ Despesa registrada com sucesso!
+</div>
+
+<script>
+  const URL_DESPESA = "{% url 'financials:registrar_despesa_malote' %}";
+  const URL_CONCLUIR = "{% url 'financials:concluir_malote' %}";
+
+  function abrirModalDespesa(maloteId) {
+    document.getElementById('despesa-malote-id').value = maloteId;
+    document.getElementById('despesa-valor').value = '';
+    document.getElementById('despesa-descricao').value = '';
+    document.getElementById('despesa-comprovante').value = '';
+    document.getElementById('comprovante-label').textContent = 'Foto ou documento (JPG, PNG, PDF)';
+    document.getElementById('despesa-erro').style.display = 'none';
+    document.getElementById('modal-despesa').style.display = 'flex';
+  }
+
+  function fecharModalDespesa() {
+    document.getElementById('modal-despesa').style.display = 'none';
+  }
+
+  function atualizarLabelComprovante(input) {
+    document.getElementById('comprovante-label').textContent =
+      input.files.length > 0 ? input.files[0].name : 'Foto ou documento (JPG, PNG, PDF)';
+  }
+
+  async function salvarDespesa() {
+    const erroEl = document.getElementById('despesa-erro');
+    erroEl.style.display = 'none';
+    const form = document.getElementById('form-despesa');
+    const valor = document.getElementById('despesa-valor').value.trim();
+    const descricao = document.getElementById('despesa-descricao').value.trim();
+    if (!valor) { erroEl.textContent = 'Informe o valor da despesa.'; erroEl.style.display = 'block'; return; }
+    if (!descricao) { erroEl.textContent = 'Informe a descrição.'; erroEl.style.display = 'block'; return; }
+    try {
+      const resp = await fetch(URL_DESPESA, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: new FormData(form),
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        fecharModalDespesa();
+        document.getElementById('notif-despesa').style.display = 'block';
+        setTimeout(() => { location.reload(); }, 1500);
+      } else {
+        erroEl.textContent = data.error || 'Erro ao registrar despesa.';
+        erroEl.style.display = 'block';
+      }
+    } catch (e) {
+      erroEl.textContent = 'Erro de conexão.';
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function abrirDetalhesMalote(divId) {
+    const corpo = document.getElementById('modal-detalhes-corpo');
+    const fonte = document.getElementById(divId);
+    corpo.innerHTML = fonte ? fonte.innerHTML : '';
+    document.getElementById('modal-detalhes').style.display = 'flex';
+  }
+
+  function fecharDetalhes() {
+    document.getElementById('modal-detalhes').style.display = 'none';
+  }
+
+  document.getElementById('modal-detalhes').addEventListener('click', function(e) {
+    if (e.target === this) fecharDetalhes();
+  });
+
+  document.getElementById('modal-despesa').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalDespesa();
+  });
+
+  async function concluirMalote(maloteId, btn) {
+    if (!confirm('Confirmar conclusão deste malote?')) return;
+    btn.disabled = true;
+    btn.textContent = 'Aguarde...';
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const fd = new FormData();
+      fd.append('malote_id', maloteId);
+      const resp = await fetch(URL_CONCLUIR, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: fd,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        location.reload();
+      } else {
+        btn.disabled = false;
+        btn.textContent = '✓ Concluir';
+        alert('Erro ao concluir malote.');
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = '✓ Concluir';
+      alert('Erro de conexão.');
+    }
+  }
+</script>
+{% endblock %}

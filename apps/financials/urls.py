@@ -15,6 +15,11 @@ urlpatterns = [
     path('extrato/', views.ExtratoView.as_view(), name='extrato'),
     path('fechamento-diario/', views.FechamentoCaixaDiarioView.as_view(), name='fechamento_diario'),
     path('fechamento-diario/realizar/', views.RealizarFechamentoCaixaView.as_view(), name='realizar_fechamento'),
+    path('api/extrato-abertos/', views.ExtratoAbertosAPIView.as_view(), name='extrato_abertos'),
     path('comissao/', views.CommissionView.as_view(), name='comissao'),
     path('api/comissao/salvar/', views.SalvarComissaoView.as_view(), name='salvar_comissao'),
+    path('caixa-adm/', views.CaixaAdmView.as_view(), name='caixa_adm'),
+    path('api/malote/enviar/', views.EnviarMaloteView.as_view(), name='enviar_malote'),
+    path('api/malote/despesa/', views.RegistrarDespesaMaloteView.as_view(), name='registrar_despesa_malote'),
+    path('api/malote/concluir/', views.ConcluirMaloteView.as_view(), name='concluir_malote'),
 ]

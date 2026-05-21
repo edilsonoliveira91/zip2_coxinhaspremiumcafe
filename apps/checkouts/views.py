@@ -125,17 +125,26 @@ class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
     API para finalizar comanda e processar pagamento
     """
     def test_func(self):
-        return self.request.user.is_caixa or self.request.user.is_superuser
+        return self.request.user.is_caixa or self.request.user.has_perm('checkouts.change_checkout')
     
     def post(self, request, code):
         try:
-            comanda = get_object_or_404(Comanda, numero=code, status='em_uso')
-
-            if comanda.status == 'fechada':
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Comanda já está {comanda.status}!'
-                }, status=400)
+            FINALIZAVEIS = ('em_uso', 'aguardando_caixa', 'cortesia')
+            comanda = (
+                Comanda.objects
+                .filter(numero=code, status__in=FINALIZAVEIS)
+                .order_by('-id')
+                .first()
+            )
+            if comanda is None:
+                # Verifica se existe mas está em status não finalizável
+                outra = Comanda.objects.filter(numero=code).order_by('-id').first()
+                if outra:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Comanda #{code} não pode ser finalizada (status atual: {outra.get_status_display()}).'
+                    }, status=400)
+                return JsonResponse({'success': False, 'message': f'Comanda #{code} não encontrada!'}, status=404)
 
             data = json.loads(request.body)
             # Suporta lista de pagamentos parciais ou pagamento único (retrocompatibilidade)
@@ -236,7 +245,7 @@ class AlterarMetodoPagamentoView(LoginRequiredMixin, UserPassesTestMixin, View):
     raise_exception = True
 
     def test_func(self):
-        return self.request.user.is_caixa or self.request.user.is_superuser
+        return self.request.user.is_caixa or self.request.user.has_perm('checkouts.change_checkout')
 
     def post(self, request, pk):
         try:
@@ -332,7 +341,7 @@ class FechamentoCaixaView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
-        if not (request.user.is_caixa or request.user.is_superuser or request.user.is_staff):
+        if not (request.user.is_caixa or request.user.has_perm('checkouts.view_checkout')):
             from django.core.exceptions import PermissionDenied
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
@@ -349,7 +358,7 @@ class FechamentoCaixaView(LoginRequiredMixin, View):
             ).first()
 
         # Lista de fechamentos
-        if usuario.is_superuser or usuario.is_staff:
+        if usuario.has_perm('checkouts.view_checkout'):
             fechamentos = SessaoCaixa.objects.filter(status='fechada').select_related('usuario')
         else:
             fechamentos = SessaoCaixa.objects.filter(usuario=usuario, status='fechada')
