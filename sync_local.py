@@ -38,6 +38,9 @@ COUNT_TABLES = [
     "financials_sangria",
 ]
 
+# Fingerprint do ultimo sync (em memoria)
+last_fingerprint = None
+
 # ── Logging ──
 logging.basicConfig(
     filename=LOG_FILE,
@@ -126,8 +129,51 @@ def count_local_records():
     return total
 
 
+
+def get_remote_fingerprint():
+    """
+    Consulta Railway via psycopg2 e retorna uma string resumo do estado atual
+    (max id + count das tabelas principais). Rapido e sem dump.
+    Retorna None em caso de erro (forcara o sync).
+    """
+    try:
+        import psycopg2
+        conn = psycopg2.connect(
+            host=REMOTE_HOST,
+            port=int(REMOTE_PORT),
+            dbname=REMOTE_DB,
+            user=REMOTE_USER,
+            password=REMOTE_PASSWORD,
+            connect_timeout=10,
+        )
+        conn.autocommit = True
+        cur = conn.cursor()
+        parts = []
+        for table in COUNT_TABLES:
+            try:
+                cur.execute(f"SELECT COUNT(*), COALESCE(MAX(id), 0) FROM {table}")
+                count, max_id = cur.fetchone()
+                parts.append(f"{table}:{count}:{max_id}")
+            except Exception:
+                pass
+        cur.close()
+        conn.close()
+        return "|".join(parts)
+    except Exception as e:
+        log(f"Fingerprint: erro ao consultar Railway ({e}) -- forcando sync", "warning")
+        return None
+
+
 def sync():
+    global last_fingerprint
     os.makedirs(r"C:\coxinhas_sync", exist_ok=True)
+
+    # Verificar se houve mudanca no Railway antes de fazer o dump
+    current_fingerprint = get_remote_fingerprint()
+    if current_fingerprint is not None and current_fingerprint == last_fingerprint:
+        log("Sem mudancas no Railway -- sync ignorado.")
+        return True
+    last_fingerprint = current_fingerprint
 
     started_at = datetime.now(timezone.utc)
     env = {**os.environ, "PGPASSWORD": REMOTE_PASSWORD}
