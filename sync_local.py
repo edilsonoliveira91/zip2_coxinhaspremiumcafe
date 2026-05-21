@@ -24,7 +24,7 @@ LOCAL_PASSWORD  = "Oliver169352"
 PG_BIN          = r"C:\Program Files\PostgreSQL\18\bin"
 DUMP_FILE       = r"C:\coxinhas_sync\dump.sql"
 LOG_FILE        = r"C:\coxinhas_sync\sync.log"
-INTERVAL        = 60
+INTERVAL        = 30
 
 RAILWAY_URL     = "https://zip2coxinhaspremiumcafe-production.up.railway.app"
 MEDIA_LOCAL     = r"C:\Users\User\Documents\coxinhas\media"
