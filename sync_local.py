@@ -3,11 +3,12 @@ import sys
 import time
 import logging
 import os
+import socket
 import urllib.request
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
-# ── Configurações ────────────────────────────────────────────────────────────
+# ── Configurações ──
 REMOTE_HOST     = "switchyard.proxy.rlwy.net"
 REMOTE_PORT     = "48072"
 REMOTE_DB       = "railway"
@@ -23,13 +24,21 @@ LOCAL_PASSWORD  = "Oliver169352"
 PG_BIN          = r"C:\Program Files\PostgreSQL\18\bin"
 DUMP_FILE       = r"C:\coxinhas_sync\dump.sql"
 LOG_FILE        = r"C:\coxinhas_sync\sync.log"
-INTERVAL        = 60  # segundos
+INTERVAL        = 60
 
 RAILWAY_URL     = "https://zip2coxinhaspremiumcafe-production.up.railway.app"
 MEDIA_LOCAL     = r"C:\Users\User\Documents\coxinhas\media"
 
+COUNT_TABLES = [
+    "accounts_user",
+    "orders_order",
+    "checkouts_checkout",
+    "products_product",
+    "financials_fechamentocaixadiario",
+    "financials_sangria",
+]
 
-# ── Logging ──────────────────────────────────────────────────────────────────
+# ── Logging ──
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
@@ -41,11 +50,87 @@ def log(msg, level="info"):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
     getattr(logging, level)(msg)
 
+
+# ── SyncLog ──
+def write_sync_log(started_at, finished_at, status, error_message=None,
+                   records_downloaded=0, images_downloaded=0, tables_synced=None):
+    """
+    Insere um registro em utils_synclog no banco local via psycopg2.
+    Chamado APOS o restore para que persista no banco local.
+    """
+    try:
+        import psycopg2
+    except ImportError:
+        log("psycopg2 nao disponivel -- SyncLog nao gravado.", "warning")
+        return
+
+    duration = (finished_at - started_at).total_seconds()
+    local_ip = None
+    try:
+        local_ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        pass
+
+    tables_str = tables_synced or "dump completo Railway -> Local"
+
+    try:
+        conn = psycopg2.connect(
+            host=LOCAL_HOST,
+            port=LOCAL_PORT,
+            dbname=LOCAL_DB,
+            user=LOCAL_USER,
+            password=LOCAL_PASSWORD,
+        )
+        conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO utils_synclog
+                (started_at, finished_at, duration_seconds, direction,
+                 status, error_message, records_downloaded, records_uploaded,
+                 records_created, records_updated, records_deleted,
+                 images_downloaded, tables_synced, sync_from_datetime,
+                 triggered_by, local_server_ip)
+            VALUES
+                (%s, %s, %s, 'railway_to_local',
+                 %s, %s, %s, 0,
+                 0, 0, 0,
+                 %s, %s, NULL,
+                 'automatic', %s)
+        """, (
+            started_at, finished_at, duration,
+            status, error_message, records_downloaded,
+            images_downloaded, tables_str, local_ip,
+        ))
+        cur.close()
+        conn.close()
+        log(f"SyncLog gravado: {status} | {duration:.1f}s | {records_downloaded} registros")
+    except Exception as e:
+        log(f"Erro ao gravar SyncLog: {e}", "error")
+
+
+def count_local_records():
+    """Conta total de registros nas tabelas principais apos o restore."""
+    env_local = {**os.environ, "PGPASSWORD": LOCAL_PASSWORD}
+    total = 0
+    for table in COUNT_TABLES:
+        r = subprocess.run([
+            rf"{PG_BIN}\psql.exe",
+            "-h", LOCAL_HOST, "-p", LOCAL_PORT,
+            "-U", LOCAL_USER, "-d", LOCAL_DB,
+            "-t", "-c", f"SELECT COUNT(*) FROM {table};",
+        ], env=env_local, capture_output=True, text=True)
+        try:
+            total += int(r.stdout.strip())
+        except ValueError:
+            pass
+    return total
+
+
 def sync():
-    import os
     os.makedirs(r"C:\coxinhas_sync", exist_ok=True)
 
-    env = {**__import__("os").environ, "PGPASSWORD": REMOTE_PASSWORD}
+    started_at = datetime.now(timezone.utc)
+    env = {**os.environ, "PGPASSWORD": REMOTE_PASSWORD}
 
     # 1. pg_dump do Railway
     log("Iniciando dump do Railway...")
@@ -58,17 +143,24 @@ def sync():
         "-f", DUMP_FILE,
         "--no-owner",
         "--no-acl",
-        "-c",          # inclui DROP antes de CREATE (clean restore)
+        "-c",
     ], env=env, capture_output=True, text=True)
 
     if dump.returncode != 0:
-        log(f"Erro no dump: {dump.stderr}", "error")
+        err = dump.stderr.strip()
+        log(f"Erro no dump: {err}", "error")
+        write_sync_log(
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc),
+            status="error",
+            error_message=f"pg_dump falhou: {err[:500]}",
+        )
         return False
 
-    log(f"Dump concluído.")
+    log("Dump concluido.")
 
     # 2. Restore no banco local
-    env_local = {**__import__("os").environ, "PGPASSWORD": LOCAL_PASSWORD}
+    env_local = {**os.environ, "PGPASSWORD": LOCAL_PASSWORD}
 
     restore = subprocess.run([
         rf"{PG_BIN}\psql.exe",
@@ -77,23 +169,44 @@ def sync():
         "-U", LOCAL_USER,
         "-d", LOCAL_DB,
         "-f", DUMP_FILE,
-        "-q",  # quiet
+        "-q",
     ], env=env_local, capture_output=True, text=True)
 
     if restore.returncode != 0:
-        log(f"Erro no restore: {restore.stderr}", "error")
+        err = restore.stderr.strip()
+        log(f"Erro no restore: {err}", "error")
+        write_sync_log(
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc),
+            status="error",
+            error_message=f"psql restore falhou: {err[:500]}",
+        )
         return False
 
-    log("Sync concluído com sucesso.")
+    log("Restore concluido.")
 
     # 3. Sync de imagens
-    sync_media()
+    images_downloaded = sync_media()
 
+    # 4. Contagem de registros
+    records = count_local_records()
+
+    # 5. Gravar SyncLog (APOS restore -- garante persistencia)
+    write_sync_log(
+        started_at=started_at,
+        finished_at=datetime.now(timezone.utc),
+        status="success",
+        records_downloaded=records,
+        images_downloaded=images_downloaded,
+        tables_synced=", ".join(COUNT_TABLES),
+    )
+
+    log("Sync concluido com sucesso.")
     return True
 
+
 def sync_media():
-    """Baixa do Railway imagens que ainda não existem localmente."""
-    # Tabelas e colunas com imagens
+    """Baixa do Railway imagens que ainda nao existem localmente. Retorna contagem."""
     queries = [
         "SELECT image FROM products_product WHERE image IS NOT NULL AND image != ''",
         "SELECT image FROM products_comboproduct WHERE image IS NOT NULL AND image != ''",
@@ -131,14 +244,16 @@ def sync_media():
     else:
         log("Imagens: nenhuma nova para baixar.")
 
+    return downloaded
+
 
 if __name__ == "__main__":
-    log("=== Serviço de sync Railway → Local iniciado ===")
+    log("=== Servico de sync Railway -> Local iniciado ===")
     log(f"Intervalo: {INTERVAL} segundos")
 
     while True:
         try:
             sync()
         except Exception as e:
-            log(f"Exceção inesperada: {e}", "error")
+            log(f"Excecao inesperada: {e}", "error")
         time.sleep(INTERVAL)
