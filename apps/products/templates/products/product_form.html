@@ -605,9 +605,9 @@
 {% if product %}
 const PRODUTO_ID = {{ product.pk }};
 const URL_ADICIONAIS = "{% url 'products:produto_adicionais' product.pk %}";
-const URL_DEL_BASE   = "{% url 'products:produto_adicional_delete' product.pk 0 %}".replace('/0/', '/');
+const URL_DEL_BASE   = '/products/product/{{ product.pk }}/adicionais/';
 const URL_OPCIONAIS = "{% url 'products:produto_opcionais_obrigatorios' product.pk %}";
-const URL_OPC_DEL_BASE = "{% url 'products:produto_opcional_obrigatorio_delete' product.pk 0 %}".replace('/0/', '/');
+const URL_OPC_DEL_BASE = '/products/product/{{ product.pk }}/opcionais-obrigatorios/';
 
 function renderAdicionais(lista) {
     const container = document.getElementById('lista-adicionais');
