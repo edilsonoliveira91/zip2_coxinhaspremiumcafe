@@ -266,9 +266,25 @@ async function imprimirPedidosNovos(url, btn) {
         }
 
         if (data.type === 'rawbt') {
+            // 1 único pedido
             window.location.href = data.intent_url;
             btn.innerHTML = originalHTML;
             btn.disabled = false;
+            return;
+        }
+
+        if (data.type === 'rawbt_multi') {
+            // Múltiplos pedidos — abrir cada intent sequencialmente com delay
+            const urls = data.intent_urls;
+            for (let i = 0; i < urls.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, i === 0 ? 0 : 1500));
+                window.location.href = urls[i];
+            }
+            btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            btn.style.background = '#16a34a';
+            btn.style.borderColor = '#15803d';
+            btn.style.color = '#fff';
+            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
             return;
         }
 

@@ -2180,33 +2180,37 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         )
 
         if is_mobile:
-            all_lines = []
+            # Um intent URL por pedido (evita URLs gigantes que falham no Android)
+            intent_urls = []
             for pedido in pedidos:
-                all_lines.append(str(" COPA / COZINHA ").center(48, "-"))
-                all_lines.append(str(" Ticket de Preparo ").center(48, " "))
-                all_lines.append("-" * 48)
-                all_lines.append(f"COMANDA: {pedido.comanda.numero}")
-                all_lines.append(f"PEDIDO: #{pedido.pedido_seq}")
+                linhas = []
+                linhas.append(str(" COPA / COZINHA ").center(48, "-"))
+                linhas.append(str(" Ticket de Preparo ").center(48, " "))
+                linhas.append("-" * 48)
+                linhas.append(f"COMANDA: {pedido.comanda.numero}")
+                linhas.append(f"PEDIDO: #{pedido.pedido_seq}")
                 data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
-                all_lines.append(f"DATA: {data_formatada}")
-                all_lines.append("-" * 48)
-                all_lines.append("ITENS PARA PREPARAR:\n")
+                linhas.append(f"DATA: {data_formatada}")
+                linhas.append("-" * 48)
+                linhas.append("ITENS PARA PREPARAR:\n")
                 for item in pedido.items.all():
-                    all_lines.append(f"{item.quantity}x {item.product.name}")
+                    linhas.append(f"{item.quantity}x {item.product.name}")
                     if item.observations:
-                        all_lines.append(f"   Obs: {item.observations}")
+                        linhas.append(f"   Obs: {item.observations}")
                 if pedido.observations:
-                    all_lines.append("-" * 48)
-                    all_lines.append("OBSERVACOES GERAIS:")
-                    all_lines.append(pedido.observations)
-                all_lines.append("-" * 48)
-                all_lines.append(str("Fim do Pedido").center(48, " "))
-                all_lines.append("\n\n\n\n\n")
-                all_lines.append("\x1d\x56\x00")
-            texto_cupom = "\n".join(all_lines)
-            texto_encoded = urllib.parse.quote(texto_cupom)
-            rawbt_intent = f"intent:{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
-            return JsonResponse({"type": "rawbt", "intent_url": rawbt_intent})
+                    linhas.append("-" * 48)
+                    linhas.append("OBSERVACOES GERAIS:")
+                    linhas.append(pedido.observations)
+                linhas.append("-" * 48)
+                linhas.append(str("Fim do Pedido").center(48, " "))
+                linhas.append("\n\n\n\n\n")
+                linhas.append("\x1d\x56\x00")
+                texto = "\n".join(linhas)
+                encoded = urllib.parse.quote(texto)
+                intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
+            if len(intent_urls) == 1:
+                return JsonResponse({"type": "rawbt", "intent_url": intent_urls[0]})
+            return JsonResponse({"type": "rawbt_multi", "intent_urls": intent_urls})
         else:
             all_content = []
             for pedido in pedidos:
