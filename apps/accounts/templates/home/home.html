@@ -252,6 +252,13 @@ async function imprimirPedidosNovos(url, btn) {
         const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
 
+        if (data.type === 'debug_error') {
+            alert('ERRO SERVIDOR: ' + data.error + '\n\n' + data.tb);
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            return;
+        }
+
         if (data.type === 'none') {
             btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"></path></svg>';
             btn.style.borderColor = '#6b7280';

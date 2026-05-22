@@ -2157,17 +2157,20 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
     O cliente JS chama cada URL individualmente (mesmo endpoint do botão por pedido).
     """
     def get(self, request, numero):
-        from django.urls import reverse
-        comanda = get_object_or_404(Comanda, numero=numero)
-        pedidos = list(
-            comanda.pedidos
-            .filter(status__in=['aguardando', 'preparando', 'pronta'])
-            .order_by('id')
-        )
-        if not pedidos:
-            return JsonResponse({'type': 'none'})
-        urls = [reverse('orders:imprimir_pedido', args=[p.pk]) for p in pedidos]
-        return JsonResponse({'type': 'pedido_list', 'print_urls': urls})
+        try:
+            comanda = get_object_or_404(Comanda, numero=numero)
+            pedidos = list(
+                comanda.pedidos
+                .filter(status__in=['aguardando', 'preparando', 'pronta'])
+                .order_by('id')
+            )
+            if not pedidos:
+                return JsonResponse({'type': 'none'})
+            urls = [reverse('orders:imprimir_pedido', args=[p.pk]) for p in pedidos]
+            return JsonResponse({'type': 'pedido_list', 'print_urls': urls})
+        except Exception as e:
+            import traceback
+            return JsonResponse({'type': 'debug_error', 'error': str(e), 'tb': traceback.format_exc()})
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
