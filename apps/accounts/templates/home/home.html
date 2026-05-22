@@ -249,14 +249,10 @@ async function imprimirPedidosNovos(url, btn) {
     btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
 
     try {
-        // Detectar mobile no cliente para garantir formato correto independente do servidor
-        const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
-        const fetchUrl = url + (isMobile ? '?mobile=1' : '');
-        const resp = await fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
 
         if (data.type === 'none') {
-            // Nenhum pedido ativo: avisa o usuário visualmente
             btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"></path></svg>';
             btn.style.borderColor = '#6b7280';
             btn.style.color = '#6b7280';
@@ -265,57 +261,48 @@ async function imprimirPedidosNovos(url, btn) {
             return;
         }
 
-        if (data.type === 'rawbt') {
-            // 1 único pedido
-            window.location.href = data.intent_url;
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
-            return;
-        }
+        if (data.type === 'print_data') {
+            const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
 
-        if (data.type === 'rawbt_multi') {
-            // Múltiplos pedidos — abrir cada intent sequencialmente com delay
-            const urls = data.intent_urls;
-            for (let i = 0; i < urls.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, i === 0 ? 0 : 1500));
-                window.location.href = urls[i];
-            }
-            btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-            btn.style.background = '#16a34a';
-            btn.style.borderColor = '#15803d';
-            btn.style.color = '#fff';
-            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
-            return;
-        }
-
-        if (data.type === 'bridge_multi') {
-            // Enviar cada ticket para o bridge em sequência
-            let sucesso = true;
-            for (const conteudo of data.contents) {
-                try {
-                    const r = await fetch(FLASK_BRIDGE_URL_HOME, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: conteudo })
-                    });
-                    const rd = await r.json();
-                    if (!rd.success) { sucesso = false; break; }
-                } catch (e) {
-                    sucesso = false;
-                    break;
+            if (isMobile) {
+                // --- Android/tablet: RawBT — 1 intent por pedido ---
+                for (let i = 0; i < data.intent_urls.length; i++) {
+                    if (i > 0) await new Promise(r => setTimeout(r, 1500));
+                    window.location.href = data.intent_urls[i];
                 }
-            }
-            if (sucesso) {
-                // Sucesso: ícone check verde, depois restaura
                 btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
                 btn.style.background = '#16a34a';
                 btn.style.borderColor = '#15803d';
                 btn.style.color = '#fff';
                 setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
             } else {
-                alert('Erro ao conectar com a impressora.');
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
+                // --- Desktop/Windows: Flask bridge ---
+                let sucesso = true;
+                for (const conteudo of data.contents) {
+                    try {
+                        const r = await fetch(FLASK_BRIDGE_URL_HOME, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content: conteudo })
+                        });
+                        const rd = await r.json();
+                        if (!rd.success) { sucesso = false; break; }
+                    } catch (e) {
+                        sucesso = false;
+                        break;
+                    }
+                }
+                if (sucesso) {
+                    btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    btn.style.background = '#16a34a';
+                    btn.style.borderColor = '#15803d';
+                    btn.style.color = '#fff';
+                    setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
+                } else {
+                    alert('Erro ao conectar com a impressora.');
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
             }
             return;
         }

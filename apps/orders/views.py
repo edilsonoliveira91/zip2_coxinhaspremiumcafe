@@ -2173,74 +2173,70 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         pedido_ids = [p.id for p in pedidos]
         Pedido.objects.filter(id__in=pedido_ids).update(impresso=True)
 
-        ua = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = (
-            'android' in ua or 'iphone' in ua or 'ipad' in ua
-            or request.GET.get('mobile') == '1'
-        )
+        # Gera ambos os formatos — cliente decide qual usar (mobile vs desktop)
+        intent_urls = []
+        bridge_contents = []
 
-        if is_mobile:
-            # Um intent URL por pedido (evita URLs gigantes que falham no Android)
-            intent_urls = []
-            for pedido in pedidos:
-                linhas = []
-                linhas.append(str(" COPA / COZINHA ").center(48, "-"))
-                linhas.append(str(" Ticket de Preparo ").center(48, " "))
-                linhas.append("-" * 48)
-                linhas.append(f"COMANDA: {pedido.comanda.numero}")
-                linhas.append(f"PEDIDO: #{pedido.pedido_seq}")
-                data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
-                linhas.append(f"DATA: {data_formatada}")
-                linhas.append("-" * 48)
-                linhas.append("ITENS PARA PREPARAR:\n")
-                for item in pedido.items.all():
-                    linhas.append(f"{item.quantity}x {item.product.name}")
-                    if item.observations:
-                        linhas.append(f"   Obs: {item.observations}")
-                if pedido.observations:
-                    linhas.append("-" * 48)
-                    linhas.append("OBSERVACOES GERAIS:")
-                    linhas.append(pedido.observations)
-                linhas.append("-" * 48)
-                linhas.append(str("Fim do Pedido").center(48, " "))
-                linhas.append("\n\n\n\n\n")
-                linhas.append("\x1d\x56\x00")
-                texto = "\n".join(linhas)
-                encoded = urllib.parse.quote(texto)
-                intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
-            if len(intent_urls) == 1:
-                return JsonResponse({"type": "rawbt", "intent_url": intent_urls[0]})
-            return JsonResponse({"type": "rawbt_multi", "intent_urls": intent_urls})
-        else:
-            all_content = []
-            for pedido in pedidos:
-                linhas = []
-                linhas.append(str(" COPA / COZINHA ").center(42, "-"))
-                linhas.append("Ticket de Preparo".center(42))
-                linhas.append("-" * 42)
-                linhas.append(f"COMANDA: {pedido.comanda.numero}")
-                linhas.append(f"PEDIDO: #{pedido.pedido_seq}")
-                data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
-                linhas.append(f"DATA: {data_formatada}")
-                linhas.append("-" * 42)
-                linhas.append("ITENS PARA PREPARAR:")
-                linhas.append("")
-                for item in pedido.items.select_related('product').all():
-                    linhas.append(f"  {item.quantity}x {item.product.name}")
-                    if hasattr(item, 'observations') and item.observations:
-                        linhas.append(f"     Obs: {item.observations}")
-                if pedido.observations:
-                    linhas.append("-" * 42)
-                    linhas.append("OBS GERAIS:")
-                    linhas.append(pedido.observations)
-                linhas.append("-" * 42)
-                linhas.append("Fim do Pedido".center(42))
-                linhas.append("")
-                linhas.append("")
-                linhas.append("")
-                linhas.append("\x1d\x56\x41")
-                all_content.append("\n".join(linhas))
-            return JsonResponse({"type": "bridge_multi", "contents": all_content})
+        for pedido in pedidos:
+            data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+
+            # ----- Formato mobile (RawBT / 48 cols) -----
+            mob = []
+            mob.append(str(" COPA / COZINHA ").center(48, "-"))
+            mob.append(str(" Ticket de Preparo ").center(48, " "))
+            mob.append("-" * 48)
+            mob.append(f"COMANDA: {pedido.comanda.numero}")
+            mob.append(f"PEDIDO: #{pedido.pedido_seq}")
+            mob.append(f"DATA: {data_formatada}")
+            mob.append("-" * 48)
+            mob.append("ITENS PARA PREPARAR:\n")
+            for item in pedido.items.all():
+                mob.append(f"{item.quantity}x {item.product.name}")
+                if item.observations:
+                    mob.append(f"   Obs: {item.observations}")
+            if pedido.observations:
+                mob.append("-" * 48)
+                mob.append("OBSERVACOES GERAIS:")
+                mob.append(pedido.observations)
+            mob.append("-" * 48)
+            mob.append(str("Fim do Pedido").center(48, " "))
+            mob.append("\n\n\n\n\n")
+            mob.append("\x1d\x56\x00")
+            encoded = urllib.parse.quote("\n".join(mob))
+            intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
+
+            # ----- Formato desktop (Flask bridge / 42 cols) -----
+            desk = []
+            desk.append(str(" COPA / COZINHA ").center(42, "-"))
+            desk.append("Ticket de Preparo".center(42))
+            desk.append("-" * 42)
+            desk.append(f"COMANDA: {pedido.comanda.numero}")
+            desk.append(f"PEDIDO: #{pedido.pedido_seq}")
+            desk.append(f"DATA: {data_formatada}")
+            desk.append("-" * 42)
+            desk.append("ITENS PARA PREPARAR:")
+            desk.append("")
+            for item in pedido.items.all():
+                desk.append(f"  {item.quantity}x {item.product.name}")
+                if item.observations:
+                    desk.append(f"     Obs: {item.observations}")
+            if pedido.observations:
+                desk.append("-" * 42)
+                desk.append("OBS GERAIS:")
+                desk.append(pedido.observations)
+            desk.append("-" * 42)
+            desk.append("Fim do Pedido".center(42))
+            desk.append("")
+            desk.append("")
+            desk.append("")
+            desk.append("\x1d\x56\x41")
+            bridge_contents.append("\n".join(desk))
+
+        return JsonResponse({
+            "type": "print_data",
+            "intent_urls": intent_urls,
+            "contents": bridge_contents,
+        })
 
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
