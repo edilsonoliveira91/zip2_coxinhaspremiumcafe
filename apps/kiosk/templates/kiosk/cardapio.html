@@ -398,7 +398,6 @@
       {% for nome_cat, dados in categorias.items %}
       <button class="cat-btn" data-cat="{{ dados.slug }}" onclick="mostrarCategoria('{{ dados.slug }}', this)">
         <span>{{ nome_cat }}</span>
-        <span class="cat-count">{{ dados.produtos|length }}</span>
       </button>
       {% endfor %}
     </div>
