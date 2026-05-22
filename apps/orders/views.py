@@ -2174,7 +2174,10 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         Pedido.objects.filter(id__in=pedido_ids).update(impresso=True)
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
+        is_mobile = (
+            'android' in ua or 'iphone' in ua or 'ipad' in ua
+            or request.GET.get('mobile') == '1'
+        )
 
         if is_mobile:
             all_lines = []
