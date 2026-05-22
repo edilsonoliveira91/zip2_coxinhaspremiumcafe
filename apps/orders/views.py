@@ -2153,22 +2153,23 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
 
 class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
     """
-    Imprime todos os pedidos ainda não impressos de uma comanda.
+    Imprime todos os pedidos ativos (não entregues/cancelados) de uma comanda.
     Chamado pelo botão de impressão no card da tela principal.
+    Imprime todos os pendentes — mesmo que já tenham sido impressos antes (para reimpressão).
     """
     def get(self, request, numero):
         comanda = get_object_or_404(Comanda, numero=numero)
         pedidos = list(
             comanda.pedidos
-            .filter(impresso=False, status__in=['aguardando', 'preparando', 'pronta'])
+            .filter(status__in=['aguardando', 'preparando', 'pronta'])
             .prefetch_related('items__product')
             .order_by('id')
         )
 
         if not pedidos:
-            return JsonResponse({'type': 'none', 'message': 'Nenhum pedido pendente para imprimir'})
+            return JsonResponse({'type': 'none', 'message': 'Nenhum pedido ativo para imprimir'})
 
-        # Marcar todos como impressos antes de retornar
+        # Marcar todos como impressos
         pedido_ids = [p.id for p in pedidos]
         Pedido.objects.filter(id__in=pedido_ids).update(impresso=True)
 
@@ -2500,3 +2501,81 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
         linhas.append("\x1d\x56\x41")  # corte
 
         return "\n".join(linhas)
+
+
+# ─────────────────────────────────────────────
+#  PAINEL DA COZINHA
+# ─────────────────────────────────────────────
+
+class CozinhaPainelView(LoginRequiredMixin, View):
+    """Renderiza a tela do painel de cozinha."""
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request):
+        return render(request, 'orders/cozinha_painel.html')
+
+
+class CozinhaApiPedidosView(LoginRequiredMixin, View):
+    """
+    JSON polling: retorna todos os pedidos de cozinha ativos.
+    Pedidos com impresso=False → novos (vermelho piscando)
+    Pedidos com impresso=True  → em produção (amarelo)
+    Desaparece quando status = 'entregue' ou 'cancelado'
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request):
+        pedidos = (
+            Pedido.objects
+            .filter(
+                status__in=['aguardando', 'preparando', 'pronta'],
+                items__product__destino_producao='cozinha',
+            )
+            .distinct()
+            .select_related('comanda')
+            .prefetch_related('items__product')
+            .order_by('-created_at')
+        )
+
+        data = []
+        for p in pedidos:
+            itens_cozinha = [
+                {
+                    'qty': item.quantity,
+                    'nome': item.product.name,
+                    'obs': item.observations or '',
+                }
+                for item in p.items.all()
+                if item.product.destino_producao == 'cozinha'
+            ]
+            data.append({
+                'id': p.id,
+                'pedido_seq': p.pedido_seq,
+                'comanda_numero': p.comanda.numero,
+                'cliente_nome': p.comanda.cliente_nome or '',
+                'created_at': timezone.localtime(p.created_at).strftime('%d/%m/%Y %H:%M'),
+                'impresso': p.impresso,
+                'status': p.status,
+                'observations': p.observations or '',
+                'itens_cozinha': itens_cozinha,
+                'imprimir_url': f'/orders/pedido/{p.id}/imprimir/',
+            })
+
+        return JsonResponse({'pedidos': data})
+
+
+class CozinhaMarcarImpressoView(LoginRequiredMixin, View):
+    """
+    POST: marca pedido como impresso e coloca em 'preparando'.
+    Chamado após o clique em Imprimir no painel da cozinha.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        pedido = get_object_or_404(Pedido, pk=pk)
+        pedido.impresso = True
+        if pedido.status == 'aguardando':
+            pedido.status = 'preparando'
+            pedido.started_at = timezone.now()
+        pedido.save(update_fields=['impresso', 'status', 'started_at'])
+        return JsonResponse({'ok': True, 'status': pedido.status})

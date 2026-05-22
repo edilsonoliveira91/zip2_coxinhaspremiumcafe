@@ -127,14 +127,18 @@
                                                 {% endif %}
                                             </div>
                                         </div>
-                                        <!-- Botão quadrado: imprimir pedidos não entregues -->
+                                        <!-- Botão quadrado: imprimir pedidos não entregues — só aparece se há pedidos ativos -->
+                                        {% if comanda.has_pending %}
                                         <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.numero %}', this)"
-                                                title="Imprimir pedidos não impressos"
+                                                title="Imprimir pedidos ativos"
                                                 class="btn-imprimir-novos w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all active:scale-95">
                                             <svg class="w-5 h-5 btn-imprimir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                             </svg>
                                         </button>
+                                        {% else %}
+                                        <div class="w-10 h-10 flex-shrink-0"></div>
+                                        {% endif %}
                                     </div>
 
                                     <!-- Botões -->
@@ -249,9 +253,12 @@ async function imprimirPedidosNovos(url, btn) {
         const data = await resp.json();
 
         if (data.type === 'none') {
-            // Nenhum pedido pendente: restaura sem fazer nada
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
+            // Nenhum pedido ativo: avisa o usuário visualmente
+            btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"></path></svg>';
+            btn.style.borderColor = '#6b7280';
+            btn.style.color = '#6b7280';
+            btn.title = 'Sem pedidos ativos para imprimir';
+            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.title = 'Imprimir pedidos não impressos'; btn.disabled = false; }, 2000);
             return;
         }
 

@@ -1,0 +1,493 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel da Cozinha</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #111;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: #1a1a1a;
+      border-bottom: 2px solid #333;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.04em; }
+    .header-title span { color: #f97316; }
+    .header-meta { display: flex; align-items: center; gap: 20px; }
+    #clock { font-size: 20px; font-weight: 700; color: #fff; }
+    .badge-novos {
+      background: #dc2626; color: #fff; border-radius: 999px;
+      padding: 4px 14px; font-size: 13px; font-weight: 700; display: none;
+    }
+    .badge-novos.visible { display: inline-block; }
+
+    /* ── LISTA ── */
+    .lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── CARD RETANGULO HORIZONTAL ── */
+    .card {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 80px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .card:hover { transform: translateX(3px); }
+
+    /* NOVO — vermelho piscando */
+    .card.novo {
+      border: 2px solid #ef4444;
+      background: #1c0909;
+      box-shadow: 0 0 20px rgba(239,68,68,0.35);
+      animation: pulsar 1.4s ease-in-out infinite;
+    }
+    @keyframes pulsar {
+      0%, 100% { box-shadow: 0 0 14px rgba(239,68,68,0.3); border-color: #ef4444; }
+      50%       { box-shadow: 0 0 32px rgba(239,68,68,0.8); border-color: #fca5a5; }
+    }
+
+    /* EM PRODUÇÃO — amarelo */
+    .card.producao {
+      border: 2px solid #ca8a04;
+      background: #181200;
+      box-shadow: 0 0 12px rgba(202,138,4,0.2);
+      animation: none;
+    }
+
+    /* ── COLUNA ESQUERDA: identificação ── */
+    .col-id {
+      flex-shrink: 0;
+      width: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 10px;
+      gap: 4px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .card.novo .col-id { background: rgba(239,68,68,0.1); }
+    .card.producao .col-id { background: rgba(202,138,4,0.1); }
+
+    .card-seq { font-size: 30px; font-weight: 900; line-height: 1; }
+    .card.novo .card-seq { color: #f87171; }
+    .card.producao .card-seq { color: #fbbf24; }
+
+    .card-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .card.novo .card-status { background: #7f1d1d; color: #fca5a5; }
+    .card.producao .card-status { background: #78350f; color: #fde68a; }
+
+    .card-mesa {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ccc;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .card-mesa small { font-weight: 400; color: #666; font-size: 10px; display: block; }
+
+    .card-time {
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .card.novo .card-time { color: #b45454; }
+    .card.producao .card-time { color: #8a6900; }
+
+    /* ── COLUNA CENTRAL: itens ── */
+    .col-itens {
+      flex: 1;
+      padding: 12px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: center;
+      gap: 6px 20px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 180px;
+    }
+    .item-qty {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .card.novo .item-qty { background: rgba(239,68,68,0.2); color: #f87171; }
+    .card.producao .item-qty { background: rgba(202,138,4,0.2); color: #fbbf24; }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-nome { font-size: 15px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-obs { font-size: 11px; color: #888; font-style: italic; }
+
+    /* obs geral */
+    .obs-geral {
+      width: 100%;
+      font-size: 11px;
+      font-style: italic;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .card.novo .obs-geral { color: #fca5a5; background: rgba(239,68,68,0.08); }
+    .card.producao .obs-geral { color: #fde68a; background: rgba(202,138,4,0.08); }
+
+    /* ── COLUNA DIREITA: ação ── */
+    .col-acao {
+      flex-shrink: 0;
+      width: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .btn-imprimir {
+      width: 100%;
+      padding: 10px 6px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .btn-imprimir svg { width: 22px; height: 22px; }
+    .card.novo .btn-imprimir { background: #dc2626; color: #fff; }
+    .card.novo .btn-imprimir:hover { background: #b91c1c; }
+    .card.producao .btn-imprimir { background: #92400e; color: #fde68a; border: 1px solid #b45309; }
+    .card.producao .btn-imprimir:hover { background: #78350f; }
+
+    /* ── ESTADO VAZIO ── */
+    .empty {
+      text-align: center;
+      padding: 80px 24px;
+      color: #555;
+    }
+    .empty-icon { font-size: 56px; margin-bottom: 12px; }
+    .empty-text { font-size: 20px; font-weight: 700; color: #444; }
+    .empty-sub { font-size: 14px; color: #555; margin-top: 6px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #16a34a;
+      color: #fff;
+      padding: 10px 28px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title"><img src="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}" alt="Logo" style="height:40px;width:auto;object-fit:contain;vertical-align:middle;margin-right:10px;"> Painel da <span>Cozinha</span></div>
+    <div class="header-meta">
+      <span id="badge-novos" class="badge-novos">🔴 Novos</span>
+      <span id="clock"></span>
+    </div>
+  </div>
+
+  <!-- LISTA DE PEDIDOS -->
+  <div class="lista" id="grid-pedidos">
+    <div class="empty">
+      <div class="empty-icon">✅</div>
+      <div class="empty-text">Sem pedidos no momento</div>
+      <div class="empty-sub">Aguardando novos pedidos da cozinha...</div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const API_URL     = '{% url "orders:cozinha_api_pedidos" %}';
+    const CSRF        = '{{ csrf_token }}';
+    const FLASK_BRIDGE = 'https://localhost:5001/print';
+
+    // ── Relógio ──────────────────────────────────────────────────────────────
+    function atualizarRelogio() {
+      const agora = new Date();
+      document.getElementById('clock').textContent =
+        agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    // ── Toast ────────────────────────────────────────────────────────────────
+    function mostrarToast(msg, cor = '#16a34a') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.background = cor;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Renderizar card (retângulo horizontal) ───────────────────────────────
+    function renderCard(p) {
+      const isNovo = !p.impresso;
+      const cls    = isNovo ? 'novo' : 'producao';
+      const statusLabel = isNovo ? 'Novo' : 'Em Produção';
+
+      const itensHtml = p.itens_cozinha.map(i => `
+        <div class="item-row">
+          <div class="item-qty">${i.qty}x</div>
+          <div class="item-info">
+            <div class="item-nome">${i.nome}</div>
+            ${i.obs ? `<div class="item-obs">📝 ${i.obs}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      const obsHtml = p.observations
+        ? `<div class="obs-geral">⚠️ ${p.observations}</div>`
+        : '';
+
+      const btnLabel = isNovo ? 'Imprimir' : 'Reimprimir';
+      const btnHtml = `<button class="btn-imprimir" onclick="imprimirPedido(${p.id}, '${p.imprimir_url}', this)">
+             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+             ${btnLabel}
+           </button>`;
+
+      return `
+        <div class="card ${cls}" id="card-${p.id}" data-impresso="${p.impresso}" data-status="${p.status}">
+
+          <!-- COL ID -->
+          <div class="col-id">
+            <span class="card-status">${statusLabel}</span>
+            <span class="card-seq">#${p.pedido_seq}</span>
+            <div class="card-mesa">
+              <small>Mesa/Comanda</small>
+              ${p.cliente_nome || '#' + p.comanda_numero}
+            </div>
+            <div class="card-time">${p.created_at}</div>
+          </div>
+
+          <!-- COL ITENS -->
+          <div class="col-itens">
+            ${itensHtml}
+            ${obsHtml}
+          </div>
+
+          <!-- COL AÇÃO -->
+          <div class="col-acao">
+            ${btnHtml}
+          </div>
+
+        </div>
+      `;
+    }
+
+    // ── Polling ──────────────────────────────────────────────────────────────
+    let estadoAtual = {};
+    let primeiroLoad = true;
+
+    async function atualizarPainel() {
+      try {
+        const resp = await fetch(API_URL, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        const data = await resp.json();
+        const pedidos = data.pedidos;
+        const lista = document.getElementById('grid-pedidos');
+        const idsAtivos = new Set(pedidos.map(p => p.id));
+
+        // Detectar novos
+        if (!primeiroLoad) {
+          for (const p of pedidos) {
+            if (!p.impresso && !estadoAtual[p.id]) {
+              mostrarToast('🔴 Novo pedido chegou!', '#dc2626');
+              break;
+            }
+          }
+        }
+
+        // Badge de novos
+        const qtdNovos = pedidos.filter(p => !p.impresso).length;
+        const badge = document.getElementById('badge-novos');
+        if (qtdNovos > 0) {
+          badge.textContent = `🔴 ${qtdNovos} novo${qtdNovos > 1 ? 's' : ''}`;
+          badge.classList.add('visible');
+        } else {
+          badge.classList.remove('visible');
+        }
+
+        // Remover cards que saíram
+        for (const idStr of Object.keys(estadoAtual)) {
+          const id = parseInt(idStr);
+          if (!idsAtivos.has(id)) {
+            const el = document.getElementById(`card-${id}`);
+            if (el) {
+              el.style.transition = 'opacity 0.4s, transform 0.4s';
+              el.style.opacity = '0';
+              el.style.transform = 'translateX(20px)';
+              setTimeout(() => el.remove(), 400);
+            }
+            delete estadoAtual[id];
+          }
+        }
+
+        // Inserir / atualizar cards
+        for (const p of pedidos) {
+          const prev = estadoAtual[p.id];
+          const changed = !prev || prev.impresso !== p.impresso || prev.status !== p.status;
+
+          if (changed) {
+            const html = renderCard(p);
+            const existing = document.getElementById(`card-${p.id}`);
+            if (existing) {
+              existing.outerHTML = html;
+            } else {
+              const tmp = document.createElement('div');
+              tmp.innerHTML = html;
+              const newCard = tmp.firstElementChild;
+              newCard.style.opacity = '0';
+              newCard.style.transform = 'translateX(-20px)';
+              const empty = lista.querySelector('.empty');
+              if (empty) empty.remove();
+              lista.prepend(newCard);
+              requestAnimationFrame(() => {
+                newCard.style.transition = 'opacity 0.35s, transform 0.35s';
+                newCard.style.opacity = '1';
+                newCard.style.transform = 'translateX(0)';
+              });
+            }
+            estadoAtual[p.id] = {impresso: p.impresso, status: p.status};
+          }
+        }
+
+        // Empty state
+        if (pedidos.length === 0 && !lista.querySelector('.card')) {
+          lista.innerHTML = `
+            <div class="empty">
+              <div class="empty-icon">✅</div>
+              <div class="empty-text">Sem pedidos no momento</div>
+              <div class="empty-sub">Aguardando novos pedidos da cozinha...</div>
+            </div>`;
+          estadoAtual = {};
+        }
+
+        primeiroLoad = false;
+      } catch(e) {
+        console.error('Erro ao atualizar painel:', e);
+      }
+    }
+
+    // ── Imprimir ─────────────────────────────────────────────────────────────
+    const SVG_PRINTER = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>`;
+
+    async function imprimirPedido(id, url, btn) {
+      const labelOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="animate-spin" style="width:20px;height:20px;animation:spin 1s linear infinite" fill="none" viewBox="0 0 24 24"><circle style="opacity:.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:.75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+
+      try {
+        // 1. Buscar conteúdo de impressão no backend
+        const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        if (data.type === 'rawbt') {
+          // Mobile: RawBT intent
+          window.location.href = data.intent_url;
+          btn.innerHTML = labelOriginal;
+          btn.disabled = false;
+          return;
+        }
+
+        if (data.content_text) {
+          // Desktop: Flask bridge local
+          const bridgeResp = await fetch(FLASK_BRIDGE, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({content: data.content_text})
+          });
+          const bridgeData = await bridgeResp.json();
+          if (!bridgeData.success) {
+            throw new Error('Bridge retornou falha: ' + JSON.stringify(bridgeData));
+          }
+        }
+
+        // 2. Só marca como impresso se impressão foi bem-sucedida
+        await fetch(`/orders/cozinha/pedido/${id}/marcar-impresso/`, {
+          method: 'POST',
+          headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+        });
+
+        mostrarToast('✅ Pedido enviado para produção!');
+        await atualizarPainel();
+
+      } catch(e) {
+        console.error('Erro ao imprimir:', e);
+        mostrarToast('❌ Erro ao imprimir — verifique a impressora', '#dc2626');
+        btn.disabled = false;
+        btn.innerHTML = labelOriginal;
+      }
+    }
+
+    // ── Iniciar ──────────────────────────────────────────────────────────────
+    atualizarPainel();
+    setInterval(atualizarPainel, 5000);
+  </script>
+
+</body>
+</html>
