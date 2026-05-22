@@ -257,53 +257,32 @@ async function imprimirPedidosNovos(url, btn) {
             btn.style.borderColor = '#6b7280';
             btn.style.color = '#6b7280';
             btn.title = 'Sem pedidos ativos para imprimir';
-            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.title = 'Imprimir pedidos não impressos'; btn.disabled = false; }, 2000);
+            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.title = 'Imprimir pedidos ativos'; btn.disabled = false; }, 2000);
             return;
         }
 
-        if (data.type === 'print_data') {
-            const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
-
-            if (isMobile) {
-                // --- Android/tablet: RawBT — 1 intent por pedido ---
-                for (let i = 0; i < data.intent_urls.length; i++) {
-                    if (i > 0) await new Promise(r => setTimeout(r, 1500));
-                    window.location.href = data.intent_urls[i];
-                }
-                btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                btn.style.background = '#16a34a';
-                btn.style.borderColor = '#15803d';
-                btn.style.color = '#fff';
-                setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
-            } else {
-                // --- Desktop/Windows: Flask bridge ---
-                let sucesso = true;
-                for (const conteudo of data.contents) {
-                    try {
-                        const r = await fetch(FLASK_BRIDGE_URL_HOME, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: conteudo })
-                        });
-                        const rd = await r.json();
-                        if (!rd.success) { sucesso = false; break; }
-                    } catch (e) {
-                        sucesso = false;
-                        break;
-                    }
-                }
-                if (sucesso) {
-                    btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                    btn.style.background = '#16a34a';
-                    btn.style.borderColor = '#15803d';
-                    btn.style.color = '#fff';
-                    setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
+        if (data.type === 'pedido_list') {
+            // Chama o mesmo endpoint do botão individual para cada pedido
+            for (let i = 0; i < data.print_urls.length; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, 1500));
+                const r2 = await fetch(data.print_urls[i], { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const d2 = await r2.json();
+                if (d2.type === 'rawbt') {
+                    window.location.href = d2.intent_url;
                 } else {
-                    alert('Erro ao conectar com a impressora.');
-                    btn.innerHTML = originalHTML;
-                    btn.disabled = false;
+                    // Desktop: Flask bridge (mesmo que botão individual)
+                    await fetch(FLASK_BRIDGE_URL_HOME, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: d2.content_text })
+                    });
                 }
             }
+            btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            btn.style.background = '#16a34a';
+            btn.style.borderColor = '#15803d';
+            btn.style.color = '#fff';
+            setTimeout(() => { btn.innerHTML = originalHTML; btn.style = ''; btn.disabled = false; }, 2500);
             return;
         }
     } catch (e) {

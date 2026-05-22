@@ -2153,91 +2153,21 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
 
 class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
     """
-    Imprime todos os pedidos ativos (não entregues/cancelados) de uma comanda.
-    Chamado pelo botão de impressão no card da tela principal.
-    Imprime todos os pendentes — mesmo que já tenham sido impressos antes (para reimpressão).
+    Retorna a lista de URLs de impressão dos pedidos ativos da comanda.
+    O cliente JS chama cada URL individualmente (mesmo endpoint do botão por pedido).
     """
     def get(self, request, numero):
+        from django.urls import reverse
         comanda = get_object_or_404(Comanda, numero=numero)
         pedidos = list(
             comanda.pedidos
             .filter(status__in=['aguardando', 'preparando', 'pronta'])
-            .prefetch_related('items__product')
             .order_by('id')
         )
-
         if not pedidos:
-            return JsonResponse({'type': 'none', 'message': 'Nenhum pedido ativo para imprimir'})
-
-        # Marcar todos como impressos
-        pedido_ids = [p.id for p in pedidos]
-        Pedido.objects.filter(id__in=pedido_ids).update(impresso=True)
-
-        # Gera ambos os formatos — cliente decide qual usar (mobile vs desktop)
-        intent_urls = []
-        bridge_contents = []
-
-        for pedido in pedidos:
-            data_formatada = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
-
-            # ----- Formato mobile (RawBT / 48 cols) -----
-            mob = []
-            mob.append(str(" COPA / COZINHA ").center(48, "-"))
-            mob.append(str(" Ticket de Preparo ").center(48, " "))
-            mob.append("-" * 48)
-            mob.append(f"COMANDA: {pedido.comanda.numero}")
-            mob.append(f"PEDIDO: #{pedido.pedido_seq}")
-            mob.append(f"DATA: {data_formatada}")
-            mob.append("-" * 48)
-            mob.append("ITENS PARA PREPARAR:\n")
-            for item in pedido.items.all():
-                mob.append(f"{item.quantity}x {item.product.name}")
-                if item.observations:
-                    mob.append(f"   Obs: {item.observations}")
-            if pedido.observations:
-                mob.append("-" * 48)
-                mob.append("OBSERVACOES GERAIS:")
-                mob.append(pedido.observations)
-            mob.append("-" * 48)
-            mob.append(str("Fim do Pedido").center(48, " "))
-            mob.append("\n\n\n\n\n")
-            mob.append("\x1d\x56\x00")
-            encoded = urllib.parse.quote("\n".join(mob))
-            intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
-
-            # ----- Formato desktop (Flask bridge / 42 cols) -----
-            desk = []
-            desk.append(str(" COPA / COZINHA ").center(42, "-"))
-            desk.append("Ticket de Preparo".center(42))
-            desk.append("-" * 42)
-            desk.append(f"COMANDA: {pedido.comanda.numero}")
-            desk.append(f"PEDIDO: #{pedido.pedido_seq}")
-            desk.append(f"DATA: {data_formatada}")
-            desk.append("-" * 42)
-            desk.append("ITENS PARA PREPARAR:")
-            desk.append("")
-            for item in pedido.items.all():
-                desk.append(f"  {item.quantity}x {item.product.name}")
-                if item.observations:
-                    desk.append(f"     Obs: {item.observations}")
-            if pedido.observations:
-                desk.append("-" * 42)
-                desk.append("OBS GERAIS:")
-                desk.append(pedido.observations)
-            desk.append("-" * 42)
-            desk.append("Fim do Pedido".center(42))
-            desk.append("")
-            desk.append("")
-            desk.append("")
-            desk.append("\x1d\x56\x41")
-            bridge_contents.append("\n".join(desk))
-
-        return JsonResponse({
-            "type": "print_data",
-            "intent_urls": intent_urls,
-            "contents": bridge_contents,
-        })
-
+            return JsonResponse({'type': 'none'})
+        urls = [reverse('orders:imprimir_pedido', args=[p.pk]) for p in pedidos]
+        return JsonResponse({'type': 'pedido_list', 'print_urls': urls})
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
