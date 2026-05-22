@@ -129,7 +129,7 @@
                                         </div>
                                         <!-- Botão quadrado: imprimir pedidos não entregues — só aparece se há pedidos ativos -->
                                         {% if comanda.has_pending %}
-                                        <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.numero %}', this)"
+                                        <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.pk %}', this)"
                                                 title="Imprimir pedidos ativos"
                                                 class="btn-imprimir-novos w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all active:scale-95">
                                             <svg class="w-5 h-5 btn-imprimir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,13 +252,6 @@ async function imprimirPedidosNovos(url, btn) {
         const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
 
-        if (data.type === 'debug_error') {
-            alert('ERRO SERVIDOR: ' + data.error + '\n\n' + data.tb);
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
-            return;
-        }
-
         if (data.type === 'none') {
             btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"></path></svg>';
             btn.style.borderColor = '#6b7280';
@@ -294,7 +287,7 @@ async function imprimirPedidosNovos(url, btn) {
         }
     } catch (e) {
         console.error('Erro ao imprimir:', e);
-        alert('DEBUG - ' + e.name + ': ' + e.message);
+        alert('Erro ao conectar com a impressora.');
         btn.innerHTML = originalHTML;
         btn.disabled = false;
     }
