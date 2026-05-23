@@ -384,6 +384,50 @@ def user_delete(request, user_id):
 
 
 # API para verificar mudanças nas comandas (polling inteligente)
+
+
+class HomeCardsView(LoginRequiredMixin, View):
+    """
+    Retorna apenas o HTML dos cards de comandas (sem base template).
+    Usado pelo polling AJAX para atualizar os cards sem recarregar a página.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request):
+        from django.shortcuts import render as _render
+        config = SystemConfig.get_settings()
+        limit_minutes = config.max_order_time_minutes
+        agora = timezone.now()
+
+        comandas_abertas = Comanda.objects.filter(
+            status__in=['em_uso', 'aguardando_caixa']
+        ).order_by('-created_at')
+
+        for comanda in comandas_abertas:
+            comanda.is_delayed = False
+            comanda.has_pending = False
+            pedidos_pendentes = list(comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta']))
+            if pedidos_pendentes:
+                comanda.has_pending = True
+            comanda.tem_nao_impressos = any(not p.impresso for p in pedidos_pendentes)
+            for pedido in pedidos_pendentes:
+                if pedido.status in ['aguardando', 'preparando']:
+                    espera_minutos = (agora - pedido.created_at).total_seconds() / 60
+                    if espera_minutos > limit_minutes:
+                        comanda.is_delayed = True
+                        break
+            if comanda.cliente_nome and comanda.cliente_nome.upper().startswith('MESA'):
+                comanda.display_label = comanda.cliente_nome
+                mesa_part = comanda.cliente_nome.split()[-1] if ' ' in comanda.cliente_nome else comanda.numero
+                comanda.display_badge = mesa_part
+            else:
+                comanda.display_label = f"Comanda {comanda.numero}"
+                comanda.display_badge = comanda.numero
+
+        return _render(request, 'home/_cards_fragment.html', {
+            'comandas_abertas': comandas_abertas,
+        })
+
 class CheckOrderChangesView(LoginRequiredMixin, View):
     """
     API que verifica se houve mudanças nas comandas abertas

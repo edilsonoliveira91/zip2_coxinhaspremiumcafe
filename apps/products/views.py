@@ -1109,8 +1109,8 @@ class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Obtém todos os produtos ordenados por categoria e nome
-        products = Product.objects.select_related('created_by').prefetch_related(
+        # Apenas produtos ativos no sistema (inativo no sistema = não aparece aqui)
+        products = Product.objects.filter(is_active=True).select_related('created_by').prefetch_related(
             'opcionais_obrigatorios'
         ).order_by('category', 'name')
         
@@ -1137,13 +1137,13 @@ class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             if action == 'toggle_product':
                 product_id = data.get('product_id')
                 product = get_object_or_404(Product, id=product_id)
-                product.is_active = not product.is_active
+                product.visivel_kiosk = not product.visivel_kiosk
                 product.updated_by = request.user
                 product.save()
                 return JsonResponse({
                     'status': 'success',
-                    'message': f'Produto {product.name} foi {"ativado" if product.is_active else "desativado"}',
-                    'is_active': product.is_active,
+                    'message': f'Produto {product.name} foi {"ativado" if product.visivel_kiosk else "desativado"} no Kiosk',
+                    'is_active': product.visivel_kiosk,
                 })
             
             elif action == 'toggle_opcional':

@@ -48,6 +48,11 @@ class Product(TimeStampedModel):
         verbose_name="Mostrar no Cardápio"
     )
 
+    visivel_kiosk = models.BooleanField(
+        default=True,
+        verbose_name="Visível no Kiosk"
+    )
+
     DESTINO_CHOICES = [
         ('balcao', 'Balcão'),
         ('cozinha', 'Cozinha'),

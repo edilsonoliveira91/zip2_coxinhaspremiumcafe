@@ -17,6 +17,7 @@ urlpatterns = [
 
     # API para verificar mudanças nas comandas
     path('api/check-orders-changes/', views.CheckOrderChangesView.as_view(), name='check_orders_changes'),
+    path('api/cards/', views.HomeCardsView.as_view(), name='home_cards'),
 
     # Impressão de comandas
     path('comandas/<str:comanda_code>/imprimir/', views.imprimir_comanda_view, name='imprimir_comanda'),

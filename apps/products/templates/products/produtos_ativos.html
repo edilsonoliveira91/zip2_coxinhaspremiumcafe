@@ -18,7 +18,7 @@
                     </div>
                     Produtos Ativos
                 </h1>
-                <p class="text-gray-600 mt-2">Gerencie a disponibilidade de produtos e opcionais no sistema</p>
+                <p class="text-gray-600 mt-2">Controle quais produtos aparecem no <strong>Kiosk</strong>. Produtos desativados aqui somem apenas do kiosk — o sistema continua funcionando normalmente.</p>
             </div>
         </div>
 
@@ -108,7 +108,7 @@
                     <!-- Header da listagem -->
                     <div class="p-6 border-b border-gray-100">
                         <h2 class="text-xl font-semibold text-gray-900">Lista de Produtos</h2>
-                        <p class="text-sm text-gray-500 mt-1">Marque ou desmarque o checkbox para ativar/desativar. Clique no produto para ver os sabores.</p>
+                        <p class="text-sm text-gray-500 mt-1">Marque/desmarque para mostrar ou ocultar no <strong>Kiosk</strong>. Clique no produto para ver os sabores.</p>
                     </div>
 
                     <!-- Grid de produtos -->
@@ -129,7 +129,7 @@
                                             type="checkbox"
                                             class="toggle-product w-5 h-5 rounded cursor-pointer flex-shrink-0"
                                             data-product-id="{{ item.product.id }}"
-                                            {% if item.product.is_active %}checked{% endif %}
+                                            {% if item.product.visivel_kiosk %}checked{% endif %}
                                             onclick="event.stopPropagation()"
                                         >
                                         <!-- Info -->
@@ -157,8 +157,8 @@
                                     <!-- Status + chevron -->
                                     <div class="flex items-center space-x-3 ml-4 flex-shrink-0">
                                         <span class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap
-                                            {% if item.product.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                            {% if item.product.is_active %}✓ Ativo{% else %}✕ Inativo{% endif %}
+                                            {% if item.product.visivel_kiosk %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                            {% if item.product.visivel_kiosk %}✓ No Kiosk{% else %}✕ Oculto no Kiosk{% endif %}
                                         </span>
                                         {% if item.opcionais %}
                                         <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">

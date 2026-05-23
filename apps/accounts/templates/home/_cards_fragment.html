@@ -1,0 +1,82 @@
+{% for comanda in comandas_abertas %}
+    <!-- Comanda real com estilo simplificado -->
+    <div
+        style="{% if comanda.status == 'aguardando_caixa' %} border-color: #6b7280 !important; border-width: 2px !important; {% elif comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
+        class="group relative border-2
+        {% if comanda.status == 'aguardando_caixa' %}
+            bg-gray-100 border-gray-400
+        {% elif comanda.is_delayed %}
+            bg-red-100 border-4 border-red-600 shadow-xl shadow-red-500/50 animate-pulse
+        {% elif comanda.has_pending %}
+            bg-yellow-100 border-yellow-400 shadow-md shadow-yellow-200/50
+        {% else %}
+            bg-white border-gray-200
+        {% endif %}
+        rounded-2xl p-3 transition-all duration-300"
+        data-comanda
+        data-numero="{{ comanda.numero }}"
+        data-mesa="{{ comanda.cliente_nome }}">
+
+        <!-- Header da comanda -->
+        <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
+                    {{ comanda.display_badge }}
+                </div>
+                <div>
+                    <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
+                    {% if comanda.status == 'aguardando_caixa' %}
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">⬛ MESA FECHADA</p>
+                    {% else %}
+                    <p class="text-xs text-gray-500 font-medium">
+                        <span class="text-gray-400 font-normal">Aberta às</span>
+                        {{ comanda.created_at|time:"H:i" }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% if comanda.has_pending %}
+            <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.pk %}', this)"
+                    title="Imprimir pedidos ativos"
+                    class="btn-imprimir-novos w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all active:scale-95">
+                <svg class="w-5 h-5 btn-imprimir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+            </button>
+            {% else %}
+            <div class="w-10 h-10 flex-shrink-0"></div>
+            {% endif %}
+        </div>
+
+        <!-- Botões -->
+        {% if comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_superuser or comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_caixa %}
+        <div style="display:flex;gap:6px;">
+            <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'"
+                    class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-3 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                Detalhes
+            </button>
+            {% if comanda.status == 'em_uso' %}
+            <button onclick="event.stopPropagation(); abrirModalFecharMesa('{{ comanda.numero }}')"
+                    style="background:#b91c1c;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='#b91c1c'"
+                    class="flex-1 text-white py-2 px-3 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                Fechar Mesa
+            </button>
+            {% endif %}
+        </div>
+        {% else %}
+        <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'"
+                class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+            Detalhes
+        </button>
+        {% endif %}
+
+    </div>
+{% empty %}
+    <div class="col-span-full text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma comanda aberta</h3>
+        <p class="text-gray-500">Todas as comandas foram finalizadas ou não há comandas criadas.</p>
+    </div>
+{% endfor %}

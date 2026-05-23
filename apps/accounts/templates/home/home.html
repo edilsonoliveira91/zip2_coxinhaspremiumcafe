@@ -88,7 +88,7 @@
 
                     <!-- Grid de comandas com visual moderno -->
                     <div class="p-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+                        <div id="comandas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-6">
                             
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
@@ -552,17 +552,16 @@ class OrderPolling {
                 const hasChanges = this.detectChanges(data);
                 
                 if (hasChanges) {
-                    console.log('🔄 Mudanças detectadas! Recarregando página...');
-                    
-                    // Salvar notificação se necessário
+                    console.log('🔄 Mudanças detectadas! Atualizando cards...');
+
+                    // Mostrar notificação diretamente (sem reload)
                     if (data.comandas_abertas > this.lastKnownState.comandas_abertas) {
-                        localStorage.setItem('comandaNotificacao', JSON.stringify({
-                            message: 'NOVA COMANDA CRIADA! Página atualizada automaticamente.',
-                            type: 'sucesso'
-                        }));
+                        if (typeof mostrarNotificacao === 'function') {
+                            mostrarNotificacao('Nova comanda criada!', 'success');
+                        }
                     }
-                    
-                    window.location.reload();
+
+                    await this.atualizarCards();
                 } else {
                     console.log('✅ Nenhuma mudança detectada');
                 }
@@ -603,6 +602,19 @@ class OrderPolling {
         return hasChanges;
     }
     
+    async atualizarCards() {
+        const grid = document.getElementById('comandas-grid');
+        if (!grid) return;
+        try {
+            const resp = await fetch('/accounts/api/cards/');
+            if (resp.ok) {
+                grid.innerHTML = await resp.text();
+            }
+        } catch(e) {
+            console.error('Erro ao atualizar cards:', e);
+        }
+    }
+
     startPolling() {
         console.log('🚀 Iniciando monitoramento automático de comandas (15s)');
         
@@ -628,43 +640,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.orderPolling = new OrderPolling();
 });
 
-// Focar automaticamente no campo de pesquisa quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('search-comandas');
-    if (searchInput) {
-        // Dar foco no campo
-        searchInput.focus();
-        
-        // Posicionar cursor no final do texto (caso tenha algum valor)
-        searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-        
-        console.log('Foco automático aplicado no campo de pesquisa');
-    }
-});
+// Foco automático desabilitado para evitar abertura do teclado no tablet
 
-// Também focar quando a página ficar visível novamente (quando voltar de outra aba/aplicativo)
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        const searchInput = document.getElementById('search-comandas');
-        if (searchInput) {
-            // Pequeno delay para garantir que a página está totalmente carregada
-            setTimeout(() => {
-                searchInput.focus();
-            }, 100);
-        }
-    }
-});
+// visibilitychange focus desabilitado para evitar abertura do teclado no tablet
 
-// Focar novamente quando clicar em qualquer lugar da página (útil para leitores de código)
-document.addEventListener('click', function(e) {
-    // Não focar se clicou em um input, button ou link
-    if (!e.target.matches('input, button, a, select, textarea')) {
-        const searchInput = document.getElementById('search-comandas');
-        if (searchInput) {
-            searchInput.focus();
-        }
-    }
-});
+// click focus desabilitado para evitar abertura do teclado no tablet
 </script>
 
 <!-- DEPOIS vem o JS externo -->

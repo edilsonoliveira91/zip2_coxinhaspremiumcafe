@@ -45,7 +45,7 @@ def cardapio(request, numero):
         comanda_mesa.cliente_nome = mesa_label
         comanda_mesa.save(update_fields=['cliente_nome'])
 
-    produtos = Product.objects.filter(show_in_menu=True, is_active=True).order_by('category', 'name')
+    produtos = Product.objects.filter(show_in_menu=True, is_active=True, visivel_kiosk=True).order_by('category', 'name')
 
     # Agrupar por categoria
     categorias = {}
