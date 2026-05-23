@@ -2080,10 +2080,12 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
 class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
-        # Marcar como impresso
+        # Marcar como impresso (e registrar hora de impressão)
         if not pedido.impresso:
             pedido.impresso = True
-            pedido.save(update_fields=['impresso'])
+            if not pedido.started_at:
+                pedido.started_at = timezone.now()
+            pedido.save(update_fields=['impresso', 'started_at'])
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
         is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
@@ -2161,12 +2163,81 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         pedidos = list(
             comanda.pedidos
             .filter(status__in=['aguardando', 'preparando', 'pronta'])
+            .prefetch_related('items__product')
             .order_by('id')
         )
         if not pedidos:
             return JsonResponse({'type': 'none'})
-        urls = [reverse('orders:imprimir_pedido', args=[p.pk]) for p in pedidos]
-        return JsonResponse({'type': 'pedido_list', 'print_urls': urls})
+
+        # Marcar todos como impressos
+        from django.db.models import Q
+        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(impresso=True, started_at=timezone.now())
+        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=False).update(impresso=True)
+
+        # Gera 1 intent URL por pedido (mobile) + conteúdo bridge (desktop)
+        intent_urls = []
+        bridge_contents = []
+
+        for pedido in pedidos:
+            data_fmt = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+
+            # Mobile (RawBT 48 cols)
+            mob = []
+            mob.append(str(" COPA / COZINHA ").center(48, "-"))
+            mob.append(str(" Ticket de Preparo ").center(48, " "))
+            mob.append("-" * 48)
+            mob.append(f"COMANDA: {pedido.comanda.numero}")
+            mob.append(f"PEDIDO: #{pedido.pedido_seq}")
+            mob.append(f"DATA: {data_fmt}")
+            mob.append("-" * 48)
+            mob.append("ITENS PARA PREPARAR:\n")
+            for item in pedido.items.all():
+                mob.append(f"{item.quantity}x {item.product.name}")
+                if item.observations:
+                    mob.append(f"   Obs: {item.observations}")
+            if pedido.observations:
+                mob.append("-" * 48)
+                mob.append("OBSERVACOES GERAIS:")
+                mob.append(pedido.observations)
+            mob.append("-" * 48)
+            mob.append(str("Fim do Pedido").center(48, " "))
+            mob.append("\\n\\n\\n\\n\\n")
+            mob.append("V")
+            encoded = urllib.parse.quote("\n".join(mob))
+            intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
+
+            # Desktop (Flask bridge 42 cols)
+            desk = []
+            desk.append(str(" COPA / COZINHA ").center(42, "-"))
+            desk.append("Ticket de Preparo".center(42))
+            desk.append("-" * 42)
+            desk.append(f"COMANDA: {pedido.comanda.numero}")
+            desk.append(f"PEDIDO: #{pedido.pedido_seq}")
+            desk.append(f"DATA: {data_fmt}")
+            desk.append("-" * 42)
+            desk.append("ITENS PARA PREPARAR:")
+            desk.append("")
+            for item in pedido.items.all():
+                desk.append(f"  {item.quantity}x {item.product.name}")
+                if item.observations:
+                    desk.append(f"     Obs: {item.observations}")
+            if pedido.observations:
+                desk.append("-" * 42)
+                desk.append("OBS GERAIS:")
+                desk.append(pedido.observations)
+            desk.append("-" * 42)
+            desk.append("Fim do Pedido".center(42))
+            desk.append("")
+            desk.append("")
+            desk.append("")
+            desk.append("VA")
+            bridge_contents.append("\n".join(desk))
+
+        return JsonResponse({
+            "type": "rawbt_multi",
+            "intent_urls": intent_urls,
+            "contents": bridge_contents,
+        })
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
@@ -2486,6 +2557,7 @@ class CozinhaApiPedidosView(LoginRequiredMixin, View):
                 'comanda_numero': p.comanda.numero,
                 'cliente_nome': p.comanda.cliente_nome or '',
                 'created_at': timezone.localtime(p.created_at).strftime('%d/%m/%Y %H:%M'),
+                'created_at_ts': int(p.created_at.timestamp()),
                 'impresso': p.impresso,
                 'status': p.status,
                 'observations': p.observations or '',

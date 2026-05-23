@@ -346,3 +346,119 @@ class DownloadXMLZipView(LoginRequiredMixin, View):
         response = HttpResponse(buffer.read(), content_type='application/zip')
         response['Content-Disposition'] = f'attachment; filename="nfce_xml_{data_inicio}_{data_fim}.zip"'
         return response
+
+
+class CozinhaReportView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Relatório de performance da cozinha: tempos por pedido entregue."""
+    permission_required = 'orders.view_order'
+    template_name = 'reports/cozinha_report.html'
+
+    def handle_no_permission(self):
+        from django.shortcuts import redirect
+        return redirect('accounts:login')
+
+    def get(self, request):
+        from django.db.models import F, ExpressionWrapper, DurationField
+        today = timezone.localtime().date()
+
+        data_inicio = request.GET.get('data_inicio', today.strftime('%Y-%m-%d'))
+        data_fim    = request.GET.get('data_fim',    today.strftime('%Y-%m-%d'))
+
+        try:
+            dt_inicio = timezone.make_aware(datetime.strptime(data_inicio, '%Y-%m-%d'))
+            dt_fim    = timezone.make_aware(datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1))
+        except ValueError:
+            dt_inicio = timezone.make_aware(datetime(today.year, today.month, today.day))
+            dt_fim    = dt_inicio + timedelta(days=1)
+
+        pedidos = (
+            Pedido.objects
+            .filter(
+                status='entregue',
+                delivered_at__gte=dt_inicio,
+                delivered_at__lt=dt_fim,
+                items__product__destino_producao='cozinha',
+            )
+            .distinct()
+            .select_related('comanda')
+            .prefetch_related('items__product')
+            .order_by('-delivered_at')
+        )
+
+        rows = []
+        total_segundos = 0
+        count_com_tempo = 0
+
+        for p in pedidos:
+            t_feito    = timezone.localtime(p.created_at)  if p.created_at   else None
+            t_impresso = timezone.localtime(p.started_at)  if p.started_at   else None
+            t_entregue = timezone.localtime(p.delivered_at) if p.delivered_at else None
+
+            # Tempo total: criação → entrega
+            if t_feito and t_entregue:
+                delta = p.delivered_at - p.created_at
+                secs  = int(delta.total_seconds())
+                total_segundos += secs
+                count_com_tempo += 1
+                mins, seg = divmod(secs, 60)
+                horas, mins = divmod(mins, 60)
+                tempo_total = f"{horas:02d}:{mins:02d}:{seg:02d}" if horas else f"{mins:02d}:{seg:02d}"
+            else:
+                tempo_total = "—"
+                secs = None
+
+            # Tempo feito → impresso
+            if t_feito and t_impresso:
+                d2 = p.started_at - p.created_at
+                s2 = int(d2.total_seconds())
+                m2, s2r = divmod(s2, 60)
+                h2, m2r = divmod(m2, 60)
+                tempo_prep = f"{h2:02d}:{m2r:02d}:{s2r:02d}" if h2 else f"{m2r:02d}:{s2r:02d}"
+            else:
+                tempo_prep = "—"
+
+            # Tempo impresso → entregue
+            if t_impresso and t_entregue:
+                d3 = p.delivered_at - p.started_at
+                s3 = int(d3.total_seconds())
+                m3, s3r = divmod(s3, 60)
+                h3, m3r = divmod(m3, 60)
+                tempo_entrega = f"{h3:02d}:{m3r:02d}:{s3r:02d}" if h3 else f"{m3r:02d}:{s3r:02d}"
+            else:
+                tempo_entrega = "—"
+
+            rows.append({
+                'pedido_seq': p.pedido_seq,
+                'comanda_numero': p.comanda.numero,
+                'cliente_nome': p.comanda.cliente_nome or '',
+                'data_pedido': t_feito.strftime('%d/%m/%Y') if t_feito else '—',
+                't_recebido':  t_feito.strftime('%H:%M:%S') if t_feito else '—',
+                't_impresso': t_impresso.strftime('%H:%M:%S') if t_impresso else '—',
+                't_entregue': t_entregue.strftime('%H:%M:%S') if t_entregue else '—',
+                'tempo_prep': tempo_prep,
+                'tempo_entrega': tempo_entrega,
+                'tempo_total': tempo_total,
+                'tempo_total_secs': secs,
+                'itens_json': json.dumps([
+                    {'qty': item.quantity, 'nome': item.product.name, 'obs': item.observations or ''}
+                    for item in p.items.all()
+                    if item.product.destino_producao == 'cozinha'
+                ]),
+            })
+
+        # Tempo médio geral
+        if count_com_tempo > 0:
+            media_secs = total_segundos // count_com_tempo
+            mm, ms = divmod(media_secs, 60)
+            hm, mmr = divmod(mm, 60)
+            media_str = f"{hm:02d}:{mmr:02d}:{ms:02d}" if hm else f"{mmr:02d}:{ms:02d}"
+        else:
+            media_str = "—"
+
+        return render(request, self.template_name, {
+            'rows': rows,
+            'total': len(rows),
+            'media_tempo': media_str,
+            'data_inicio': data_inicio,
+            'data_fim': data_fim,
+        })

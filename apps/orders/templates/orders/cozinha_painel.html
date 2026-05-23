@@ -130,6 +130,49 @@
     .card.novo .card-time { color: #b45454; }
     .card.producao .card-time { color: #8a6900; }
 
+    /* ── COLUNA DO TIMER ── */
+    .col-timer {
+      flex-shrink: 0;
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 12px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      gap: 6px;
+    }
+    .card-timer-wrap {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      min-width: 130px;
+    }
+    .card-timer {
+      font-size: 40px;
+      font-weight: 900;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    .card.novo .card-timer { color: #dc2626; }
+    .card.producao .card-timer { color: #b45309; }
+    .card-timer-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+    }
+    /* alerta vermelho quando > 15 min em produção */
+    .card-timer-wrap.alerta { background: #fee2e2; box-shadow: 0 2px 12px rgba(239,68,68,0.4); }
+    .card-timer-wrap.alerta .card-timer { color: #dc2626; }
+
     /* ── COLUNA CENTRAL: itens ── */
     .col-itens {
       flex: 1;
@@ -266,6 +309,31 @@
     const CSRF        = '{{ csrf_token }}';
     const FLASK_BRIDGE = 'https://localhost:5001/print';
 
+    // ── Timers dos cards ─────────────────────────────────────────────────────
+    function atualizarTimers() {
+      const now = Math.floor(Date.now() / 1000);
+      document.querySelectorAll('[data-ts]').forEach(el => {
+        const diff = Math.max(0, now - parseInt(el.dataset.ts));
+        const h   = Math.floor(diff / 3600);
+        const min = Math.floor((diff % 3600) / 60);
+        const sec = diff % 60;
+        el.textContent = h > 0
+          ? `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+          : `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        // Alerta visual: fundo vermelho se > 15 min em produção
+        const wrap = document.getElementById('timer-wrap-' + el.id.replace('timer-', ''));
+        if (wrap) {
+          if (diff > 900 && el.closest('.card.producao')) {
+            wrap.classList.add('alerta');
+          } else {
+            wrap.classList.remove('alerta');
+          }
+        }
+      });
+    }
+    setInterval(atualizarTimers, 1000);
+    atualizarTimers();
+
     // ── Relógio ──────────────────────────────────────────────────────────────
     function atualizarRelogio() {
       const agora = new Date();
@@ -324,6 +392,14 @@
             <div class="card-time">${p.created_at}</div>
           </div>
 
+          <!-- COL TIMER -->
+          <div class="col-timer">
+            <div class="card-timer-wrap" id="timer-wrap-${p.id}">
+              <div class="card-timer" id="timer-${p.id}" data-ts="${p.created_at_ts}">00:00</div>
+              <div class="card-timer-label">em preparo</div>
+            </div>
+          </div>
+
           <!-- COL ITENS -->
           <div class="col-itens">
             ${itensHtml}
@@ -337,6 +413,36 @@
 
         </div>
       `;
+    }
+
+    // ── Reordenar cards: novos (vermelho) sempre acima de produção (amarelo) ───
+    function reordenarCards() {
+      const lista = document.getElementById('grid-pedidos');
+      const cards = Array.from(lista.querySelectorAll('.card'));
+      if (cards.length < 2) return;
+
+      const novos    = cards.filter(c => c.classList.contains('novo'));
+      const producao = cards.filter(c => c.classList.contains('producao'));
+
+      // Verificar se a ordem já está correta
+      const expected = [...novos, ...producao];
+      const needsSort = cards.some((c, i) => c !== expected[i]);
+      if (!needsSort) return;
+
+      // Animar cards de produção que vão mover (fade out → move → fade in)
+      producao.forEach(card => {
+        card.style.transition = 'opacity 0.25s, transform 0.25s';
+        card.style.opacity = '0.3';
+        card.style.transform = 'translateY(-6px)';
+      });
+
+      setTimeout(() => {
+        expected.forEach(card => lista.appendChild(card));
+        producao.forEach(card => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        });
+      }, 250);
     }
 
     // ── Polling ──────────────────────────────────────────────────────────────
@@ -425,6 +531,9 @@
             </div>`;
           estadoAtual = {};
         }
+
+        // Garantir que novos (vermelho) aparecem acima de produção (amarelo)
+        reordenarCards();
 
         primeiroLoad = false;
       } catch(e) {
