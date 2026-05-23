@@ -8,6 +8,13 @@ import datetime
 from .models import StockEntry
 
 
+NFCE_FIELDS = [
+    'ncm', 'cfop', 'cst_icms', 'base_calculo_icms', 'aliq_icms',
+    'codigo_cbenef', 'dados_adicionais_nfe', 'cst_pis_cofins',
+    'aliq_pis', 'aliq_cofins', 'cst_ibs_cbs', 'cclass',
+]
+
+
 class ProductForm(forms.ModelForm):
     """
     Formulário para criação e edição de produtos
@@ -146,6 +153,7 @@ class ProductForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.can_edit_nfce = kwargs.pop('can_edit_nfce', True)
         super().__init__(*args, **kwargs)
         
         # Remover mensagens de help padrão
@@ -174,6 +182,31 @@ class ProductForm(forms.ModelForm):
         self.fields['cst_pis_cofins'].required = True
         self.fields['cst_pis_cofins'].error_messages = {'required': 'O CST PIS/COFINS é obrigatório para emissão de NFC-e.'}
 
+        # Se usuário não tem permissão NFC-e: desabilita e torna opcional
+        if not self.can_edit_nfce:
+            for field_name in NFCE_FIELDS:
+                if field_name in self.fields:
+                    self.fields[field_name].required = False
+                    self.fields[field_name].widget.attrs['disabled'] = True
+                    self.fields[field_name].widget.attrs['class'] = (
+                        self.fields[field_name].widget.attrs.get('class', '') +
+                        ' bg-gray-100 cursor-not-allowed opacity-60'
+                    )
+
+
+    def clean(self):
+        cleaned = super().clean()
+        if not self.can_edit_nfce:
+            from .models import Product as _Product
+            for field_name in NFCE_FIELDS:
+                if self.instance and self.instance.pk:
+                    # Update: restaura o valor original do banco
+                    cleaned[field_name] = getattr(self.instance, field_name)
+                else:
+                    # Create: usa o default do model
+                    model_field = _Product._meta.get_field(field_name)
+                    cleaned[field_name] = model_field.get_default()
+        return cleaned
 
 class ComboForm(forms.ModelForm):
     """

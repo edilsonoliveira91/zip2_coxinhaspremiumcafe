@@ -244,9 +244,9 @@ def get_permissions_by_app():
     excluded_apps = {
         'admin', 'auth', 'contenttypes', 'sessions', 'messages',
         'staticfiles', 'tailwind', 'django_browser_reload', 'theme', 'impressao',
+        'utils',  # modelos internos do sistema (SyncLog, etc.)
     }
 
-    # Apenas CRUD padrão do Django (sem permissões customizadas)
     STANDARD_ACTIONS = {'add', 'view', 'change', 'delete'}
 
     app_configs = [
@@ -260,31 +260,34 @@ def get_permissions_by_app():
 
     permissions_by_app = {}
     for app_config in app_configs:
-        app_permissions = Permission.objects.filter(
+        all_perms = list(Permission.objects.filter(
             content_type__app_label=app_config.label
-        ).order_by('content_type__model', 'codename')
+        ).order_by('content_type__model', 'codename').select_related('content_type'))
 
-        # filtra só as 4 permissões CRUD padrão (codename exato: add_model, view_model, etc.)
-        app_permissions = [
-            perm for perm in app_permissions
-            if perm.codename in {
-                f'{action}_{perm.content_type.model}' for action in STANDARD_ACTIONS
-            }
-        ]
-
-        if not app_permissions:
+        if not all_perms:
             continue
 
         permissions_by_model = {}
-        for perm in app_permissions:
+        for perm in all_perms:
             model_name = perm.content_type.model
             if model_name not in permissions_by_model:
                 display_name = MODEL_NAMES_PT.get(model_name, perm.content_type.name.title())
                 permissions_by_model[model_name] = {
                     'name': display_name,
-                    'permissions': []
+                    'permissions': [],
+                    'custom_permissions': [],
                 }
-            permissions_by_model[model_name]['permissions'].append(perm)
+            standard_codenames = {f'{action}_{model_name}' for action in STANDARD_ACTIONS}
+            if perm.codename in standard_codenames:
+                permissions_by_model[model_name]['permissions'].append(perm)
+            else:
+                permissions_by_model[model_name]['custom_permissions'].append(perm)
+
+        # Remove modelos sem nenhuma permissão relevante
+        permissions_by_model = {
+            k: v for k, v in permissions_by_model.items()
+            if v['permissions'] or v['custom_permissions']
+        }
 
         if permissions_by_model:
             app_display = APP_LABELS_PT.get(app_config.label, app_config.verbose_name)

@@ -100,6 +100,16 @@ class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     login_url = reverse_lazy('accounts:login')
     permission_required = 'products.add_product'
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['can_edit_nfce'] = True  # criação sempre permite NFC-e (campos obrigatórios)
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['can_edit_nfce'] = True
+        return context
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
@@ -133,6 +143,16 @@ class ProductUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
     
     def get_queryset(self):
         return Product.objects.all()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['can_edit_nfce'] = self.request.user.has_perm('products.manage_nfce_fields')
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['can_edit_nfce'] = self.request.user.has_perm('products.manage_nfce_fields')
+        return context
     
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
@@ -1100,10 +1120,10 @@ class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
     """
     Vista para listar todos os produtos com seus opcionais obrigatórios.
     Permite ativar/desativar produtos e opcionais via checkbox.
-    Requer permissão: products.manage_product_availability
+    Requer permissão: products.change_product
     """
     template_name = 'products/produtos_ativos.html'
-    permission_required = 'products.manage_product_availability'
+    permission_required = 'products.change_product'
     login_url = reverse_lazy('accounts:login')
 
     def get_context_data(self, **kwargs):

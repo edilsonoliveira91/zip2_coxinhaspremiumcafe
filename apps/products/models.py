@@ -149,7 +149,7 @@ class Product(TimeStampedModel):
         verbose_name_plural = "Produtos"
         ordering = ['category', 'name']
         permissions = [
-            ('manage_product_availability', 'Pode gerenciar disponibilidade de produtos e opcionais'),
+            ('manage_nfce_fields', 'Pode editar campos NFC-e do produto'),
         ]
 
     def __str__(self):
