@@ -616,11 +616,11 @@ class OrderPolling {
     }
 
     startPolling() {
-        console.log('🚀 Iniciando monitoramento automático de comandas (15s)');
+        console.log('🚀 Iniciando monitoramento automático de comandas (5s)');
         
         this.pollingInterval = setInterval(() => {
             this.checkForChanges();
-        }, 15000); // 15 segundos
+        }, 5000); // 5 segundos
         
         // Verificação inicial
         this.checkForChanges();
@@ -638,9 +638,13 @@ class OrderPolling {
 // Inicializar polling automático de comandas
 document.addEventListener('DOMContentLoaded', function() {
     window.orderPolling = new OrderPolling();
-});
 
-// Foco automático desabilitado para evitar abertura do teclado no tablet
+    // Foco único no carregamento da página — teclado abre 1 vez só
+    const inputComanda = document.getElementById('search-comandas');
+    if (inputComanda) {
+        inputComanda.focus();
+    }
+});
 
 // visibilitychange focus desabilitado para evitar abertura do teclado no tablet
 
