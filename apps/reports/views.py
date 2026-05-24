@@ -152,13 +152,16 @@ class SellsReportView(BaseReportView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from django.db.models import F, DecimalField, ExpressionWrapper
+        from django.db.models import F, DecimalField, ExpressionWrapper, Case, When, Value
+        from decimal import Decimal as _Dec
 
         today = timezone.localtime().date()
         data_inicio = self.request.GET.get('data_inicio', '').strip() or today.strftime('%Y-%m-%d')
         data_fim = self.request.GET.get('data_fim', '').strip() or today.strftime('%Y-%m-%d')
         q = self.request.GET.get('q', '').strip()
 
+        # Quantidade: considera fechadas + cortesias (produto realmente saiu)
+        # Valor financeiro: apenas fechadas (alinhado com o Extrato)
         items_qs = PedidoItem.objects.filter(
             pedido__comanda__status__in=['fechada', 'cortesia'],
             pedido__comanda__updated_at__date__gte=data_inicio,
@@ -174,7 +177,17 @@ class SellsReportView(BaseReportView):
             .annotate(
                 qtd_vendida=Sum('quantity'),
                 total_faturado=Sum(
-                    ExpressionWrapper(F('quantity') * F('unit_price'), output_field=DecimalField())
+                    Case(
+                        When(
+                            pedido__comanda__status='fechada',
+                            then=ExpressionWrapper(
+                                F('quantity') * F('unit_price'),
+                                output_field=DecimalField()
+                            ),
+                        ),
+                        default=Value(_Dec('0.00')),
+                        output_field=DecimalField(),
+                    )
                 ),
             )
             .order_by('-qtd_vendida')

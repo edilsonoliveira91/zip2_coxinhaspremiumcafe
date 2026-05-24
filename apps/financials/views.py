@@ -459,6 +459,7 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # Checkouts aprovados do dia (filtra por data de fechamento da comanda)
         checkouts = Checkout.objects.filter(
             status='aprovado',
+            comanda__status='fechada',
             comanda__updated_at__date=selected_date,
         )
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
@@ -532,6 +533,7 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         """Retorna dict com os totais do dia."""
         checkouts = Checkout.objects.filter(
             status='aprovado',
+            comanda__status='fechada',
             processed_at__date=date,
         )
         # Mesma lógica do FinancialDashboardView:
@@ -668,7 +670,7 @@ class RealizarFechamentoCaixaView(LoginRequiredMixin, PermissionRequiredMixin, V
         except (ValueError, TypeError):
             target_date = timezone.localtime().date()
 
-        checkouts = Checkout.objects.filter(status='aprovado', comanda__updated_at__date=target_date)
+        checkouts = Checkout.objects.filter(status='aprovado', comanda__status='fechada', comanda__updated_at__date=target_date)
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
@@ -761,7 +763,7 @@ class ExtratoAbertosAPIView(LoginRequiredMixin, View):
         from orders.models import Comanda as _Comanda
         dias = []
         for data in datas_abertas:
-            checkouts = Checkout.objects.filter(status='aprovado', processed_at__date=data)
+            checkouts = Checkout.objects.filter(status='aprovado', comanda__status='fechada', processed_at__date=data)
             parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
             def _soma(method, _ckts=checkouts, _pids=parcial_ids):
