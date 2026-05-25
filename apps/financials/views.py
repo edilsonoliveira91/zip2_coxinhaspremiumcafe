@@ -975,9 +975,20 @@ class CaixaAdmView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         context['total_a_receber_dinheiro'] = pendentes.aggregate(
             total=Sum('fechamento__total_dinheiro')
         )['total'] or 0
-        context['total_em_caixa_dinheiro'] = concluidos.aggregate(
+
+        # Despesas descontadas apenas do dinheiro dos malotes conferidos
+        from .models import DespesaMalote
+        total_despesas_concluidos = DespesaMalote.objects.filter(
+            malote__in=concluidos
+        ).aggregate(total=Sum('valor'))['total'] or 0
+
+        total_dinheiro_bruto = concluidos.aggregate(
             total=Sum('fechamento__total_dinheiro')
         )['total'] or 0
+        context['total_em_caixa_dinheiro'] = total_dinheiro_bruto - total_despesas_concluidos
+        context['total_em_caixa'] = (concluidos.aggregate(
+            total=Sum('fechamento__total_final')
+        )['total'] or 0) - total_despesas_concluidos
         return context
 
 

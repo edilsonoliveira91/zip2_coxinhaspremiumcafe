@@ -232,8 +232,9 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
             <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
-              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Dinheiro</div>
-              <div style="font-size:14px; font-weight:700; color:#16a34a;">R$ {{ f.total_dinheiro|floatformat:2 }}</div>
+              <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Dinheiro{% if m.total_despesas %} <span style="color:#dc2626;">(líq.)</span>{% endif %}</div>
+              <div style="font-size:14px; font-weight:700; color:#16a34a;">R$ {{ m.dinheiro_liquido|floatformat:2 }}</div>
+              {% if m.total_despesas %}<div style="font-size:10px; color:#9ca3af;">bruto: R$ {{ f.total_dinheiro|floatformat:2 }}</div>{% endif %}
             </div>
             <div style="background:#f9fafb; border-radius:8px; padding:10px 12px;">
               <div style="font-size:11px; color:#9ca3af; margin-bottom:2px;">Débito</div>
@@ -256,10 +257,20 @@
               <div style="font-size:14px; font-weight:700; color:#dc2626;">- R$ {{ f.total_sangrias|floatformat:2 }}</div>
             </div>
           </div>
-          <div style="background:#ecfdf5; border:1px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <span style="font-size:13px; font-weight:600; color:#065f46;">Total Final</span>
+          <div style="background:#ecfdf5; border:1px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:{% if m.total_despesas %}8{% else %}16{% endif %}px;">
+            <span style="font-size:13px; font-weight:600; color:#065f46;">Total Final{% if m.total_despesas %} <span style="font-size:11px; font-weight:400; color:#6b7280;">(bruto)</span>{% endif %}</span>
             <span style="font-size:18px; font-weight:800; color:#065f46;">R$ {{ f.total_final|floatformat:2 }}</span>
           </div>
+          {% if m.total_despesas %}
+          <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:13px; font-weight:600; color:#991b1b;">Despesas</span>
+            <span style="font-size:15px; font-weight:700; color:#dc2626;">- R$ {{ m.total_despesas|floatformat:2 }}</span>
+          </div>
+          <div style="background:#ecfdf5; border:2px solid #16a34a; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span style="font-size:13px; font-weight:700; color:#065f46;">Total Líquido</span>
+            <span style="font-size:18px; font-weight:800; color:#065f46;">R$ {{ m.total_final_liquido|floatformat:2 }}</span>
+          </div>
+          {% endif %}
           {% if m.despesas.all %}
           <div style="margin-bottom:16px;">
             <div style="font-size:12px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Despesas</div>

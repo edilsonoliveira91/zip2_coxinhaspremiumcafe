@@ -123,6 +123,21 @@ class CaixaAdm(models.Model):
     def __str__(self):
         return f"Malote {self.fechamento.data.strftime('%d/%m/%Y')} - {self.enviado_por}"
 
+    @property
+    def total_despesas(self):
+        from django.db.models import Sum
+        return self.despesas.aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+
+    @property
+    def dinheiro_liquido(self):
+        """Dinheiro do malote já descontado das despesas.""""
+        return self.fechamento.total_dinheiro - self.total_despesas
+
+    @property
+    def total_final_liquido(self):
+        """Total final do malote já descontado das despesas.""""
+        return self.fechamento.total_final - self.total_despesas
+
 
 class DespesaMalote(models.Model):
     """
