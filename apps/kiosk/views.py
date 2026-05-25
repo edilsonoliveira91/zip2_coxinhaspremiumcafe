@@ -83,7 +83,7 @@ def cardapio(request, numero):
                             'desc': a.description or '',
                             'preco': float(a.price),
                         }
-                        for a in p.adicionais.all()
+                        for a in p.adicionais.filter(is_active=True)
                     ],
                 }
                 for p in dados['produtos']
