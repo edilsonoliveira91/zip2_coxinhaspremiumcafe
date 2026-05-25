@@ -130,12 +130,12 @@ class CaixaAdm(models.Model):
 
     @property
     def dinheiro_liquido(self):
-        """Dinheiro do malote já descontado das despesas.""""
+        """Dinheiro do malote já descontado das despesas."""
         return self.fechamento.total_dinheiro - self.total_despesas
 
     @property
     def total_final_liquido(self):
-        """Total final do malote já descontado das despesas.""""
+        """Total final do malote já descontado das despesas."""
         return self.fechamento.total_final - self.total_despesas
 
 
