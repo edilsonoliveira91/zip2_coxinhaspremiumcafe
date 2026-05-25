@@ -45,7 +45,7 @@ def cardapio(request, numero):
         comanda_mesa.cliente_nome = mesa_label
         comanda_mesa.save(update_fields=['cliente_nome'])
 
-    produtos = Product.objects.filter(show_in_menu=True, is_active=True, visivel_kiosk=True).order_by('category', 'name')
+    produtos = Product.objects.filter(show_in_menu=True, is_active=True, visivel_kiosk=True).order_by('name')
 
     # Agrupar por categoria
     categorias = {}
@@ -54,6 +54,10 @@ def cardapio(request, numero):
         if cat not in categorias:
             categorias[cat] = {'slug': p.category, 'produtos': []}
         categorias[cat]['produtos'].append(p)
+
+    # Reordenar categorias conforme CATEGORY_CHOICES (ordem definida no model)
+    _cat_order = {slug: idx for idx, (slug, _) in enumerate(Product.CATEGORY_CHOICES)}
+    categorias = dict(sorted(categorias.items(), key=lambda x: _cat_order.get(x[1]['slug'], 999)))
 
     # Serializa para JS: json.dumps usa ponto decimal, evitando bug de locale pt-BR
     produtos_json_data = {}

@@ -10,7 +10,7 @@ from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
 from .models import StockEntry
 from .forms import StockEntryForm
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Case, When, IntegerField
 
 
 # ==================== VIEWS DE PRODUTOS ====================
@@ -47,7 +47,12 @@ class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         elif show_in_menu == 'false':
             queryset = queryset.filter(show_in_menu=False)
 
-        return queryset.order_by('category', 'name')
+        cat_order = Case(
+            *[When(category=slug, then=pos) for pos, (slug, _) in enumerate(Product.CATEGORY_CHOICES)],
+            default=999,
+            output_field=IntegerField(),
+        )
+        return queryset.order_by(cat_order, 'name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
