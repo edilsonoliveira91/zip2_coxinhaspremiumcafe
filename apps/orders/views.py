@@ -2178,8 +2178,8 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
 
 class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
     """
-    Retorna a lista de URLs de impressão dos pedidos ativos da comanda.
-    O cliente JS chama cada URL individualmente (mesmo endpoint do botão por pedido).
+    Combina todos os pedidos ativos da comanda em um unico job de impressao.
+    Garante que mobile (RawBT) e desktop (Flask bridge) imprimam tudo de uma vez.
     """
     def get(self, request, pk):
         comanda = get_object_or_404(Comanda, pk=pk)
@@ -2192,14 +2192,10 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         if not pedidos:
             return JsonResponse({'type': 'none'})
 
-        # Marcar todos como impressos
-        from django.db.models import Q
-        # Registra hora de início sem alterar impresso — só a cozinha marca como impresso
         Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
 
-        # Gera 1 intent URL por pedido (mobile) + conteúdo bridge (desktop)
-        intent_urls = []
-        bridge_contents = []
+        mob_all = []
+        desk_all = []
 
         for pedido in pedidos:
             data_fmt = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
@@ -2213,7 +2209,8 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
             mob.append(f"PEDIDO: #{pedido.pedido_seq}")
             mob.append(f"DATA: {data_fmt}")
             mob.append("-" * 48)
-            mob.append("ITENS PARA PREPARAR:\n")
+            mob.append("ITENS PARA PREPARAR:")
+            mob.append("")
             for item in pedido.items.all():
                 mob.append(f"{item.quantity}x {item.product.name}")
                 if item.observations:
@@ -2224,10 +2221,10 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
                 mob.append(pedido.observations)
             mob.append("-" * 48)
             mob.append(str("Fim do Pedido").center(48, " "))
-            mob.append("\n\n\n\n\n")
-            mob.append("\x1d\x56\x00")
-            encoded = urllib.parse.quote("\n".join(mob))
-            intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
+            mob.append("")
+            mob.append("")
+            mob.append("")
+            mob_all.extend(mob)
 
             # Desktop (Flask bridge 42 cols)
             desk = []
@@ -2252,14 +2249,25 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
             desk.append("Fim do Pedido".center(42))
             desk.append("")
             desk.append("")
-            desk.append("")
-            desk.append("VA")
-            bridge_contents.append("\n".join(desk))
+            desk_all.extend(desk)
+
+        # Mobile: unico intent com todo o conteudo + corte no final
+        mob_all.append("")
+        mob_all.append("")
+        mob_all.append("")
+        cut = chr(0x1d) + chr(0x56) + chr(0x00)
+        encoded = urllib.parse.quote("\n".join(mob_all) + cut)
+        single_intent = f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
+
+        # Desktop: unico conteudo com corte no final
+        desk_all.append("")
+        desk_all.append("VA")
+        single_content = "\n".join(desk_all)
 
         return JsonResponse({
             "type": "rawbt_multi",
-            "intent_urls": intent_urls,
-            "contents": bridge_contents,
+            "intent_urls": [single_intent],
+            "contents": [single_content],
         })
 
 class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
