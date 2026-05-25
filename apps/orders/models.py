@@ -233,8 +233,14 @@ class PedidoItem(TimeStampedModel):
     
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         verbose_name="Produto"
+    )
+    product_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name="Nome do Produto (snapshot)"
     )
     
     quantity = models.PositiveIntegerField(
@@ -268,6 +274,8 @@ class PedidoItem(TimeStampedModel):
     def save(self, *args, **kwargs):
         if not self.unit_price:
             self.unit_price = self.product.price
+        if not self.product_name:
+            self.product_name = self.product.name
         
         super().save(*args, **kwargs)
         
