@@ -3,8 +3,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Painel da Cozinha</title>
+
+  <!-- PWA: instalável como app -->
+  <link rel="manifest" href="{% static 'manifest_cozinha.json' %}">
+  <meta name="theme-color" content="#f97316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Cozinha">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -113,11 +122,12 @@
     .card.producao .card-status { background: #78350f; color: #fde68a; }
 
     .card-mesa {
-      font-size: 12px;
-      font-weight: 700;
-      color: #ccc;
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
       text-align: center;
-      line-height: 1.2;
+      line-height: 1.1;
+      letter-spacing: 0.02em;
     }
     .card-mesa small { font-weight: 400; color: #666; font-size: 10px; display: block; }
 
@@ -384,10 +394,10 @@
           <!-- COL ID -->
           <div class="col-id">
             <span class="card-status">${statusLabel}</span>
-            <span class="card-seq">#${p.pedido_seq}</span>
+            <span class="card-seq">${p.pedido_seq}</span>
             <div class="card-mesa">
               <small>Mesa/Comanda</small>
-              ${p.cliente_nome || '#' + p.comanda_numero}
+              ${p.cliente_nome || p.comanda_numero}
             </div>
             <div class="card-time">${p.created_at}</div>
           </div>
@@ -598,5 +608,16 @@
     setInterval(atualizarPainel, 5000);
   </script>
 
+
+  <!-- Registro do Service Worker (PWA) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(function(reg) { console.log('SW cozinha registrado', reg.scope); })
+          .catch(function(err) { console.error('SW erro:', err); });
+      });
+    }
+  </script>
 </body>
 </html>

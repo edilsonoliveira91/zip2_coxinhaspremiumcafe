@@ -1,0 +1,27 @@
+{
+    "name": "Display Cozinha",
+    "short_name": "Cozinha",
+    "description": "Painel de pedidos da cozinha",
+    "start_url": "/orders/cozinha/",
+    "display": "fullscreen",
+    "background_color": "#111111",
+    "theme_color": "#f97316",
+    "orientation": "landscape",
+    "icons": [
+        {
+            "src": "/static/img/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        },
+        {
+            "src": "/static/img/logo/logo-coxinhaspremiumcafe.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/logo/logo-coxinhaspremiumcafe.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

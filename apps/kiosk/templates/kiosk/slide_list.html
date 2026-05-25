@@ -4,26 +4,37 @@
 {% block title %}Display Mesa — Imagens{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-8">
+<div class="max-w-6xl mx-auto px-4 py-8">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Display Mesa — Imagens</h1>
-      <p class="text-gray-500 text-sm mt-1">Gerencie as imagens exibidas no carrossel da tela inicial do kiosk.</p>
+      <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:linear-gradient(135deg,#f97316,#fb923c);border-radius:10px;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </span>
+        Display Mesa
+      </h1>
+      <p class="text-gray-400 text-sm mt-1 ml-1">Imagens exibidas no carrossel da tela do kiosk</p>
     </div>
     <a href="{% url 'kiosk:slide_create' %}"
-       class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow">
+       style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-weight:600;padding:10px 20px;border-radius:12px;box-shadow:0 4px 14px rgba(249,115,22,0.35);transition:all .2s;text-decoration:none;"
+       onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(249,115,22,0.45)'"
+       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(249,115,22,0.35)'">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
       </svg>
       Nova Imagem
     </a>
   </div>
 
+  <!-- Mensagens -->
   {% if messages %}
     {% for msg in messages %}
-    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium
+    <div class="mb-5 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2
       {% if msg.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
       {% elif msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
       {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
@@ -32,40 +43,74 @@
     {% endfor %}
   {% endif %}
 
+  <!-- Contador -->
   {% if slides %}
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+  <div class="flex items-center gap-3 mb-6">
+    <span style="background:#fff7ed;color:#c2410c;font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px;border:1px solid #fed7aa;">
+      {{ slides|length }} imagem{% if slides|length != 1 %}ns{% endif %} cadastrada{% if slides|length != 1 %}s{% endif %}
+    </span>
+    <span class="text-gray-300 text-sm">•</span>
+    <span class="text-gray-400 text-sm">Ordem define a sequência no carrossel</span>
+  </div>
+
+  <!-- Grid de cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     {% for slide in slides %}
-    <div class="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden flex flex-col">
-      <!-- Imagem -->
-      <div class="relative">
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);border:1px solid #f3f4f6;transition:all .25s;display:flex;flex-direction:column;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,.12)'"
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06)'">
+
+      <!-- Imagem com overlay hover -->
+      <div style="position:relative;overflow:hidden;aspect-ratio:16/9;">
         <img src="{{ slide.image.url }}" alt="{{ slide.title }}"
-             class="w-full h-44 object-cover">
+             style="width:100%;height:100%;object-fit:cover;transition:transform .35s;">
+
+        <!-- Gradient bottom -->
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 55%);pointer-events:none;"></div>
+
         <!-- Badge ativo/inativo -->
-        <span class="absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full
-          {% if slide.is_active %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-500{% endif %}">
-          {% if slide.is_active %}Ativo{% else %}Inativo{% endif %}
+        <span style="position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.04em;
+          {% if slide.is_active %}background:rgba(22,163,74,.9);color:#fff;{% else %}background:rgba(107,114,128,.85);color:#fff;{% endif %}">
+          {% if slide.is_active %}● Ativo{% else %}○ Inativo{% endif %}
         </span>
-      </div>
 
-      <!-- Info -->
-      <div class="p-3 flex-1 flex flex-col gap-1">
-        <p class="text-sm font-semibold text-gray-800 truncate">
-          {{ slide.title|default:"(sem título)" }}
+        <!-- Badge ordem -->
+        <span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;backdrop-filter:blur(4px);">
+          #{{ slide.order }}
+        </span>
+
+        <!-- Título sobre imagem (bottom) -->
+        {% if slide.title %}
+        <p style="position:absolute;bottom:10px;left:12px;right:12px;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.6);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+          {{ slide.title }}
         </p>
-        <p class="text-xs text-gray-400">Ordem: {{ slide.order }}</p>
+        {% endif %}
       </div>
 
-      <!-- Ações -->
-      <div class="px-3 pb-3 flex gap-2">
+      <!-- Rodapé com ações -->
+      <div style="padding:12px;display:flex;gap:8px;background:#fafafa;border-top:1px solid #f3f4f6;">
         <a href="{% url 'kiosk:slide_update' slide.pk %}"
-           class="flex-1 text-center text-xs font-semibold py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+           style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:600;padding:8px;border-radius:9px;background:#eff6ff;color:#2563eb;text-decoration:none;transition:background .15s;"
+           onmouseover="this.style.background='#dbeafe'"
+           onmouseout="this.style.background='#eff6ff'">
+          <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a4 4 0 01-1.414.93l-3 1 1-3a4 4 0 01.93-1.414z"/>
+          </svg>
           Editar
         </a>
-        <form method="post" action="{% url 'kiosk:slide_delete' slide.pk %}" class="flex-1"
-              onsubmit="return confirm('Remover este slide?')">
+
+        <form method="post" action="{% url 'kiosk:slide_delete' slide.pk %}" style="flex:1;"
+              onsubmit="return confirm('Remover esta imagem do carrossel?')">
           {% csrf_token %}
           <button type="submit"
-                  class="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                  style="width:100%;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:600;padding:8px;border-radius:9px;background:#fef2f2;color:#dc2626;border:none;cursor:pointer;transition:background .15s;"
+                  onmouseover="this.style.background='#fee2e2'"
+                  onmouseout="this.style.background='#fef2f2'">
+            <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
             Excluir
           </button>
         </form>
@@ -74,14 +119,24 @@
     {% endfor %}
   </div>
 
+  <!-- Estado vazio -->
   {% else %}
-  <div class="text-center py-20 text-gray-400">
-    <svg class="w-14 h-14 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-    </svg>
-    <p class="text-base font-medium">Nenhuma imagem cadastrada</p>
-    <p class="text-sm mt-1">Clique em "Nova Imagem" para adicionar o primeiro slide.</p>
+  <div style="text-align:center;padding:80px 20px;background:#fff;border-radius:20px;border:2px dashed #e5e7eb;">
+    <div style="width:72px;height:72px;background:#fff7ed;border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+      <svg style="width:36px;height:36px;color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <p style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px;">Nenhuma imagem cadastrada</p>
+    <p style="font-size:14px;color:#9ca3af;margin-bottom:24px;">Adicione imagens para exibir no carrossel do display de mesa.</p>
+    <a href="{% url 'kiosk:slide_create' %}"
+       style="display:inline-flex;align-items:center;gap:8px;background:#f97316;color:#fff;font-weight:600;font-size:14px;padding:10px 22px;border-radius:11px;text-decoration:none;">
+      <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+      </svg>
+      Adicionar primeira imagem
+    </a>
   </div>
   {% endif %}
 
