@@ -96,7 +96,9 @@
       background: white; border-radius: 18px; border: 2px solid #f0e8e0;
       padding: 14px 16px; display: flex; align-items: center; gap: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 120px;
+      cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
     }
+    .produto-item:active { box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-color: #d4600a; }
     .produto-img { width: 116px; height: 116px; border-radius: 14px; object-fit: cover; flex-shrink: 0; background: #f5f0eb; }
     .produto-img-placeholder {
       width: 116px; height: 116px; border-radius: 14px; flex-shrink: 0;
@@ -611,11 +613,11 @@ function mostrarCategoria(slug, btn) {
   const lista = document.getElementById('produtos-lista');
   lista.innerHTML = cat.itens.map(p => {
     const imgHtml = p.img
-      ? `<img src="${p.img}" alt="${p.nome}" class="produto-img" onclick="abrirLightbox('${p.img}', '${p.nome}')">`
+      ? `<img src="${p.img}" alt="${p.nome}" class="produto-img" onclick="event.stopPropagation(); abrirLightbox('${p.img}', '${p.nome}')">`
       : `<div class="produto-img-placeholder"><svg width="40" height="40" fill="none" stroke="#d4600a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`;
     const totalQty = totalQtyParaProduto(p.id);
     return `
-      <div class="produto-item" id="item-${p.id}">
+      <div class="produto-item" id="item-${p.id}" onclick="clicouProduto(${p.id})">
         ${imgHtml}
         <div class="produto-info">
           <p class="produto-nome">${p.nome}</p>
@@ -637,10 +639,10 @@ let produtoAtual = null;
 
 function stepperHTML(pid, qty) {
   const disabledMinus = qty === 0 ? ' disabled' : '';
-  return '<div class="stepper" id="stepper-' + pid + '">'
-    + '<button class="stepper-btn stepper-minus"' + disabledMinus + ' onclick="decrementarProduto(' + pid + ')">&#8722;</button>'
+  return '<div class="stepper" id="stepper-' + pid + '" onclick="event.stopPropagation()">'
+    + '<button class="stepper-btn stepper-minus"' + disabledMinus + ' onclick="event.stopPropagation(); decrementarProduto(' + pid + ')">&#8722;</button>'
     + '<span class="stepper-qty" id="stepper-qty-' + pid + '">' + qty + '</span>'
-    + '<button class="stepper-btn stepper-plus" onclick="clicouProduto(' + pid + ')">+</button>'
+    + '<button class="stepper-btn stepper-plus" onclick="event.stopPropagation(); clicouProduto(' + pid + ')">+</button>'
     + '</div>';
 }
 
