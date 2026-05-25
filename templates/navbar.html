@@ -197,7 +197,7 @@
                     {% endif %}
 
                     <!-- Dropdown Caixa (Requer Permissão Financeira ou Caixa ADM) -->
-                    {% if perms.financials.view_financial or perms.financials.view_caixaadm or request.user.is_superuser %}
+                    {% if perms.financials.view_financial or perms.financials.view_caixaadm or perms.financials.view_fechamentocaixadiario or request.user.is_caixa or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpen: false }">
                         <button @click="dropdownOpen = !dropdownOpen" 
                                 @click.away="dropdownOpen = false"
