@@ -2080,12 +2080,17 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
 class ImprimirPedidoView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pedido = get_object_or_404(Pedido, pk=pk)
-        # Marcar como impresso (e registrar hora de impressão)
-        if not pedido.impresso:
-            pedido.impresso = True
-            if not pedido.started_at:
-                pedido.started_at = timezone.now()
-            pedido.save(update_fields=['impresso', 'started_at'])
+        # Registrar hora de início (sem marcar impresso — só a cozinha faz isso)
+        if not pedido.started_at:
+            pedido.started_at = timezone.now()
+            pedido.save(update_fields=['started_at'])
+
+        # Filtro por destino de produção (ex: ?destino=cozinha)
+        destino = request.GET.get('destino')
+        if destino:
+            itens_filtrados = pedido.items.select_related('product').filter(product__destino_producao=destino)
+        else:
+            itens_filtrados = pedido.items.select_related('product').all()
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
         is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
@@ -2102,7 +2107,7 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             linhas.append(f"DATA: {data_formatada}")
             linhas.append("-" * 48)
             linhas.append("ITENS PARA PREPARAR:\n")
-            for item in pedido.items.all():
+            for item in itens_filtrados:
                 linhas.append(f"{item.quantity}x {item.product.name}")
                 if item.observations:
                     linhas.append(f"   Obs: {item.observations}")
@@ -2134,7 +2139,7 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             linhas.append("-" * 42)
             linhas.append("ITENS PARA PREPARAR:")
             linhas.append("")
-            for item in pedido.items.select_related('product').all():
+            for item in itens_filtrados:
                 linhas.append(f"  {item.quantity}x {item.product.name}")
                 if hasattr(item, 'observations') and item.observations:
                     linhas.append(f"     Obs: {item.observations}")
@@ -2171,8 +2176,8 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
 
         # Marcar todos como impressos
         from django.db.models import Q
-        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(impresso=True, started_at=timezone.now())
-        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=False).update(impresso=True)
+        # Registra hora de início sem alterar impresso — só a cozinha marca como impresso
+        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
 
         # Gera 1 intent URL por pedido (mobile) + conteúdo bridge (desktop)
         intent_urls = []
@@ -2201,8 +2206,8 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
                 mob.append(pedido.observations)
             mob.append("-" * 48)
             mob.append(str("Fim do Pedido").center(48, " "))
-            mob.append("\\n\\n\\n\\n\\n")
-            mob.append("V")
+            mob.append("\n\n\n\n\n")
+            mob.append("\x1d\x56\x00")
             encoded = urllib.parse.quote("\n".join(mob))
             intent_urls.append(f"intent:{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;")
 
@@ -2562,7 +2567,7 @@ class CozinhaApiPedidosView(LoginRequiredMixin, View):
                 'status': p.status,
                 'observations': p.observations or '',
                 'itens_cozinha': itens_cozinha,
-                'imprimir_url': f'/orders/pedido/{p.id}/imprimir/',
+                'imprimir_url': f'/orders/pedido/{p.id}/imprimir/?destino=cozinha',
             })
 
         return JsonResponse({'pedidos': data})
