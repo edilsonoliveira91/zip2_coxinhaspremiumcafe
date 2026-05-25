@@ -680,9 +680,8 @@ function adicionarAoCarrinho(produto, opcionalSelecionado, adicionaisSelecionado
   const opcionalId = opcionalSelecionado ? opcionalSelecionado.id : 'sem';
   const ids = adicionaisSelecionados.map(a => a.id).sort().join('_');
   const chave = produto.id + '_' + opcionalId + '_' + ids;
-  const precoTotal = produto.preco
-    + (opcionalSelecionado ? opcionalSelecionado.preco : 0)
-    + adicionaisSelecionados.reduce((s, a) => s + a.preco, 0);
+  const precoBase = (opcionalSelecionado && opcionalSelecionado.preco > 0) ? opcionalSelecionado.preco : produto.preco;
+  const precoTotal = precoBase + adicionaisSelecionados.reduce((s, a) => s + a.preco, 0);
 
   if (carrinho[chave]) {
     carrinho[chave].qty++;
@@ -805,9 +804,9 @@ function calcularTotalModal() {
 
   let extraAdd = 0;
   document.querySelectorAll('#modal-adicionais-lista .adicional-check:checked').forEach(c => extraAdd += parseFloat(c.dataset.preco));
-  const extraOpcional = opcionalSelecionadoAtual ? opcionalSelecionadoAtual.preco : 0;
+  const precoBaseModal = (opcionalSelecionadoAtual && opcionalSelecionadoAtual.preco > 0) ? opcionalSelecionadoAtual.preco : produtoAtual.preco;
 
-  const total = produtoAtual.preco + extraOpcional + extraAdd;
+  const total = precoBaseModal + extraAdd;
   document.getElementById('modal-total').textContent = 'R$ ' + total.toFixed(2).replace('.',',');
 }
 

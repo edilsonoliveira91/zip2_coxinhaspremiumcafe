@@ -165,11 +165,11 @@ def enviar_pedido(request, numero):
                 if not opcional_escolhido:
                     return JsonResponse({'erro': f'Opção obrigatória inválida para {produto.name}'}, status=400)
 
+            preco_base = opcional_escolhido.price if (opcional_escolhido and opcional_escolhido.price > 0) else produto.price
             preco_extras = Decimal('0.00')
             obs_partes = []
 
             if opcional_escolhido:
-                preco_extras += opcional_escolhido.price
                 obs_partes.append(f"Opcional: {opcional_escolhido.name}")
 
             for aid in adicionais_ids:
@@ -180,7 +180,7 @@ def enviar_pedido(request, numero):
                 except Exception:
                     pass
 
-            unit_price = produto.price + preco_extras
+            unit_price = preco_base + preco_extras
             obs_item = ' | '.join(obs_partes)
             PedidoItem.objects.create(
                 pedido=pedido,
