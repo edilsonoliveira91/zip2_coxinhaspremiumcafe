@@ -11,6 +11,7 @@ class Product(TimeStampedModel):
     """
     CATEGORY_CHOICES = [
         ('bebidas', 'Bebidas'),
+        ('sucos', 'Sucos'),
         ('cafes_premium', 'Cafés Premium'),
         ('cafes', 'Cafés'),
         ('salgados', 'Salgados'),
@@ -93,7 +94,7 @@ class Product(TimeStampedModel):
     base_calculo_icms = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('100.00'),
+        default=Decimal('0.00'),
         verbose_name="% Base de Cálculo ICMS"
     )
     aliq_icms = models.DecimalField(

@@ -668,12 +668,14 @@ class ProdutoAdicionaisView(LoginRequiredMixin, View):
             price = _Decimal(str(price_raw).replace(',', '.')) if price_raw else _Decimal('0.00')
             if price < 0:
                 return JsonResponse({'success': False, 'message': 'Preço não pode ser negativo.'})
-            adicional = Adicional.objects.create(
+            adicional, created = Adicional.objects.get_or_create(
                 product=product,
                 name=name,
-                price=price,
-                created_by=request.user,
+                is_active=True,
+                defaults={'price': price, 'created_by': request.user},
             )
+            if not created:
+                return JsonResponse({'success': False, 'message': f'Já existe um adicional "{name}" neste produto.'})
             return JsonResponse({'success': True, 'adicional': {'id': adicional.id, 'name': adicional.name, 'price': str(adicional.price)}})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
