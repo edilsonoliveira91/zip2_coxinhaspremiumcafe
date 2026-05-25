@@ -566,7 +566,12 @@
         const data = await resp.json();
 
         if (data.type === 'rawbt') {
-          // Mobile: RawBT intent
+          // Mobile: marca como impresso ANTES de navegar (após o redirect o JS para)
+          await fetch(`/orders/cozinha/pedido/${id}/marcar-impresso/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+          });
+          mostrarToast('✅ Pedido enviado para produção!');
           window.location.href = data.intent_url;
           btn.innerHTML = labelOriginal;
           btn.disabled = false;
