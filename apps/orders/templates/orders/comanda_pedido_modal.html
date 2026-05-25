@@ -159,50 +159,75 @@
     </div>
 </div>
 
-<!-- Modal de Observação do Produto (Sobreposto ao Carrinho) -->
+<!-- Modal de Seleção por Etapas (Sobreposto ao Carrinho) -->
 <div id="modalObservacaoProduto" class="fixed inset-0 z-[60] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
     <div id="modalObsContent" class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-all p-6 relative">
+
+        <!-- Cabeçalho -->
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800">
-                Adicionar Produto
-            </h3>
+            <h3 class="text-xl font-bold text-gray-800">Adicionar Produto</h3>
             <button type="button" onclick="fecharModalObservacao()" class="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        
-        <p class="text-gray-600 text-sm mb-2 font-medium">Produto selecionado:</p>
-        <p id="obsNomeProduto" class="text-lg text-orange-600 font-bold mb-4"></p>
 
-        <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="obsInputText">Alguma observação? (Opcional)</label>
-            <textarea id="obsInputText" name="observacao" rows="3" 
-                class="shadow-sm border border-gray-300 appearance-none rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                placeholder="Exemplo: Sem cebola, com gelo..."></textarea>
+        <p class="text-gray-600 text-sm mb-1 font-medium">Produto selecionado:</p>
+        <p id="obsNomeProduto" class="text-lg text-orange-600 font-bold mb-1"></p>
+        <p id="modal-preco-base" class="text-sm text-gray-400 mb-4"></p>
+
+        <!-- Barra de etapas (visível apenas quando há opcionais E adicionais) -->
+        <div id="modal-step-bar" class="hidden mb-4 flex items-center gap-2 text-xs font-semibold">
+            <span id="step-pill-1" class="px-3 py-1 rounded-full transition-all">1. Opção</span>
+            <span class="text-gray-300">›</span>
+            <span id="step-pill-2" class="px-3 py-1 rounded-full transition-all">2. Complementos</span>
         </div>
 
-        <!-- Adicionais dinâmicos por produto -->
-        <div id="adicionais-section" class="hidden mt-5">
-            <div class="border-t border-gray-200 pt-4">
-                <p class="text-gray-700 text-sm font-bold mb-3">🧀 Deseja adicionar complementos?</p>
-                <div class="space-y-2" id="adicionais-checkboxes">
-                    <!-- preenchido dinamicamente via JS -->
-                </div>
+        <!-- ETAPA 1: Opcional Obrigatório -->
+        <div id="etapa-opcional" class="hidden">
+            <p class="text-gray-700 text-sm font-bold mb-1">⚠️ Escolha uma opção <span class="text-red-500">*</span></p>
+            <p class="text-xs text-gray-400 mb-3">Seleção obrigatória</p>
+            <div class="space-y-2" id="opcionais-radio-group">
+                <!-- preenchido via JS -->
             </div>
         </div>
 
-        <div class="mt-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
-            <button type="button" onclick="fecharModalObservacao()" 
-                class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition-colors border border-gray-200">
-                Cancelar
+        <!-- ETAPA 2: Adicionais + Observação -->
+        <div id="etapa-adicionais" class="hidden">
+            <!-- Adicionais (oculto se não houver) -->
+            <div id="adicionais-section" class="hidden mb-4">
+                <p class="text-gray-700 text-sm font-bold mb-3">🧀 Deseja adicionar complementos?</p>
+                <div class="space-y-2" id="adicionais-checkboxes">
+                    <!-- preenchido via JS -->
+                </div>
+            </div>
+            <!-- Observação -->
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="obsInputText">Alguma observação? (Opcional)</label>
+                <textarea id="obsInputText" name="observacao" rows="3"
+                    class="shadow-sm border border-gray-300 appearance-none rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    placeholder="Exemplo: Sem cebola, com gelo..."></textarea>
+            </div>
+        </div>
+
+        <!-- Total -->
+        <div class="mt-5 flex justify-between items-center">
+            <span class="text-sm text-gray-500">Total</span>
+            <span id="modal-total-display" class="text-lg font-black text-orange-600">R$ 0,00</span>
+        </div>
+
+        <!-- Botões -->
+        <div class="mt-4 flex flex-col-reverse sm:flex-row sm:justify-between gap-6">
+            <button id="btn-modal-sec" type="button" onclick="acaoSecundariaModalComanda()"
+                class="hidden w-full sm:w-auto px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition-colors border border-gray-200">
+                Sem adicionais
             </button>
-            <button type="button" onclick="confirmarAdicaoCarrinho()"
+            <button id="btn-modal-pri" type="button" onclick="acaoPrincipalModalComanda()"
                 class="w-full sm:w-auto px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-sm transition-transform transform hover:scale-105 flex justify-center items-center">
                 Adicionar ao Carrinho
             </button>
         </div>
 
-        <!-- Campos ocultos guardam dados do lanche enquanto o modal fica aberto -->
+        <!-- Campos ocultos -->
         <input type="hidden" id="obsProdutoId" value="">
         <input type="hidden" id="obsProdutoPreco" value="">
     </div>
@@ -304,7 +329,59 @@
 
     // --- CARRINHO LOGIC COM NOVO MODAL ---
     
-    // Função 1: Abre o modal e carrega adicionais do produto via API
+    // Estado das etapas do modal
+    let etapaModalComanda = 'adicionais';
+    let _adicionaisProdutoAtual = [];
+    let _opcionaisProdutoAtual = [];
+
+    function mudarEtapaModalComanda(etapa) {
+        etapaModalComanda = etapa;
+        const elOpc = document.getElementById('etapa-opcional');
+        const elAdd = document.getElementById('etapa-adicionais');
+        const btnSec = document.getElementById('btn-modal-sec');
+        const btnPri = document.getElementById('btn-modal-pri');
+        const pill1  = document.getElementById('step-pill-1');
+        const pill2  = document.getElementById('step-pill-2');
+
+        if (etapa === 'opcional') {
+            elOpc.classList.remove('hidden');
+            elAdd.classList.add('hidden');
+            btnSec.classList.add('hidden');
+            btnPri.textContent = _adicionaisProdutoAtual.length > 0 ? 'Próximo →' : 'Adicionar ao Carrinho';
+            if (pill1) {
+                pill1.className = 'px-3 py-1 rounded-full transition-all bg-orange-500 text-white';
+                pill2.className = 'px-3 py-1 rounded-full transition-all bg-gray-100 text-gray-400';
+            }
+        } else {
+            elOpc.classList.add('hidden');
+            elAdd.classList.remove('hidden');
+            btnPri.textContent = 'Adicionar ao Carrinho';
+            if (_adicionaisProdutoAtual.length > 0) {
+                btnSec.classList.remove('hidden');
+                btnSec.textContent = 'Sem adicionais';
+            } else {
+                btnSec.classList.add('hidden');
+            }
+            if (pill1) {
+                pill2.className = 'px-3 py-1 rounded-full transition-all bg-orange-500 text-white';
+                pill1.className = 'px-3 py-1 rounded-full transition-all bg-gray-100 text-gray-400';
+            }
+        }
+    }
+
+    function calcularTotalModalComanda() {
+        const basePrice = parseFloat(document.getElementById('obsProdutoPreco').value) || 0;
+        const checkedRadio = document.querySelector('input[name="opcional-radio"]:checked');
+        const opcPrice = checkedRadio ? parseFloat(checkedRadio.getAttribute('data-opcional-price')) : 0;
+        let addPrice = 0;
+        document.querySelectorAll('.adicional-checkbox:checked').forEach(cb => {
+            addPrice += parseFloat(cb.getAttribute('data-adicional-price'));
+        });
+        const total = basePrice + opcPrice + addPrice;
+        document.getElementById('modal-total-display').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+    }
+
+    // Função 1: Abre o modal com etapas e carrega opcionais + adicionais via API
     async function addProdutoGridParaCarrinho(id) {
         const card = document.querySelector(`.product-card[data-product-id="${id}"]`);
         if (!card) return;
@@ -314,84 +391,171 @@
         document.getElementById('obsProdutoId').value = id;
         document.getElementById('obsProdutoPreco').value = price;
         document.getElementById('obsNomeProduto').innerText = name;
+        document.getElementById('modal-preco-base').innerText = 'R$ ' + price.toFixed(2).replace('.', ',');
         document.getElementById('obsInputText').value = "";
+        document.getElementById('modal-total-display').textContent = 'R$ ' + price.toFixed(2).replace('.', ',');
 
-        // Buscar adicionais do produto via API
-        const adicionaisSection = document.getElementById('adicionais-section');
-        const adicionaisContainer = document.getElementById('adicionais-checkboxes');
-        adicionaisContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Carregando...</p>';
-        adicionaisSection.classList.remove('hidden');
+        _opcionaisProdutoAtual = [];
+        _adicionaisProdutoAtual = [];
+
+        // Reset UI
+        document.getElementById('etapa-opcional').classList.add('hidden');
+        document.getElementById('etapa-adicionais').classList.add('hidden');
+        document.getElementById('opcionais-radio-group').innerHTML = '';
+        document.getElementById('adicionais-checkboxes').innerHTML = '';
+        document.getElementById('adicionais-section').classList.add('hidden');
+        document.getElementById('modal-step-bar').classList.add('hidden');
+        document.getElementById('btn-modal-sec').classList.add('hidden');
+        document.getElementById('btn-modal-pri').textContent = 'Carregando...';
 
         try {
-            const resp = await fetch(`/products/product/${id}/adicionais/`);
-            const data = await resp.json();
-            const lista = (data.adicionais || []).filter(a => a.is_active !== false);
-            if (lista.length === 0) {
-                adicionaisSection.classList.add('hidden');
-                adicionaisContainer.innerHTML = '';
-            } else {
-                adicionaisContainer.innerHTML = lista.map(a => `
-                    <label class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer transition-all">
-                        <div class="flex items-center space-x-3">
-                            <input type="checkbox" class="adicional-checkbox w-4 h-4 accent-orange-500 cursor-pointer rounded"
-                                   data-adicional-id="${a.id}"
-                                   data-adicional-name="${a.name.replace(/"/g, '&quot;')}"
-                                   data-adicional-price="${a.price}">
-                            <span class="text-sm font-semibold text-gray-800">${a.name}</span>
+            const [respOpc, respAdc] = await Promise.all([
+                fetch(`/products/product/${id}/opcionais-obrigatorios/`),
+                fetch(`/products/product/${id}/adicionais/`)
+            ]);
+            const dataOpc = await respOpc.json();
+            const dataAdc = await respAdc.json();
+
+            _opcionaisProdutoAtual = dataOpc.opcionais || [];
+            _adicionaisProdutoAtual = (dataAdc.adicionais || []).filter(a => a.is_active !== false);
+
+            // Renderizar opcionais
+            if (_opcionaisProdutoAtual.length > 0) {
+                document.getElementById('opcionais-radio-group').innerHTML = _opcionaisProdutoAtual.map(o => `
+                    <label class="flex items-center justify-between p-3 rounded-xl border-2 border-orange-100 hover:border-orange-400 hover:bg-orange-50 cursor-pointer transition-all" onclick="calcularTotalModalComanda()">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="opcional-radio" class="opcional-radio w-4 h-4 accent-orange-500 cursor-pointer"
+                                   data-opcional-id="${o.id}"
+                                   data-opcional-name="${String(o.name).replace(/"/g, '&quot;')}"
+                                   data-opcional-price="${o.price}">
+                            <span class="text-sm font-semibold text-gray-800">${o.name}</span>
                         </div>
-                        <span class="text-sm font-bold text-orange-600 ml-3">+R$ ${parseFloat(a.price).toFixed(2).replace('.', ',')}</span>
+                        <span class="text-sm font-bold ${parseFloat(o.price) > 0 ? 'text-orange-600' : 'text-gray-400'} ml-3 flex-shrink-0">
+                            ${parseFloat(o.price) > 0 ? '+R$ ' + parseFloat(o.price).toFixed(2).replace('.', ',') : 'Incluso'}
+                        </span>
                     </label>
                 `).join('');
             }
+
+            // Renderizar adicionais
+            if (_adicionaisProdutoAtual.length > 0) {
+                document.getElementById('adicionais-checkboxes').innerHTML = _adicionaisProdutoAtual.map(a => `
+                    <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer transition-all" onclick="calcularTotalModalComanda()">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" class="adicional-checkbox w-4 h-4 accent-orange-500 cursor-pointer rounded"
+                                   data-adicional-id="${a.id}"
+                                   data-adicional-name="${String(a.name).replace(/"/g, '&quot;')}"
+                                   data-adicional-price="${a.price}">
+                            <span class="text-sm font-semibold text-gray-800">${a.name}</span>
+                        </div>
+                        <span class="text-sm font-bold text-orange-600 ml-3 flex-shrink-0">+R$ ${parseFloat(a.price).toFixed(2).replace('.', ',')}</span>
+                    </label>
+                `).join('');
+                document.getElementById('adicionais-section').classList.remove('hidden');
+            }
         } catch(e) {
-            adicionaisSection.classList.add('hidden');
-            adicionaisContainer.innerHTML = '';
+            console.error('Erro ao carregar opcionais/adicionais:', e);
         }
 
+        // Mostrar barra de etapas apenas quando há os dois
+        if (_opcionaisProdutoAtual.length > 0 && _adicionaisProdutoAtual.length > 0) {
+            document.getElementById('modal-step-bar').classList.remove('hidden');
+        }
+
+        // Decidir etapa inicial
+        if (_opcionaisProdutoAtual.length > 0) {
+            mudarEtapaModalComanda('opcional');
+        } else {
+            mudarEtapaModalComanda('adicionais');
+        }
+
+        // Abrir modal
         const modal = document.getElementById('modalObservacaoProduto');
-        const content = document.getElementById('modalObsContent');
+        const modalContent = document.getElementById('modalObsContent');
         modal.classList.remove('hidden');
         void modal.offsetWidth;
-        content.classList.remove('scale-95');
-        content.classList.add('scale-100');
-        setTimeout(() => { document.getElementById('obsInputText').focus(); }, 100);
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
     }
 
-    // Função 2: Fecha o modal (se ele clicar em Cancelar ou no "X")
+    // Função 2: Fecha o modal
     function fecharModalObservacao() {
         const modal = document.getElementById('modalObservacaoProduto');
-        const content = document.getElementById('modalObsContent');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+        const modalContent = document.getElementById('modalObsContent');
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
         document.querySelectorAll('.adicional-checkbox').forEach(cb => cb.checked = false);
-        document.getElementById('adicionais-section').classList.add('hidden');
+        document.querySelectorAll('.opcional-radio').forEach(r => r.checked = false);
         setTimeout(() => { modal.classList.add('hidden'); }, 150);
     }
 
-    // Função 3: Salva de fato a observação pra dentro do carrinho! (Botão Verde)
+    // Função 3: Botão principal do modal (Próximo ou Adicionar ao Carrinho)
+    function acaoPrincipalModalComanda() {
+        if (etapaModalComanda === 'opcional') {
+            const checkedRadio = document.querySelector('input[name="opcional-radio"]:checked');
+            if (!checkedRadio) {
+                const container = document.getElementById('opcionais-radio-group');
+                container.style.animation = 'none';
+                void container.offsetWidth;
+                container.style.animation = 'shake 0.3s ease';
+                document.getElementById('btn-modal-pri').textContent = '⚠️ Escolha uma opção!';
+                setTimeout(() => document.getElementById('btn-modal-pri').textContent = _adicionaisProdutoAtual.length > 0 ? 'Próximo →' : 'Adicionar ao Carrinho', 1500);
+                return;
+            }
+            if (_adicionaisProdutoAtual.length > 0) {
+                mudarEtapaModalComanda('adicionais');
+                calcularTotalModalComanda();
+                return;
+            }
+            confirmarAdicaoCarrinho();
+            return;
+        }
+        // etapa adicionais
+        confirmarAdicaoCarrinho();
+    }
+
+    // Função 4: Botão secundário (Sem adicionais)
+    function acaoSecundariaModalComanda() {
+        document.querySelectorAll('.adicional-checkbox:checked').forEach(cb => cb.checked = false);
+        confirmarAdicaoCarrinho();
+    }
+
+    // Função 5: Salva no carrinho
     function confirmarAdicaoCarrinho() {
         const id = document.getElementById('obsProdutoId').value;
         const name = document.getElementById('obsNomeProduto').innerText;
         const basePrice = parseFloat(document.getElementById('obsProdutoPreco').value);
         let obs = document.getElementById('obsInputText').value;
         obs = obs ? obs.trim() : "";
-        // Coletar adicionais selecionados
+
+        // Coletar opcional selecionado
+        let selectedOpcional = null;
+        const checkedRadio = document.querySelector('input[name="opcional-radio"]:checked');
+        if (checkedRadio) {
+            selectedOpcional = {
+                id: checkedRadio.getAttribute('data-opcional-id'),
+                name: checkedRadio.getAttribute('data-opcional-name'),
+                price: parseFloat(checkedRadio.getAttribute('data-opcional-price'))
+            };
+        }
+
+        // Coletar adicionais
         const selectedAdicionais = [];
-        let adicionaisExtraPrice = 0;
         document.querySelectorAll('.adicional-checkbox:checked').forEach(cb => {
             selectedAdicionais.push({
                 id: cb.getAttribute('data-adicional-id'),
                 name: cb.getAttribute('data-adicional-name'),
                 price: parseFloat(cb.getAttribute('data-adicional-price'))
             });
-            adicionaisExtraPrice += parseFloat(cb.getAttribute('data-adicional-price'));
         });
+
+        const opcionalKey = selectedOpcional ? selectedOpcional.id : 'none';
         const adicionaisKey = selectedAdicionais.map(a => a.id).sort().join(',');
-        let cartKey = id + "_" + obs.toLowerCase() + "_" + adicionaisKey;
+        const cartKey = id + "_" + obs.toLowerCase() + "_" + opcionalKey + "_" + adicionaisKey;
         if (comandaCart[cartKey]) {
             comandaCart[cartKey].quantity += 1;
         } else {
-            comandaCart[cartKey] = { id, name, price: basePrice, basePrice, quantity: 1, obs, adicionais: selectedAdicionais };
+            comandaCart[cartKey] = { id, name, price: basePrice, basePrice, quantity: 1, obs, adicionais: selectedAdicionais, opcional: selectedOpcional };
         }
         atualizarVisualCarrinho();
         fecharModalObservacao();
@@ -420,9 +584,20 @@
         for (const [id, item] of Object.entries(comandaCart)) {
             hasItems = true;
             const adicionaisTotal = (item.adicionais || []).reduce((s, a) => s + parseFloat(a.price), 0);
-            const unitTotal = item.price + adicionaisTotal;
+            const opcionalTotal = item.opcional ? parseFloat(item.opcional.price) : 0;
+            const unitTotal = item.price + adicionaisTotal + opcionalTotal;
             const itemTotal = item.quantity * unitTotal;
             total += itemTotal;
+
+            // Opcional obrigatório HTML
+            let opcionalHtml = '';
+            if (item.opcional) {
+                const opcPrice = parseFloat(item.opcional.price);
+                opcionalHtml = `<div class="flex justify-between items-center mt-1">
+                    <span class="text-xs text-orange-700 font-medium">● ${item.opcional.name}</span>
+                    ${opcPrice > 0 ? `<span class="text-xs text-orange-600 font-bold ml-2">+R$ ${opcPrice.toFixed(2).replace('.', ',')}</span>` : '<span class="text-xs text-gray-400 ml-2">Incluso</span>'}
+                </div>`;
+            }
 
             // Adicionais HTML lines
             let adicionaisHtml = '';
@@ -447,6 +622,7 @@
                     <span class="font-bold text-gray-800 text-sm leading-tight w-2/3">${item.name}</span>
                     <span class="font-bold text-orange-600 text-sm min-w-max">R$ ${item.price.toFixed(2).replace('.',',')}</span>
                 </div>
+                ${opcionalHtml}
                 ${adicionaisHtml}
                 ${obsHtml}
                 <div class="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
@@ -478,6 +654,11 @@
         totalDisplay.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
     }
 
+    // CSS: animação shake para validação
+    const _shakeStyle = document.createElement('style');
+    _shakeStyle.textContent = '@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }';
+    document.head.appendChild(_shakeStyle);
+
     // --- SALVAR NOVO PEDIDO NA API ---
     function salvarNovoPedido() {
         const btnSalvar = document.getElementById('btnSalvarPedido');
@@ -487,7 +668,8 @@
             product_id: parseInt(item.id),
             quantity: parseInt(item.quantity),
             observation: item.obs || "",
-            adicional_ids: (item.adicionais || []).map(a => parseInt(a.id))
+            adicional_ids: (item.adicionais || []).map(a => parseInt(a.id)),
+            opcional_id: item.opcional ? parseInt(item.opcional.id) : null
         }));
         
         if (itemsList.length === 0) return;

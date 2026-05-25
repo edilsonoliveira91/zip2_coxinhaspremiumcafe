@@ -16,7 +16,7 @@ from django.db import transaction
 import json
 from .models import Comanda, Pedido, PedidoItem
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
-from products.models import Product, Adicional
+from products.models import Product, Adicional, OpcionalObrigatorio
 
 
 def _get_saldo_estoque(product_id, exclude_pedido_id=None):
@@ -1811,11 +1811,20 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                 obs = item_data.get('observation') or '' 
                 
                 unit_price = product.price
+                # Opcional obrigatório
+                opcional_id = item_data.get('opcional_id')
+                if opcional_id:
+                    try:
+                        opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
+                        unit_price += opcional.price
+                        obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
+                    except OpcionalObrigatorio.DoesNotExist:
+                        pass
                 adicional_ids = item_data.get('adicional_ids', [])
                 if adicional_ids:
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
-                    unit_price = product.price + extra
+                    unit_price += extra
                     labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity
@@ -1863,11 +1872,20 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 obs = item.get('observation') or ''
                 
                 unit_price = product.price
+                # Opcional obrigatório
+                opcional_id = item.get('opcional_id')
+                if opcional_id:
+                    try:
+                        opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
+                        unit_price += opcional.price
+                        obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
+                    except OpcionalObrigatorio.DoesNotExist:
+                        pass
                 adicional_ids = item.get('adicional_ids', [])
                 if adicional_ids:
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
-                    unit_price = product.price + extra
+                    unit_price += extra
                     labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity

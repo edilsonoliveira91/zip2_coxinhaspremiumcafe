@@ -458,6 +458,42 @@
     // ── Polling ──────────────────────────────────────────────────────────────
     let estadoAtual = {};
     let primeiroLoad = true;
+    let bipeInterval = null;
+
+    // ── Bipe (Web Audio API) ──────────────────────────────────────────────────
+    function tocarBipe() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const dur = 1.8;
+        // Campainha de mesa: fundamental + parcial harmônico
+        [[1318, 0.5], [2637, 0.25], [3956, 0.1]].forEach(([freq, vol]) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(vol, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + dur);
+        });
+        setTimeout(() => ctx.close(), (dur + 0.1) * 1000);
+      } catch(e) { /* browser bloqueou autoplay */ }
+    }
+
+    function iniciarBipe() {
+      if (bipeInterval) return;
+      tocarBipe();
+      bipeInterval = setInterval(tocarBipe, 5000);
+    }
+
+    function pararBipe() {
+      if (bipeInterval) {
+        clearInterval(bipeInterval);
+        bipeInterval = null;
+      }
+    }
 
     async function atualizarPainel() {
       try {
@@ -477,14 +513,16 @@
           }
         }
 
-        // Badge de novos
+        // Badge de novos + bipe
         const qtdNovos = pedidos.filter(p => !p.impresso).length;
         const badge = document.getElementById('badge-novos');
         if (qtdNovos > 0) {
           badge.textContent = `🔴 ${qtdNovos} novo${qtdNovos > 1 ? 's' : ''}`;
           badge.classList.add('visible');
+          iniciarBipe();
         } else {
           badge.classList.remove('visible');
+          pararBipe();
         }
 
         // Remover cards que saíram

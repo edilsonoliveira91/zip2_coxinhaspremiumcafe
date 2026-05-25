@@ -665,11 +665,9 @@ class ProdutoAdicionaisView(LoginRequiredMixin, View):
             price_raw = data.get('price', '')
             if not name:
                 return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
-            if not price_raw:
-                return JsonResponse({'success': False, 'message': 'Preço é obrigatório.'})
-            price = _Decimal(str(price_raw).replace(',', '.'))
-            if price <= 0:
-                return JsonResponse({'success': False, 'message': 'Preço deve ser maior que zero.'})
+            price = _Decimal(str(price_raw).replace(',', '.')) if price_raw else _Decimal('0.00')
+            if price < 0:
+                return JsonResponse({'success': False, 'message': 'Preço não pode ser negativo.'})
             adicional = Adicional.objects.create(
                 product=product,
                 name=name,
