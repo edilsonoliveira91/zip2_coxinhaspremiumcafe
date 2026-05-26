@@ -206,6 +206,76 @@ class SellsReportView(BaseReportView):
         })
         return context
 
+class CanceledCortesiaReportView(BaseReportView):
+    """Relatório de cancelamentos e cortesias de comandas."""
+    template_name = 'reports/canceledcortesia_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        today = timezone.localtime().date()
+        data_inicio = self.request.GET.get('data_inicio', '').strip() or today.strftime('%Y-%m-%d')
+        data_fim = self.request.GET.get('data_fim', '').strip() or today.strftime('%Y-%m-%d')
+        tipo = self.request.GET.get('tipo', '').strip()
+        numero_comanda = self.request.GET.get('numero_comanda', '').strip()
+
+        queryset = Comanda.objects.filter(
+            status__in=['cancelada', 'cortesia'],
+            updated_at__date__gte=data_inicio,
+            updated_at__date__lte=data_fim,
+        ).order_by('-updated_at', '-created_at')
+
+        if tipo in ['cancelada', 'cortesia']:
+            queryset = queryset.filter(status=tipo)
+        if numero_comanda:
+            queryset = queryset.filter(numero__icontains=numero_comanda)
+
+        registros = []
+        for comanda in queryset:
+            usuario_obj = comanda.updated_by
+            if not usuario_obj and comanda.status == 'cancelada':
+                try:
+                    checkout = comanda.checkout
+                except Exception:
+                    checkout = None
+                if checkout and checkout.processed_by:
+                    usuario_obj = checkout.processed_by
+
+            if usuario_obj:
+                usuario = usuario_obj.get_full_name().strip() or usuario_obj.get_username()
+            else:
+                usuario = '—'
+
+            registros.append({
+                'id': comanda.id,
+                'numero': comanda.numero,
+                'usuario': usuario,
+                'tipo': comanda.status,
+                'tipo_label': 'Cancelamento' if comanda.status == 'cancelada' else 'Cortesia',
+                'abertura_em': timezone.localtime(comanda.created_at).strftime('%d/%m/%Y %H:%M') if comanda.created_at else '—',
+                'cancelamento_em': timezone.localtime(comanda.updated_at).strftime('%d/%m/%Y %H:%M') if comanda.updated_at else '—',
+                'observacao': comanda.motivo_cancelamento or '—',
+                'total_amount': comanda.total_amount or 0,
+            })
+
+        total_registros = len(registros)
+        total_cancelamentos = queryset.filter(status='cancelada').count()
+        total_cortesias = queryset.filter(status='cortesia').count()
+        total_valor = queryset.aggregate(total=Sum('total_amount'))['total'] or 0
+
+        context.update({
+            'registros': registros,
+            'total_registros': total_registros,
+            'total_cancelamentos': total_cancelamentos,
+            'total_cortesias': total_cortesias,
+            'total_valor': total_valor,
+            'data_inicio': data_inicio,
+            'data_fim': data_fim,
+            'tipo': tipo,
+            'numero_comanda': numero_comanda,
+        })
+        return context
+
 
 # ─── Estado global da emissão em lote ────────────────────────────────────────
 _lote_state = {

@@ -919,7 +919,8 @@ class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
         with transaction.atomic():
             comanda.status = 'cancelada'
             comanda.motivo_cancelamento = f'[CANCELAMENTO PÓS-FECHAMENTO] {motivo}'
-            comanda.save(update_fields=['status', 'motivo_cancelamento'])
+            comanda.updated_by = request.user
+            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
 
             # Cancela pedidos que ainda não foram cancelados
             comanda.pedidos.exclude(status='cancelado').update(
@@ -2072,7 +2073,8 @@ class CancelarComandaView(LoginRequiredMixin, View):
         with transaction.atomic():
             comanda.status = 'cancelada'
             comanda.motivo_cancelamento = motivo
-            comanda.save()
+            comanda.updated_by = request.user
+            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
 
             # Cancela todos os pedidos que ainda não foram entregues/cancelados
             for pedido in comanda.pedidos.filter(
@@ -2129,7 +2131,8 @@ class CortesiaComandaView(LoginRequiredMixin, View):
         with transaction.atomic():
             comanda.status = 'cortesia'
             comanda.motivo_cancelamento = observacao
-            comanda.save()
+            comanda.updated_by = request.user
+            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
 
             # Cancela todos os pedidos ativos
             for pedido in comanda.pedidos.filter(

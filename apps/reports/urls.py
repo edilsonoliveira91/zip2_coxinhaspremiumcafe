@@ -10,5 +10,6 @@ urlpatterns = [
     path('nfce/download-xml/', views.DownloadXMLZipView.as_view(), name='download_xml_zip'),
     path('vendas/', views.SalesReportView.as_view(), name='sales_report'),
     path('vendas/produtos/', views.SellsReportView.as_view(), name='sells_report'),
+    path('cancelamentos-cortesias/', views.CanceledCortesiaReportView.as_view(), name='canceled_cortesia_report'),
     path('cozinha/', views.CozinhaReportView.as_view(), name='cozinha_report'),
 ]
