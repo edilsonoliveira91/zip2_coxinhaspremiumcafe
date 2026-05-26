@@ -30,11 +30,12 @@ class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         show_in_menu = self.request.GET.get('show_in_menu')
         only_active = self.request.GET.get('only_active')
 
-        # Padrão: mostrar apenas ativos; only_active=false mostra apenas inativos
-        if only_active == 'false':
-            queryset = Product.objects.filter(is_active=False).select_related('created_by')
-        else:
-            queryset = Product.objects.filter(is_active=True).select_related('created_by')
+        # Padrão: mostrar todos. only_active=true => apenas ativos; only_active=false => apenas inativos
+        queryset = Product.objects.all().select_related('created_by')
+        if only_active == 'true':
+            queryset = queryset.filter(is_active=True)
+        elif only_active == 'false':
+            queryset = queryset.filter(is_active=False)
 
         if search:
             queryset = queryset.filter(name__icontains=search)

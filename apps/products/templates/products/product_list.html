@@ -194,7 +194,10 @@
                                     <div class="group relative bg-white border-2 border-gray-100 rounded-2xl p-6 hover:border-orange-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                                         
                                         <!-- Status badge -->
-                                        <div class="absolute top-4 right-4 flex space-x-2">
+                                        <div class="absolute top-4 right-4 flex items-center space-x-2">
+                                            {% if not product.is_active %}
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 border border-red-200">DESATIVADO</span>
+                                            {% endif %}
                                             {% if product.show_in_menu %}
                                                 <div class="w-2 h-3 bg-green-400 rounded-full" title="No cardápio"></div>
                                             {% else %}
