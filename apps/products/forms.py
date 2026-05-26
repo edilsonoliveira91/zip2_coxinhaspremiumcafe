@@ -373,6 +373,20 @@ class ProductSearchForm(forms.Form):
         })
     )
     
+    only_active = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('true', 'Somente ativos'),
+            ('false', 'Somente desativados'),
+            ('all', 'Todos')
+        ],
+        initial='true',
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
+        }),
+        label='Status do Produto'
+    )
+
     show_in_menu = forms.ChoiceField(
         required=False,
         choices=[
