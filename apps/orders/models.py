@@ -291,3 +291,60 @@ class PedidoItem(TimeStampedModel):
     def total_price(self):
         """Preço total do item"""
         return self.quantity * self.unit_price
+
+class ComandaPartialPayment(TimeStampedModel):
+    """
+    Registro de pagamentos parciais de uma comanda ainda aberta.
+    """
+
+    PAYMENT_METHOD_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('cartao_debito', 'Cartão de Débito'),
+        ('cartao_credito', 'Cartão de Crédito'),
+        ('pix', 'PIX'),
+        ('voucher', 'Voucher'),
+    ]
+
+    comanda = models.ForeignKey(
+        Comanda,
+        on_delete=models.CASCADE,
+        related_name='partial_payments',
+        verbose_name='Comanda'
+    )
+
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        verbose_name='Forma de Pagamento'
+    )
+
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Valor Pago'
+    )
+
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='processed_partial_payments',
+        verbose_name='Registrado por'
+    )
+
+    notes = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Observações'
+    )
+
+    class Meta:
+        verbose_name = 'Pagamento Parcial de Comanda'
+        verbose_name_plural = 'Pagamentos Parciais de Comanda'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comanda #{self.comanda.numero} - {self.get_payment_method_display()} - R$ {self.amount}'
+

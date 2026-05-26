@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.db.models import Q, Sum, Case, When, IntegerField
 from django.db import transaction
 import json
-from .models import Comanda, Pedido, PedidoItem
+from .models import Comanda, Pedido, PedidoItem, ComandaPartialPayment
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product, Adicional, OpcionalObrigatorio
 
@@ -1775,17 +1775,47 @@ class ComandaDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Buscar Categorias ativas a partir do CATEGORY_CHOICES
         categories = [{'id': k, 'name': v} for k, v in Product.CATEGORY_CHOICES]
-        
+
         # Buscar Todos os Produtos ativos e visíveis no cardápio
         products = Product.objects.filter(is_active=True, show_in_menu=True)
-        
+
         adicionais = Adicional.objects.filter(is_active=True)
         context['categories'] = categories
         context['products'] = products
         context['adicionais'] = adicionais
+
+        can_view_partial_financial = (
+            getattr(self.request.user, 'is_caixa', False)
+            or self.request.user.is_superuser
+            or self.request.user.has_perm('checkouts.change_checkout')
+        )
+        context['show_partial_financial'] = can_view_partial_financial
+        context['partial_payments'] = []
+        context['partial_total_paid'] = Decimal('0.00')
+        context['partial_remaining_amount'] = self.object.total_amount
+        context['partial_payments_json'] = '[]'
+
+        if can_view_partial_financial:
+            partial_qs = self.object.partial_payments.select_related('processed_by').all()
+            partial_total = partial_qs.aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            remaining = self.object.total_amount - partial_total
+            if remaining < 0:
+                remaining = Decimal('0.00')
+
+            context['partial_payments'] = partial_qs
+            context['partial_total_paid'] = partial_total
+            context['partial_remaining_amount'] = remaining
+            context['partial_payments_json'] = json.dumps([
+                {
+                    'method': p.payment_method,
+                    'amount': float(p.amount),
+                }
+                for p in partial_qs
+            ])
+
         return context
 
 
@@ -1924,6 +1954,84 @@ class NovoPedidoView(LoginRequiredMixin, View):
             url += '?modal=open'
         return redirect(url)
 
+
+
+class RegistrarPagamentoParcialView(LoginRequiredMixin, View):
+    """
+    Registra pagamentos parciais mantendo a comanda em aberto.
+    """
+
+    def post(self, request, numero):
+        if not (getattr(request.user, 'is_caixa', False) or request.user.has_perm('checkouts.change_checkout')):
+            return JsonResponse({'ok': False, 'erro': 'Sem permissão'}, status=403)
+
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=['em_uso', 'aguardando_caixa']
+        ).order_by('-created_at').first()
+
+        if not comanda:
+            return JsonResponse({'ok': False, 'erro': 'Comanda não encontrada'}, status=404)
+
+        try:
+            data = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'erro': 'JSON inválido'}, status=400)
+
+        payments_raw = data.get('payments') or []
+        if not isinstance(payments_raw, list) or len(payments_raw) == 0:
+            return JsonResponse({'ok': False, 'erro': 'Nenhum pagamento parcial informado.'}, status=400)
+
+        valid_methods = {'dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher'}
+        payments = []
+        total_pago = Decimal('0.00')
+
+        for p in payments_raw:
+            metodo = (p.get('method') or '').strip()
+            if metodo not in valid_methods:
+                return JsonResponse({'ok': False, 'erro': f'Método inválido: {metodo}'}, status=400)
+
+            try:
+                valor = Decimal(str(p.get('amount', 0)))
+            except Exception:
+                return JsonResponse({'ok': False, 'erro': 'Valor de pagamento inválido.'}, status=400)
+
+            if valor <= Decimal('0.00'):
+                return JsonResponse({'ok': False, 'erro': 'Valor deve ser maior que zero.'}, status=400)
+
+            payments.append((metodo, valor))
+            total_pago += valor
+
+        if total_pago >= comanda.total_amount - Decimal('0.01'):
+            return JsonResponse({
+                'ok': False,
+                'erro': 'Valor parcial já cobre o total. Use Finalizar Pagamento.'
+            }, status=400)
+
+        with transaction.atomic():
+            ComandaPartialPayment.objects.filter(comanda=comanda).delete()
+            ComandaPartialPayment.objects.bulk_create([
+                ComandaPartialPayment(
+                    comanda=comanda,
+                    payment_method=metodo,
+                    amount=valor,
+                    processed_by=request.user,
+                )
+                for metodo, valor in payments
+            ])
+            if comanda.status != 'em_uso':
+                comanda.status = 'em_uso'
+                comanda.save(update_fields=['status'])
+
+        restante = comanda.total_amount - total_pago
+        if restante < 0:
+            restante = Decimal('0.00')
+
+        return JsonResponse({
+            'ok': True,
+            'message': 'Pagamento parcial registrado com sucesso.',
+            'total_pago': float(total_pago),
+            'restante': float(restante),
+        })
 
 
 class FechaMesaCaixaView(LoginRequiredMixin, View):

@@ -21,6 +21,7 @@ urlpatterns = [
     path('pedido/<int:pk>/marcar-entregue/', views.MarcarPedidoEntregueView.as_view(), name='marcar_entregue'),
     path('comanda/<str:numero>/cancelar/', views.CancelarComandaView.as_view(), name='cancelar_comanda'),
     path('comanda/<str:numero>/fechar-mesa/', views.FechaMesaCaixaView.as_view(), name='fechar_mesa_caixa'),
+    path('comanda/<str:numero>/registrar-parcial/', views.RegistrarPagamentoParcialView.as_view(), name='registrar_pagamento_parcial'),
     path('comanda/<str:numero>/cortesia/', views.CortesiaComandaView.as_view(), name='cortesia_comanda'),
     path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),

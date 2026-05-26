@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime
 import json
-from orders.models import Comanda, Pedido
+from orders.models import Comanda, Pedido, ComandaPartialPayment
 Order = Comanda # temp fix
 from decimal import Decimal
 
@@ -223,6 +223,8 @@ class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
                             payment_method=p['method'],
                             amount=p['amount'],
                         )
+                    # Comanda foi quitada: limpa registros de parcial em aberto
+                    ComandaPartialPayment.objects.filter(comanda=comanda).delete()
                 except Exception as e:
                     print(f"Erro ao criar/atualizar registro de checkout: {e}")
 
