@@ -10,14 +10,16 @@ class Product(TimeStampedModel):
     Modelo de produto individual para a cafeteria
     """
     CATEGORY_CHOICES = [
-        ('bebidas', 'Bebidas'),
-        ('sucos', 'Sucos'),
-        ('cafes_premium', 'Cafés Premium'),
-        ('cafes', 'Cafés'),
         ('salgados', 'Salgados'),
+        ('cafes', 'Cafés'),
+        ('cafes_premium', 'Cafés Premium'),
         ('minisalgados', 'Mini Salgados'),
-        ('doces', 'Doces'),
         ('sanduiches', 'Sanduíches'),
+        ('sucos', 'Sucos'),
+        ('chas', 'Chás'),
+        ('bebidas', 'Bebidas'),
+        ('doces', 'Doces'),
+        
     ]
     
     name = models.CharField(
