@@ -152,6 +152,27 @@
                                             {% endif %}
                                         </div>
 
+                                        <!-- Sabor / Variação -->
+                                        <div class="space-y-2 md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
+                                                <svg class="w-4 h-4 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h6m-6 5h10"></path>
+                                                </svg>
+                                                Sabor / Variação
+                                            </label>
+                                            {{ form.opcional_obrigatorio }}
+                                            {% if form.opcional_obrigatorio.errors %}
+                                                <p class="text-red-500 text-sm flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    {{ form.opcional_obrigatorio.errors.0 }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-xs text-gray-500">Opcional para controlar estoque por sabor (ex: Laranja, Uva).</p>
+                                            {% endif %}
+                                        </div>
+
                                     </div>
                                 </div>
 
@@ -259,6 +280,46 @@
 
 <script>
     const costInput = document.querySelector('[name="unit_cost"]');
+
+    const productSelect = document.querySelector('[name="product"]');
+    const opcionalSelect = document.querySelector('[name="opcional_obrigatorio"]');
+
+    async function carregarOpcionaisPorProduto(productId, selectedValue = '') {
+        if (!opcionalSelect) return;
+
+        opcionalSelect.innerHTML = '<option value="">Sem sabor/variação</option>';
+
+        if (!productId) return;
+
+        try {
+            const response = await fetch(`/products/estoque/opcionais/${productId}/`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            (data.results || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.name} (+R$ ${Number(item.price).toFixed(2)})`;
+                opcionalSelect.appendChild(opt);
+            });
+
+            if (selectedValue) {
+                opcionalSelect.value = String(selectedValue);
+            }
+        } catch (e) {
+            console.error('Erro ao carregar variações do produto', e);
+        }
+    }
+
+    if (productSelect) {
+        const selectedOnLoad = opcionalSelect ? opcionalSelect.value : '';
+        productSelect.addEventListener('change', () => {
+            carregarOpcionaisPorProduto(productSelect.value, '');
+        });
+        carregarOpcionaisPorProduto(productSelect.value, selectedOnLoad);
+    }
+
+    
 
     function formatBRL(value) {
         const digits = value.replace(/\D/g, '');

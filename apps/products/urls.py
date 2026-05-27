@@ -23,6 +23,7 @@ urlpatterns = [
      # Estoque
     path('estoque/', views.StockListView.as_view(), name='stock_list'),
     path('estoque/entrada/', views.StockEntryCreateView.as_view(), name='stock_create'),
+    path('estoque/opcionais/<int:product_id>/', views.StockOpcionaisByProductView.as_view(), name='stock_opcionais_by_product'),
     path('estoque/<int:pk>/remover/', views.StockEntryDeleteView.as_view(), name='stock_delete'),
     path('estoque/sem-estoque/', views.NoStockListView.as_view(), name='nostock_list'),
 

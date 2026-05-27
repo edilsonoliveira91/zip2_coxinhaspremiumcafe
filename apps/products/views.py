@@ -10,7 +10,7 @@ from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
 from .models import StockEntry
 from .forms import StockEntryForm
-from django.db.models import Sum, F, Case, When, IntegerField
+from django.db.models import Sum, F, Case, When, IntegerField, Q
 
 
 # ==================== VIEWS DE PRODUTOS ====================
@@ -762,9 +762,9 @@ class StockListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         q, date_from, date_to = self._get_filters()
-        qs = StockEntry.objects.select_related('product').order_by('-date', '-created_at')
+        qs = StockEntry.objects.select_related('product', 'opcional_obrigatorio').order_by('-date', '-created_at')
         if q:
-            qs = qs.filter(product__name__icontains=q)
+            qs = qs.filter(Q(product__name__icontains=q) | Q(opcional_obrigatorio__name__icontains=q))
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -777,10 +777,15 @@ class StockListView(LoginRequiredMixin, ListView):
 
         q, date_from, date_to = self._get_filters()
 
-        # Entradas agrupadas por produto (respeitando filtros de data e busca)
-        totals_qs = StockEntry.objects.values('product__id', 'product__name', 'product__category')
+        # Entradas agrupadas por produto + sabor/variação
+        totals_qs = StockEntry.objects.values(
+            'product__id', 'product__name', 'product__category',
+            'opcional_obrigatorio__id', 'opcional_obrigatorio__name'
+        )
         if q:
-            totals_qs = totals_qs.filter(product__name__icontains=q)
+            totals_qs = totals_qs.filter(
+                Q(product__name__icontains=q) | Q(opcional_obrigatorio__name__icontains=q)
+            )
         if date_from:
             totals_qs = totals_qs.filter(date__gte=date_from)
         if date_to:
@@ -788,25 +793,30 @@ class StockListView(LoginRequiredMixin, ListView):
         totals_qs = totals_qs.annotate(
             total_qty=Sum('quantity'),
             total_invested=Sum(F('quantity') * F('unit_cost'))
-        ).order_by('product__category', 'product__name')
+        ).order_by('product__category', 'product__name', 'opcional_obrigatorio__name')
 
-        # Saídas agrupadas por produto (respeitando filtros de data e busca)
-        exits_qs = StockExit.objects.values('product_id')
+        # Saídas agrupadas por produto + sabor/variação
+        exits_qs = StockExit.objects.values('product_id', 'opcional_obrigatorio_id')
         if q:
-            exits_qs = exits_qs.filter(product__name__icontains=q)
+            exits_qs = exits_qs.filter(
+                Q(product__name__icontains=q) | Q(opcional_obrigatorio__name__icontains=q)
+            )
         if date_from:
             exits_qs = exits_qs.filter(created_at__date__gte=date_from)
         if date_to:
             exits_qs = exits_qs.filter(created_at__date__lte=date_to)
-        saidas_por_produto = dict(
-            exits_qs.annotate(t=Sum('quantity')).values_list('product_id', 't')
-        )
+        saidas_por_chave = {
+            (pid, oid): total
+            for pid, oid, total in exits_qs.annotate(t=Sum('quantity')).values_list('product_id', 'opcional_obrigatorio_id', 't')
+        }
 
         totals = []
         for t in totals_qs:
-            saidas = saidas_por_produto.get(t['product__id'], 0) or 0
+            key = (t['product__id'], t['opcional_obrigatorio__id'])
+            saidas = saidas_por_chave.get(key, 0) or 0
             t['saidas_qty'] = saidas
             t['saldo_qty'] = (t['total_qty'] or 0) - saidas
+            t['variant_name'] = t.get('opcional_obrigatorio__name') or 'Sem sabor/variação'
             totals.append(t)
 
         context['totals'] = totals
@@ -823,6 +833,16 @@ class StockEntryCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('products:stock_list')
     login_url = reverse_lazy('accounts:login')
 
+    def get_initial(self):
+        initial = super().get_initial()
+        product_id = self.request.GET.get('product')
+        opcional_id = self.request.GET.get('opcional')
+        if product_id:
+            initial['product'] = product_id
+        if opcional_id:
+            initial['opcional_obrigatorio'] = opcional_id
+        return initial
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         messages.success(self.request, '✅ Entrada de estoque registrada com sucesso!')
@@ -831,6 +851,27 @@ class StockEntryCreateView(LoginRequiredMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, '❌ Verifique os campos e tente novamente.')
         return super().form_invalid(form)
+
+
+class StockOpcionaisByProductView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, product_id):
+        opcionais = (
+            OpcionalObrigatorio.objects
+            .filter(is_active=True, product_id=product_id)
+            .order_by('name')
+            .values('id', 'name', 'price')
+        )
+        data = [
+            {
+                'id': o['id'],
+                'name': o['name'],
+                'price': str(o['price']),
+            }
+            for o in opcionais
+        ]
+        return JsonResponse({'results': data})
 
 
 class StockEntryDeleteView(LoginRequiredMixin, DeleteView):
@@ -847,57 +888,72 @@ class StockEntryDeleteView(LoginRequiredMixin, DeleteView):
 
 class NoStockListView(LoginRequiredMixin, TemplateView):
     """
-    Lista produtos com saldo de estoque igual a zero.
+    Lista itens de estoque (produto + sabor/variação) com saldo igual/abaixo do mínimo.
     """
     template_name = 'stock/nostock_list.html'
     login_url = reverse_lazy('accounts:login')
 
     def get_context_data(self, **kwargs):
-        from django.db.models import OuterRef, Subquery, ExpressionWrapper, IntegerField
-        from django.db.models.functions import Coalesce
         from .models import StockExit
         from orders.models import PedidoItem
 
         context = super().get_context_data(**kwargs)
 
-        # Parâmetro de mínimo de estoque (padrão = 0 → só sem estoque)
         try:
             minimo = int(self.request.GET.get('minimo', 0))
         except (ValueError, TypeError):
             minimo = 0
 
-        # Subquery: saídas em andamento (pedidos não entregues)
-        active_items_qs = (
+        # Entradas
+        entries = (
+            StockEntry.objects
+            .select_related('product', 'opcional_obrigatorio')
+            .values('product_id', 'product__name', 'product__category', 'opcional_obrigatorio_id', 'opcional_obrigatorio__name')
+            .annotate(total=Sum('quantity'))
+        )
+
+        # Saídas permanentes
+        exits = (
+            StockExit.objects
+            .values('product_id', 'opcional_obrigatorio_id')
+            .annotate(total=Sum('quantity'))
+        )
+        exits_map = {(e['product_id'], e['opcional_obrigatorio_id']): (e['total'] or 0) for e in exits}
+
+        # Saídas em andamento
+        active = (
             PedidoItem.objects
-            .filter(product=OuterRef('pk'), pedido__status__in=['aguardando', 'preparando', 'pronta'])
-            .values('product')
-            .annotate(t=Sum('quantity'))
-            .values('t')
+            .filter(pedido__status__in=['aguardando', 'preparando', 'pronta'])
+            .values('product_id', 'opcional_obrigatorio_id')
+            .annotate(total=Sum('quantity'))
         )
+        active_map = {(a['product_id'], a['opcional_obrigatorio_id']): (a['total'] or 0) for a in active}
 
-        produtos = (
-            Product.objects
-            .filter(show_in_menu=True)
-            .annotate(
-                entradas=Coalesce(Sum('stock_entries__quantity'), 0, output_field=IntegerField()),
-                saidas_perm=Coalesce(Sum('stock_exits__quantity'), 0, output_field=IntegerField()),
-                saidas_ativas=Coalesce(
-                    Subquery(active_items_qs, output_field=IntegerField()), 0,
-                    output_field=IntegerField()
-                ),
-            )
-            .annotate(
-                saldo=ExpressionWrapper(
-                    F('entradas') - F('saidas_perm') - F('saidas_ativas'),
-                    output_field=IntegerField()
-                )
-            )
-            .filter(saldo__lte=minimo)
-            .order_by('category', 'name')
-        )
+        category_map = dict(Product.CATEGORY_CHOICES)
+        itens_estoque = []
+        for e in entries:
+            key = (e['product_id'], e['opcional_obrigatorio_id'])
+            entradas = e['total'] or 0
+            saidas_perm = exits_map.get(key, 0)
+            saidas_ativas = active_map.get(key, 0)
+            saldo = entradas - saidas_perm - saidas_ativas
+            if saldo <= minimo:
+                itens_estoque.append({
+                    'pk': e['product_id'],
+                    'name': e['product__name'],
+                    'get_category_display': category_map.get(e['product__category'], e['product__category']),
+                    'opcional_name': e.get('opcional_obrigatorio__name') or 'Sem sabor/variação',
+                    'opcional_id': e.get('opcional_obrigatorio_id'),
+                    'entradas': entradas,
+                    'saidas_perm': saidas_perm,
+                    'saidas_ativas': saidas_ativas,
+                    'saldo': saldo,
+                })
 
-        context['produtos'] = produtos
-        context['total'] = produtos.count()
+        itens_estoque.sort(key=lambda x: (x['get_category_display'], x['name'], x['opcional_name']))
+
+        context['produtos'] = itens_estoque
+        context['total'] = len(itens_estoque)
         context['minimo'] = minimo
         return context
 

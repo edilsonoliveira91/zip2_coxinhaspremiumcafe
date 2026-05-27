@@ -26,11 +26,15 @@ def criar_saida_estoque_ao_entregar(sender, instance, **kwargs):
         return  # só interessa quando vira entregue
 
     # Cria StockExit para cada item que tem controle de estoque
-    for item in instance.items.select_related('product').all():
-        tem_estoque = StockEntry.objects.filter(product=item.product).exists()
+    for item in instance.items.select_related('product', 'opcional_obrigatorio').all():
+        estoque_qs = StockEntry.objects.filter(product=item.product)
+        if item.opcional_obrigatorio_id:
+            estoque_qs = estoque_qs.filter(opcional_obrigatorio_id=item.opcional_obrigatorio_id)
+        tem_estoque = estoque_qs.exists()
         if tem_estoque:
             StockExit.objects.create(
                 product=item.product,
+                opcional_obrigatorio=item.opcional_obrigatorio,
                 quantity=item.quantity,
                 pedido=instance,
             )

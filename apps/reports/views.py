@@ -169,11 +169,20 @@ class SellsReportView(BaseReportView):
             pedido__status__in=['aguardando', 'preparando', 'pronta', 'entregue'],
         )
         if q:
-            items_qs = items_qs.filter(product__name__icontains=q)
+            items_qs = items_qs.filter(
+                Q(product__name__icontains=q) |
+                Q(opcional_obrigatorio__name__icontains=q)
+            )
 
         produtos = (
             items_qs
-            .values('product__id', 'product__name', 'product__category')
+            .values(
+                'product__id',
+                'product__name',
+                'product__category',
+                'opcional_obrigatorio__id',
+                'opcional_obrigatorio__name',
+            )
             .annotate(
                 qtd_vendida=Sum('quantity'),
                 total_faturado=Sum(
@@ -190,14 +199,42 @@ class SellsReportView(BaseReportView):
                     )
                 ),
             )
-            .order_by('-qtd_vendida')
+            .order_by('-qtd_vendida', 'product__name', 'opcional_obrigatorio__name')
         )
 
+        produtos = list(produtos)
         total_itens = sum(p['qtd_vendida'] or 0 for p in produtos)
         total_faturado = sum(p['total_faturado'] or 0 for p in produtos)
 
+        groups_map = {}
+        for row in produtos:
+            product_id = row.get('product__id')
+            group = groups_map.get(product_id)
+            if not group:
+                group = {
+                    'group_key': f'p{product_id}',
+                    'product__id': product_id,
+                    'product__name': row.get('product__name'),
+                    'product__category': row.get('product__category'),
+                    'qtd_vendida': 0,
+                    'total_faturado': 0,
+                    'variacoes': [],
+                }
+                groups_map[product_id] = group
+
+            group['qtd_vendida'] += row.get('qtd_vendida') or 0
+            group['total_faturado'] += row.get('total_faturado') or 0
+            group['variacoes'].append({
+                'name': row.get('opcional_obrigatorio__name') or 'Sem variação',
+                'qtd_vendida': row.get('qtd_vendida') or 0,
+                'total_faturado': row.get('total_faturado') or 0,
+            })
+
+        grouped_products = sorted(groups_map.values(), key=lambda x: x['qtd_vendida'], reverse=True)
+
         context.update({
-            'produtos': list(produtos),
+            'produtos': produtos,
+            'grouped_products': grouped_products,
             'total_itens': total_itens,
             'total_faturado': total_faturado,
             'data_inicio': data_inicio,

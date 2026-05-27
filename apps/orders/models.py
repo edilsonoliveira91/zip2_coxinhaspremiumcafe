@@ -236,6 +236,14 @@ class PedidoItem(TimeStampedModel):
         on_delete=models.PROTECT,
         verbose_name="Produto"
     )
+    opcional_obrigatorio = models.ForeignKey(
+        'products.OpcionalObrigatorio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pedido_items',
+        verbose_name="Sabor / Variação"
+    )
     product_name = models.CharField(
         max_length=100,
         blank=True,
@@ -269,7 +277,8 @@ class PedidoItem(TimeStampedModel):
         ordering = ['id']
 
     def __str__(self):
-        return f"{self.quantity}x {self.product.name}"
+        sufixo = f" ({self.opcional_obrigatorio.name})" if self.opcional_obrigatorio else ''
+        return f"{self.quantity}x {self.product.name}{sufixo}"
     
     def save(self, *args, **kwargs):
         if not self.unit_price:

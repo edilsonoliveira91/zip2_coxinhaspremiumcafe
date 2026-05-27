@@ -355,6 +355,14 @@ class StockEntry(models.Model):
         related_name='stock_entries',
         verbose_name="Produto"
     )
+    opcional_obrigatorio = models.ForeignKey(
+        'products.OpcionalObrigatorio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_entries',
+        verbose_name="Sabor / Variação"
+    )
     date = models.DateField(verbose_name="Data de Entrada")
     quantity = models.PositiveIntegerField(
         validators=[MinValueValidator(1)],
@@ -382,7 +390,8 @@ class StockEntry(models.Model):
         ordering = ['-date', '-created_at']
 
     def __str__(self):
-        return f"{self.product.name} — {self.quantity} un. em {self.date}"
+        sufixo = f" ({self.opcional_obrigatorio.name})" if self.opcional_obrigatorio else ''
+        return f"{self.product.name}{sufixo} — {self.quantity} un. em {self.date}"
 
     @property
     def total_cost(self):
@@ -397,6 +406,14 @@ class StockExit(models.Model):
         on_delete=models.CASCADE,
         related_name='stock_exits',
         verbose_name="Produto"
+    )
+    opcional_obrigatorio = models.ForeignKey(
+        'products.OpcionalObrigatorio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_exits',
+        verbose_name="Sabor / Variação"
     )
     quantity = models.PositiveIntegerField(verbose_name="Quantidade")
     pedido = models.ForeignKey(
@@ -414,7 +431,8 @@ class StockExit(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.product.name} — -{self.quantity} un."
+        sufixo = f" ({self.opcional_obrigatorio.name})" if self.opcional_obrigatorio else ''
+        return f"{self.product.name}{sufixo} — -{self.quantity} un."
 
 
 class RawMaterial(TimeStampedModel):

@@ -1843,6 +1843,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                 
                 unit_price = product.price
                 # Opcional obrigatório
+                opcional = None
                 opcional_id = item_data.get('opcional_id')
                 if opcional_id:
                     try:
@@ -1850,7 +1851,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                         unit_price += opcional.price
                         obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
                     except OpcionalObrigatorio.DoesNotExist:
-                        pass
+                        opcional = None
                 adicional_ids = item_data.get('adicional_ids', [])
                 if adicional_ids:
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
@@ -1864,6 +1865,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                 PedidoItem.objects.create(
                     pedido=pedido,
                     product=product,
+                    opcional_obrigatorio=opcional,
                     quantity=quantity,
                     unit_price=unit_price,
                     observations=obs 
@@ -1904,6 +1906,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 
                 unit_price = product.price
                 # Opcional obrigatório
+                opcional = None
                 opcional_id = item.get('opcional_id')
                 if opcional_id:
                     try:
@@ -1911,7 +1914,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                         unit_price += opcional.price
                         obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
                     except OpcionalObrigatorio.DoesNotExist:
-                        pass
+                        opcional = None
                 adicional_ids = item.get('adicional_ids', [])
                 if adicional_ids:
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
@@ -1925,6 +1928,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 PedidoItem.objects.create(
                     pedido=pedido,
                     product=product,
+                    opcional_obrigatorio=opcional,
                     quantity=quantity,
                     unit_price=unit_price,
                     observations=obs 

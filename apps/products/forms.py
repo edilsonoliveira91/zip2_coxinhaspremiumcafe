@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Product, Combo, ComboItem, RawMaterial
+from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Product, Combo, ComboItem
@@ -431,13 +431,17 @@ class ComboSearchForm(forms.Form):
 class StockEntryForm(forms.ModelForm):
     class Meta:
         model = StockEntry
-        fields = ['date', 'product', 'quantity', 'unit_cost', 'notes']
+        fields = ['date', 'product', 'opcional_obrigatorio', 'quantity', 'unit_cost', 'notes']
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition',
             }),
             'product': forms.Select(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 h-12 appearance-none bg-white',
+                'style': 'height: 48px !important; min-height: 48px !important;',
+            }),
+            'opcional_obrigatorio': forms.Select(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 h-12 appearance-none bg-white',
                 'style': 'height: 48px !important; min-height: 48px !important;',
             }),
@@ -461,9 +465,37 @@ class StockEntryForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.initial.get('date') and not self.data.get('date'):
             self.initial['date'] = datetime.date.today().isoformat()
+
         self.fields['product'].queryset = Product.objects.filter(is_active=True).order_by('category', 'name')
         self.fields['product'].empty_label = 'Selecione um produto...'
+
+        all_opcionais = OpcionalObrigatorio.objects.filter(is_active=True).select_related('product').order_by('product__name', 'name')
+        selected_product_id = self.data.get('product') or self.initial.get('product') or getattr(self.instance, 'product_id', None)
+        if hasattr(selected_product_id, 'pk'):
+            selected_product_id = selected_product_id.pk
+
+        if selected_product_id:
+            self.fields['opcional_obrigatorio'].queryset = all_opcionais.filter(product_id=selected_product_id)
+        else:
+            self.fields['opcional_obrigatorio'].queryset = all_opcionais
+
+        self.fields['opcional_obrigatorio'].empty_label = 'Sem sabor/variação'
+        self.fields['opcional_obrigatorio'].required = False
+        self.fields['opcional_obrigatorio'].label_from_instance = (
+            lambda obj: f"{obj.product.name if obj.product else 'Sem produto'} - {obj.name} (+R$ {obj.price:.2f})"
+        )
+
         self.fields['notes'].required = False
+
+
+
+    def clean(self):
+        cleaned = super().clean()
+        product = cleaned.get('product')
+        opcional = cleaned.get('opcional_obrigatorio')
+        if opcional and product and opcional.product_id != product.id:
+            self.add_error('opcional_obrigatorio', 'O sabor/variação deve pertencer ao produto selecionado.')
+        return cleaned
 
 
 class RawMaterialForm(forms.ModelForm):

@@ -185,6 +185,7 @@ def enviar_pedido(request, numero):
             PedidoItem.objects.create(
                 pedido=pedido,
                 product=produto,
+                opcional_obrigatorio=opcional_escolhido,
                 quantity=qty,
                 unit_price=unit_price,
                 observations=obs_item,
