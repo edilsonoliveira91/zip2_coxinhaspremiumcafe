@@ -1055,18 +1055,35 @@ async function executarFechamento() {
 }
 
 // ── Polling: detecta fechamento remoto pelo caixa ──────────
+const STATUSS_ENCERRAMENTO = new Set(['aguardando_caixa', 'fechada', 'cancelada', 'cortesia']);
+let _statusFechamentoConsecutivo = 0;
+
 setInterval(async () => {
   // Não interrompe se a tela de conta fechada já está visível
   if (document.getElementById('tela-conta-fechada').style.display === 'flex') return;
   try {
-    const r = await fetch(URL_STATUS);
+    const r = await fetch(URL_STATUS, { cache: 'no-store' });
     const d = await r.json();
-    if (d.status !== 'em_uso') {
-      const tela = document.getElementById('tela-conta-fechada');
-      document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
-      tela.style.display = 'flex';
-      setTimeout(() => { window.location.href = "{% url 'kiosk:entrada' %}"; }, 5000);
+
+    if (d.status === 'em_uso') {
+      _statusFechamentoConsecutivo = 0;
+      return;
     }
+
+    // Só encerra kiosk para status finais reais e após 2 leituras consecutivas
+    if (STATUSS_ENCERRAMENTO.has(d.status)) {
+      _statusFechamentoConsecutivo += 1;
+      if (_statusFechamentoConsecutivo >= 2) {
+        const tela = document.getElementById('tela-conta-fechada');
+        document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
+        tela.style.display = 'flex';
+        setTimeout(() => { window.location.href = "{% url 'kiosk:entrada' %}"; }, 5000);
+      }
+      return;
+    }
+
+    // Status transitório (ex: livre) não encerra imediatamente.
+    _statusFechamentoConsecutivo = 0;
   } catch(e) {}
 }, 5000);
 </script>

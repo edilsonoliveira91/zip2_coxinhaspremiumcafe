@@ -1,4 +1,5 @@
 import json
+import hashlib
 from django.db.models import Max
 from decimal import Decimal
 
@@ -9,9 +10,35 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from products.models import Product, OpcionalObrigatorio
+from products.models import Product, OpcionalObrigatorio, StockEntry, StockExit
 from orders.models import Comanda, Pedido, PedidoItem
 from .models import KioskSlide
+
+
+def _slides_fingerprint():
+    rows = KioskSlide.objects.values_list(
+        'id', 'title', 'order', 'is_active', 'image', 'created_at'
+    ).order_by('id')
+    h = hashlib.sha1()
+    for r in rows:
+        h.update('|'.join(str(x or '') for x in r).encode('utf-8'))
+    return h.hexdigest()
+
+
+def _catalog_version_value():
+    from django.utils import timezone
+
+    ts_product = Product.objects.aggregate(v=Max('updated_at'))['v']
+    ts_opcional = OpcionalObrigatorio.objects.aggregate(v=Max('updated_at'))['v']
+    ts_stock_entry = StockEntry.objects.aggregate(v=Max('created_at'))['v']
+    ts_stock_exit = StockExit.objects.aggregate(v=Max('created_at'))['v']
+
+    candidates = [
+        t for t in (ts_product, ts_opcional, ts_stock_entry, ts_stock_exit)
+        if t is not None
+    ]
+    base = max(candidates).isoformat() if candidates else timezone.now().isoformat()
+    return f"{base}:{_slides_fingerprint()}"
 
 
 def entrada(request):
@@ -97,13 +124,7 @@ def cardapio(request, numero):
     slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
 
     # Versão atual do catálogo para polling de atualizações
-    from django.db.models import Max
-    from django.utils import timezone
-    ts_p = Product.objects.aggregate(v=Max('updated_at'))['v']
-    ts_o = OpcionalObrigatorio.objects.aggregate(v=Max('updated_at'))['v']
-    ts_s = KioskSlide.objects.aggregate(v=Max('created_at'))['v']
-    candidates = [t for t in (ts_p, ts_o, ts_s) if t is not None]
-    catalog_version_initial = max(candidates).isoformat() if candidates else timezone.now().isoformat()
+    catalog_version_initial = _catalog_version_value()
 
     context = {
         'numero': numero,
@@ -201,7 +222,16 @@ def enviar_pedido(request, numero):
 
 
 def status_mesa(request, numero):
-    """Retorna o status atual da comanda da mesa (para polling do kiosk)."""
+    """Retorna o status atual da mesa para polling do kiosk.
+
+    Prioriza comandas em uso para evitar encerramento indevido por registros antigos
+    ou leituras transitórias durante deploy/restart.
+    """
+    comanda_em_uso = Comanda.objects.filter(numero=numero, status='em_uso').order_by('-created_at').first()
+    if comanda_em_uso:
+        return JsonResponse({'status': 'em_uso'})
+
+    # Sem comanda em uso: devolve o último status conhecido (se houver)
     comanda = Comanda.objects.filter(numero=numero).order_by('-created_at').first()
     return JsonResponse({'status': comanda.status if comanda else 'livre'})
 
@@ -352,16 +382,7 @@ def slide_delete(request, pk):
 
 
 def catalog_version(request):
-    """Retorna a versão atual do catálogo (maior updated_at de produtos, opcionais e slides).
-    Usado pelo kiosk para detectar mudanças e recarregar apenas quando o carrinho estiver vazio.
+    """Retorna a versão atual do catálogo para polling do kiosk.
+    Considera produtos, opcionais, movimentações de estoque e alterações em slides.
     """
-    from django.utils import timezone
-
-    ts_product   = Product.objects.aggregate(v=Max('updated_at'))['v']
-    ts_opcional  = OpcionalObrigatorio.objects.aggregate(v=Max('updated_at'))['v']
-    ts_slide     = KioskSlide.objects.aggregate(v=Max('created_at'))['v']
-
-    candidates = [t for t in (ts_product, ts_opcional, ts_slide) if t is not None]
-    version = max(candidates).isoformat() if candidates else timezone.now().isoformat()
-
-    return JsonResponse({'version': version})
+    return JsonResponse({'version': _catalog_version_value()})

@@ -19,6 +19,8 @@ class ProductForm(forms.ModelForm):
     """
     Formulário para criação e edição de produtos
     """
+
+    remove_image = forms.BooleanField(required=False, widget=forms.HiddenInput(), initial=False)
     
     class Meta:
         model = Product
@@ -207,6 +209,18 @@ class ProductForm(forms.ModelForm):
                     model_field = _Product._meta.get_field(field_name)
                     cleaned[field_name] = model_field.get_default()
         return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.cleaned_data.get('remove_image'):
+            if instance.image:
+                instance.image.delete(save=False)
+            instance.image = None
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 class ComboForm(forms.ModelForm):
     """
