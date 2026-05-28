@@ -609,6 +609,11 @@ class OrderPolling {
             const resp = await fetch('/accounts/api/cards/');
             if (resp.ok) {
                 grid.innerHTML = await resp.text();
+                // Reaplicar filtro de pesquisa ativo após atualização do grid
+                const searchInput = document.getElementById('search-comandas');
+                if (searchInput && searchInput.value.trim()) {
+                    searchInput.dispatchEvent(new Event('input'));
+                }
             }
         } catch(e) {
             console.error('Erro ao atualizar cards:', e);

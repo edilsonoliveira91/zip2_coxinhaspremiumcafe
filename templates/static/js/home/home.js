@@ -16,10 +16,11 @@ function initializeSearch() {
     const clearButton = document.getElementById('clear-search');
     const searchResults = document.getElementById('search-results');
     const resultsCount = document.getElementById('results-count');
-    const comandaCards = document.querySelectorAll('[data-comanda]');
     
     // Função de pesquisa em tempo real
     searchInput.addEventListener('input', function() {
+        // Busca elementos AGORA (após polling pode ter substituído o grid)
+        const comandaCards = document.querySelectorAll('[data-comanda]');
         const searchTerm = this.value.toLowerCase().trim();
         let visibleCount = 0;
         
