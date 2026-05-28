@@ -179,43 +179,17 @@ TAILWIND_APP_NAME = 'theme'
 if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
-# WhiteNoise
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = True
-WHITENOISE_MIMETYPES = {
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-}
-
-# ============================================================
-# STORAGES - Django 5.x
-# ============================================================
-USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
-
-if USE_R2_STORAGE:
-    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL')
-    AWS_DEFAULT_ACL = None
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_QUERYSTRING_AUTH = False
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-    _media_backend = 'storages.backends.s3boto3.S3Boto3Storage'
+# WhiteNoise configuration for better static file serving
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    WHITENOISE_MIMETYPES = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+    }
 else:
-    _media_backend = 'django.core.files.storage.FileSystemStorage'
-
-STORAGES = {
-    'default': {'BACKEND': _media_backend},
-    'staticfiles': {
-        'BACKEND': (
-            'whitenoise.storage.CompressedManifestStaticFilesStorage'
-            if not DEBUG
-            else 'django.contrib.staticfiles.storage.StaticFilesStorage'
-        ),
-    },
-}
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 
 
