@@ -913,15 +913,23 @@ document.getElementById('modal-cpf-nfce').addEventListener('click', function(e) 
 
 // ===== CANCELAMENTO NFC-e =====
 let _cancelarNFCeNumero = null;
+let _nfceCancelamentoSucesso = false;
 
 function abrirModalCancelarNFCe(comanda_id, nfceNumero, comanda_numero) {
     _cancelarNFCeNumero = comanda_id;
+    _nfceCancelamentoSucesso = false;
     document.getElementById('modal-cancelar-nfce-numero').textContent = 'NFC-e #' + nfceNumero + ' — Comanda #' + (comanda_numero || comanda_id);
     document.getElementById('input-justificativa-cancelar').value = '';
     document.getElementById('modal-cancelar-nfce-erro').classList.add('hidden');
+    const resultEl = document.getElementById('modal-cancelar-nfce-resultado');
+    resultEl.classList.add('hidden');
+    resultEl.textContent = '';
+    document.getElementById('nfce-form-area').classList.remove('hidden');
     const btn = document.getElementById('btn-confirmar-cancelar-nfce');
     btn.disabled = false;
     btn.textContent = 'Cancelar NFC-e';
+    document.getElementById('btn-voltar-cancelar-nfce').textContent = 'Voltar';
+    document.getElementById('btn-voltar-cancelar-nfce').onclick = fecharModalCancelarNFCe;
     const modal = document.getElementById('modal-cancelar-nfce');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -933,6 +941,7 @@ function fecharModalCancelarNFCe() {
     document.getElementById('modal-cancelar-nfce').classList.add('hidden');
     document.getElementById('modal-cancelar-nfce').classList.remove('flex');
     document.body.style.overflow = '';
+    if (_nfceCancelamentoSucesso) location.reload();
     _cancelarNFCeNumero = null;
 }
 
@@ -948,7 +957,8 @@ async function confirmarCancelamentoNFCe() {
     erroEl.classList.add('hidden');
     const btn = document.getElementById('btn-confirmar-cancelar-nfce');
     btn.disabled = true;
-    btn.textContent = 'Cancelando...';
+    btn.textContent = 'Enviando para SEFAZ...';
+    const resultEl = document.getElementById('modal-cancelar-nfce-resultado');
     try {
         const resp = await fetch(`/orders/comanda-id/${_cancelarNFCeNumero}/cancelar-nfce/`, {
             method: 'POST',
@@ -959,17 +969,26 @@ async function confirmarCancelamentoNFCe() {
             body: JSON.stringify({ justificativa }),
         });
         const data = await resp.json();
-        fecharModalCancelarNFCe();
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-6 right-6 ${data.success ? 'bg-green-600' : 'bg-red-600'} text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm font-medium`;
-        toast.textContent = data.message;
-        document.body.appendChild(toast);
-        setTimeout(() => { toast.remove(); if (data.success) location.reload(); }, 4000);
+        document.getElementById('nfce-form-area').classList.add('hidden');
+        resultEl.textContent = data.message || (data.success ? 'NFC-e cancelada com sucesso.' : 'Erro ao cancelar NFC-e.');
+        resultEl.className = `mt-4 p-4 rounded-xl text-sm font-medium ${data.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`;
+        resultEl.classList.remove('hidden');
+        btn.classList.add('hidden');
+        const voltarBtn = document.getElementById('btn-voltar-cancelar-nfce');
+        if (data.success) {
+            _nfceCancelamentoSucesso = true;
+            voltarBtn.textContent = 'Fechar (recarregar página)';
+            voltarBtn.className = 'flex-1 py-3 px-4 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-bold transition-all';
+            voltarBtn.onclick = fecharModalCancelarNFCe;
+        } else {
+            voltarBtn.textContent = 'Fechar';
+        }
     } catch (e) {
-        erroEl.textContent = 'Erro ao conectar com o servidor.';
-        erroEl.classList.remove('hidden');
+        resultEl.textContent = 'Erro ao conectar com o servidor. Verifique sua conexão e tente novamente.';
+        resultEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium bg-red-50 text-red-700 border border-red-200';
+        resultEl.classList.remove('hidden');
         btn.disabled = false;
-        btn.textContent = 'Cancelar NFC-e';
+        btn.textContent = 'Tentar novamente';
     }
 }
 
@@ -990,21 +1009,24 @@ document.getElementById('modal-cancelar-nfce').addEventListener('click', functio
             </button>
         </div>
         <div class="p-6">
-            <p class="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-4 font-medium">
-                ⚠️ Esta ação cancela a NFC-e na SEFAZ. O prazo é de <strong>30 minutos</strong> após a emissão.
-            </p>
             <p class="text-sm text-gray-500 mb-1">NFC-e</p>
             <p id="modal-cancelar-nfce-numero" class="text-base font-bold text-gray-800 mb-4"></p>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Justificativa <span class="text-gray-400 font-normal">(mínimo 15 caracteres)</span></label>
-            <textarea id="input-justificativa-cancelar"
-                      rows="3"
-                      maxlength="255"
-                      placeholder="Ex: Erro no lançamento dos produtos"
-                      class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
-            <p id="modal-cancelar-nfce-erro" class="text-red-500 text-sm mt-2 hidden"></p>
+            <div id="nfce-form-area">
+                <p class="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-4 font-medium">
+                    ⚠️ Esta ação cancela a NFC-e na SEFAZ. O prazo é de <strong>30 minutos</strong> após a emissão.
+                </p>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Justificativa <span class="text-gray-400 font-normal">(mínimo 15 caracteres)</span></label>
+                <textarea id="input-justificativa-cancelar"
+                          rows="3"
+                          maxlength="255"
+                          placeholder="Ex: Erro no lançamento dos produtos"
+                          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
+                <p id="modal-cancelar-nfce-erro" class="text-red-500 text-sm mt-2 hidden"></p>
+            </div>
+            <div id="modal-cancelar-nfce-resultado" class="hidden"></div>
         </div>
         <div class="border-t border-gray-100 px-6 py-4 flex space-x-3">
-            <button onclick="fecharModalCancelarNFCe()"
+            <button id="btn-voltar-cancelar-nfce" onclick="fecharModalCancelarNFCe()"
                 class="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
                 Voltar
             </button>
