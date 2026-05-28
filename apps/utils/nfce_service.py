@@ -1109,14 +1109,11 @@ class NFCeService:
         )
         cert_pem = certificate.public_bytes(serialization.Encoding.PEM)
 
-        # Desativa aviso de deprecação do signxml para métodos RSA-SHA1
-        XMLSigner.check_deprecated_methods = lambda self: None
-
         NS = 'http://www.portalfiscal.inf.br/nfe'
         signer = XMLSigner(
             method=methods.enveloped,
-            signature_algorithm='rsa-sha1',
-            digest_algorithm='sha1',
+            signature_algorithm='rsa-sha256',
+            digest_algorithm='sha256',
             c14n_algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
         )
         signer.namespaces = {None: 'http://www.w3.org/2000/09/xmldsig#'}
@@ -1214,17 +1211,19 @@ class NFCeService:
             ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = _ssl.CERT_NONE
-            # Desabilitar TLS 1.3 via options (mais confiável que maximum_version no Nix)
+            # Permitir SHA1 na cadeia de certificados SEFAZ (OpenSSL 3.x)
+            try:
+                ctx.set_ciphers('DEFAULT@SECLEVEL=0')
+            except Exception:
+                pass
             for _flag in ('OP_NO_TLSv1_3',):
                 _v = getattr(_ssl, _flag, None)
                 if _v:
                     ctx.options |= _v
-            # Garantir TLS 1.2 como mínimo
             try:
                 ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
             except AttributeError:
                 pass
-            # OP_LEGACY_SERVER_CONNECT para IIS antigos
             _legacy = getattr(_ssl, 'OP_LEGACY_SERVER_CONNECT', None)
             if _legacy:
                 ctx.options |= _legacy
@@ -1470,8 +1469,8 @@ class NFCeService:
 
             signer = _XMLSigner(
                 method=_methods.enveloped,
-                signature_algorithm='rsa-sha1',
-                digest_algorithm='sha1',
+                signature_algorithm='rsa-sha256',
+                digest_algorithm='sha256',
                 c14n_algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
             )
             signer.namespaces = {None: DS}
@@ -1519,6 +1518,11 @@ class NFCeService:
                 ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
                 ctx.check_hostname = False
                 ctx.verify_mode = _ssl.CERT_NONE
+                # Permitir SHA1 na cadeia de certificados SEFAZ (OpenSSL 3.x)
+                try:
+                    ctx.set_ciphers('DEFAULT@SECLEVEL=0')
+                except Exception:
+                    pass
                 for _flag in ('OP_NO_TLSv1_3',):
                     _v = getattr(_ssl, _flag, None)
                     if _v:
