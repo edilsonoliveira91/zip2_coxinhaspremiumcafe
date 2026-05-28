@@ -3,6 +3,7 @@ from utils.models import TimeStampedModel
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.conf import settings
+from utils.image_optimizer import compress_image_field, validate_image_file_size
 
 
 class Product(TimeStampedModel):
@@ -71,6 +72,7 @@ class Product(TimeStampedModel):
         upload_to='products/',
         blank=True,
         null=True,
+        validators=[validate_image_file_size],
         verbose_name="Imagem do Produto"
     )
 
@@ -158,6 +160,20 @@ class Product(TimeStampedModel):
     def __str__(self):
         return f"{self.name} - R$ {self.price}"
 
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        previous_image_name = None
+
+        if not is_new:
+            previous_image_name = (
+                Product.objects.filter(pk=self.pk).values_list("image", flat=True).first()
+            )
+
+        super().save(*args, **kwargs)
+
+        if self.image and (is_new or self.image.name != previous_image_name):
+            compress_image_field(self.image)
+
 
 class Combo(TimeStampedModel):
     """
@@ -183,6 +199,7 @@ class Combo(TimeStampedModel):
         upload_to='combos/',
         blank=True,
         null=True,
+        validators=[validate_image_file_size],
         verbose_name="Imagem do Combo"
     )
 
@@ -193,6 +210,20 @@ class Combo(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        previous_image_name = None
+
+        if not is_new:
+            previous_image_name = (
+                Combo.objects.filter(pk=self.pk).values_list("image", flat=True).first()
+            )
+
+        super().save(*args, **kwargs)
+
+        if self.image and (is_new or self.image.name != previous_image_name):
+            compress_image_field(self.image)
 
     @property
     def total_price(self):

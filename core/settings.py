@@ -170,6 +170,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+IMAGE_UPLOAD_MAX_MB = config('IMAGE_UPLOAD_MAX_MB', default=8, cast=int)
+
 # Configurações do Tailwind
 TAILWIND_APP_NAME = 'theme'
 

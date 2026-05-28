@@ -12,6 +12,8 @@ from django.views.decorators.http import require_http_methods
 
 from products.models import Product, OpcionalObrigatorio, StockEntry, StockExit
 from orders.models import Comanda, Pedido, PedidoItem
+from django.core.exceptions import ValidationError
+from utils.image_optimizer import validate_image_file_size
 from .models import KioskSlide
 
 
@@ -330,6 +332,12 @@ def slide_create(request):
         except (ValueError, TypeError):
             order = 0
 
+        try:
+            validate_image_file_size(image)
+        except ValidationError as exc:
+            messages.error(request, str(exc))
+            return render(request, 'kiosk/slide_form.html', {'action': 'Adicionar'})
+
         KioskSlide.objects.create(
             image=image,
             title=title,
@@ -362,6 +370,11 @@ def slide_update(request, pk):
         slide.order = order
         slide.is_active = is_active
         if image:
+            try:
+                validate_image_file_size(image)
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+                return render(request, 'kiosk/slide_form.html', {'action': 'Editar', 'slide': slide})
             slide.image = image
         slide.save()
         messages.success(request, 'Slide atualizado com sucesso!')
