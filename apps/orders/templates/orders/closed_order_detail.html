@@ -412,6 +412,7 @@
                 placeholder="Descreva o motivo do cancelamento..."
                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
       <p id="modal-erro" class="text-red-500 text-sm mt-2 hidden"></p>
+      <p id="modal-nfce-aviso" class="text-amber-700 text-sm mt-2 hidden"></p>
     </div>
     <div class="border-t border-gray-100 px-6 py-4 flex space-x-3">
       <button onclick="fecharModalCancelar()"
@@ -471,15 +472,15 @@ async function confirmarCancelamento() {
         });
         const data = await resp.json();
         if (data.success) {
-            if (data.nfce) {
-                const ok = data.nfce.cancelada;
-                btn.textContent = ok ? '✅ NFC-e cancelada na SEFAZ' : '⚠️ ' + data.nfce.mensagem;
-                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                btn.classList.add(ok ? 'bg-green-500' : 'bg-amber-500');
-                setTimeout(() => { window.location.href = '{% url "orders:closed_orders" %}'; }, 2500);
-            } else {
-                window.location.href = '{% url "orders:closed_orders" %}';
+            btn.textContent = '✅ Comanda cancelada!';
+            btn.classList.remove('bg-red-500', 'hover:bg-red-600', 'bg-amber-500');
+            btn.classList.add('bg-green-500');
+            if (data.nfce && !data.nfce.cancelada) {
+                const avisoEl = document.getElementById('modal-nfce-aviso');
+                avisoEl.textContent = '⚠️ NFC-e: ' + data.nfce.mensagem;
+                avisoEl.classList.remove('hidden');
             }
+            setTimeout(() => { window.location.href = '{% url "orders:closed_orders" %}'; }, 2500);
         } else {
             erroEl.textContent = data.error || 'Erro ao cancelar. Tente novamente.';
             erroEl.classList.remove('hidden');
