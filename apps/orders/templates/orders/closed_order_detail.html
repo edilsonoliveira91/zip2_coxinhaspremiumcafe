@@ -397,6 +397,12 @@
       <p class="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-4 font-medium">
         ⚠️ Esta ação <strong>não pode ser desfeita</strong>. A comanda será marcada como cancelada.
       </p>
+      {% if order.nfce_numero and not order.nfce_cancelada %}
+      <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+        <strong>📄 NFC-e #{{ order.nfce_numero }} emitida.</strong><br>
+        Se cancelada dentro de 30 min da emissão, a NF-e também será cancelada automaticamente na SEFAZ.
+      </p>
+      {% endif %}
       <label class="block text-sm font-medium text-gray-700 mb-2">
         Observação <span class="text-red-500">*</span>
       </label>
@@ -465,7 +471,15 @@ async function confirmarCancelamento() {
         });
         const data = await resp.json();
         if (data.success) {
-            window.location.href = '{% url "orders:closed_orders" %}';
+            if (data.nfce) {
+                const ok = data.nfce.cancelada;
+                btn.textContent = ok ? '✅ NFC-e cancelada na SEFAZ' : '⚠️ ' + data.nfce.mensagem;
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add(ok ? 'bg-green-500' : 'bg-amber-500');
+                setTimeout(() => { window.location.href = '{% url "orders:closed_orders" %}'; }, 2500);
+            } else {
+                window.location.href = '{% url "orders:closed_orders" %}';
+            }
         } else {
             erroEl.textContent = data.error || 'Erro ao cancelar. Tente novamente.';
             erroEl.classList.remove('hidden');

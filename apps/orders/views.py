@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.shortcuts import redirect
 from django.views.generic import DetailView
 from products.models import Product
@@ -928,11 +928,46 @@ class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
                 motivo_cancelamento=f'Comanda cancelada pós-fechamento. Motivo: {motivo}',
             )
 
-        return JsonResponse({
+        # Auto-cancelar NFC-e na SEFAZ se emitida há menos de 30 minutos
+        nfce_info = None
+        if comanda.tem_nfce and not comanda.nfce_cancelada and comanda.nfce_emitida_em:
+            dentro_prazo = (timezone.now() - comanda.nfce_emitida_em) < timedelta(minutes=30)
+            if dentro_prazo:
+                try:
+                    from companys.models import Company
+                    from apps.utils.nfce_service import NFCeService
+                    empresa = Company.objects.filter(ativa=True).first()
+                    if empresa:
+                        nfce_service = NFCeService(empresa)
+                        justificativa = f'Cancelamento de venda. {motivo}'
+                        if len(justificativa) < 15:
+                            justificativa = 'Cancelamento de venda a pedido do cliente.'
+                        resultado = nfce_service.cancelar_nfce(
+                            chave_acesso=comanda.nfce_chave,
+                            protocolo=comanda.nfce_protocolo,
+                            justificativa=justificativa,
+                        )
+                        if resultado['sucesso']:
+                            comanda.nfce_cancelada = True
+                            comanda.nfce_cancelada_em = timezone.now()
+                            comanda.nfce_protocolo_cancelamento = resultado.get('protocolo_cancelamento', '')
+                            comanda.save(update_fields=['nfce_cancelada', 'nfce_cancelada_em', 'nfce_protocolo_cancelamento'])
+                            nfce_info = {'cancelada': True, 'mensagem': 'NFC-e cancelada na SEFAZ com sucesso.'}
+                        else:
+                            nfce_info = {'cancelada': False, 'mensagem': resultado.get('erro', 'Erro ao cancelar NFC-e na SEFAZ.')}
+                except Exception as e:
+                    nfce_info = {'cancelada': False, 'mensagem': f'Erro ao cancelar NFC-e: {str(e)}'}
+            else:
+                nfce_info = {'cancelada': False, 'mensagem': 'NFC-e fora do prazo de 30 minutos para cancelamento na SEFAZ.'}
+
+        response = {
             'success': True,
             'message': f'Comanda #{comanda.numero} cancelada com sucesso.',
             'comanda_id': comanda.pk,
-        })
+        }
+        if nfce_info:
+            response['nfce'] = nfce_info
+        return JsonResponse(response)
 
 
 # Adicione no final do arquivo views.py:
