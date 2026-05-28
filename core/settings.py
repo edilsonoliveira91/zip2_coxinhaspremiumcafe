@@ -170,30 +170,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ============================================================
-# CLOUDFLARE R2 - Storage de arquivos de mídia (produção)
-# ============================================================
-USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
-
-if USE_R2_STORAGE:
-    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL')
-    AWS_DEFAULT_ACL = None
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_QUERYSTRING_AUTH = False
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-    STORAGES = {
-        'default': {
-            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-        },
-        'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-        },
-    }
-
 IMAGE_UPLOAD_MAX_MB = config('IMAGE_UPLOAD_MAX_MB', default=8, cast=int)
 
 # Configurações do Tailwind
@@ -204,33 +180,17 @@ if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
 # WhiteNoise configuration for better static file serving
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = True
-WHITENOISE_MIMETYPES = {
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-}
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    WHITENOISE_MIMETYPES = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+    }
+else:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
-# STORAGES padrão (sobrescrito pelo bloco R2 acima se USE_R2_STORAGE=True)
-if not USE_R2_STORAGE:
-    if not DEBUG:
-        STORAGES = {
-            'default': {
-                'BACKEND': 'django.core.files.storage.FileSystemStorage',
-            },
-            'staticfiles': {
-                'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-            },
-        }
-    else:
-        STORAGES = {
-            'default': {
-                'BACKEND': 'django.core.files.storage.FileSystemStorage',
-            },
-            'staticfiles': {
-                'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
-            },
-        }
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
