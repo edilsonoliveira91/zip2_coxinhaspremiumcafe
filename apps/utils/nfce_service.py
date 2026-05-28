@@ -1109,11 +1109,14 @@ class NFCeService:
         )
         cert_pem = certificate.public_bytes(serialization.Encoding.PEM)
 
+        # Desativa aviso de deprecação do signxml para métodos RSA-SHA1 (requisito SEFAZ SP)
+        XMLSigner.check_deprecated_methods = lambda self: None
+
         NS = 'http://www.portalfiscal.inf.br/nfe'
         signer = XMLSigner(
             method=methods.enveloped,
-            signature_algorithm='rsa-sha256',
-            digest_algorithm='sha256',
+            signature_algorithm='rsa-sha1',
+            digest_algorithm='sha1',
             c14n_algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
         )
         signer.namespaces = {None: 'http://www.w3.org/2000/09/xmldsig#'}
@@ -1469,8 +1472,8 @@ class NFCeService:
 
             signer = _XMLSigner(
                 method=_methods.enveloped,
-                signature_algorithm='rsa-sha256',
-                digest_algorithm='sha256',
+                signature_algorithm='rsa-sha1',
+                digest_algorithm='sha1',
                 c14n_algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
             )
             signer.namespaces = {None: DS}

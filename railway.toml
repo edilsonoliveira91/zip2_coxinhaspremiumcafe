@@ -2,7 +2,8 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --timeout 120"
+startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
 
 [env]
 PYTHONPATH = "/app:/app/apps"
+OPENSSL_CONF = "/app/openssl_legacy.cnf"
