@@ -400,7 +400,7 @@
       {% if order.nfce_numero and not order.nfce_cancelada %}
       <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
         <strong>📄 NFC-e #{{ order.nfce_numero }} emitida.</strong><br>
-        Se cancelada dentro de 30 min da emissão, a NF-e também será cancelada automaticamente na SEFAZ.
+        A comanda será cancelada normalmente no sistema. Se a emissão tiver menos de 30 minutos, a NFC-e também será cancelada automaticamente na SEFAZ.
       </p>
       {% endif %}
       <label class="block text-sm font-medium text-gray-700 mb-2">
