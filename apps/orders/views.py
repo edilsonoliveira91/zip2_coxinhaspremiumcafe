@@ -916,24 +916,28 @@ class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
         if not motivo:
             return JsonResponse({'success': False, 'error': 'Observação é obrigatória.'}, status=400)
 
-        with transaction.atomic():
-            comanda.status = 'cancelada'
-            comanda.motivo_cancelamento = f'[CANCELAMENTO PÓS-FECHAMENTO] {motivo}'
-            comanda.updated_by = request.user
-            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
+        # 1. Cancelar comanda no sistema — isolado em try/except para retornar JSON em caso de erro
+        try:
+            with transaction.atomic():
+                comanda.status = 'cancelada'
+                comanda.motivo_cancelamento = f'[CANCELAMENTO PÓS-FECHAMENTO] {motivo}'
+                comanda.updated_by = request.user
+                comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by'])
 
-            # Cancela pedidos que ainda não foram cancelados
-            comanda.pedidos.exclude(status='cancelado').update(
-                status='cancelado',
-                motivo_cancelamento=f'Comanda cancelada pós-fechamento. Motivo: {motivo}',
-            )
+                # Cancela pedidos que ainda não foram cancelados
+                comanda.pedidos.exclude(status='cancelado').update(
+                    status='cancelado',
+                    motivo_cancelamento=f'Comanda cancelada pós-fechamento. Motivo: {motivo}',
+                )
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Erro ao cancelar comanda: {str(e)}'})
 
-        # Auto-cancelar NFC-e na SEFAZ se emitida há menos de 30 minutos
+        # 2. Tentar cancelar NFC-e na SEFAZ — completamente isolado, nunca bloqueia o retorno
         nfce_info = None
-        if comanda.tem_nfce and not comanda.nfce_cancelada and comanda.nfce_emitida_em:
-            dentro_prazo = (timezone.now() - comanda.nfce_emitida_em) < timedelta(minutes=30)
-            if dentro_prazo:
-                try:
+        try:
+            if comanda.tem_nfce and not comanda.nfce_cancelada and comanda.nfce_emitida_em:
+                dentro_prazo = (timezone.now() - comanda.nfce_emitida_em) < timedelta(minutes=30)
+                if dentro_prazo:
                     from companys.models import Company
                     from apps.utils.nfce_service import NFCeService
                     empresa = Company.objects.filter(ativa=True).first()
@@ -955,10 +959,10 @@ class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
                             nfce_info = {'cancelada': True, 'mensagem': 'NFC-e cancelada na SEFAZ com sucesso.'}
                         else:
                             nfce_info = {'cancelada': False, 'mensagem': resultado.get('erro', 'Erro ao cancelar NFC-e na SEFAZ.')}
-                except Exception as e:
-                    nfce_info = {'cancelada': False, 'mensagem': f'Erro ao cancelar NFC-e: {str(e)}'}
-            else:
-                nfce_info = {'cancelada': False, 'mensagem': 'NFC-e fora do prazo de 30 minutos para cancelamento na SEFAZ.'}
+                else:
+                    nfce_info = {'cancelada': False, 'mensagem': 'NFC-e fora do prazo de 30 minutos para cancelamento na SEFAZ.'}
+        except Exception as e:
+            nfce_info = {'cancelada': False, 'mensagem': f'Erro ao tentar cancelar NFC-e: {str(e)}'}
 
         response = {
             'success': True,
