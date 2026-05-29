@@ -4,8 +4,6 @@ import time
 import logging
 import os
 import socket
-import urllib.request
-from pathlib import Path
 from datetime import datetime, timezone
 
 # ── Configurações ──
@@ -26,8 +24,6 @@ DUMP_FILE       = r"C:\coxinhas_sync\dump.sql"
 LOG_FILE        = r"C:\coxinhas_sync\sync.log"
 INTERVAL        = 30
 
-RAILWAY_URL     = "https://zip2coxinhaspremiumcafe-production.up.railway.app"
-MEDIA_LOCAL     = r"C:\Users\User\Documents\coxinhas\media"
 
 COUNT_TABLES = [
     "accounts_user",
@@ -267,9 +263,6 @@ def sync():
 
     log("Restore concluido.")
 
-    # 3. Sync de imagens
-    images_downloaded = sync_media()
-
     # 4. Contagem de registros
     records = count_local_records()
 
@@ -279,54 +272,13 @@ def sync():
         finished_at=datetime.now(timezone.utc),
         status="success",
         records_downloaded=records,
-        images_downloaded=images_downloaded,
+        images_downloaded=0,
         tables_synced=", ".join(COUNT_TABLES),
     )
 
     log("Sync concluido com sucesso.")
     return True
 
-
-def sync_media():
-    """Baixa do Railway imagens que ainda nao existem localmente. Retorna contagem."""
-    queries = [
-        "SELECT image FROM products_product WHERE image IS NOT NULL AND image != ''",
-        "SELECT image FROM products_comboproduct WHERE image IS NOT NULL AND image != ''",
-        "SELECT image FROM kiosk_kioskslide WHERE image IS NOT NULL AND image != ''",
-    ]
-    env_local = {**os.environ, "PGPASSWORD": LOCAL_PASSWORD}
-    paths = []
-    for sql in queries:
-        r = subprocess.run([
-            rf"{PG_BIN}\psql.exe",
-            "-h", LOCAL_HOST, "-p", LOCAL_PORT,
-            "-U", LOCAL_USER, "-d", LOCAL_DB,
-            "-t", "-c", sql,
-        ], env=env_local, capture_output=True, text=True)
-        for line in r.stdout.splitlines():
-            line = line.strip()
-            if line:
-                paths.append(line)
-
-    downloaded = 0
-    for rel_path in paths:
-        dest = Path(MEDIA_LOCAL) / rel_path
-        if dest.exists():
-            continue
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        url = f"{RAILWAY_URL}/media/{rel_path}"
-        try:
-            urllib.request.urlretrieve(url, dest)
-            downloaded += 1
-        except Exception as e:
-            log(f"  Erro ao baixar {rel_path}: {e}", "warning")
-
-    if downloaded:
-        log(f"Imagens sincronizadas: {downloaded} arquivo(s) baixado(s).")
-    else:
-        log("Imagens: nenhuma nova para baixar.")
-
-    return downloaded
 
 
 if __name__ == "__main__":
