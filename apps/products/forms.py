@@ -50,7 +50,7 @@ class ProductForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
                 'step': '0.01',
-                'min': '0.01',
+                'min': '0.00',
                 'placeholder': '0.00'
             }),
             'show_in_menu': forms.CheckboxInput(attrs={
