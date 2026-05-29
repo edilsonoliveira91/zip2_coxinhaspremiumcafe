@@ -187,8 +187,6 @@ if DEBUG:
 USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
 
 if not DEBUG:
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_AUTOREFRESH = True
     WHITENOISE_MIMETYPES = {
         '.js': 'application/javascript',
         '.css': 'text/css',
@@ -267,6 +265,16 @@ LOGGING = {
         },
     },
     'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
         'pinpads.services': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
