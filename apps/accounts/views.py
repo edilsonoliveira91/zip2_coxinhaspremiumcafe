@@ -22,6 +22,8 @@ from django.http import JsonResponse
 from config.models import SystemConfig
 from django.contrib.auth.models import Permission
 from django.apps import apps
+from django.db.models.functions import Cast
+from django.db.models import IntegerField
 
 
 class CustomLoginView(LoginView):
@@ -61,7 +63,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         # TESTE: Remover filtro de data
         comandas_abertas = Comanda.objects.filter(
             status__in=['em_uso', 'aguardando_caixa']
-        ).order_by('-created_at')
+        ).order_by(Cast('numero', output_field=IntegerField()))
 
                 # ---> LÓGICA DE TEMPO DA CONFIGURAÇÃO <---
         config = SystemConfig.get_settings()
@@ -404,7 +406,7 @@ class HomeCardsView(LoginRequiredMixin, View):
 
         comandas_abertas = Comanda.objects.filter(
             status__in=['em_uso', 'aguardando_caixa']
-        ).order_by('-created_at')
+        ).order_by(Cast('numero', output_field=IntegerField()))
 
         for comanda in comandas_abertas:
             comanda.is_delayed = False
