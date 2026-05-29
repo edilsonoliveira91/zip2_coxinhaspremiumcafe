@@ -179,34 +179,41 @@ TAILWIND_APP_NAME = 'theme'
 if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
-# WhiteNoise configuration for better static file serving
+#====================================================
+# STORAGE: Whitenoise (static) + Cloudflare R2 (mídia)
+# Usa STORAGES dict (Django 4.2+) — não usa DEFAULT_FILE_STORAGE
+# nem STATICFILES_STORAGE em produção, evitando conflitos.
+#====================================================
+USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
+
 if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     WHITENOISE_USE_FINDERS = True
     WHITENOISE_AUTOREFRESH = True
     WHITENOISE_MIMETYPES = {
         '.js': 'application/javascript',
         '.css': 'text/css',
     }
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        } if USE_R2_STORAGE else {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
 else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
 
-
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Configuração do modelo de usuário customizado
-AUTH_USER_MODEL = 'accounts.User'
-
-#====================================================
-# CLOUDFLARE R2 — STORAGE DE MÍDIA
-# Mantém STATICFILES_STORAGE (Whitenoise) intacto.
-# Só sobrescreve DEFAULT_FILE_STORAGE (uploads/mídia).
-#====================================================
-USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
 if USE_R2_STORAGE:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
     AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
@@ -215,11 +222,14 @@ if USE_R2_STORAGE:
     AWS_DEFAULT_ACL = None
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_QUERYSTRING_AUTH = False
-    # Aceita com ou sem 'https://' na variável de ambiente
     _r2_public = config('R2_PUBLIC_URL').replace('https://', '').replace('http://', '').strip('/')
     AWS_S3_CUSTOM_DOMAIN = _r2_public
-
     MEDIA_URL = f'https://{_r2_public}/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuração do modelo de usuário customizado
+AUTH_USER_MODEL = 'accounts.User'
 
 # Configurações de autenticação
 LOGIN_URL = 'accounts:login'
