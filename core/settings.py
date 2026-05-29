@@ -215,9 +215,11 @@ if USE_R2_STORAGE:
     AWS_DEFAULT_ACL = None
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_QUERYSTRING_AUTH = False
-    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL')
+    # Aceita com ou sem 'https://' na variável de ambiente
+    _r2_public = config('R2_PUBLIC_URL').replace('https://', '').replace('http://', '').strip('/')
+    AWS_S3_CUSTOM_DOMAIN = _r2_public
 
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    MEDIA_URL = f'https://{_r2_public}/'
 
 # Configurações de autenticação
 LOGIN_URL = 'accounts:login'
