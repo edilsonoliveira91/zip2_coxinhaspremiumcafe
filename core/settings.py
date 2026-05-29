@@ -275,6 +275,11 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
+        'utils.image_optimizer': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'pinpads.services': {
             'handlers': ['file', 'console'],
             'level': 'INFO',

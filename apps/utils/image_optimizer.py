@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 
 from django.conf import settings
@@ -8,6 +9,8 @@ try:
     from PIL import Image
 except ImportError:  # pragma: no cover
     Image = None
+
+logger = logging.getLogger(__name__)
 
 
 def _resampling_filter():
@@ -80,12 +83,26 @@ def compress_image_field(image_field, max_size=(1600, 1600), quality=82):
             new_bytes = optimized.getvalue()
 
         if len(new_bytes) >= original_size:
+            logger.info(
+                "[compress] %s: %.1fKB → já otimizado (%.1fKB Pillow >= original), pulado.",
+                image_field.name,
+                original_size / 1024,
+                len(new_bytes) / 1024,
+            )
             return False
 
         file_name = image_field.name
         storage = image_field.storage
         storage.delete(file_name)
         storage.save(file_name, ContentFile(new_bytes))
+        logger.info(
+            "[compress] %s: %.1fKB → %.1fKB (economia %.0f%%)",
+            file_name,
+            original_size / 1024,
+            len(new_bytes) / 1024,
+            (1 - len(new_bytes) / original_size) * 100,
+        )
         return True
-    except Exception:
+    except Exception as e:
+        logger.warning("[compress] %s: falhou — %s", getattr(image_field, 'name', '?'), e)
         return False
