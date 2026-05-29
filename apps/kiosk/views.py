@@ -65,12 +65,18 @@ def cardapio(request, numero):
     numero_limpo = str(numero).strip()
     mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
     mesa_label = f"MESA {mesa_numero}"
-    comanda_mesa, created = Comanda.objects.get_or_create(
-        numero=numero,
-        status='em_uso',
-        defaults={'cliente_nome': mesa_label},
-    )
-    if not created and not comanda_mesa.cliente_nome:
+    # Busca comanda ativa (em_uso OU aguardando_caixa) para evitar criar uma
+    # comanda vazia duplicada caso o tablet recarregue enquanto a mesa já está
+    # em processo de fechamento (bug: tela apagada + reload do catálogo).
+    _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
+    comanda_mesa = Comanda.objects.filter(
+        numero=numero, status__in=_STATUSES_ATIVAS
+    ).order_by('-created_at').first()
+    if comanda_mesa is None:
+        comanda_mesa = Comanda.objects.create(
+            numero=numero, status='em_uso', cliente_nome=mesa_label
+        )
+    elif not comanda_mesa.cliente_nome:
         comanda_mesa.cliente_nome = mesa_label
         comanda_mesa.save(update_fields=['cliente_nome'])
 
@@ -154,13 +160,17 @@ def enviar_pedido(request, numero):
         mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
         mesa_label = f"MESA {mesa_numero}"
 
-        # Busca ou cria comanda em_uso para esta mesa
-        comanda, created = Comanda.objects.get_or_create(
-            numero=numero,
-            status='em_uso',
-            defaults={'status': 'em_uso', 'cliente_nome': mesa_label},
-        )
-        if not created and not comanda.cliente_nome:
+        # Busca comanda ativa (em_uso OU aguardando_caixa) para evitar criar
+        # duplicata quando o pedido é enviado após o caixa iniciar o fechamento.
+        _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
+        comanda = Comanda.objects.filter(
+            numero=numero, status__in=_STATUSES_ATIVAS
+        ).order_by('-created_at').first()
+        if comanda is None:
+            comanda = Comanda.objects.create(
+                numero=numero, status='em_uso', cliente_nome=mesa_label
+            )
+        elif not comanda.cliente_nome:
             comanda.cliente_nome = mesa_label
             comanda.save(update_fields=['cliente_nome'])
 
@@ -250,7 +260,9 @@ def fechar_mesa(request, numero):
 
 def ver_conta(request, numero):
     """Retorna JSON com todos os itens pedidos da mesa e o total."""
-    comanda = Comanda.objects.filter(numero=numero, status='em_uso').first()
+    comanda = Comanda.objects.filter(
+        numero=numero, status__in=('em_uso', 'aguardando_caixa')
+    ).order_by('-created_at').first()
     if not comanda:
         return JsonResponse({'itens': [], 'total': '0,00'})
 
