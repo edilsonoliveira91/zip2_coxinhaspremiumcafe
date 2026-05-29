@@ -198,6 +198,27 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuração do modelo de usuário customizado
 AUTH_USER_MODEL = 'accounts.User'
 
+#====================================================
+# CLOUDFLARE R2 — STORAGE DE MÍDIA
+# Mantém STATICFILES_STORAGE (Whitenoise) intacto.
+# Só sobrescreve DEFAULT_FILE_STORAGE (uploads/mídia).
+#====================================================
+USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
+if USE_R2_STORAGE:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = config('R2_ENDPOINT_URL')
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL')
+
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
 # Configurações de autenticação
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
