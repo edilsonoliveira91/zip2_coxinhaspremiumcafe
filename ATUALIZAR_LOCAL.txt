@@ -1,0 +1,41 @@
+COMO ATUALIZAR O SISTEMA LOCAL APÓS MUDANÇAS NO SISTEMA ONLINE
+================================================================
+
+Sempre que houver alterações no projeto online (Railway), execute
+os seguintes passos na máquina local (Windows):
+
+1. Abrir o Prompt de Comando (CMD) e acessar a pasta do projeto:
+
+   cd C:\Users\User\Documents\coxinhas
+
+2. Baixar o código atualizado do repositório:
+
+   git pull origin main
+
+3. Aplicar novas migrações de banco de dados (se houver):
+
+   python manage.py migrate --noinput
+
+4. Atualizar os arquivos estáticos (CSS, JS, imagens):
+
+   python manage.py collectstatic --noinput
+
+5. Reiniciar o servidor local:
+
+   - Verificar o PID atual do servidor:
+     tasklist | findstr python
+
+   - O processo maior (mais MB) é o servidor Django.
+     Anotar o PID e encerrá-lo:
+     taskkill /f /pid <PID_do_servidor>
+
+   - O servidor reiniciará automaticamente com o código novo.
+
+6. Forçar recarregamento no navegador:
+
+   Ctrl + Shift + R
+
+================================================================
+OBSERVAÇÃO: O PID do servidor muda a cada reinício.
+Sempre use "tasklist | findstr python" antes de matar o processo.
+================================================================
