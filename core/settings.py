@@ -204,6 +204,8 @@ if not DEBUG:
 else:
     STORAGES = {
         'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        } if USE_R2_STORAGE else {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
         },
         'staticfiles': {
