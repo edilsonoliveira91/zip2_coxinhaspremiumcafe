@@ -522,7 +522,7 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-const IMPRIMIR_COMANDA_URL = "{% url 'orders:imprimir_comanda' comanda.numero %}";
+const IMPRIMIR_COMANDA_URL = "{% url 'orders:imprimir_comanda_id' comanda.pk %}";
 const FLASK_BRIDGE_URL_PEDIDO = 'https://localhost:5001/print';
 
 async function imprimirPedido(url, btn) {
