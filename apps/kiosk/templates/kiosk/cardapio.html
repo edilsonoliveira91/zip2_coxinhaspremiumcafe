@@ -692,7 +692,7 @@ function adicionarAoCarrinho(produto, opcionalSelecionado, adicionaisSelecionado
       chave,
       produto_id: produto.id,
       nome: produto.nome,
-      preco_base: produto.preco,
+      preco_base: precoBase,
       opcional_obrigatorio: opcionalSelecionado,
       adicionais: adicionaisSelecionados,
       preco_total: precoTotal,
@@ -903,7 +903,7 @@ function renderDrawer() {
   body.innerHTML = chaves.map(chave => {
     const item = carrinho[chave];
     const linhaOpcional = item.opcional_obrigatorio
-      ? `<div class="drawer-item-sub">Opcional: ${item.opcional_obrigatorio.nome} ${item.opcional_obrigatorio.preco > 0 ? ('<span style="color:#1d4ed8;font-weight:700;">+ R$ ' + item.opcional_obrigatorio.preco.toFixed(2).replace('.',',') + '</span>') : ''}</div>`
+      ? `<div class="drawer-item-sub">Opcional: ${item.opcional_obrigatorio.nome}</div>`
       : '';
     const linhasAdicionais = item.adicionais.length > 0
       ? item.adicionais.map(a =>
@@ -967,6 +967,7 @@ async function enviarPedido() {
       // Limpa carrinho e fecha drawer
       Object.keys(carrinho).forEach(k => delete carrinho[k]);
       document.getElementById('observacoes').value = '';
+      atualizarUI();
       renderDrawer();
       fecharDrawer();
       mostrarSlides();
