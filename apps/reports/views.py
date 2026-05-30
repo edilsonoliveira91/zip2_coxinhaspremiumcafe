@@ -320,6 +320,7 @@ _lote_state = {
     'total': 0,
     'processados': 0,
     'sucesso': 0,
+    'emitidas': [],  # list of {'comanda': str, 'nfce': str}
     'erros': [],  # list of {'comanda': str, 'erro': str}
     'completed_at': None,  # ISO timestamp do fim do lote
 }
@@ -351,7 +352,9 @@ class EmitirLoteView(LoginRequiredMixin, View):
                 'total': len(pendentes),
                 'processados': 0,
                 'sucesso': 0,
+                'emitidas': [],
                 'erros': [],
+                'completed_at': None,
             }
 
         def _worker(comandas, user_id):
@@ -382,6 +385,10 @@ class EmitirLoteView(LoginRequiredMixin, View):
                             ])
                             with _lote_lock:
                                 _lote_state['sucesso'] += 1
+                                _lote_state['emitidas'].append({
+                                    'comanda': str(comanda.numero),
+                                    'nfce': str(resultado.get('numero_nfce') or ''),
+                                })
                         else:
                             with _lote_lock:
                                 _lote_state['erros'].append({
