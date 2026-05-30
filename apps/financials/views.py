@@ -45,8 +45,8 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         # Filtrar checkouts por período (usa data de fechamento da comanda)
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            comanda__updated_at__date__gte=start_date,
-            comanda__updated_at__date__lte=end_date
+            processed_at__date__gte=start_date,
+            processed_at__date__lte=end_date,
         ).select_related('comanda')
         
         # Sangrias do período
@@ -456,11 +456,11 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         else:
             selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Checkouts aprovados do dia (filtra por data de fechamento da comanda)
+        # Checkouts aprovados do dia — usa processed_at (data do pagamento) como referência
+        # para que cancelamentos posteriores não alterem retroativamente o total do dia.
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            comanda__status='fechada',
-            comanda__updated_at__date=selected_date,
+            processed_at__date=selected_date,
         )
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
@@ -533,7 +533,6 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         """Retorna dict com os totais do dia."""
         checkouts = Checkout.objects.filter(
             status='aprovado',
-            comanda__status='fechada',
             processed_at__date=date,
         )
         # Mesma lógica do FinancialDashboardView:

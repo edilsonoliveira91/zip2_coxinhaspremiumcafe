@@ -964,6 +964,14 @@ class CancelarComandaFinalizadaView(LoginRequiredMixin, View):
         except Exception as e:
             nfce_info = {'cancelada': False, 'mensagem': f'Erro ao tentar cancelar NFC-e: {str(e)}'}
 
+        # Cancela o Checkout aprovado para que os relatórios de caixa o excluam.
+        # Feito fora do atomic principal para não reverter o cancelamento da comanda.
+        try:
+            from checkouts.models import Checkout as _Checkout
+            _Checkout.objects.filter(comanda=comanda, status='aprovado').update(status='cancelado')
+        except Exception:
+            pass
+
         response = {
             'success': True,
             'message': f'Comanda #{comanda.numero} cancelada com sucesso.',
@@ -2127,6 +2135,10 @@ class CancelarComandaView(LoginRequiredMixin, View):
                 pedido.observations = f"[COMANDA CANCELADA - Motivo: {motivo}] {pedido.observations or ''}"
                 pedido.save()
 
+            # Recalcula o total da comanda (exclui itens cancelados) para que
+            # o extrato de caixa reflita apenas o que foi efetivamente consumido.
+            comanda.update_total()
+
         # Registra no checkout fora do atomic para não reverter o cancelamento
         try:
             from checkouts.models import Checkout
@@ -2184,6 +2196,10 @@ class CortesiaComandaView(LoginRequiredMixin, View):
                 pedido.status = 'cancelado'
                 pedido.observations = f"[CORTESIA - {observacao}] {pedido.observations or ''}"
                 pedido.save()
+
+            # Recalcula o total da comanda (exclui itens cancelados) para que
+            # o extrato de caixa reflita apenas o que foi efetivamente consumido.
+            comanda.update_total()
 
         messages.success(request, f'Comanda #{numero} registrada como cortesia.')
         return redirect('accounts:dashboard')
