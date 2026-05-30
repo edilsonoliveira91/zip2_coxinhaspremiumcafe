@@ -320,11 +320,8 @@ async function imprimirPedidosNovos(url, btn) {
         }
     } catch (e) {
         console.error('Erro ao imprimir:', e);
-        if (isMobile) {
-            alert('Erro de comunicação com o servidor. Verifique a conexão e tente novamente.');
-        } else {
-            alert('Erro ao conectar com a impressora.');
-        }
+        const mob = /android|iphone|ipad/i.test(navigator.userAgent);
+        alert('[DEBUG] mob=' + mob + ' err=' + e.name + ': ' + e.message);
         btn.innerHTML = originalHTML;
         btn.disabled = false;
     }
