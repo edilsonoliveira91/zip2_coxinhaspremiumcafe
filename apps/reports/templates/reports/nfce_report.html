@@ -611,9 +611,10 @@ async function verificarStatus() {
         if (s.emitidas && s.emitidas.length > 0) {
             document.getElementById('loteEmitidasList').classList.remove('hidden');
             const okContainer = document.getElementById('loteEmitidasItems');
-            okContainer.innerHTML = s.emitidas.map(e =>
-                `<div style="font-size:0.7rem;background:#ecfdf5;border-radius:0.5rem;padding:0.4rem 0.75rem;color:#166534;word-break:break-word;overflow-wrap:break-word;"><strong>Comanda #${e.comanda}</strong>${e.nfce ? ` → NFC-e #${e.nfce}` : ''}</div>`
-            ).join('');
+            okContainer.innerHTML = s.emitidas.map(e => {
+                const nfceInfo = e.nfce ? (' -> NFC-e #' + e.nfce) : '';
+                return `<div style="font-size:0.7rem;background:#ecfdf5;border-radius:0.5rem;padding:0.4rem 0.75rem;color:#166534;word-break:break-word;overflow-wrap:break-word;"><strong>Comanda #${e.comanda}</strong>${nfceInfo}</div>`;
+            }).join('');
         } else {
             document.getElementById('loteEmitidasList').classList.add('hidden');
             document.getElementById('loteEmitidasItems').innerHTML = '';
