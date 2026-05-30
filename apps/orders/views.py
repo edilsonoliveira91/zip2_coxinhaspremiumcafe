@@ -786,7 +786,8 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
                 status='aprovado',
                 processed_at__date__gte=date_from,
                 processed_at__date__lte=date_to,
-            ).aggregate(total=Sum('total'))['total'] or 0
+            ).exclude(comanda__status__in=['cancelada', 'cortesia'])
+             .aggregate(total=Sum('total'))['total'] or 0
         )
 
         # Troco inicial (SystemConfig)
@@ -798,7 +799,7 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
             status='aprovado',
             processed_at__date__gte=date_from,
             processed_at__date__lte=date_to,
-        )
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
         parcial_qs = approved_qs.filter(payment_method='parcial')
 
         def _soma_metodo(method):

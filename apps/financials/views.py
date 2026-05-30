@@ -47,6 +47,8 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             status='aprovado',
             processed_at__date__gte=start_date,
             processed_at__date__lte=end_date,
+        ).exclude(
+            comanda__status__in=['cancelada', 'cortesia']
         ).select_related('comanda')
         
         # Sangrias do período
@@ -118,7 +120,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         total_comandas = checkouts.count()
         
         # ===== LISTA COMBINADA DE COMANDAS E SANGRIAS =====
-        checkouts_list = checkouts.order_by('-comanda__updated_at')
+        checkouts_list = checkouts.order_by('-processed_at', '-id')
         sangrias_list = Sangria.objects.filter(
             created_at__date__gte=start_date,
             created_at__date__lte=end_date
@@ -141,7 +143,7 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
                     ) if checkout.payments.exists() else checkout.get_payment_method_display()
                 ),
                 'valor': checkout.total,
-                'data': checkout.comanda.updated_at,
+                'data': checkout.processed_at or checkout.created_at,
                 'item': checkout
             })
 
@@ -164,14 +166,14 @@ class FinancialDashboardView(LoginRequiredMixin, PermissionRequiredMixin, Templa
         # Estatísticas de comparação
         today_stats = Checkout.objects.filter(
             status='aprovado',
-            comanda__updated_at__date=timezone.localtime().date()
-        )
+            processed_at__date=timezone.localtime().date(),
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
 
         yesterday = timezone.localtime().date() - timedelta(days=1)
         yesterday_stats = Checkout.objects.filter(
             status='aprovado',
-            comanda__updated_at__date=yesterday
-        )
+            processed_at__date=yesterday,
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
         
         context.update({
             'start_date': start_date.strftime('%Y-%m-%d'),
@@ -461,7 +463,7 @@ class ExtratoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         checkouts = Checkout.objects.filter(
             status='aprovado',
             processed_at__date=selected_date,
-        )
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
         parcial_ids = list(checkouts.filter(payment_method='parcial').values_list('id', flat=True))
 
         def _soma(method):
@@ -534,7 +536,7 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         checkouts = Checkout.objects.filter(
             status='aprovado',
             processed_at__date=date,
-        )
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
         # Mesma lógica do FinancialDashboardView:
         #  - não-parciais: usa Checkout.payment_method (reflete alterações do operador)
         #  - parciais: usa CheckoutPayment para quebrar por método
