@@ -257,12 +257,17 @@ document.addEventListener('visibilitychange', function() {
 });
 
 async function imprimirPedidosNovos(url, btn) {
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
 
     try {
         const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (resp.redirected || resp.status === 401 || resp.status === 403) {
+            window.location.reload();
+            return;
+        }
         const data = await resp.json();
 
         if (data.type === 'none') {
@@ -275,8 +280,6 @@ async function imprimirPedidosNovos(url, btn) {
         }
 
         if (data.type === 'rawbt_multi') {
-            const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
-
             if (isMobile) {
                 // Android/tablet: intent URLs via fila no localStorage
                 const urls = data.intent_urls;
@@ -317,7 +320,11 @@ async function imprimirPedidosNovos(url, btn) {
         }
     } catch (e) {
         console.error('Erro ao imprimir:', e);
-        alert('Erro ao conectar com a impressora.');
+        if (isMobile) {
+            alert('Erro de comunicação com o servidor. Verifique a conexão e tente novamente.');
+        } else {
+            alert('Erro ao conectar com a impressora.');
+        }
         btn.innerHTML = originalHTML;
         btn.disabled = false;
     }
