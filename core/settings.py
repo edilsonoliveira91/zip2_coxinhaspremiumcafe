@@ -180,9 +180,8 @@ if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']
 
 #====================================================
-# STORAGE: Whitenoise (static) + Cloudflare R2 (mídia)
-# Usa STORAGES dict (Django 4.2+) — não usa DEFAULT_FILE_STORAGE
-# nem STATICFILES_STORAGE em produção, evitando conflitos.
+# STORAGE: estático via Whitenoise; mídia padrão local (Railway Volume)
+# Imagens usam R2 via storage por campo (model fields).
 #====================================================
 USE_R2_STORAGE = config('USE_R2_STORAGE', default=False, cast=bool)
 
@@ -193,8 +192,6 @@ if not DEBUG:
     }
     STORAGES = {
         'default': {
-            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-        } if USE_R2_STORAGE else {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
         },
         'staticfiles': {
@@ -204,8 +201,6 @@ if not DEBUG:
 else:
     STORAGES = {
         'default': {
-            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-        } if USE_R2_STORAGE else {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
         },
         'staticfiles': {
@@ -224,7 +219,6 @@ if USE_R2_STORAGE:
     AWS_QUERYSTRING_AUTH = False
     _r2_public = config('R2_PUBLIC_URL').replace('https://', '').replace('http://', '').strip('/')
     AWS_S3_CUSTOM_DOMAIN = _r2_public
-    MEDIA_URL = f'https://{_r2_public}/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

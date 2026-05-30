@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.conf import settings
 from utils.image_optimizer import compress_image_field, validate_image_file_size
+from core.storages import image_media_storage
 
 
 class Product(TimeStampedModel):
@@ -69,6 +70,7 @@ class Product(TimeStampedModel):
     )
 
     image = models.ImageField(
+        storage=image_media_storage,
         upload_to='products/',
         blank=True,
         null=True,
@@ -196,6 +198,7 @@ class Combo(TimeStampedModel):
     )
     
     image = models.ImageField(
+        storage=image_media_storage,
         upload_to='combos/',
         blank=True,
         null=True,

@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import RegexValidator
 from utils.models import TimeStampedModel
+from core.storages import local_media_storage
 
 class Company(TimeStampedModel):
     """Modelo para dados da empresa para emissão de NFCe"""
@@ -177,6 +178,7 @@ class CertificadoDigital(TimeStampedModel):
     
     # Arquivo do certificado A1 (.pfx)
     arquivo_pfx = models.FileField(
+        storage=local_media_storage,
         upload_to='certificados/',
         verbose_name="Arquivo Certificado (.pfx)",
         help_text="Arquivo do certificado digital A1"

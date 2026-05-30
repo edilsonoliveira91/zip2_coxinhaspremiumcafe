@@ -1,11 +1,12 @@
 from django.db import models
 from utils.image_optimizer import compress_image_field, validate_image_file_size
+from core.storages import image_media_storage
 
 
 class KioskSlide(models.Model):
     """Imagens do carrossel na tela inicial do kiosk."""
 
-    image = models.ImageField(upload_to='kiosk/slides/', validators=[validate_image_file_size], verbose_name='Imagem')
+    image = models.ImageField(storage=image_media_storage, upload_to='kiosk/slides/', validators=[validate_image_file_size], verbose_name='Imagem')
     title = models.CharField(max_length=120, blank=True, verbose_name='Título (opcional)')
     order = models.PositiveSmallIntegerField(default=0, verbose_name='Ordem')
     is_active = models.BooleanField(default=True, verbose_name='Ativo')
