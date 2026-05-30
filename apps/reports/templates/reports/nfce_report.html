@@ -556,8 +556,40 @@ async function checkLoteStatus() {
 
 document.addEventListener('DOMContentLoaded', checkLoteStatus);
 
-function abrirModalLote() {
+async function abrirModalLote() {
     document.getElementById('modalLote').classList.remove('hidden');
+
+    // Reset visual básico ao abrir
+    document.getElementById('loteProgressBar').style.width = '0%';
+    document.getElementById('loteProgressText').textContent = '0 de 0 processados';
+    document.getElementById('loteProgressPct').textContent = '0%';
+    document.getElementById('loteSucesso').textContent = '0';
+    document.getElementById('loteErros').textContent = '0';
+    document.getElementById('loteEmitidasList').classList.add('hidden');
+    document.getElementById('loteEmitidasItems').innerHTML = '';
+    document.getElementById('loteErrosList').classList.add('hidden');
+    document.getElementById('loteErrosItems').innerHTML = '';
+    document.getElementById('loteBtnFechar').classList.add('hidden');
+
+    try {
+        // Se já houver lote em execução (ex.: usuário reabriu modal),
+        // entra direto no acompanhamento de progresso.
+        const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
+        const s = await resp.json();
+        if (s.running) {
+            document.getElementById('loteEtapa1').classList.add('hidden');
+            document.getElementById('loteEtapa2').classList.remove('hidden');
+            document.getElementById('loteStatus').textContent = 'Lote em andamento. Acompanhando progresso...';
+            if (_pollingTimer) clearInterval(_pollingTimer);
+            _pollingTimer = setInterval(verificarStatus, 3000);
+            verificarStatus();
+            return;
+        }
+    } catch (e) {
+        // Em caso de erro de status, segue para tela de confirmação
+    }
+
+    // Sem lote em andamento: mantém fluxo padrão (confirmação)
     document.getElementById('loteEtapa1').classList.remove('hidden');
     document.getElementById('loteEtapa2').classList.add('hidden');
 }
