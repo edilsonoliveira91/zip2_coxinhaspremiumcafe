@@ -2504,9 +2504,6 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
                     if item.opcional_obrigatorio:
                         linhas.append(f"     > {item.opcional_obrigatorio.name}")
                     linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
-                    obs_extra = (item.observations or '').replace(f"Opcional: {item.opcional_obrigatorio.name}", '').strip(' |').strip() if item.opcional_obrigatorio else (item.observations or '')
-                    if obs_extra:
-                        linhas.append(f"     Obs: {obs_extra}")
 
             linhas.append("-" * 48)
             linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
@@ -2550,9 +2547,6 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
                     if item.opcional_obrigatorio:
                         linhas.append(f"     > {item.opcional_obrigatorio.name}")
                     linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
-                    obs_extra = (item.observations or '').replace(f"Opcional: {item.opcional_obrigatorio.name}", '').strip(' |').strip() if item.opcional_obrigatorio else (item.observations or '')
-                    if obs_extra:
-                        linhas.append(f"     Obs: {obs_extra}")
             linhas.append("-" * 42)
             linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
             linhas.append("=" * 42)
