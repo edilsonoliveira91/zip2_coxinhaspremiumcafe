@@ -1935,7 +1935,11 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
             if not items:
                 return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
 
-            comanda = get_object_or_404(Comanda, numero=numero, status='em_uso')
+            comanda = Comanda.objects.filter(
+                numero=numero, status__in=['em_uso', 'aguardando_caixa']
+            ).order_by('-created_at').first()
+            if comanda is None:
+                return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou já fechada.'})
 
             # Criar um novo Pedido na comanda
             pedido = Pedido.objects.create(
@@ -1957,7 +1961,8 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 if opcional_id:
                     try:
                         opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
-                        unit_price += opcional.price
+                        if opcional.price > 0:
+                            unit_price = opcional.price
                         obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
                     except OpcionalObrigatorio.DoesNotExist:
                         opcional = None
