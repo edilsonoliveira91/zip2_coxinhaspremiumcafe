@@ -55,6 +55,20 @@ def entrada(request):
     if request.method == 'POST':
         numero = request.POST.get('numero', '').strip()
         if numero:
+            _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
+            numero_limpo = str(numero).strip()
+            mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+            mesa_label = f"MESA {mesa_numero}"
+            comanda = Comanda.objects.filter(
+                numero=numero, status__in=_STATUSES_ATIVAS
+            ).order_by('-created_at').first()
+            if comanda is None:
+                Comanda.objects.create(
+                    numero=numero, status='em_uso', cliente_nome=mesa_label
+                )
+            elif not comanda.cliente_nome:
+                comanda.cliente_nome = mesa_label
+                comanda.save(update_fields=['cliente_nome'])
             return redirect('kiosk:cardapio', numero=numero)
     slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
     return render(request, 'kiosk/entrada.html', {'slides': slides})
@@ -74,9 +88,8 @@ def cardapio(request, numero):
         numero=numero, status__in=_STATUSES_ATIVAS
     ).order_by('-created_at').first()
     if comanda_mesa is None:
-        comanda_mesa = Comanda.objects.create(
-            numero=numero, status='em_uso', cliente_nome=mesa_label
-        )
+        # Mesa fechada ou inexistente — tablet provavelmente restaurou URL antiga
+        return redirect('kiosk:entrada')
     elif not comanda_mesa.cliente_nome:
         comanda_mesa.cliente_nome = mesa_label
         comanda_mesa.save(update_fields=['cliente_nome'])
