@@ -15,6 +15,7 @@ from orders.models import Comanda, Pedido, PedidoItem
 from django.core.exceptions import ValidationError
 from utils.image_optimizer import validate_image_file_size
 from .models import KioskSlide
+from django.db import transaction
 
 
 def _slides_fingerprint():
@@ -146,7 +147,6 @@ def cardapio(request, numero):
 
 @require_http_methods(['POST'])
 def enviar_pedido(request, numero):
-    """Recebe o carrinho em JSON, cria Comanda + Pedido + PedidoItems."""
     try:
         body = json.loads(request.body)
         itens = body.get('itens', [])
@@ -155,40 +155,19 @@ def enviar_pedido(request, numero):
         if not itens:
             return JsonResponse({'erro': 'Carrinho vazio'}, status=400)
 
-        # Normaliza e marca a mesa
         numero_limpo = str(numero).strip()
         mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
         mesa_label = f"MESA {mesa_numero}"
-
-        # Busca comanda ativa (em_uso OU aguardando_caixa) para evitar criar
-        # duplicata quando o pedido é enviado após o caixa iniciar o fechamento.
         _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
-        comanda = Comanda.objects.filter(
-            numero=numero, status__in=_STATUSES_ATIVAS
-        ).order_by('-created_at').first()
-        if comanda is None:
-            comanda = Comanda.objects.create(
-                numero=numero, status='em_uso', cliente_nome=mesa_label
-            )
-        elif not comanda.cliente_nome:
-            comanda.cliente_nome = mesa_label
-            comanda.save(update_fields=['cliente_nome'])
 
-        # Cria o pedido
-        pedido = Pedido.objects.create(
-            comanda=comanda,
-            observations=observacoes,
-            status='aguardando',
-        )
-
-        # Cria os itens
+        # Valida e prepara todos os itens ANTES da transação
+        itens_processados = []
         for item in itens:
             produto = get_object_or_404(Product, pk=item['id'])
             qty = int(item.get('qty', 1))
             opcional_id = item.get('opcional_obrigatorio')
             adicionais_ids = item.get('adicionais', [])
 
-            # Valida opcional obrigatório quando existir no produto
             opcionais_produto = produto.opcionais_obrigatorios.filter(is_active=True)
             opcional_escolhido = None
             if opcionais_produto.exists():
@@ -213,19 +192,45 @@ def enviar_pedido(request, numero):
                 except Exception:
                     pass
 
-            unit_price = preco_base + preco_extras
-            obs_item = ' | '.join(obs_partes)
-            PedidoItem.objects.create(
-                pedido=pedido,
-                product=produto,
-                opcional_obrigatorio=opcional_escolhido,
-                quantity=qty,
-                unit_price=unit_price,
-                observations=obs_item,
+            itens_processados.append({
+                'produto': produto,
+                'qty': qty,
+                'opcional_escolhido': opcional_escolhido,
+                'unit_price': preco_base + preco_extras,
+                'obs_item': ' | '.join(obs_partes),
+            })
+
+        # Só grava no banco quando tudo já está validado
+        with transaction.atomic():
+            comanda = Comanda.objects.filter(
+                numero=numero, status__in=_STATUSES_ATIVAS
+            ).order_by('-created_at').first()
+
+            if comanda is None:
+                comanda = Comanda.objects.create(
+                    numero=numero, status='em_uso', cliente_nome=mesa_label
+                )
+            elif not comanda.cliente_nome:
+                comanda.cliente_nome = mesa_label
+                comanda.save(update_fields=['cliente_nome'])
+
+            pedido = Pedido.objects.create(
+                comanda=comanda,
+                observations=observacoes,
+                status='aguardando',
             )
 
-        # Atualiza totais
-        pedido.update_total()
+            for item in itens_processados:
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    product=item['produto'],
+                    opcional_obrigatorio=item['opcional_escolhido'],
+                    quantity=item['qty'],
+                    unit_price=item['unit_price'],
+                    observations=item['obs_item'],
+                )
+
+            pedido.update_total()
 
         return JsonResponse({'ok': True, 'pedido_id': pedido.id})
 

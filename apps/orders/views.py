@@ -2497,12 +2497,16 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
 
             for pedido in comanda.pedidos.filter(
                 status__in=['aguardando', 'preparando', 'pronta', 'entregue']
-            ).prefetch_related('items__product'):
+            ).prefetch_related('items__product', 'items__opcional_obrigatorio'):
                 for item in pedido.items.all():
-                    linhas.append(f"  {item.quantity}x {item.product.name}")
+                    nome_produto = item.product.name
+                    linhas.append(f"  {item.quantity}x {nome_produto}")
+                    if item.opcional_obrigatorio:
+                        linhas.append(f"     > {item.opcional_obrigatorio.name}")
                     linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
-                    if hasattr(item, 'observations') and item.observations:
-                        linhas.append(f"     Obs: {item.observations}")
+                    obs_extra = (item.observations or '').replace(f"Opcional: {item.opcional_obrigatorio.name}", '').strip(' |').strip() if item.opcional_obrigatorio else (item.observations or '')
+                    if obs_extra:
+                        linhas.append(f"     Obs: {obs_extra}")
 
             linhas.append("-" * 48)
             linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
@@ -2539,12 +2543,16 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             linhas.append("")
             for pedido in comanda.pedidos.filter(
                 status__in=['aguardando', 'preparando', 'pronta', 'entregue']
-            ).prefetch_related('items__product'):
+            ).prefetch_related('items__product', 'items__opcional_obrigatorio'):
                 for item in pedido.items.all():
-                    linhas.append(f"  {item.quantity}x {item.product.name}")
+                    nome_produto = item.product.name
+                    linhas.append(f"  {item.quantity}x {nome_produto}")
+                    if item.opcional_obrigatorio:
+                        linhas.append(f"     > {item.opcional_obrigatorio.name}")
                     linhas.append(f"     R$ {float(item.unit_price):.2f} = R$ {float(item.quantity * item.unit_price):.2f}")
-                    if hasattr(item, 'observations') and item.observations:
-                        linhas.append(f"     Obs: {item.observations}")
+                    obs_extra = (item.observations or '').replace(f"Opcional: {item.opcional_obrigatorio.name}", '').strip(' |').strip() if item.opcional_obrigatorio else (item.observations or '')
+                    if obs_extra:
+                        linhas.append(f"     Obs: {obs_extra}")
             linhas.append("-" * 42)
             linhas.append(f"TOTAL: R$ {float(comanda.total_amount):.2f}")
             linhas.append("=" * 42)
@@ -2724,6 +2732,9 @@ class CozinhaApiPedidosView(LoginRequiredMixin, View):
             .prefetch_related('items__product')
             .order_by('-created_at')
         )
+
+        # Comandas com numero >= 30 são administrativas (caixa) — não vão para a cozinha
+        pedidos = [p for p in pedidos if int(p.comanda.numero) < 30]
 
         data = []
         for p in pedidos:

@@ -281,7 +281,7 @@ class PedidoItem(TimeStampedModel):
         return f"{self.quantity}x {self.product.name}{sufixo}"
     
     def save(self, *args, **kwargs):
-        if not self.unit_price:
+        if self.unit_price is None:
             self.unit_price = self.product.price
         if not self.product_name:
             self.product_name = self.product.name
