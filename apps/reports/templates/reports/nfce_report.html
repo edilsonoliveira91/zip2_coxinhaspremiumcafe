@@ -579,11 +579,24 @@ async function iniciarLote() {
         const data = await resp.json();
 
         if (!data.ok) {
+            const msg = (data.message || '').toLowerCase();
+            // Se já existe lote em andamento, o modal deve anexar no progresso atual
+            // em vez de exibir como concluído.
+            if (msg.includes('andamento')) {
+                document.getElementById('loteStatus').textContent = 'Lote já em andamento. Acompanhando progresso...';
+                document.getElementById('loteBtnFechar').classList.add('hidden');
+                if (_pollingTimer) clearInterval(_pollingTimer);
+                _pollingTimer = setInterval(verificarStatus, 3000);
+                verificarStatus();
+                return;
+            }
+
             document.getElementById('loteStatus').textContent = data.message;
             document.getElementById('loteBtnFechar').classList.remove('hidden');
             return;
         }
 
+        if (_pollingTimer) clearInterval(_pollingTimer);
         _pollingTimer = setInterval(verificarStatus, 3000);
         verificarStatus();
 
