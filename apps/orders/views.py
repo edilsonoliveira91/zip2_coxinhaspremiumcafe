@@ -783,10 +783,9 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
 
         total_receita = (
             Checkout.objects.filter(
-                comanda__status='fechada',
-                comanda__updated_at__date__gte=date_from,
-                comanda__updated_at__date__lte=date_to,
                 status='aprovado',
+                processed_at__date__gte=date_from,
+                processed_at__date__lte=date_to,
             ).aggregate(total=Sum('total'))['total'] or 0
         )
 
@@ -796,10 +795,9 @@ class ClosedOrdersListView(LoginRequiredMixin, PermissionRequiredMixin, ListView
 
         # Totais por método de pagamento (para impressão do relatório)
         approved_qs = Checkout.objects.filter(
-            comanda__status='fechada',
-            comanda__updated_at__date__gte=date_from,
-            comanda__updated_at__date__lte=date_to,
             status='aprovado',
+            processed_at__date__gte=date_from,
+            processed_at__date__lte=date_to,
         )
         parcial_qs = approved_qs.filter(payment_method='parcial')
 
