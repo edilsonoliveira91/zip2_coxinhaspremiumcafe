@@ -243,7 +243,9 @@
                                      data-name="{{ item.product.name }}"
                                      data-price="{{ item.unit_price|stringformat:'f'|default:0 }}"
                                      data-quantity="{{ item.quantity }}"
-                                     data-obs="{{ item.observations|default:'' }}"> <!-- Adicionou OBS -->
+                                     data-obs="{{ item.observations|default:'' }}"
+                                     data-opcional-id="{{ item.opcional_obrigatorio.id|default:'' }}"
+                                     data-opcional-name="{{ item.opcional_obrigatorio.name|default:'' }}">
                                 </div>
                                 {% endfor %}
                             </div>
@@ -429,6 +431,10 @@
                 // Tratamento seguro para preços
                 price = price ? price.replace(',', '.') : '0';
 
+                // Opcional obrigatório (necessário para recalcular preço correto no backend)
+                const opcionalId = row.getAttribute('data-opcional-id') || '';
+                const opcionalName = row.getAttribute('data-opcional-name') || '';
+
                 // Aqui refazemos a chave para que não misture os lanches diferentes
                 let cartKey = id + "_" + obs.toLowerCase();
 
@@ -438,7 +444,9 @@
                     name: name,
                     price: parseFloat(price),
                     quantity: parseInt(quantity),
-                    obs: obs
+                    obs: obs,
+                    opcional: opcionalId ? { id: opcionalId, name: opcionalName, price: 0 } : null,
+                    adicionais: []
                 };
             });
         }

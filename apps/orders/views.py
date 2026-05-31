@@ -1891,6 +1891,9 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                 # Opcional obrigatório
                 opcional = None
                 opcional_id = item_data.get('opcional_id')
+                opcionais_produto = product.opcionais_obrigatorios.filter(is_active=True)
+                if opcionais_produto.exists() and not opcional_id:
+                    return JsonResponse({'success': False, 'message': f'Escolha obrigatória não informada para {product.name}'})
                 if opcional_id:
                     try:
                         opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
@@ -1959,6 +1962,9 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                 # Opcional obrigatório
                 opcional = None
                 opcional_id = item.get('opcional_id')
+                opcionais_produto = product.opcionais_obrigatorios.filter(is_active=True)
+                if opcionais_produto.exists() and not opcional_id:
+                    return JsonResponse({'success': False, 'message': f'Escolha obrigatória não informada para {product.name}'})
                 if opcional_id:
                     try:
                         opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
