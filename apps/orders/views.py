@@ -1894,7 +1894,8 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                 if opcional_id:
                     try:
                         opcional = OpcionalObrigatorio.objects.get(id=opcional_id, is_active=True)
-                        unit_price += opcional.price
+                        if opcional.price > 0:
+                            unit_price = opcional.price
                         obs = (opcional.name + (' | ' + obs if obs else '')) if obs else opcional.name
                     except OpcionalObrigatorio.DoesNotExist:
                         opcional = None
