@@ -2316,7 +2316,7 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
 
             texto_cupom = "\n".join(linhas)
             texto_encoded = urllib.parse.quote(texto_cupom)
-            rawbt_intent = f"intent://{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end"
+            rawbt_intent = f"rawbt:{texto_encoded}"
 
             return JsonResponse({"type": "rawbt", "intent_url": rawbt_intent})
 
@@ -2433,7 +2433,7 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
         mob_all.append("")
         cut = chr(0x1d) + chr(0x56) + chr(0x00)
         encoded = urllib.parse.quote("\n".join(mob_all) + cut)
-        single_intent = f"intent://{encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end"
+        single_intent = f"rawbt:{encoded}"
 
         # Desktop: unico conteudo com corte no final
         desk_all.append("")
@@ -2526,7 +2526,7 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
             else:
                 texto_cupom = "\n".join(linhas)
             texto_encoded = urllib.parse.quote(texto_cupom)
-            rawbt_intent = f"intent://{texto_encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end"
+            rawbt_intent = f"rawbt:{texto_encoded}"
 
             return JsonResponse({"type": "rawbt", "intent_url": rawbt_intent})
 

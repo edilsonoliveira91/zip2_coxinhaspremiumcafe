@@ -697,11 +697,22 @@ async function emitirNFCe(numero, cpf_cliente) {
 }
 
 async function imprimirCupomComanda(url, btn) {
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
+                     window.matchMedia('(display-mode: standalone)').matches;
     const originalHTML = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
     const FLASK_BRIDGE = 'https://localhost:5001/print';
     try {
-        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const resp = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Client-Mobile': isMobile ? '1' : '0'
+            }
+        });
+        if (resp.redirected || resp.status === 401 || resp.status === 403) {
+            window.location.reload();
+            return;
+        }
         const ct = resp.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
             window.open(url, '_blank');
@@ -710,12 +721,16 @@ async function imprimirCupomComanda(url, btn) {
         }
         const data = await resp.json();
         if (data.type === 'rawbt') {
-            window.location.href = data.intent_url;
+            const _a = document.createElement('a'); _a.href = data.intent_url; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             return;
         }
         if (data.type === 'fiscal_html') {
             window.open(data.url, '_blank', 'width=480,height=900');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
+        if (isMobile) {
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             return;
         }
@@ -736,7 +751,11 @@ async function imprimirCupomComanda(url, btn) {
         }
     } catch (e) {
         console.error('Erro ao imprimir comanda:', e);
-        alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+        if (isMobile) {
+            alert('Erro de comunicação com o servidor. Verifique a conexão e tente novamente.');
+        } else {
+            alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+        }
         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = originalHTML; }
     }
 }

@@ -610,7 +610,7 @@
             headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
           });
           mostrarToast('✅ Pedido enviado para produção!');
-          window.location.href = data.intent_url;
+          const _a = document.createElement('a'); _a.href = data.intent_url; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
           btn.innerHTML = labelOriginal;
           btn.disabled = false;
           return;

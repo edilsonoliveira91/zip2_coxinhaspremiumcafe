@@ -526,7 +526,8 @@ const IMPRIMIR_COMANDA_URL = "{% url 'orders:imprimir_comanda_id' comanda.pk %}"
 const FLASK_BRIDGE_URL_PEDIDO = 'https://localhost:5001/print';
 
 async function imprimirPedido(url, btn) {
-    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
+                 window.matchMedia('(display-mode: standalone)').matches;
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
@@ -540,7 +541,7 @@ async function imprimirPedido(url, btn) {
         const data = await resp.json();
 
         if (data.type === 'rawbt') {
-            window.location.href = data.intent_url;
+            const _a = document.createElement('a'); _a.href = data.intent_url; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
             btn.innerHTML = originalHTML;
             btn.disabled = false;
             return;
@@ -581,7 +582,8 @@ async function imprimirPedido(url, btn) {
 const FLASK_BRIDGE_URL = 'https://localhost:5001/print';
 
 async function imprimirComanda() {
-    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
+                 window.matchMedia('(display-mode: standalone)').matches;
     const btn = document.getElementById('btn-imprimir-comanda');
     const label = document.getElementById('btn-imprimir-comanda-label');
     if (btn) { btn.disabled = true; }
@@ -601,7 +603,7 @@ async function imprimirComanda() {
         const data = await resp.json();
 
         if (data.type === 'rawbt') {
-            window.location.href = data.intent_url;
+            const _a = document.createElement('a'); _a.href = data.intent_url; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
             if (label) { label.textContent = 'Imprimir Comanda'; }
             if (btn) { btn.disabled = false; }
             return;

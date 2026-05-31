@@ -247,7 +247,7 @@ function _processRawbtQueue() {
     }
     const next = queue.shift();
     localStorage.setItem('rawbtQueue', JSON.stringify(queue));
-    setTimeout(() => { window.location.href = next; }, 400);
+    setTimeout(() => { const _a = document.createElement('a'); _a.href = next; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a); }, 400);
 }
 
 document.addEventListener('visibilitychange', function() {
@@ -257,7 +257,8 @@ document.addEventListener('visibilitychange', function() {
 });
 
 async function imprimirPedidosNovos(url, btn) {
-    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
+                 window.matchMedia('(display-mode: standalone)').matches;
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
@@ -285,11 +286,11 @@ async function imprimirPedidosNovos(url, btn) {
                 const urls = data.intent_urls;
                 if (urls.length === 0) { btn.innerHTML = originalHTML; btn.disabled = false; return; }
                 if (urls.length === 1) {
-                    window.location.href = urls[0];
+                    const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
                 } else {
                     // Salva o restante na fila; o visibilitychange abre um a um
                     localStorage.setItem('rawbtQueue', JSON.stringify(urls.slice(1)));
-                    window.location.href = urls[0];
+                    const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
                 }
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
