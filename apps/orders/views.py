@@ -2286,7 +2286,8 @@ class ImprimirPedidoView(LoginRequiredMixin, View):
             itens_filtrados = pedido.items.select_related('product').all()
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
+        client_mobile = request.META.get('HTTP_X_CLIENT_MOBILE', '')
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua or client_mobile == '1'
 
         if is_mobile:
             # Android/tablet: usar RawBT
@@ -2485,7 +2486,8 @@ class ImprimirComandaView(LoginRequiredMixin, UserPassesTestMixin, View):
                 raise Http404
 
         ua = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua
+        client_mobile = request.META.get('HTTP_X_CLIENT_MOBILE', '')
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua or client_mobile == '1'
 
         if is_mobile:
             # Android/tablet: usar RawBT

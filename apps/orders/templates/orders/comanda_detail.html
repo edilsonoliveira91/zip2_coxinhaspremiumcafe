@@ -581,6 +581,7 @@ async function imprimirPedido(url, btn) {
 const FLASK_BRIDGE_URL = 'https://localhost:5001/print';
 
 async function imprimirComanda() {
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
     const btn = document.getElementById('btn-imprimir-comanda');
     const label = document.getElementById('btn-imprimir-comanda-label');
     if (btn) { btn.disabled = true; }
@@ -588,8 +589,15 @@ async function imprimirComanda() {
 
     try {
         const resp = await fetch(IMPRIMIR_COMANDA_URL, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Client-Mobile': isMobile ? '1' : '0'
+            }
         });
+        if (resp.redirected || resp.status === 401 || resp.status === 403) {
+            window.location.reload();
+            return;
+        }
         const data = await resp.json();
 
         if (data.type === 'rawbt') {
@@ -601,6 +609,12 @@ async function imprimirComanda() {
 
         if (data.type === 'fiscal_html') {
             window.open(data.url, '_blank', 'width=480,height=900');
+            if (label) { label.textContent = 'Imprimir Comanda'; }
+            if (btn) { btn.disabled = false; }
+            return;
+        }
+
+        if (isMobile) {
             if (label) { label.textContent = 'Imprimir Comanda'; }
             if (btn) { btn.disabled = false; }
             return;
@@ -626,7 +640,11 @@ async function imprimirComanda() {
         }
     } catch (e) {
         console.error('Erro ao imprimir comanda:', e);
-        alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+        if (isMobile) {
+            alert('Erro de comunicação com o servidor. Verifique a conexão e tente novamente.');
+        } else {
+            alert('Erro ao conectar com a impressora. Verifique se o serviço está rodando.');
+        }
         if (label) { label.textContent = 'Imprimir Comanda'; }
         if (btn) { btn.disabled = false; }
     }
