@@ -698,7 +698,7 @@ async function emitirNFCe(numero, cpf_cliente) {
 
 async function imprimirCupomComanda(url, btn) {
     const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
-                     window.matchMedia('(display-mode: standalone)').matches;
+                     (window.matchMedia('(display-mode: standalone)').matches && navigator.maxTouchPoints > 0);
     const originalHTML = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
     const FLASK_BRIDGE = 'https://localhost:5001/print';

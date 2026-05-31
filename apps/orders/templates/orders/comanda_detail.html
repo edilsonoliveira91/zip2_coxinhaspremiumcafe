@@ -527,7 +527,7 @@ const FLASK_BRIDGE_URL_PEDIDO = 'https://localhost:5001/print';
 
 async function imprimirPedido(url, btn) {
     const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
-                 window.matchMedia('(display-mode: standalone)').matches;
+                 (window.matchMedia('(display-mode: standalone)').matches && navigator.maxTouchPoints > 0);
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
@@ -583,7 +583,7 @@ const FLASK_BRIDGE_URL = 'https://localhost:5001/print';
 
 async function imprimirComanda() {
     const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
-                 window.matchMedia('(display-mode: standalone)').matches;
+                 (window.matchMedia('(display-mode: standalone)').matches && navigator.maxTouchPoints > 0);
     const btn = document.getElementById('btn-imprimir-comanda');
     const label = document.getElementById('btn-imprimir-comanda-label');
     if (btn) { btn.disabled = true; }
