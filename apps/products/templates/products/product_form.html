@@ -635,8 +635,10 @@
 const PRODUTO_ID = {{ product.pk }};
 const URL_ADICIONAIS = "{% url 'products:produto_adicionais' product.pk %}";
 const URL_DEL_BASE   = '/products/product/{{ product.pk }}/adicionais/';
+const URL_UPD_BASE   = '/products/adicionais/';
 const URL_OPCIONAIS = "{% url 'products:produto_opcionais_obrigatorios' product.pk %}";
 const URL_OPC_DEL_BASE = '/products/product/{{ product.pk }}/opcionais-obrigatorios/';
+const URL_OPC_UPD_BASE = '/products/product/{{ product.pk }}/opcionais-obrigatorios/';
 
 function renderAdicionais(lista) {
     const container = document.getElementById('lista-adicionais');
@@ -652,32 +654,101 @@ function renderAdicionais(lista) {
         return;
     }
     container.innerHTML = lista.map((a, i) => `
-        <div id="add-row-${a.id}"
-             style="display:flex;align-items:center;justify-content:space-between;background:#fafafa;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px 18px;transition:border-color .15s,background .15s;"
-             onmouseenter="this.style.borderColor='#fdba74';this.style.background='#fffbf5';" onmouseleave="this.style.borderColor='#e5e7eb';this.style.background='#fafafa';">
-            <div style="display:flex;align-items:center;gap:14px;">
-                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#ea580c;flex-shrink:0;">
-                    ${i + 1}
+        <div id="add-row-${a.id}" style="background:#fafafa;border:1.5px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;"
+                 onmouseenter="this.parentElement.style.borderColor='#fdba74';this.parentElement.style.background='#fffbf5';" onmouseleave="this.parentElement.style.borderColor='#e5e7eb';this.parentElement.style.background='#fafafa';">
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#ea580c;flex-shrink:0;">
+                        ${i + 1}
+                    </div>
+                    <div style="line-height:1.4;">
+                        <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${a.name}</p>
+                        <p style="font-size:11px;color:#9ca3af;margin:0;">Complemento opcional</p>
+                    </div>
                 </div>
-                <div style="line-height:1.4;">
-                    <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${a.name}</p>
-                    <p style="font-size:11px;color:#9ca3af;margin:0;">Complemento opcional</p>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                        ${parseFloat(a.price || 0) === 0 ? 'Sem acréscimo' : '+ R$ ' + parseFloat(a.price).toFixed(2).replace('.', ',')}
+                    </span>
+                    <button type="button" onclick="abrirEdicaoAdicional(${a.id}, '${a.name.replace(/'/g, "\\'")}', '${a.price}')"
+                        style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/></svg>
+                        Editar
+                    </button>
+                    <button type="button" onclick="deletarAdicional(${a.id})"
+                        style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Remover
+                    </button>
                 </div>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span style="background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
-                    ${parseFloat(a.price || 0) === 0 ? 'Sem acréscimo' : '+ R$ ' + parseFloat(a.price).toFixed(2).replace('.', ',')}
-                </span>
-                <button type="button" onclick="deletarAdicional(${a.id})"
-                    style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                    <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Remover
-                </button>
+            <div id="add-edit-${a.id}" style="display:none;border-top:1.5px solid #d1fae5;background:#f0fdf4;padding:16px 18px;">
+                <div style="display:grid;grid-template-columns:1fr 140px;gap:12px;margin-bottom:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#16a34a;margin-bottom:5px;">Nome</label>
+                        <input type="text" id="add-edit-nome-${a.id}" value="${a.name.replace(/"/g, '&quot;')}"
+                               style="width:100%;padding:9px 12px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                               onfocus="this.style.borderColor='#16a34a'" onblur="this.style.borderColor='#86efac'">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#16a34a;margin-bottom:5px;">Preço (R$)</label>
+                        <input type="number" id="add-edit-preco-${a.id}" value="${parseFloat(a.price || 0).toFixed(2)}" step="0.01" min="0"
+                               style="width:100%;padding:9px 12px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                               onfocus="this.style.borderColor='#16a34a'" onblur="this.style.borderColor='#86efac'">
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+                    <p id="add-edit-erro-${a.id}" style="display:none;font-size:11px;color:#ef4444;margin:0;flex:1;"></p>
+                    <button type="button" onclick="fecharEdicaoAdicional(${a.id})"
+                        style="padding:7px 16px;background:#fff;color:#6b7280;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid #d1d5db;cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="salvarEdicaoAdicional(${a.id})"
+                        style="padding:7px 18px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;box-shadow:0 2px 6px rgba(22,163,74,.3);">
+                        ✓ Salvar
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
+}
+
+function abrirEdicaoAdicional(id) {
+    document.getElementById('add-edit-' + id).style.display = 'block';
+    document.getElementById('add-edit-nome-' + id).focus();
+}
+
+function fecharEdicaoAdicional(id) {
+    document.getElementById('add-edit-' + id).style.display = 'none';
+    const erroEl = document.getElementById('add-edit-erro-' + id);
+    if (erroEl) { erroEl.style.display = 'none'; erroEl.textContent = ''; }
+}
+
+async function salvarEdicaoAdicional(id) {
+    const name  = document.getElementById('add-edit-nome-' + id).value.trim();
+    const price = document.getElementById('add-edit-preco-' + id).value.trim();
+    const erroEl = document.getElementById('add-edit-erro-' + id);
+    if (!name) { erroEl.textContent = 'Nome é obrigatório.'; erroEl.style.display = 'block'; return; }
+    const url = URL_UPD_BASE + id + '/update/';
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ name, price })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            carregarAdicionais();
+        } else {
+            erroEl.textContent = data.message || 'Erro ao salvar.';
+            erroEl.style.display = 'block';
+        }
+    } catch (e) {
+        erroEl.textContent = 'Erro de comunicação.';
+        erroEl.style.display = 'block';
+    }
 }
 
 async function carregarAdicionais() {
@@ -745,27 +816,98 @@ function renderOpcionais(lista) {
         return;
     }
     container.innerHTML = lista.map((o, i) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1.5px solid #dbeafe;border-radius:12px;padding:14px 18px;">
-            <div style="display:flex;align-items:center;gap:14px;">
-                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#1d4ed8;flex-shrink:0;">
-                    ${i + 1}
+        <div id="opc-row-${o.id}" style="background:#f8fafc;border:1.5px solid #dbeafe;border-radius:12px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;">
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#1d4ed8;flex-shrink:0;">
+                        ${i + 1}
+                    </div>
+                    <div style="line-height:1.4;">
+                        <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${o.name}</p>
+                        <p style="font-size:11px;color:#6b7280;margin:0;">Escolha obrigatória no kiosk</p>
+                    </div>
                 </div>
-                <div style="line-height:1.4;">
-                    <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px;">${o.name}</p>
-                    <p style="font-size:11px;color:#6b7280;margin:0;">Escolha obrigatória no kiosk</p>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
+                        ${parseFloat(o.price || 0).toFixed(2).replace('.', ',') === '0,00' ? 'Sem acréscimo' : ('+ R$ ' + parseFloat(o.price).toFixed(2).replace('.', ','))}
+                    </span>
+                    <button type="button" onclick="abrirEdicaoOpcional(${o.id}, '${o.name.replace(/'/g, "\\'")}', '${o.price}')"
+                        style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/></svg>
+                        Editar
+                    </button>
+                    <button type="button" onclick="deletarOpcional(${o.id})"
+                        style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Remover
+                    </button>
                 </div>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;white-space:nowrap;">
-                    ${parseFloat(o.price || 0).toFixed(2).replace('.', ',') === '0,00' ? 'Sem acréscimo' : ('+ R$ ' + parseFloat(o.price).toFixed(2).replace('.', ','))}
-                </span>
-                <button type="button" onclick="deletarOpcional(${o.id})"
-                    style="display:flex;align-items:center;gap:5px;padding:6px 13px;background:#fef2f2;color:#ef4444;border:1.5px solid #fecaca;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                    Remover
-                </button>
+            <div id="opc-edit-${o.id}" style="display:none;border-top:1.5px solid #bfdbfe;background:#eff6ff;padding:16px 18px;">
+                <div style="display:grid;grid-template-columns:1fr 140px;gap:12px;margin-bottom:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:5px;">Nome</label>
+                        <input type="text" id="opc-edit-nome-${o.id}" value="${o.name.replace(/"/g, '&quot;')}"
+                               style="width:100%;padding:9px 12px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#93c5fd'">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:5px;">Preço (R$)</label>
+                        <input type="number" id="opc-edit-preco-${o.id}" value="${parseFloat(o.price || 0).toFixed(2)}" step="0.01" min="0"
+                               style="width:100%;padding:9px 12px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;"
+                               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#93c5fd'">
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+                    <p id="opc-edit-erro-${o.id}" style="display:none;font-size:11px;color:#ef4444;margin:0;flex:1;"></p>
+                    <button type="button" onclick="fecharEdicaoOpcional(${o.id})"
+                        style="padding:7px 16px;background:#fff;color:#6b7280;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid #d1d5db;cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="salvarEdicaoOpcional(${o.id})"
+                        style="padding:7px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,.3);">
+                        ✓ Salvar
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
+}
+
+function abrirEdicaoOpcional(id) {
+    document.getElementById('opc-edit-' + id).style.display = 'block';
+    document.getElementById('opc-edit-nome-' + id).focus();
+}
+
+function fecharEdicaoOpcional(id) {
+    document.getElementById('opc-edit-' + id).style.display = 'none';
+    const erroEl = document.getElementById('opc-edit-erro-' + id);
+    if (erroEl) { erroEl.style.display = 'none'; erroEl.textContent = ''; }
+}
+
+async function salvarEdicaoOpcional(id) {
+    const name  = document.getElementById('opc-edit-nome-' + id).value.trim();
+    const price = document.getElementById('opc-edit-preco-' + id).value.trim();
+    const erroEl = document.getElementById('opc-edit-erro-' + id);
+    if (!name) { erroEl.textContent = 'Nome é obrigatório.'; erroEl.style.display = 'block'; return; }
+    const url = URL_OPC_UPD_BASE + id + '/update/';
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ name, price })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            carregarOpcionais();
+        } else {
+            erroEl.textContent = data.message || 'Erro ao salvar.';
+            erroEl.style.display = 'block';
+        }
+    } catch (e) {
+        erroEl.textContent = 'Erro de comunicação.';
+        erroEl.style.display = 'block';
+    }
 }
 
 async function carregarOpcionais() {

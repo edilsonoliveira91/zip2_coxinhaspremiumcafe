@@ -19,6 +19,7 @@ urlpatterns = [
     path('product/<int:product_pk>/adicionais/<int:adicional_pk>/delete/', views.ProdutoAdicionalDeleteView.as_view(), name='produto_adicional_delete'),
     path('product/<int:product_pk>/opcionais-obrigatorios/', views.ProdutoOpcionaisObrigatoriosView.as_view(), name='produto_opcionais_obrigatorios'),
     path('product/<int:product_pk>/opcionais-obrigatorios/<int:opcional_pk>/delete/', views.ProdutoOpcionalObrigatorioDeleteView.as_view(), name='produto_opcional_obrigatorio_delete'),
+    path('product/<int:product_pk>/opcionais-obrigatorios/<int:opcional_pk>/update/', views.ProdutoOpcionalObrigatorioUpdateView.as_view(), name='produto_opcional_obrigatorio_update'),
 
      # Estoque
     path('estoque/', views.StockListView.as_view(), name='stock_list'),

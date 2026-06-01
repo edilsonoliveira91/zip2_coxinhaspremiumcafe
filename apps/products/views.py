@@ -745,6 +745,30 @@ class ProdutoOpcionalObrigatorioDeleteView(LoginRequiredMixin, View):
         return JsonResponse({'success': True})
 
 
+class ProdutoOpcionalObrigatorioUpdateView(LoginRequiredMixin, View):
+    """API: atualiza nome e preço de um opcional obrigatório (POST JSON)."""
+    def post(self, request, product_pk, opcional_pk):
+        from django.shortcuts import get_object_or_404
+        from decimal import Decimal as _Decimal
+        opcional = get_object_or_404(OpcionalObrigatorio, pk=opcional_pk, product_id=product_pk, is_active=True)
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            price_raw = data.get('price', '')
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Nome é obrigatório.'})
+            price = _Decimal(str(price_raw).replace(',', '.')) if price_raw != '' else _Decimal('0.00')
+            if price < 0:
+                return JsonResponse({'success': False, 'message': 'Preço não pode ser negativo.'})
+            opcional.name = name
+            opcional.price = price
+            opcional.updated_by = request.user
+            opcional.save(update_fields=['name', 'price', 'updated_by', 'updated_at'])
+            return JsonResponse({'success': True, 'opcional': {'id': opcional.id, 'name': opcional.name, 'price': str(opcional.price)}})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
 # ==================== VIEWS DE ESTOQUE ====================
 
 class StockListView(LoginRequiredMixin, ListView):
