@@ -89,6 +89,20 @@
                                 Limpar
                             </button>
                         </div>
+
+                        <!-- Toggle ocultos do Kiosk -->
+                        <div class="pt-2">
+                            <button
+                                id="btn-ocultos-kiosk"
+                                onclick="toggleFiltroOcultos()"
+                                class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-sm font-semibold border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                </svg>
+                                <span id="btn-ocultos-label">Ver ocultos do Kiosk</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Contador -->
@@ -117,7 +131,8 @@
                             {% for item in produtos_com_opcionais %}
                             <div class="produto-card bg-white border-2 border-gray-100 rounded-2xl transition-all hover:border-gray-200 hover:shadow-md"
                                  data-nome="{{ item.product.name|lower }}"
-                                 data-categoria="{{ item.product.get_category_display }}">
+                                 data-categoria="{{ item.product.get_category_display }}"
+                                 data-kiosk="{{ item.product.visivel_kiosk|yesno:'sim,nao' }}">
 
                                 <!-- Linha do Produto -->
                                 <div class="produto-header cursor-pointer p-4 flex items-center justify-between hover:bg-gray-50 rounded-2xl transition-colors"
@@ -236,15 +251,35 @@
 
 <script>
 // ── Filtrar por nome e categoria ────────────────────────────────────────────
+let _filtroOcultos = false;
+
+function toggleFiltroOcultos() {
+    _filtroOcultos = !_filtroOcultos;
+    const btn   = document.getElementById('btn-ocultos-kiosk');
+    const label = document.getElementById('btn-ocultos-label');
+    if (_filtroOcultos) {
+        btn.classList.remove('border-red-200', 'bg-white', 'text-red-600', 'hover:bg-red-50');
+        btn.classList.add('border-red-500', 'bg-red-500', 'text-white', 'hover:bg-red-600');
+        label.textContent = 'Mostrar todos';
+    } else {
+        btn.classList.remove('border-red-500', 'bg-red-500', 'text-white', 'hover:bg-red-600');
+        btn.classList.add('border-red-200', 'bg-white', 'text-red-600', 'hover:bg-red-50');
+        label.textContent = 'Ver ocultos do Kiosk';
+    }
+    filtrarProdutos();
+}
+
 function filtrarProdutos() {
-    const termo    = (document.getElementById('search-input').value || '').trim().toLowerCase();
+    const termo     = (document.getElementById('search-input').value || '').trim().toLowerCase();
     const categoria = document.getElementById('category-filter').value;
-    const cards    = document.querySelectorAll('.produto-card');
+    const cards     = document.querySelectorAll('.produto-card');
     let visivel = 0;
 
     cards.forEach(card => {
-        const ok = (!termo || card.dataset.nome.includes(termo))
-                && (!categoria || card.dataset.categoria === categoria);
+        const okTermo     = !termo     || card.dataset.nome.includes(termo);
+        const okCategoria = !categoria || card.dataset.categoria === categoria;
+        const okKiosk     = !_filtroOcultos || card.dataset.kiosk === 'nao';
+        const ok = okTermo && okCategoria && okKiosk;
         card.style.display = ok ? '' : 'none';
         if (ok) visivel++;
     });
@@ -259,7 +294,8 @@ function filtrarProdutos() {
 function limparFiltros() {
     document.getElementById('search-input').value = '';
     document.getElementById('category-filter').value = '';
-    filtrarProdutos();
+    if (_filtroOcultos) toggleFiltroOcultos();
+    else filtrarProdutos();
 }
 
 // ── Expandir / Recolher sabores ─────────────────────────────────────────────
