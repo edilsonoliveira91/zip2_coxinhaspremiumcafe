@@ -1195,7 +1195,7 @@ class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         for product in products:
             produtos_com_opcionais.append({
                 'product': product,
-                'opcionais': product.opcionais_obrigatorios.all().order_by('name'),
+                'opcionais': product.opcionais_obrigatorios.filter(is_active=True).order_by('name'),
                 'tem_opcionais_inativos': product.opcionais_obrigatorios.filter(is_active=False).exists(),
             })
         
