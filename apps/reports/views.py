@@ -337,9 +337,9 @@ class EmitirLoteView(LoginRequiredMixin, View):
             if _lote_state['running']:
                 return JsonResponse({'ok': False, 'message': 'Já existe uma emissão em lote em andamento.'})
 
-        # Busca todas as comandas fechadas/cortesia sem NFC-e
+        # Busca apenas comandas FECHADAS sem NFC-e (cortesia e canceladas não emitem cupom fiscal)
         pendentes = list(Comanda.objects.filter(
-            status__in=['fechada', 'cortesia'],
+            status='fechada',
             nfce_numero__isnull=True,
         ).order_by('created_at'))
 

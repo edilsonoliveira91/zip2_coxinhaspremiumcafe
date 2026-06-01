@@ -997,13 +997,13 @@ class EmitirNFCeView(LoginRequiredMixin, View):
             if pk:
                 comanda = Comanda.objects.filter(
                     id=pk,
-                    status__in=['fechada', 'cortesia']
+                    status='fechada'
                 ).first()
             else:
                 # Fallback pelo numero (não-único — mantido para compatibilidade)
                 comanda = Comanda.objects.filter(
                     numero=code,
-                    status__in=['fechada', 'cortesia']
+                    status='fechada'
                 ).order_by('-created_at').first()
             if not comanda:
                 # Debug: mostra o status real da comanda para diagnóstico
