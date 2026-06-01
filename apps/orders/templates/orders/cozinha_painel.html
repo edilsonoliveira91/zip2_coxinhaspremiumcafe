@@ -215,8 +215,8 @@
     .card.producao .item-qty { background: rgba(202,138,4,0.2); color: #fbbf24; }
 
     .item-info { flex: 1; min-width: 0; }
-    .item-nome { font-size: 15px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .item-obs { font-size: 11px; color: #888; font-style: italic; }
+    .item-nome { font-size: 25px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-obs { font-size: 20px; color: #888; font-style: italic; }
 
     /* obs geral */
     .obs-geral {
@@ -373,7 +373,7 @@
           <div class="item-qty">${i.qty}x</div>
           <div class="item-info">
             <div class="item-nome">${i.nome}</div>
-            ${i.obs ? `<div class="item-obs">📝 ${i.obs}</div>` : ''}
+            ${i.obs ? `<div class="item-obs">📝 ${i.obs.replace(/ \(R\$[\d.,]+\)/g, '')}</div>` : ''}
           </div>
         </div>
       `).join('');
