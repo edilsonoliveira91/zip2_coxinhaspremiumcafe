@@ -55,12 +55,14 @@ def entrada(request):
     if request.method == 'POST':
         numero = request.POST.get('numero', '').strip()
         if numero:
-            _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
             numero_limpo = str(numero).strip()
             mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
             mesa_label = f"MESA {mesa_numero}"
+            # Apenas reutiliza comanda que está ATIVAMENTE em uso.
+            # 'aguardando_caixa' pertence ao cliente anterior (caixa ainda processando)
+            # — neste caso cria uma nova comanda para o próximo cliente.
             comanda = Comanda.objects.filter(
-                numero=numero, status__in=_STATUSES_ATIVAS
+                numero=numero, status='em_uso'
             ).order_by('-created_at').first()
             if comanda is None:
                 Comanda.objects.create(
@@ -199,9 +201,9 @@ def enviar_pedido(request, numero):
 
             for aid in adicionais_ids:
                 try:
-                    ad = produto.adicionais.get(pk=aid)
+                    ad = produto.adicionais.get(pk=aid, is_active=True)
                     preco_extras += ad.price
-                    obs_partes.append(f"Adicional: {ad.name}")
+                    obs_partes.append(f"+{ad.name}(R${ad.price:.2f})")
                 except Exception:
                     pass
 
