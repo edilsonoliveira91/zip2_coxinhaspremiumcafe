@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao
+from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao, Garcom
 from .forms import SystemConfigForm, TrocoInicialForm, QuebraCaixaForm, ComissaoForm
 
 
@@ -78,3 +78,29 @@ class ComissaoView(LoginRequiredMixin, PermissionRequiredMixin, View):
             messages.success(request, "Comissão atualizada com sucesso!")
             return redirect("config:comissao")
         return render(request, "config/comissao.html", {"form": form, "config": config_obj})
+
+
+class GarcomView(LoginRequiredMixin, View):
+
+    def get(self, request):
+        next_numero = (Garcom.objects.order_by('-numero').values_list('numero', flat=True).first() or 0) + 1
+        garcons = Garcom.objects.select_related('criado_por').order_by('numero')
+        return render(request, 'config/garcom.html', {
+            'next_numero': next_numero,
+            'garcons': garcons,
+        })
+
+    def post(self, request):
+        nome = request.POST.get('nome', '').strip()
+        if not nome:
+            messages.error(request, "O nome do garçom é obrigatório.")
+            return redirect('config:cadastro_garcom')
+
+        next_numero = (Garcom.objects.order_by('-numero').values_list('numero', flat=True).first() or 0) + 1
+        Garcom.objects.create(
+            numero=next_numero,
+            nome=nome,
+            criado_por=request.user,
+        )
+        messages.success(request, f"Garçom #{next_numero} — {nome} cadastrado com sucesso!")
+        return redirect('config:cadastro_garcom')

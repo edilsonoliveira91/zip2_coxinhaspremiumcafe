@@ -26,6 +26,7 @@ urlpatterns = [
     path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),
     path('comanda-id/<int:pk>/imprimir-novos/', views.ImprimirPedidosNaoImpressosView.as_view(), name='imprimir_pedidos_novos'),
+    path('comanda-id/<int:pk>/iniciar-atendimento/', views.IniciarAtendimentoView.as_view(), name='iniciar_atendimento'),
     path('item/<int:item_pk>/remover/', views.RemoverItemPedidoView.as_view(), name='remover_item'),
     # Painel da Cozinha
     path('cozinha/', views.CozinhaPainelView.as_view(), name='cozinha_painel'),

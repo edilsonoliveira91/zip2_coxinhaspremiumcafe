@@ -149,3 +149,28 @@ class SystemConfig(models.Model):
     def get_settings(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class Garcom(models.Model):
+    numero = models.PositiveSmallIntegerField(
+        unique=True,
+        verbose_name="Número do Garçom",
+    )
+    nome = models.CharField(max_length=100, verbose_name="Nome")
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='garcons_cadastrados',
+        verbose_name="Cadastrado por",
+    )
+
+    class Meta:
+        verbose_name = "Garçom"
+        verbose_name_plural = "Garçons"
+        ordering = ['numero']
+
+    def __str__(self):
+        return f"#{self.numero} - {self.nome}"

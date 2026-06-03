@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 import json
 from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote
 from django.views import View
-from config.models import ConfigTrocoInicial
+from config.models import ConfigTrocoInicial, SystemConfig
 from products.models import Product
 
 
@@ -845,6 +845,8 @@ class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             status='aprovado',
             comanda__updated_at__date__gte=start_date,
             comanda__updated_at__date__lte=end_date,
+        ).exclude(
+            comanda__status__in=['cancelada', 'cortesia'],
         )
         total_vendas   = checkouts.aggregate(t=Sum('total'))['t'] or Decimal('0.00')
         total_comandas = checkouts.count()
@@ -879,19 +881,31 @@ class CommissionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
                 'total_tax': total_tax,
             })
 
+        def _comissao(valor):
+            return (valor * comissao_pct / Decimal('100')).quantize(Decimal('0.01'))
+
+        total_dinheiro = _soma('dinheiro')
+        total_debito   = _soma('cartao_debito')
+        total_credito  = _soma('cartao_credito')
+        total_pix      = _soma('pix')
+
         context.update({
-            'start_date':     start_date.strftime('%Y-%m-%d'),
-            'end_date':       end_date.strftime('%Y-%m-%d'),
-            'start_date_fmt': start_date.strftime('%d/%m/%Y'),
-            'end_date_fmt':   end_date.strftime('%d/%m/%Y'),
-            'comissao_pct':   comissao_pct,
-            'total_vendas':   total_vendas,
-            'total_comandas': total_comandas,
-            'valor_comissao': valor_comissao,
-            'total_dinheiro': _soma('dinheiro'),
-            'total_debito':   _soma('cartao_debito'),
-            'total_credito':  _soma('cartao_credito'),
-            'total_pix':      _soma('pix'),
+            'start_date':          start_date.strftime('%Y-%m-%d'),
+            'end_date':            end_date.strftime('%Y-%m-%d'),
+            'start_date_fmt':      start_date.strftime('%d/%m/%Y'),
+            'end_date_fmt':        end_date.strftime('%d/%m/%Y'),
+            'comissao_pct':        comissao_pct,
+            'total_vendas':        total_vendas,
+            'total_comandas':      total_comandas,
+            'valor_comissao':      valor_comissao,
+            'total_dinheiro':      total_dinheiro,
+            'total_debito':        total_debito,
+            'total_credito':       total_credito,
+            'total_pix':           total_pix,
+            'comissao_dinheiro':   _comissao(total_dinheiro),
+            'comissao_debito':     _comissao(total_debito),
+            'comissao_credito':    _comissao(total_credito),
+            'comissao_pix':        _comissao(total_pix),
             'produtos_com_imposto': produtos_com_imposto,
         })
         return context

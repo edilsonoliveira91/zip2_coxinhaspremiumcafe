@@ -90,10 +90,12 @@
                             {% for comanda in comandas_abertas %}
                                 <!-- Comanda real com estilo simplificado -->
                                 <div
-                                    style="{% if comanda.status == 'aguardando_caixa' %} border-color: #6b7280 !important; border-width: 2px !important; {% elif comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
+                                    style="{% if comanda.status == 'aguardando_caixa' %} border-color: #6b7280 !important; border-width: 2px !important; {% elif comanda.em_atendimento %} border-color: #3b82f6 !important; border-width: 2px !important; {% elif comanda.is_delayed %} border-color: #dc2626 !important; border-width: 2px !important; {% elif comanda.has_pending %} border-color: #facc15 !important; {% endif %}"
                                     class="group relative border-2
                                     {% if comanda.status == 'aguardando_caixa' %}
                                         bg-gray-100 border-gray-400
+                                    {% elif comanda.em_atendimento %}
+                                        bg-blue-50 border-blue-400 shadow-md shadow-blue-200/50
                                     {% elif comanda.is_delayed %} 
                                         bg-red-100 border-4 border-red-600 shadow-xl shadow-red-500/50 animate-pulse 
                                     {% elif comanda.has_pending %} 
@@ -106,14 +108,27 @@
                                     data-numero="{{ comanda.numero }}" 
                                     data-mesa="{{ comanda.cliente_nome }}">
                                 
+                                    {% if comanda.em_atendimento %}
+                                    <!-- Badge EM ATENDIMENTO -->
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                            </svg>
+                                            EM ATENDIMENTO
+                                        </span>
+                                        <span class="text-[10px] font-bold text-gray-900 bg-gray-200 rounded-full px-2 py-0.5">{{ comanda.atendente_numero }}</span>
+                                    </div>
+                                    {% endif %}
+
                                     <!-- Header da comanda -->
                                     <div class="flex items-start justify-between mb-2">
                                         <div class="flex items-center space-x-3">
-                                            <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
+                                            <div class="w-12 h-12 {% if comanda.status == 'aguardando_caixa' %}bg-gray-400{% elif comanda.em_atendimento %}bg-gradient-to-r from-blue-500 to-indigo-500{% else %}bg-gradient-to-r from-orange-500 to-pink-500{% endif %} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-sm">
                                                 {{ comanda.display_badge }}
                                             </div>
                                             <div>
-                                                <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
+                                                <p class="font-black {% if comanda.status == 'aguardando_caixa' %}text-gray-500{% elif comanda.em_atendimento %}text-blue-900{% else %}text-gray-900{% endif %} text-lg">{{ comanda.display_label }}</p>
                                                 {% if comanda.status == 'aguardando_caixa' %}
                                                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">⬛ MESA FECHADA</p>
                                                 {% else %}
@@ -124,10 +139,10 @@
                                                 {% endif %}
                                             </div>
                                         </div>
-                                        <!-- Botão quadrado: imprimir pedidos não entregues — só aparece se há pedidos ativos -->
-                                        {% if comanda.has_pending %}
-                                        <button onclick="event.stopPropagation(); imprimirPedidosNovos('{% url 'orders:imprimir_pedidos_novos' comanda.pk %}', this)"
-                                                title="Imprimir pedidos ativos"
+                                        <!-- Botão quadrado: iniciar atendimento — só aparece se há pedidos ativos e não está em atendimento -->
+                                        {% if comanda.has_pending and not comanda.em_atendimento %}
+                                        <button onclick="event.stopPropagation(); abrirModalAtendimento('{% url 'orders:iniciar_atendimento' comanda.pk %}', this)"
+                                                title="Imprimir e identificar atendente"
                                                 class="btn-imprimir-novos w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all active:scale-95">
                                             <svg class="w-5 h-5 btn-imprimir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
@@ -232,6 +247,40 @@
 </style>
 
 
+<!-- Modal IDENTIFIQUE-SE -->
+<div id="modalAtendimento" class="fixed inset-0 z-[9999] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity" style="display:none;">
+    <div class="bg-white rounded-xl shadow-xl w-56 mx-4 p-4 relative">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-bold text-gray-800">Identifique-se</h3>
+            <button type="button" onclick="fecharModalAtendimento()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <label class="block text-gray-600 text-xs font-semibold mb-1.5" for="inputAtendente">Nº do atendente (1–99)</label>
+        <input
+            id="inputAtendente"
+            type="number"
+            min="1"
+            max="99"
+            placeholder="Ex: 5"
+            onkeydown="if(event.key==='Enter') confirmarAtendimento();"
+            class="border border-gray-300 rounded-lg w-full py-2 px-3 text-center text-2xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors tabular-nums"
+        >
+
+        <div class="mt-4 flex gap-2">
+            <button type="button" onclick="fecharModalAtendimento()"
+                class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors border border-gray-200">
+                Voltar
+            </button>
+            <button id="btnConfirmarAtendimento" type="button" onclick="confirmarAtendimento()"
+                class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-sm transition-all flex justify-center items-center">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+
 <script src="{% static 'js/utils.js' %}"></script>
 
 <script>
@@ -282,20 +331,17 @@ async function imprimirPedidosNovos(url, btn) {
 
         if (data.type === 'rawbt_multi') {
             if (isMobile) {
-                // Android/tablet: intent URLs via fila no localStorage
                 const urls = data.intent_urls;
                 if (urls.length === 0) { btn.innerHTML = originalHTML; btn.disabled = false; return; }
                 if (urls.length === 1) {
                     const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
                 } else {
-                    // Salva o restante na fila; o visibilitychange abre um a um
                     localStorage.setItem('rawbtQueue', JSON.stringify(urls.slice(1)));
                     const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
                 }
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             } else {
-                // Desktop: Flask bridge em sequência
                 let sucesso = true;
                 for (const conteudo of data.contents) {
                     try {
@@ -329,6 +375,105 @@ async function imprimirPedidosNovos(url, btn) {
         btn.innerHTML = originalHTML;
         btn.disabled = false;
     }
+}
+
+// ── Modal IDENTIFIQUE-SE ─────────────────────────────────────────────────────
+let _modalAtendimentoUrl = null;
+let _modalAtendimentoBtn = null;
+
+function abrirModalAtendimento(url, btn) {
+    _modalAtendimentoUrl = url;
+    _modalAtendimentoBtn = btn;
+    const modal = document.getElementById('modalAtendimento');
+    const input = document.getElementById('inputAtendente');
+    input.value = '';
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    setTimeout(() => input.focus(), 100);
+}
+
+function fecharModalAtendimento() {
+    const modal = document.getElementById('modalAtendimento');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    _modalAtendimentoUrl = null;
+    _modalAtendimentoBtn = null;
+}
+
+async function confirmarAtendimento() {
+    const input = document.getElementById('inputAtendente');
+    const numero = parseInt(input.value, 10);
+    if (!numero || numero < 1 || numero > 99) {
+        input.classList.add('ring-2', 'ring-red-500', 'border-red-400');
+        input.focus();
+        setTimeout(() => input.classList.remove('ring-2', 'ring-red-500', 'border-red-400'), 1500);
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmarAtendimento');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+
+    const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) ||
+                 (window.matchMedia('(display-mode: standalone)').matches && navigator.maxTouchPoints > 0);
+
+    try {
+        const resp = await fetch(_modalAtendimentoUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+            },
+            body: JSON.stringify({ numero_atendente: numero }),
+        });
+        const data = await resp.json();
+
+        fecharModalAtendimento();
+
+        if (!data.success) {
+            alert('Erro: ' + (data.error || 'Não foi possível registrar o atendimento.'));
+            btn.disabled = false;
+            btn.innerHTML = 'OK';
+            return;
+        }
+
+        if (data.type === 'none') {
+            // Sem pedidos — apenas registrou atendimento
+            atualizarDashboard();
+            return;
+        }
+
+        if (data.type === 'rawbt_multi') {
+            if (isMobile) {
+                const urls = data.intent_urls;
+                if (urls.length > 0) {
+                    if (urls.length === 1) {
+                        const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
+                    } else {
+                        localStorage.setItem('rawbtQueue', JSON.stringify(urls.slice(1)));
+                        const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
+                    }
+                }
+            } else {
+                for (const conteudo of data.contents) {
+                    try {
+                        await fetch(FLASK_BRIDGE_URL_HOME, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content: conteudo })
+                        });
+                    } catch (e) {}
+                }
+            }
+            atualizarDashboard();
+        }
+    } catch (e) {
+        console.error('Erro ao confirmar atendimento:', e);
+        fecharModalAtendimento();
+        alert('Erro de comunicação. Tente novamente.');
+    }
+    btn.disabled = false;
+    btn.innerHTML = 'OK';
 }
 
 function openOrderModal() {

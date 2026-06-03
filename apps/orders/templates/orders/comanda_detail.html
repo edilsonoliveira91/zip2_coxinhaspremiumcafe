@@ -182,17 +182,10 @@
                         <td class="px-4 py-3">
                             <div class="flex justify-center items-center gap-2">
 
-                                {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
-                                <button type="button" onclick="editarPedido('{{ pedido.id }}')" 
-                                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
-                                    Editar
-                                </button>
-                                {% else %}
                                 <button type="button" onclick="document.getElementById('viewItens{{ pedido.id }}').classList.toggle('hidden')" 
                                     class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
                                     Visualizar
                                 </button>
-                                {% endif %}
                                 
                                 {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
                                 <form action="{% url 'orders:marcar_entregue' pedido.id %}" method="POST" class="m-0">
@@ -260,11 +253,11 @@
                                         </span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-green-600 font-bold">R$ {{ item.unit_price|floatformat:2 }}</span>
-                                            {% if pedido.status == 'entregue' %}
+                                            {% if pedido.status != 'cancelado' %}
                                             <button type="button"
                                                 onclick="removerItem({{ item.id }}, '{{ item.product.name }}', {{ pedido.id }})"
                                                 title="Remover item"
-                                                class="p-1 rounded-md text-red-400 hover:text-white hover:bg-red-500 transition-colors">
+                                                class="p-1 rounded-md transition-colors" style="color:#ef4444;" onmouseover="this.style.backgroundColor='#fee2e2'" onmouseout="this.style.backgroundColor=''">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                 </svg>
@@ -660,24 +653,52 @@ async function imprimirComanda() {
     }
 }
 
-async function removerItem(itemId, nomeProduto, pedidoId) {
-    if (!confirm('Remover "' + nomeProduto + '" deste pedido?')) return;
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') 
-        ? document.querySelector('[name=csrfmiddlewaretoken]').value 
+// ── Modal Remover Item ──────────────────────────────────────────────
+let _removerItemId = null;
+let _removerNomeProduto = null;
+
+function removerItem(itemId, nomeProduto, pedidoId) {
+    _removerItemId = itemId;
+    _removerNomeProduto = nomeProduto;
+    document.getElementById('removerNomeProdutoLabel').textContent = nomeProduto;
+    document.getElementById('inputGarcomRemover').value = '';
+    document.getElementById('modalRemoverItem').classList.remove('hidden');
+    setTimeout(() => document.getElementById('inputGarcomRemover').focus(), 100);
+}
+
+function fecharModalRemoverItem() {
+    document.getElementById('modalRemoverItem').classList.add('hidden');
+    _removerItemId = null;
+    _removerNomeProduto = null;
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModalRemoverItem();
+});
+
+async function confirmarRemoverItem() {
+    if (!_removerItemId) return;
+    const garcomInput = document.getElementById('inputGarcomRemover');
+    const garcomVal = parseInt(garcomInput.value.trim(), 10);
+    if (!garcomInput.value.trim() || isNaN(garcomVal) || garcomVal < 1 || garcomVal > 99) {
+        garcomInput.style.borderColor = '#ef4444';
+        garcomInput.focus();
+        return;
+    }
+    garcomInput.style.borderColor = '';
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')
+        ? document.querySelector('[name=csrfmiddlewaretoken]').value
         : '{{ csrf_token }}';
     try {
-        const resp = await fetch('/orders/item/' + itemId + '/remover/', {
+        const resp = await fetch('/orders/item/' + _removerItemId + '/remover/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ garcom_numero: garcomVal }),
         });
         const data = await resp.json();
         if (data.success) {
-            // Remove o item da lista visualmente
-            const row = document.getElementById('item-row-' + itemId);
-            if (row) row.remove();
-            // Atualiza o total da comanda no sidebar
-            const totalEl = document.querySelector('.text-4xl.font-black.text-gray-800');
-            if (totalEl) totalEl.textContent = 'R$ ' + parseFloat(data.novo_total_comanda).toFixed(2).replace('.', ',');
+            fecharModalRemoverItem();
+            location.reload();
         } else {
             alert(data.message || 'Erro ao remover item.');
         }
@@ -685,6 +706,40 @@ async function removerItem(itemId, nomeProduto, pedidoId) {
         alert('Erro de conexão: ' + e.message);
     }
 }
+
 </script>
+
+<!-- Modal Remover Item -->
+<div id="modalRemoverItem" class="fixed inset-0 z-[60] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-56 mx-4 p-4 relative">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-bold text-gray-800">Remover item</h3>
+            <button type="button" onclick="fecharModalRemoverItem()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Produto:</p>
+        <p class="text-sm font-semibold text-gray-800 mb-3 truncate" id="removerNomeProdutoLabel"></p>
+        <label class="block text-xs font-bold text-gray-700 mb-1" for="inputGarcomRemover">Nº do garçom (1–99)</label>
+        <input id="inputGarcomRemover" type="number" min="1" max="99"
+            class="w-full border border-gray-300 rounded-lg px-3 text-gray-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors mb-4"
+            style="height:42px;"
+            placeholder="Ex: 3"
+            onkeydown="if(event.key==='Enter') confirmarRemoverItem()">
+        <div class="flex gap-2">
+            <button type="button" onclick="fecharModalRemoverItem()"
+                class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg border border-gray-200 transition-colors">
+                Voltar
+            </button>
+            <button type="button" onclick="confirmarRemoverItem()"
+                class="flex-1 py-2 text-white text-sm font-bold rounded-lg shadow-sm transition-colors"
+                style="background-color:#ef4444;border:none;"
+                onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'">
+                Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 

@@ -81,6 +81,20 @@ class HomeView(LoginRequiredMixin, TemplateView):
             # Se encontrou algum pedido não entregue, fica amarela!
             if pedidos_pendentes:
                 comanda.has_pending = True
+                # Azul (em_atendimento) somente se TODOS os pedidos pendentes já têm atendente registrado
+                # Caso contrário (pedido novo sem atendente), volta ao amarelo automaticamente
+                comanda.em_atendimento = all(
+                    p.atendente_numero is not None for p in pedidos_pendentes
+                )
+            else:
+                # Sem pendentes: limpa o estado de atendimento no DB
+                if comanda.em_atendimento:
+                    comanda.em_atendimento = False
+                    comanda.atendente_numero = None
+                    comanda.atendimento_em = None
+                    Comanda.objects.filter(pk=comanda.pk).update(
+                        em_atendimento=False, atendente_numero=None, atendimento_em=None
+                    )
             
             # Pedidos não impressos ainda
             comanda.tem_nao_impressos = any(not p.impresso for p in pedidos_pendentes)
@@ -414,6 +428,18 @@ class HomeCardsView(LoginRequiredMixin, View):
             pedidos_pendentes = list(comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta']))
             if pedidos_pendentes:
                 comanda.has_pending = True
+                # Azul (em_atendimento) somente se TODOS os pedidos pendentes já têm atendente registrado
+                comanda.em_atendimento = all(
+                    p.atendente_numero is not None for p in pedidos_pendentes
+                )
+            else:
+                if comanda.em_atendimento:
+                    comanda.em_atendimento = False
+                    comanda.atendente_numero = None
+                    comanda.atendimento_em = None
+                    Comanda.objects.filter(pk=comanda.pk).update(
+                        em_atendimento=False, atendente_numero=None, atendimento_em=None
+                    )
             comanda.tem_nao_impressos = any(not p.impresso for p in pedidos_pendentes)
             for pedido in pedidos_pendentes:
                 if pedido.status in ['aguardando', 'preparando']:

@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.db.models import Q, Sum, Case, When, IntegerField
 from django.db import transaction
 import json
-from .models import Comanda, Pedido, PedidoItem, ComandaPartialPayment
+from .models import Comanda, Pedido, PedidoItem, ComandaPartialPayment, ItemRemovidoLog
 from .forms import PedidoForm, PedidoItemFormSet, ScannerForm, OrderStatusForm
 from products.models import Product, Adicional, OpcionalObrigatorio
 
@@ -1907,7 +1907,7 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
                     unit_price += extra
-                    labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
+                    labels = ', '.join(f'+{a.name}(R${a.price:.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity
                 total_amount += subtotal
@@ -1978,7 +1978,7 @@ class ApiCreatePedidoView(LoginRequiredMixin, View):
                     adicionais_qs = Adicional.objects.filter(id__in=adicional_ids, is_active=True)
                     extra = sum(a.price for a in adicionais_qs)
                     unit_price += extra
-                    labels = ', '.join(f'+{a.name} (R${float(a.price):.2f})' for a in adicionais_qs)
+                    labels = ', '.join(f'+{a.name}(R${a.price:.2f})' for a in adicionais_qs)
                     obs = (obs + ' | ' if obs else '') + labels
                 subtotal = unit_price * quantity
                 total_amount += subtotal
@@ -2267,10 +2267,38 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
         item = get_object_or_404(PedidoItem, pk=item_pk)
         pedido = item.pedido
         comanda = pedido.comanda
+        try:
+            body = json.loads(request.body)
+            garcom_numero = body.get('garcom_numero') or None
+            if garcom_numero is not None:
+                garcom_numero = int(garcom_numero)
+                if garcom_numero < 1 or garcom_numero > 99:
+                    garcom_numero = None
+        except (ValueError, TypeError, json.JSONDecodeError):
+            garcom_numero = None
+        ItemRemovidoLog.objects.create(
+            product_name=item.product_name or item.product.name,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            observations=item.observations,
+            comanda_numero=comanda.numero,
+            pedido_seq=pedido.pedido_seq,
+            garcom_numero=garcom_numero,
+            removido_por=request.user,
+        )
         item.delete()
+        if pedido.items.count() == 0:
+            pedido.delete()
+            comanda.update_total()
+            return JsonResponse({
+                'success': True,
+                'pedido_removido': True,
+                'novo_total_comanda': str(comanda.total_amount),
+            })
         pedido.update_total()
         return JsonResponse({
             'success': True,
+            'pedido_removido': False,
             'novo_total_pedido': str(pedido.total_amount),
             'novo_total_comanda': str(comanda.total_amount),
         })
@@ -2375,6 +2403,10 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
             return JsonResponse({'type': 'none'})
 
         Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
+        # Registra o atendente em cada pedido impresso (histórico por pedido)
+        Pedido.objects.filter(id__in=[p.id for p in pedidos]).update(atendente_numero=numero)
+        # Atualiza o atendente atual na comanda (para exibição do badge no card)
+        Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
 
         mob_all = []
         desk_all = []
@@ -2787,3 +2819,118 @@ class CozinhaMarcarImpressoView(LoginRequiredMixin, View):
             pedido.started_at = timezone.now()
         pedido.save(update_fields=['impresso', 'status', 'started_at'])
         return JsonResponse({'ok': True, 'status': pedido.status})
+
+class IniciarAtendimentoView(LoginRequiredMixin, View):
+    """
+    POST /orders/comanda-id/<pk>/iniciar-atendimento/
+    Recebe {'numero_atendente': int} via JSON.
+    Marca a comanda como em_atendimento, salva o atendente e dispara a impressão.
+    Retorna os dados de impressão para o frontend processar (igual à ImprimirPedidosNaoImpressosView).
+    """
+    def post(self, request, pk):
+        comanda = get_object_or_404(Comanda, pk=pk)
+        try:
+            body = json.loads(request.body)
+            numero = int(body.get('numero_atendente', 0))
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return JsonResponse({'success': False, 'error': 'Número inválido'}, status=400)
+
+        if not (1 <= numero <= 99):
+            return JsonResponse({'success': False, 'error': 'Número deve ser entre 1 e 99'}, status=400)
+
+        # Marca atendimento
+        comanda.em_atendimento = True
+        comanda.atendente_numero = numero
+        comanda.atendimento_em = timezone.now()
+        comanda.save(update_fields=['em_atendimento', 'atendente_numero', 'atendimento_em'])
+
+        # Gera conteúdo de impressão (pedidos ativos)
+        pedidos = list(
+            comanda.pedidos
+            .filter(status__in=['aguardando', 'preparando', 'pronta'])
+            .prefetch_related('items__product')
+            .order_by('id')
+        )
+        if not pedidos:
+            return JsonResponse({'success': True, 'type': 'none'})
+
+        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
+        # Registra o atendente em cada pedido impresso (histórico por pedido)
+        Pedido.objects.filter(id__in=[p.id for p in pedidos]).update(atendente_numero=numero)
+        # Atualiza o atendente atual na comanda (para exibição do badge no card)
+        Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
+
+        mob_all = []
+        desk_all = []
+
+        for pedido in pedidos:
+            data_fmt = timezone.localtime(pedido.created_at).strftime("%d/%m/%Y %H:%M")
+
+            mob = []
+            mob.append(str(" COPA / COZINHA ").center(48, "-"))
+            mob.append(str(" Ticket de Preparo ").center(48, " "))
+            mob.append("-" * 48)
+            mob.append(f"COMANDA: {pedido.comanda.numero}")
+            mob.append(f"PEDIDO: #{pedido.pedido_seq}")
+            mob.append(f"ATENDENTE: #{numero}")
+            mob.append(f"DATA: {data_fmt}")
+            mob.append("-" * 48)
+            mob.append("ITENS PARA PREPARAR:")
+            mob.append("")
+            for item in pedido.items.all():
+                mob.append(f"{item.quantity}x {item.product.name}")
+                if item.observations:
+                    mob.append(f"   Obs: {item.observations}")
+            if pedido.observations:
+                mob.append("-" * 48)
+                mob.append("OBSERVACOES GERAIS:")
+                mob.append(pedido.observations)
+            mob.append("-" * 48)
+            mob.append(str("Fim do Pedido").center(48, " "))
+            mob.append("")
+            mob.append("")
+            mob.append("")
+            mob_all.extend(mob)
+
+            desk = []
+            desk.append(str(" COPA / COZINHA ").center(42, "-"))
+            desk.append("Ticket de Preparo".center(42))
+            desk.append("-" * 42)
+            desk.append(f"COMANDA: {pedido.comanda.numero}")
+            desk.append(f"PEDIDO: #{pedido.pedido_seq}")
+            desk.append(f"ATENDENTE: #{numero}")
+            desk.append(f"DATA: {data_fmt}")
+            desk.append("-" * 42)
+            desk.append("ITENS PARA PREPARAR:")
+            desk.append("")
+            for item in pedido.items.all():
+                desk.append(f"  {item.quantity}x {item.product.name}")
+                if item.observations:
+                    desk.append(f"     Obs: {item.observations}")
+            if pedido.observations:
+                desk.append("-" * 42)
+                desk.append("OBS GERAIS:")
+                desk.append(pedido.observations)
+            desk.append("-" * 42)
+            desk.append("Fim do Pedido".center(42))
+            desk.append("")
+            desk.append("")
+            desk_all.extend(desk)
+
+        mob_all.append("")
+        mob_all.append("")
+        mob_all.append("")
+        cut = chr(0x1d) + chr(0x56) + chr(0x00)
+        encoded = urllib.parse.quote("\n".join(mob_all) + cut)
+        single_intent = f"rawbt:{encoded}"
+
+        desk_all.append("")
+        desk_all.append("VA")
+        single_content = "\n".join(desk_all)
+
+        return JsonResponse({
+            'success': True,
+            'type': 'rawbt_multi',
+            'intent_urls': [single_intent],
+            'contents': [single_content],
+        })

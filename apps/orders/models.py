@@ -62,6 +62,22 @@ class Comanda(TimeStampedModel):
         verbose_name="Motivo do Cancelamento"
     )
 
+    # Controle de atendimento
+    em_atendimento = models.BooleanField(
+        default=False,
+        verbose_name="Em Atendimento"
+    )
+    atendente_numero = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Número do Atendente"
+    )
+    atendimento_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Iniciado Atendimento em"
+    )
+
     @property
     def tem_nfce(self):
         return bool(self.nfce_numero)
@@ -165,6 +181,13 @@ class Pedido(TimeStampedModel):
     impresso = models.BooleanField(
         default=False,
         verbose_name="Impresso"
+    )
+
+    # Atendente responsável por este pedido
+    atendente_numero = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Número do Atendente"
     )
 
     # Campos para NFCe
@@ -357,3 +380,30 @@ class ComandaPartialPayment(TimeStampedModel):
     def __str__(self):
         return f'Comanda #{self.comanda.numero} - {self.get_payment_method_display()} - R$ {self.amount}'
 
+
+
+class ItemRemovidoLog(models.Model):
+    product_name = models.CharField(max_length=100, verbose_name="Produto")
+    quantity = models.PositiveIntegerField(verbose_name="Quantidade")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Preço Unitário")
+    observations = models.TextField(blank=True, null=True, verbose_name="Observações")
+    comanda_numero = models.CharField(max_length=50, verbose_name="Comanda")
+    pedido_seq = models.PositiveIntegerField(verbose_name="Nº Pedido")
+    garcom_numero = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Nº Garçom")
+    removido_em = models.DateTimeField(auto_now_add=True, verbose_name="Removido em")
+    removido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='itens_removidos',
+        verbose_name="Removido por",
+    )
+
+    class Meta:
+        verbose_name = "Item Removido"
+        verbose_name_plural = "Itens Removidos"
+        ordering = ['-removido_em']
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product_name} — Comanda {self.comanda_numero} — {self.removido_em}"
