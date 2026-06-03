@@ -135,7 +135,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-100 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <th class="px-4 py-3">ID do Pedido</th>
+                        <th class="px-4 py-3">Nº ID</th>
                         <th class="px-4 py-3">Data e Hora</th>
                         <th class="px-4 py-3 text-center">Total de Itens</th>
                         <th class="px-4 py-3 text-right">Valor Total</th>
@@ -151,10 +151,14 @@
                         {% elif pedido.status == 'entregue' %}border-l-4 border-l-gray-400
                         {% else %}border-l-4 border-l-red-500{% endif %}">
                         
-                        <!-- ID do Pedido -->
+                        <!-- Atendente / ID do Pedido -->
                         <td class="px-4 py-3">
                             <div class="flex items-center pl-2">
-                                <span class="text-xl font-black text-gray-800">#{{ pedido.pedido_seq }}</span>
+                                {% if pedido.atendente_numero %}
+                                    <span class="text-xl font-black text-blue-700">{{ pedido.atendente_numero }}</span>
+                                {% else %}
+                                    <span class="text-xl font-black text-gray-800">#{{ pedido.pedido_seq }}</span>
+                                {% endif %}
                             </div>
                         </td>
 

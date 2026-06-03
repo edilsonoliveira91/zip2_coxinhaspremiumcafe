@@ -8,7 +8,8 @@ from django.shortcuts import redirect
 from .forms import CustomUserCreationForm
 from .models import User
 from products.models import Product
-from orders.models import Comanda
+from orders.models import Comanda, Pedido
+from django.db.models import Prefetch
 from django.utils import timezone
 from django.views import View
 from django.http import JsonResponse
@@ -61,9 +62,14 @@ class HomeView(LoginRequiredMixin, TemplateView):
         hoje = timezone.now().date()
         
         # TESTE: Remover filtro de data
+        _prefetch_pedidos = Prefetch(
+            'pedidos',
+            queryset=Pedido.objects.filter(status__in=['aguardando', 'preparando', 'pronta']),
+            to_attr='pedidos_ativos',
+        )
         comandas_abertas = Comanda.objects.filter(
             status__in=['em_uso', 'aguardando_caixa']
-        ).order_by(Cast('numero', output_field=IntegerField()))
+        ).prefetch_related(_prefetch_pedidos).order_by(Cast('numero', output_field=IntegerField()))
 
                 # ---> LÓGICA DE TEMPO DA CONFIGURAÇÃO <---
         config = SystemConfig.get_settings()
@@ -76,7 +82,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
             comanda.has_pending = False # Padrão: tudo entregue ou vazia
             
             # Pega TODOS os pedidos que não estão finalizados/entregues (avaliado como lista p/ eficiência)
-            pedidos_pendentes = list(comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta']))
+            pedidos_pendentes = comanda.pedidos_ativos
             
             # Se encontrou algum pedido não entregue, fica amarela!
             if pedidos_pendentes:
@@ -418,14 +424,19 @@ class HomeCardsView(LoginRequiredMixin, View):
         limit_minutes = config.max_order_time_minutes
         agora = timezone.now()
 
+        _prefetch_pedidos = Prefetch(
+            'pedidos',
+            queryset=Pedido.objects.filter(status__in=['aguardando', 'preparando', 'pronta']),
+            to_attr='pedidos_ativos',
+        )
         comandas_abertas = Comanda.objects.filter(
             status__in=['em_uso', 'aguardando_caixa']
-        ).order_by(Cast('numero', output_field=IntegerField()))
+        ).prefetch_related(_prefetch_pedidos).order_by(Cast('numero', output_field=IntegerField()))
 
         for comanda in comandas_abertas:
             comanda.is_delayed = False
             comanda.has_pending = False
-            pedidos_pendentes = list(comanda.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta']))
+            pedidos_pendentes = comanda.pedidos_ativos
             if pedidos_pendentes:
                 comanda.has_pending = True
                 # Azul (em_atendimento) somente se TODOS os pedidos pendentes já têm atendente registrado
