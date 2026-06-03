@@ -638,6 +638,8 @@
 
   window.finalizarPagamento = async function() {
     if (state.restante > 0.009) return;
+    var btnFin = document.getElementById('btn-finalizar');
+    if (btnFin) { btnFin.disabled = true; btnFin.style.opacity = '0.5'; btnFin.style.pointerEvents = 'none'; }
     setLoading(true);
     var totalPago = state.payments.reduce(function(s,p){return s+p.amount;},0);
     var troco = Math.max(0, totalPago - TOTAL);
@@ -666,10 +668,12 @@
         setTimeout(function(){ window.location.href = DASHBOARD_URL; }, 2000);
       } else {
         setLoading(false);
+        if (btnFin) { btnFin.disabled = false; btnFin.style.opacity = ''; btnFin.style.pointerEvents = ''; }
         alert(result.message || 'Erro ao processar pagamento.');
       }
     } catch(e) {
       setLoading(false);
+      if (btnFin) { btnFin.disabled = false; btnFin.style.opacity = ''; btnFin.style.pointerEvents = ''; }
       alert('Erro de conexão: ' + e.message);
     }
   };
