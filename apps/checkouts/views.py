@@ -16,9 +16,10 @@ from decimal import Decimal
 
 # Tente importar o modelo Checkout, se existir
 try:
-    from checkouts.models import Checkout
+    from checkouts.models import Checkout, CheckoutPayment
 except ImportError:
     Checkout = None
+    CheckoutPayment = None
 
 
 class CheckoutOrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -476,15 +477,18 @@ class FechamentoCaixaDetalheView(LoginRequiredMixin, View):
 class RelatorioPagamentosCSVView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Exporta CSV com totais de pagamento por dia no período.
-    Apenas comandas fechadas (exclui canceladas e cortesias).
+    Usa a MESMA lógica do FinancialDashboardView:
+      - Checkout.status = 'aprovado', exclui cancelada/cortesia
+      - Checkouts simples: soma Checkout.total por Checkout.payment_method
+      - Checkouts parciais: soma CheckoutPayment.amount por payment_method
     Colunas: Data, Dinheiro, Débito, Crédito, PIX, Voucher, Total
     """
+    METHODS = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']
+
     def test_func(self):
         return self.request.user.is_caixa or self.request.user.is_superuser
 
     def get(self, request):
-        from checkouts.models import CheckoutPayment
-
         data_inicio_str = request.GET.get('data_inicio', '')
         data_fim_str = request.GET.get('data_fim', '')
         hoje = timezone.localtime().date()
@@ -496,34 +500,50 @@ class RelatorioPagamentosCSVView(LoginRequiredMixin, UserPassesTestMixin, View):
             data_inicio = hoje
             data_fim = hoje
 
-        # Busca pagamentos de comandas FECHADAS no período
-        pagamentos = (
+        # Base: checkouts aprovados no período, excluindo canceladas e cortesias
+        checkouts_qs = Checkout.objects.filter(
+            status='aprovado',
+            processed_at__date__gte=data_inicio,
+            processed_at__date__lte=data_fim,
+        ).exclude(
+            comanda__status__in=['cancelada', 'cortesia']
+        )
+
+        # IDs dos checkouts parciais
+        parcial_ids = list(
+            checkouts_qs.filter(payment_method='parcial').values_list('id', flat=True)
+        )
+
+        # Agrupa por dia
+        por_dia = defaultdict(lambda: {m: Decimal('0.00') for m in self.METHODS})
+
+        # 1. Checkouts simples (não-parciais): usa Checkout.total por método
+        simples = (
+            checkouts_qs
+            .exclude(payment_method='parcial')
+            .filter(payment_method__in=self.METHODS)
+            .values('processed_at__date', 'payment_method')
+            .annotate(total=Sum('total'))
+            .order_by('processed_at__date')
+        )
+        for row in simples:
+            dia = row['processed_at__date']
+            metodo = row['payment_method']
+            por_dia[dia][metodo] += row['total'] or Decimal('0.00')
+
+        # 2. Checkouts parciais: usa CheckoutPayment por método
+        parciais = (
             CheckoutPayment.objects
-            .filter(
-                checkout__comanda__status='fechada',
-                checkout__processed_at__date__gte=data_inicio,
-                checkout__processed_at__date__lte=data_fim,
-            )
+            .filter(checkout_id__in=parcial_ids)
             .values('checkout__processed_at__date', 'payment_method')
             .annotate(total=Sum('amount'))
             .order_by('checkout__processed_at__date')
         )
-
-        # Agrupa por dia
-        por_dia = defaultdict(lambda: {
-            'dinheiro': Decimal('0.00'),
-            'cartao_debito': Decimal('0.00'),
-            'cartao_credito': Decimal('0.00'),
-            'pix': Decimal('0.00'),
-            'voucher': Decimal('0.00'),
-        })
-
-        for row in pagamentos:
+        for row in parciais:
             dia = row['checkout__processed_at__date']
             metodo = row['payment_method']
-            valor = row['total'] or Decimal('0.00')
-            if metodo in por_dia[dia]:
-                por_dia[dia][metodo] += valor
+            if metodo in self.METHODS:
+                por_dia[dia][metodo] += row['total'] or Decimal('0.00')
 
         # Monta resposta CSV
         response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
@@ -533,7 +553,7 @@ class RelatorioPagamentosCSVView(LoginRequiredMixin, UserPassesTestMixin, View):
         writer = csv.writer(response, delimiter=';')
         writer.writerow(['Data', 'Dinheiro', 'Débito', 'Crédito', 'PIX', 'Voucher', 'Total'])
 
-        total_geral = {k: Decimal('0.00') for k in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']}
+        total_geral = {m: Decimal('0.00') for m in self.METHODS}
 
         for dia in sorted(por_dia.keys()):
             d = por_dia[dia]
@@ -547,8 +567,8 @@ class RelatorioPagamentosCSVView(LoginRequiredMixin, UserPassesTestMixin, View):
                 f'{d["voucher"]:.2f}'.replace('.', ','),
                 f'{total_dia:.2f}'.replace('.', ','),
             ])
-            for k in total_geral:
-                total_geral[k] += d[k]
+            for m in self.METHODS:
+                total_geral[m] += d[m]
 
         total_final = sum(total_geral.values())
         writer.writerow([
