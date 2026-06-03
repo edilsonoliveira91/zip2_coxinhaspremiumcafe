@@ -217,7 +217,8 @@ def enviar_pedido(request, numero):
 
         # Só grava no banco quando tudo já está validado
         with transaction.atomic():
-            comanda = Comanda.objects.filter(
+            # select_for_update evita race condition se dois requests chegarem simultaneamente
+            comanda = Comanda.objects.select_for_update().filter(
                 numero=numero, status__in=_STATUSES_ATIVAS
             ).order_by('-created_at').first()
 
@@ -270,11 +271,13 @@ def status_mesa(request, numero):
 
 def fechar_mesa(request, numero):
     """Marca a comanda da mesa como aguardando_caixa (cliente indo pagar)."""
-    comanda = Comanda.objects.filter(numero=numero, status='em_uso').first()
-    if not comanda:
-        return JsonResponse({'ok': False, 'erro': 'Comanda não encontrada'})
-    comanda.status = 'aguardando_caixa'
-    comanda.save(update_fields=['status'])
+    with transaction.atomic():
+        comanda = Comanda.objects.select_for_update().filter(numero=numero, status='em_uso').first()
+        if not comanda:
+            # Já foi fechada (double-tap) — responde ok para não bloquear o kiosk
+            return JsonResponse({'ok': True})
+        comanda.status = 'aguardando_caixa'
+        comanda.save(update_fields=['status'])
     return JsonResponse({'ok': True})
 
 
