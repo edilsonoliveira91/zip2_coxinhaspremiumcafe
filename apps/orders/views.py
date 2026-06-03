@@ -2184,7 +2184,7 @@ class CortesiaComandaView(LoginRequiredMixin, View):
             messages.error(request, 'Sem permissão para registrar cortesia.')
             return redirect('orders:comanda_detail', numero=numero)
 
-        comanda = Comanda.objects.filter(numero=numero, status='em_uso').order_by('-created_at').first()
+        comanda = Comanda.objects.filter(numero=numero, status__in=['em_uso', 'aguardando_caixa']).order_by('-created_at').first()
         if not comanda:
             messages.error(request, 'Comanda não encontrada ou não está em uso.')
             return redirect('accounts:dashboard')
