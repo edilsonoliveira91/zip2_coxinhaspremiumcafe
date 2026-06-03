@@ -173,7 +173,6 @@ def enviar_pedido(request, numero):
         numero_limpo = str(numero).strip()
         mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
         mesa_label = f"MESA {mesa_numero}"
-        _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
 
         # Valida e prepara todos os itens ANTES da transação
         itens_processados = []
@@ -217,9 +216,10 @@ def enviar_pedido(request, numero):
 
         # Só grava no banco quando tudo já está validado
         with transaction.atomic():
-            # select_for_update evita race condition se dois requests chegarem simultaneamente
+            # Busca APENAS comanda em_uso. Nunca adiciona pedidos a aguardando_caixa.
+            # select_for_update evita race condition.
             comanda = Comanda.objects.select_for_update().filter(
-                numero=numero, status__in=_STATUSES_ATIVAS
+                numero=numero, status='em_uso'
             ).order_by('-created_at').first()
 
             if comanda is None:

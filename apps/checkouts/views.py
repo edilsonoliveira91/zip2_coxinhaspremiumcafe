@@ -37,7 +37,7 @@ class CheckoutOrderListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
         queryset = Comanda.objects.filter(
             ~Q(status='entregue') & ~Q(status='cancelada')
         ).select_related().prefetch_related('items')
-        
+
         # Ordenação personalizada: pronta > preparando > aguardando
         return queryset.extra(
             select={
