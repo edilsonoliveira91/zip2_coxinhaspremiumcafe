@@ -54,6 +54,16 @@
                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                         Hoje
                     </a>
+
+                    <button type="button" onclick="downloadCSV()"
+                            style="background-color: #059669; color: white; padding: 8px 20px; border-radius: 8px; font-weight: 500; border: none; cursor: pointer; display:flex; align-items:center; gap:6px;"
+                            onmouseover="this.style.backgroundColor='#047857'"
+                            onmouseout="this.style.backgroundColor='#059669'">
+                        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Baixar CSV
+                    </button>
                 </div>
             </form>
         </div>
@@ -209,6 +219,17 @@ function printOrder(orderCode) {
     } else {
         alert('Por favor, permita pop-ups para imprimir comandas.');
     }
+}
+
+function downloadCSV() {
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate = document.querySelector('input[name="end_date"]').value;
+    let url = '/checkouts/relatorio-pagamentos/csv/';
+    const params = [];
+    if (startDate) params.push('data_inicio=' + startDate);
+    if (endDate) params.push('data_fim=' + endDate);
+    if (params.length) url += '?' + params.join('&');
+    window.location.href = url;
 }
 </script>
 {% endblock %}

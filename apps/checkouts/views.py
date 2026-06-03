@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime
 import json
+import csv
+from collections import defaultdict
 from orders.models import Comanda, Pedido, ComandaPartialPayment
 Order = Comanda # temp fix
 from decimal import Decimal
@@ -469,3 +471,94 @@ class FechamentoCaixaDetalheView(LoginRequiredMixin, View):
             'total': float(sessao.total()),
             'totais': totais,
         })
+
+
+class RelatorioPagamentosCSVView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Exporta CSV com totais de pagamento por dia no período.
+    Apenas comandas fechadas (exclui canceladas e cortesias).
+    Colunas: Data, Dinheiro, Débito, Crédito, PIX, Voucher, Total
+    """
+    def test_func(self):
+        return self.request.user.is_caixa or self.request.user.is_superuser
+
+    def get(self, request):
+        from checkouts.models import CheckoutPayment
+
+        data_inicio_str = request.GET.get('data_inicio', '')
+        data_fim_str = request.GET.get('data_fim', '')
+        hoje = timezone.localtime().date()
+
+        try:
+            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date() if data_inicio_str else hoje
+            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date() if data_fim_str else hoje
+        except ValueError:
+            data_inicio = hoje
+            data_fim = hoje
+
+        # Busca pagamentos de comandas FECHADAS no período
+        pagamentos = (
+            CheckoutPayment.objects
+            .filter(
+                checkout__comanda__status='fechada',
+                checkout__processed_at__date__gte=data_inicio,
+                checkout__processed_at__date__lte=data_fim,
+            )
+            .values('checkout__processed_at__date', 'payment_method')
+            .annotate(total=Sum('amount'))
+            .order_by('checkout__processed_at__date')
+        )
+
+        # Agrupa por dia
+        por_dia = defaultdict(lambda: {
+            'dinheiro': Decimal('0.00'),
+            'cartao_debito': Decimal('0.00'),
+            'cartao_credito': Decimal('0.00'),
+            'pix': Decimal('0.00'),
+            'voucher': Decimal('0.00'),
+        })
+
+        for row in pagamentos:
+            dia = row['checkout__processed_at__date']
+            metodo = row['payment_method']
+            valor = row['total'] or Decimal('0.00')
+            if metodo in por_dia[dia]:
+                por_dia[dia][metodo] += valor
+
+        # Monta resposta CSV
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        nome_arquivo = f'relatorio_{data_inicio}_a_{data_fim}.csv'
+        response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Data', 'Dinheiro', 'Débito', 'Crédito', 'PIX', 'Voucher', 'Total'])
+
+        total_geral = {k: Decimal('0.00') for k in ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher']}
+
+        for dia in sorted(por_dia.keys()):
+            d = por_dia[dia]
+            total_dia = sum(d.values())
+            writer.writerow([
+                dia.strftime('%d/%m/%Y'),
+                f'{d["dinheiro"]:.2f}'.replace('.', ','),
+                f'{d["cartao_debito"]:.2f}'.replace('.', ','),
+                f'{d["cartao_credito"]:.2f}'.replace('.', ','),
+                f'{d["pix"]:.2f}'.replace('.', ','),
+                f'{d["voucher"]:.2f}'.replace('.', ','),
+                f'{total_dia:.2f}'.replace('.', ','),
+            ])
+            for k in total_geral:
+                total_geral[k] += d[k]
+
+        total_final = sum(total_geral.values())
+        writer.writerow([
+            'TOTAL',
+            f'{total_geral["dinheiro"]:.2f}'.replace('.', ','),
+            f'{total_geral["cartao_debito"]:.2f}'.replace('.', ','),
+            f'{total_geral["cartao_credito"]:.2f}'.replace('.', ','),
+            f'{total_geral["pix"]:.2f}'.replace('.', ','),
+            f'{total_geral["voucher"]:.2f}'.replace('.', ','),
+            f'{total_final:.2f}'.replace('.', ','),
+        ])
+
+        return response
