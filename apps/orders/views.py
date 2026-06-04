@@ -1807,6 +1807,15 @@ class ComandaDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'comanda'
 
     def get_object(self):
+        # Se o card passou ?id=X, resolve pelo pk exato (evita confusão entre
+        # duas comandas com o mesmo número, ex: aguardando_caixa + em_uso)
+        comanda_id = self.request.GET.get('id')
+        if comanda_id:
+            try:
+                return Comanda.objects.get(pk=int(comanda_id))
+            except (Comanda.DoesNotExist, ValueError):
+                pass
+
         numero = self.kwargs.get('numero')
         # Pega a comanda ativa (em uso ou aguardando caixa) com esse número
         comanda = Comanda.objects.filter(

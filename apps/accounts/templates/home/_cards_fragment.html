@@ -66,7 +66,7 @@
         <!-- Botões -->
         {% if comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_superuser or comanda.cliente_nome and comanda.cliente_nome|upper|slice:":4" == "MESA" and request.user.is_caixa %}
         <div style="display:flex;gap:6px;">
-            <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'"
+            <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/?id={{ comanda.pk }}'"
                     class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-3 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
                 Detalhes
             </button>
@@ -79,7 +79,7 @@
             {% endif %}
         </div>
         {% else %}
-        <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/'"
+        <button onclick="event.stopPropagation(); window.location.href='/orders/comanda/{{ comanda.numero }}/?id={{ comanda.pk }}'"
                 class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-2 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
             Detalhes
         </button>
