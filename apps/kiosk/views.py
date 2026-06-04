@@ -82,15 +82,14 @@ def cardapio(request, numero):
     numero_limpo = str(numero).strip()
     mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
     mesa_label = f"MESA {mesa_numero}"
-    # Busca comanda ativa (em_uso OU aguardando_caixa) para evitar criar uma
-    # comanda vazia duplicada caso o tablet recarregue enquanto a mesa já está
-    # em processo de fechamento (bug: tela apagada + reload do catálogo).
-    _STATUSES_ATIVAS = ('em_uso', 'aguardando_caixa')
+    # Busca apenas comanda em_uso. Se o tablet acordar com a URL do cardápio
+    # e a mesa já estiver aguardando_caixa, redireciona para a entrada
+    # em vez de mostrar o cardápio (evita flash de cardápio antes do redirect).
     comanda_mesa = Comanda.objects.filter(
-        numero=numero, status__in=_STATUSES_ATIVAS
+        numero=numero, status='em_uso'
     ).order_by('-created_at').first()
     if comanda_mesa is None:
-        # Mesa fechada ou inexistente — tablet provavelmente restaurou URL antiga
+        # Mesa fechada, aguardando caixa ou inexistente — vai para entrada
         return redirect('kiosk:entrada')
     elif not comanda_mesa.cliente_nome:
         comanda_mesa.cliente_nome = mesa_label
