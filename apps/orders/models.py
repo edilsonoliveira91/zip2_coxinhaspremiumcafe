@@ -3,6 +3,7 @@ from django.conf import settings
 from utils.models import TimeStampedModel
 from products.models import Product
 from django.db.models import Sum
+from decimal import Decimal
 
 class Comanda(TimeStampedModel):
     """
@@ -99,7 +100,7 @@ class Comanda(TimeStampedModel):
 
     def update_total(self):
         """Atualiza o valor total da comanda somando os totais de seus pedidos."""
-        total = self.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']).aggregate(Sum('total_amount'))['total_amount__sum'] or 0.00
+        total = self.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
         self.total_amount = total
         self.save(update_fields=['total_amount'])
 
@@ -234,7 +235,7 @@ class Pedido(TimeStampedModel):
 
     def update_total(self):
         """Atualizar o valor total do pedido."""
-        total = sum(item.total_price for item in self.items.all())
+        total = sum((item.total_price for item in self.items.all()), Decimal('0.00'))
         self.total_amount = total
         self.save(update_fields=['total_amount'])
         # Após atualizar o total do pedido, atualiza o total da comanda
