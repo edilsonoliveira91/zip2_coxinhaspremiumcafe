@@ -314,8 +314,8 @@
 (function() {
   var totalStr = "{{ comanda.total_amount|default:'0' }}";
   var TOTAL = parseFloat(totalStr.replace(',', '.')) || 0;
-  var FINALIZE_URL = '{% url "checkouts:finalize" comanda.numero %}';
-  var PARTIAL_SAVE_URL = '{% url "orders:registrar_pagamento_parcial" comanda.numero %}';
+  var FINALIZE_URL = '{% url "checkouts:finalize" comanda.numero %}?comanda_id={{ comanda.pk }}';
+  var PARTIAL_SAVE_URL = '{% url "orders:registrar_pagamento_parcial_pk" comanda.pk %}';
   var CSRF = '{{ csrf_token }}';
   var INITIAL_PAYMENTS = {{ partial_payments_json|default:'[]'|safe }};
   var DASHBOARD_URL = '{% url "accounts:dashboard" %}';

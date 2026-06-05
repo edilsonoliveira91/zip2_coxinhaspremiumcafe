@@ -15,6 +15,7 @@ urlpatterns = [
     path('comanda/<str:numero>/imprimir/', views.ImprimirComandaView.as_view(), name='imprimir_comanda'),
     path('comanda-id/<int:pk>/imprimir/', views.ImprimirComandaView.as_view(), name='imprimir_comanda_id'),  # reimpressão por ID (evita conflito de numero)
     path('api/comanda/<str:numero>/create-pedido/', views.ApiCreatePedidoView.as_view(), name='api_create_pedido'),
+    path('api/comanda-id/<int:pk>/create-pedido/', views.ApiCreatePedidoView.as_view(), name='api_create_pedido_pk'),
     path('api/comanda/<str:numero>/check/', views.ApiCheckComandaView.as_view(), name='api_check_comanda'),
     path('api/pedido/<int:pk>/update/', views.ApiUpdatePedidoView.as_view(), name='api_update_pedido'),
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path('comanda/<str:numero>/cancelar/', views.CancelarComandaView.as_view(), name='cancelar_comanda'),
     path('comanda/<str:numero>/fechar-mesa/', views.FechaMesaCaixaView.as_view(), name='fechar_mesa_caixa'),
     path('comanda/<str:numero>/registrar-parcial/', views.RegistrarPagamentoParcialView.as_view(), name='registrar_pagamento_parcial'),
+    path('comanda-id/<int:pk>/registrar-parcial/', views.RegistrarPagamentoParcialView.as_view(), name='registrar_pagamento_parcial_pk'),
     path('comanda/<str:numero>/cortesia/', views.CortesiaComandaView.as_view(), name='cortesia_comanda'),
     path('pedido/<int:pk>/cancelar/', views.CancelarPedidoView.as_view(), name='cancelar_pedido'),
     path('pedido/<int:pk>/imprimir/', views.ImprimirPedidoView.as_view(), name='imprimir_pedido'),

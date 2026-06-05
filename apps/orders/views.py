@@ -1880,9 +1880,15 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
     def post(self, request, pk):
         try:
             pedido = get_object_or_404(Pedido, pk=pk)
+
+            # Bloqueia edição de pedidos em comandas já finalizadas
+            IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+            if pedido.comanda.status in IMUTAVEIS:
+                return JsonResponse({'success': False, 'message': 'Comanda já finalizada — pedido não pode ser editado.'}, status=403)
+
             data = json.loads(request.body)
             items = data.get('items', [])
-            
+
             if not items:
                 return JsonResponse({'success': False, 'message': 'O pedido não pode ficar vazio.'})
 
@@ -1940,17 +1946,24 @@ class ApiUpdatePedidoView(LoginRequiredMixin, View):
 
 
 class ApiCreatePedidoView(LoginRequiredMixin, View):
-    def post(self, request, numero):
+    def post(self, request, numero=None, pk=None):
         try:
             data = json.loads(request.body)
             items = data.get('items', [])
-            
+
             if not items:
                 return JsonResponse({'success': False, 'message': 'Nenhum item selecionado.'})
 
-            comanda = Comanda.objects.filter(
-                numero=numero, status__in=['em_uso', 'aguardando_caixa']
-            ).order_by('-created_at').first()
+            # Usa pk direto se disponível para evitar ambiguidade quando há duas
+            # comandas com mesmo número (aguardando_caixa + em_uso)
+            if pk:
+                comanda = Comanda.objects.filter(
+                    pk=pk, status__in=['em_uso', 'aguardando_caixa']
+                ).first()
+            else:
+                comanda = Comanda.objects.filter(
+                    numero=numero, status__in=['em_uso', 'aguardando_caixa']
+                ).order_by('-created_at').first()
             if comanda is None:
                 return JsonResponse({'success': False, 'message': 'Comanda não encontrada ou já fechada.'})
 
@@ -2033,13 +2046,20 @@ class RegistrarPagamentoParcialView(LoginRequiredMixin, View):
     Registra pagamentos parciais mantendo a comanda em aberto.
     """
 
-    def post(self, request, numero):
+    def post(self, request, numero=None, pk=None):
         if not (getattr(request.user, 'is_caixa', False) or request.user.has_perm('checkouts.change_checkout')):
             return JsonResponse({'ok': False, 'erro': 'Sem permissão'}, status=403)
 
-        comanda = Comanda.objects.filter(
-            numero=numero, status__in=['em_uso', 'aguardando_caixa']
-        ).order_by('-created_at').first()
+        # Resolve comanda pelo pk exato se disponível (evita pegar mesa errada quando
+        # há duas comandas com mesmo número: aguardando_caixa + em_uso)
+        if pk:
+            comanda = Comanda.objects.filter(
+                pk=pk, status__in=['em_uso', 'aguardando_caixa']
+            ).first()
+        else:
+            comanda = Comanda.objects.filter(
+                numero=numero, status__in=['em_uso', 'aguardando_caixa']
+            ).order_by('-created_at').first()
 
         if not comanda:
             return JsonResponse({'ok': False, 'erro': 'Comanda não encontrada'}, status=404)
@@ -2235,23 +2255,28 @@ class CancelarPedidoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, pk):
         # 1. Pega o Pedido exato ou retorna 404
         pedido = get_object_or_404(Pedido, id=pk)
-        
+
+        comanda = pedido.comanda
+
+        # Bloqueia cancelamento de pedidos em comandas já finalizadas
+        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+        if comanda.status in IMUTAVEIS:
+            messages.error(request, f'Comanda #{comanda.numero} já finalizada — pedido não pode ser cancelado.')
+            return redirect('orders:comanda_detail', numero=comanda.numero)
+
         # 2. Pega o motivo que o usuário digitou naquele modal
         motivo = request.POST.get('motivo_cancelamento', 'Sem motivo informado.')
-        
-        # 3. Muda o status e salva a o motivo nas observações do pedido
+
+        # 3. Muda o status e salva o motivo nas observações do pedido
         pedido.status = 'cancelado'
         pedido.observations = f"[CANCELADO MOTIVO: {motivo}] - {pedido.observations or ''}"
         pedido.save()
-        
-        # 4. (Opcional) Você pode querer diminuir o valor da Comanda total aqui
-        comanda = pedido.comanda
-        if comanda.total_amount >= pedido.total_amount:
-            comanda.total_amount -= pedido.total_amount
-            comanda.save()
+
+        # 4. Recalcula total da comanda via update_total (respeita IMUTAVEIS)
+        comanda.update_total()
 
         messages.success(request, f'Pedido #{pedido.pedido_seq} cancelado com sucesso!')
-        
+
         # 5. Redireciona de volta para a mesma tela da comanda onde ele estava
         return redirect('orders:comanda_detail', numero=comanda.numero)
 
@@ -2276,6 +2301,12 @@ class RemoverItemPedidoView(LoginRequiredMixin, View):
         item = get_object_or_404(PedidoItem, pk=item_pk)
         pedido = item.pedido
         comanda = pedido.comanda
+
+        # Bloqueia remoção de itens em comandas já finalizadas
+        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+        if comanda.status in IMUTAVEIS:
+            return JsonResponse({'success': False, 'message': 'Comanda já finalizada — item não pode ser removido.'}, status=403)
+
         try:
             body = json.loads(request.body)
             garcom_numero = body.get('garcom_numero') or None
