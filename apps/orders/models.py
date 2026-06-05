@@ -99,7 +99,13 @@ class Comanda(TimeStampedModel):
         return f"Comanda #{self.numero}"
 
     def update_total(self):
-        """Atualiza o valor total da comanda somando os totais de seus pedidos."""
+        """Atualiza o valor total da comanda somando os totais de seus pedidos.
+        Comandas já finalizadas (fechada/cancelada/cortesia) são imutáveis — o valor
+        registrado no Checkout não pode ser alterado retroativamente.
+        """
+        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+        if self.status in IMUTAVEIS:
+            return  # Não altera o valor de comandas já encerradas
         total = self.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
         self.total_amount = total
         self.save(update_fields=['total_amount'])
