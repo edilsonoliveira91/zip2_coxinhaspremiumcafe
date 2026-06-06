@@ -2,12 +2,6 @@
 <!-- ═══════════════════════════════════════════════════
      MOBILE BOTTOM NAVBAR — apenas em telas < md (768px)
 ════════════════════════════════════════════════════ -->
-<style>
-@media (min-width: 768px) {
-  #mob-bottombar { display: none !important; }
-}
-</style>
-
 <!-- Overlay escuro -->
 <div id="mob-overlay"
      onclick="mobCloseAll()"
@@ -272,7 +266,7 @@
               d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
           </svg>
         </span>
-        Relatório de Vendas
+        Produtos Vendidos
       </a>
       <a href="{% url 'reports:canceled_cortesia_report' %}"
          style="display:flex;align-items:center;gap:12px;padding:10px 20px;
@@ -448,66 +442,106 @@
   </div>
 </div>
 
-<!-- ───── Barra inferior fixa (apenas mobile) ───── -->
-<nav id="mob-bottombar"
-     class="flex"
-     style="position:fixed;bottom:0;left:0;right:0;
-            background:#fff;border-top:1px solid #e5e7eb;
-            box-shadow:0 -2px 12px rgba(0,0,0,.08);
-            align-items:stretch;z-index:99;
-            padding-bottom:env(safe-area-inset-bottom,0);">
+<!-- ───── Floating pill bottom bar (apenas mobile) ───── -->
+<style>
+  /* Hidden by default — only shown on mobile */
+  #mob-bottombar {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    #mob-bottombar {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.72);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 100px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+
+  .mob-pill-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50px;
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #6e6e73;
+    transition: background 0.18s, color 0.18s, transform 0.12s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .mob-pill-btn:active {
+    transform: scale(0.88);
+  }
+
+  .mob-pill-btn.active {
+    background: rgba(249, 115, 22, 0.12);
+    color: #f97316;
+  }
+
+  .mob-pill-btn svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+</style>
+
+<nav id="mob-bottombar">
 
   <!-- Início -->
-  <a href="/" class="mob-tab"
-     style="flex:1;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;padding:8px 2px 6px;gap:3px;
-            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
-    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <a href="/" class="mob-pill-btn mob-tab" data-href="/">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
     </svg>
-    Início
   </a>
 
   <!-- Comandas (admin/staff) -->
   {% if request.user.is_superuser or request.user.is_staff %}
-  <a href="{% url 'accounts:dashboard' %}" class="mob-tab"
-     style="flex:1;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;padding:8px 2px 6px;gap:3px;
-            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
-    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <a href="{% url 'accounts:dashboard' %}" class="mob-pill-btn mob-tab" data-href="{% url 'accounts:dashboard' %}">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
     </svg>
-    Comandas
   </a>
   {% endif %}
 
-  <!-- Caixa (financials) -->
+  <!-- Caixa -->
   {% if perms.financials.view_financial or request.user.is_superuser %}
-  <a href="{% url 'financials:dashboard' %}" class="mob-tab"
-     style="flex:1;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;padding:8px 2px 6px;gap:3px;
-            text-decoration:none;color:#6b7280;font-size:10px;font-weight:500;">
-    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <a href="{% url 'financials:dashboard' %}" class="mob-pill-btn mob-tab" data-href="{% url 'financials:dashboard' %}">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
     </svg>
-    Caixa
   </a>
   {% endif %}
 
-  <!-- Mais -->
-  <button onclick="mobOpenDrawer()"
-          style="flex:1;display:flex;flex-direction:column;align-items:center;
-                 justify-content:center;padding:8px 2px 6px;gap:3px;
-                 background:none;border:none;cursor:pointer;
-                 color:#6b7280;font-size:10px;font-weight:500;">
-    <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <!-- Separador visual -->
+  <div style="width:1px;height:24px;background:rgba(0,0,0,0.1);margin:0 2px;flex-shrink:0;"></div>
+
+  <!-- Mais (drawer) -->
+  <button onclick="mobOpenDrawer()" class="mob-pill-btn" style="color:#6e6e73;">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M4 6h16M4 12h16M4 18h16"/>
+        d="M4 6h16M4 12h16M4 18h7"/>
     </svg>
-    Mais
   </button>
 
 </nav>
@@ -530,19 +564,16 @@
     if (!overlay || !drawer) return;
     drawer.style.transform = 'translateX(100%)';
     overlay.style.display  = 'none';
-    setTimeout(function() {
-      drawer.style.display = 'none';
-    }, 260);
+    setTimeout(function() { drawer.style.display = 'none'; }, 260);
   };
 
-  // Marca o tab ativo conforme a URL atual
+  // Marca o tab ativo conforme URL atual
   var path = window.location.pathname;
-  document.querySelectorAll('.mob-tab').forEach(function(a) {
-    if (a.getAttribute('href') && path.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '/') {
-      a.style.color = '#f97316';
-    } else if (a.getAttribute('href') === '/' && path === '/') {
-      a.style.color = '#f97316';
-    }
+  document.querySelectorAll('.mob-tab').forEach(function(el) {
+    var href = el.getAttribute('data-href') || el.getAttribute('href');
+    if (!href) return;
+    var isActive = href === '/' ? path === '/' : path.startsWith(href);
+    if (isActive) el.classList.add('active');
   });
 })();
 </script>
