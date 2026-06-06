@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao, Garcom
-from .forms import SystemConfigForm, TrocoInicialForm, QuebraCaixaForm, ComissaoForm
+from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao, Garcom, ConfigKioskPin
+from .forms import SystemConfigForm, TrocoInicialForm, QuebraCaixaForm, ComissaoForm, KioskPinForm
 
 
 class TimeConfigView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -104,3 +104,22 @@ class GarcomView(LoginRequiredMixin, View):
         )
         messages.success(request, f"Garçom #{next_numero} — {nome} cadastrado com sucesso!")
         return redirect('config:cadastro_garcom')
+
+
+class KioskPinView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'config.change_configkioskpin'
+    raise_exception = True
+
+    def get(self, request):
+        config_obj = ConfigKioskPin.get_settings()
+        form = KioskPinForm(instance=config_obj)
+        return render(request, 'config/kiosk_pin.html', {'form': form, 'config': config_obj})
+
+    def post(self, request):
+        config_obj = ConfigKioskPin.get_settings()
+        form = KioskPinForm(request.POST, instance=config_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'PIN do Kiosk atualizado com sucesso!')
+            return redirect('config:kiosk_pin')
+        return render(request, 'config/kiosk_pin.html', {'form': form, 'config': config_obj})

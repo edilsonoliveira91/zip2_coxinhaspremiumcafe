@@ -96,6 +96,17 @@ class ComandaAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         from datetime import datetime as _dt
         from django.utils import timezone as _tz
+
+        # Bloqueia mudança de status que "reabre" comanda já finalizada
+        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+        if change and obj.pk:
+            original = Comanda.objects.filter(pk=obj.pk).values('status').first()
+            if original and original['status'] in IMUTAVEIS and obj.status != original['status']:
+                from django.contrib import messages as _msgs
+                _msgs.error(request, f'Comanda #{obj.numero} já finalizada — status não pode ser alterado via admin.')
+                # Reverte para o status original sem salvar a mudança
+                obj.status = original['status']
+
         super().save_model(request, obj, form, change)
         updates = {}
         field_map = {

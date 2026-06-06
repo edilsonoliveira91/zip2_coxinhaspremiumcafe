@@ -58,7 +58,7 @@ class UserPermissionForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'is_caixa']
+        fields = ['username', 'is_caixa', 'dashboard_home']
 
     def clean(self):
         cleaned_data = super().clean()

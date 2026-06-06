@@ -1,5 +1,5 @@
 from django import forms
-from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao
+from .models import ConfigTempoEspera, ConfigTrocoInicial, ConfigQuebraCaixa, ConfigComissao, Garcom, ConfigKioskPin
 
 WIDGET_BASE = "px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:border-orange-500 text-lg font-bold text-gray-800 text-center shadow-inner"
 
@@ -58,3 +58,26 @@ class ComissaoForm(forms.ModelForm):
                 "step": "0.01",
             }),
         }
+
+
+class KioskPinForm(forms.ModelForm):
+    class Meta:
+        model = ConfigKioskPin
+        fields = ['pin']
+        widgets = {
+            'pin': forms.TextInput(attrs={
+                'class': 'w-36 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-2xl font-black text-gray-800 text-center tracking-widest',
+                'maxlength': '4',
+                'minlength': '4',
+                'pattern': '[0-9]{4}',
+                'inputmode': 'numeric',
+                'placeholder': '••••',
+                'autocomplete': 'off',
+            }),
+        }
+
+    def clean_pin(self):
+        pin = self.cleaned_data.get('pin', '')
+        if not pin.isdigit() or len(pin) != 4:
+            raise forms.ValidationError('O PIN deve conter exatamente 4 dígitos numéricos.')
+        return pin

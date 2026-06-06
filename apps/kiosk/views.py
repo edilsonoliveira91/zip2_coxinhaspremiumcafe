@@ -15,6 +15,7 @@ from orders.models import Comanda, Pedido, PedidoItem
 from django.core.exceptions import ValidationError
 from utils.image_optimizer import validate_image_file_size
 from .models import KioskSlide
+from config.models import ConfigKioskPin
 from django.db import transaction
 
 
@@ -55,12 +56,18 @@ def entrada(request):
     if request.method == 'POST':
         numero = request.POST.get('numero', '').strip()
         if numero:
+            pin_enviado = request.POST.get('pin', '').strip()
+            config_pin = ConfigKioskPin.get_settings()
+            if pin_enviado != config_pin.pin:
+                slides = list(KioskSlide.objects.filter(is_active=True).order_by('order', 'id'))
+                return render(request, 'kiosk/entrada.html', {
+                    'slides': slides,
+                    'pin_incorreto': True,
+                    'numero_anterior': numero,
+                })
             numero_limpo = str(numero).strip()
             mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
             mesa_label = f"MESA {mesa_numero}"
-            # Apenas reutiliza comanda que está ATIVAMENTE em uso.
-            # 'aguardando_caixa' pertence ao cliente anterior (caixa ainda processando)
-            # — neste caso cria uma nova comanda para o próximo cliente.
             comanda = Comanda.objects.filter(
                 numero=numero, status='em_uso'
             ).order_by('-created_at').first()

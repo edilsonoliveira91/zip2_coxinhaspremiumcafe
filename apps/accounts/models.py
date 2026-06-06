@@ -26,6 +26,19 @@ class User(AbstractUser):
         help_text='Permite que este usuário opere o caixa e acesse o fechamento de caixa.'
     )
 
+    DASHBOARD_CHOICES = [
+        ('home', 'Dashboard Principal (Comandas)'),
+        ('ceo', 'Dashboard CEO'),
+        ('manage', 'Dashboard Gerencial'),
+    ]
+    dashboard_home = models.CharField(
+        max_length=20,
+        choices=DASHBOARD_CHOICES,
+        default='home',
+        verbose_name='Tela inicial',
+        help_text='Tela para a qual o usuário será redirecionado após o login.',
+    )
+
     class Meta:
         verbose_name = "Usuário"
         verbose_name_plural = "Usuários"

@@ -108,6 +108,19 @@
                                        {% if form.instance.is_caixa %}checked{% endif %}
                                        class="h-5 w-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 cursor-pointer">
                             </div>
+
+                            <!-- Tela inicial após login -->
+                            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <label for="id_dashboard_home" class="block text-sm font-medium text-gray-800 mb-1">Tela inicial após login</label>
+                                <p class="text-xs text-gray-500 mb-2">Para qual tela o usuário será direcionado ao fazer login</p>
+                                <select name="dashboard_home"
+                                        id="id_dashboard_home"
+                                        class="w-full px-3 py-2 border border-blue-200 rounded-md text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+                                    <option value="home" {% if form.instance.dashboard_home == 'home' or not form.instance.pk %}selected{% endif %}>Dashboard Principal (Comandas)</option>
+                                    <option value="ceo" {% if form.instance.dashboard_home == 'ceo' %}selected{% endif %}>Dashboard CEO</option>
+                                    <option value="manage" {% if form.instance.dashboard_home == 'manage' %}selected{% endif %}>Dashboard Gerencial</option>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Botões de Ação -->

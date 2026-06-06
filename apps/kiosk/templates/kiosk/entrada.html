@@ -167,6 +167,7 @@
         autofocus
         autocomplete="off"
       >
+      <input type="hidden" name="pin" id="pin-hidden">
       <button type="submit" class="btn-confirm" id="btn-confirm" disabled>
         Abrir Mesa →
       </button>
@@ -191,13 +192,43 @@
     </div>
   </div>
 
+  <!-- Modal: PIN do Kiosk -->
+  <div id="modal-pin" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; align-items:center; justify-content:center;">
+    <div style="background:#2a0e00; border:2px solid #ea8828; border-radius:24px; padding:40px 48px; text-align:center; max-width:380px; width:90%;">
+      <div style="font-size:48px; margin-bottom:16px;">🔒</div>
+      <p style="color:#fff; font-size:22px; font-weight:800; margin-bottom:8px;">PIN do Kiosk</p>
+      <p style="color:rgba(255,255,255,0.6); font-size:15px; margin-bottom:28px;">Digite o PIN de 4 dígitos para abrir a mesa</p>
+      <div style="display:flex; gap:12px; justify-content:center; margin-bottom:12px;">
+        <input class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" style="width:64px; height:72px; font-size:36px; font-weight:800; text-align:center; background:rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.2); border-radius:14px; color:white; outline:none;">
+        <input class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" style="width:64px; height:72px; font-size:36px; font-weight:800; text-align:center; background:rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.2); border-radius:14px; color:white; outline:none;">
+        <input class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" style="width:64px; height:72px; font-size:36px; font-weight:800; text-align:center; background:rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.2); border-radius:14px; color:white; outline:none;">
+        <input class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" style="width:64px; height:72px; font-size:36px; font-weight:800; text-align:center; background:rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.2); border-radius:14px; color:white; outline:none;">
+      </div>
+      <p id="pin-erro" style="color:#f87171; font-size:14px; font-weight:600; min-height:20px; margin-bottom:16px;"></p>
+      <div style="display:flex; gap:16px; justify-content:center;">
+        <button id="pin-cancelar" style="flex:1; height:56px; border-radius:14px; border:2px solid rgba(255,255,255,0.2); background:transparent; color:white; font-size:16px; font-weight:700; cursor:pointer;">
+          Cancelar
+        </button>
+        <button id="pin-confirmar" disabled style="flex:1; height:56px; border-radius:14px; border:none; background:linear-gradient(to right,#ea8828,#d4600a); color:white; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 20px rgba(234,136,40,0.4); opacity:0.4;">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const input  = document.getElementById('mesa-input');
-    const btn    = document.getElementById('btn-confirm');
-    const form   = document.getElementById('form-entrada');
-    const modal  = document.getElementById('modal-mesa-aberta');
+    const input    = document.getElementById('mesa-input');
+    const btn      = document.getElementById('btn-confirm');
+    const form     = document.getElementById('form-entrada');
+    const modal    = document.getElementById('modal-mesa-aberta');
     const modalNum = document.getElementById('modal-mesa-numero');
-    let   confirmedOpen = false;
+    const modalPin = document.getElementById('modal-pin');
+    const pinDigits    = document.querySelectorAll('.pin-digit');
+    const pinHidden    = document.getElementById('pin-hidden');
+    const pinConfirmar = document.getElementById('pin-confirmar');
+    const pinCancelar  = document.getElementById('pin-cancelar');
+    const pinErro      = document.getElementById('pin-erro');
+    let confirmedOpen = false;
 
     input.addEventListener('input', function () {
       if (this.value.length > 2) this.value = this.value.slice(0, 2);
@@ -217,7 +248,7 @@
     async function tentarAbrir() {
       const numero = input.value.trim();
       if (!numero) return;
-      if (confirmedOpen) { form.submit(); return; }
+      if (confirmedOpen) { mostrarPinModal(); return; }
       try {
         const resp = await fetch('/kiosk/?check=' + encodeURIComponent(numero));
         const data = await resp.json();
@@ -226,25 +257,87 @@
           modalNum.textContent = 'MESA ' + pad;
           modal.style.display = 'flex';
         } else {
-          form.submit();
+          mostrarPinModal();
         }
       } catch (e) {
-        form.submit(); // se falhar, abre normalmente
+        mostrarPinModal();
       }
     }
 
     document.getElementById('modal-sim').addEventListener('click', function () {
       modal.style.display = 'none';
       confirmedOpen = true;
-      form.submit();
+      mostrarPinModal();
     });
 
     document.getElementById('modal-nao').addEventListener('click', function () {
       modal.style.display = 'none';
       input.value = '';
       btn.disabled = true;
+      confirmedOpen = false;
       input.focus();
     });
+
+    function mostrarPinModal(errorMsg) {
+      pinDigits.forEach(function(d) {
+        d.value = '';
+        d.style.borderColor = 'rgba(255,255,255,0.2)';
+      });
+      pinConfirmar.disabled = true;
+      pinConfirmar.style.opacity = '0.4';
+      pinErro.textContent = errorMsg || '';
+      modalPin.style.display = 'flex';
+      setTimeout(function() { pinDigits[0].focus(); }, 50);
+    }
+
+    pinDigits.forEach(function(el, idx) {
+      el.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 1);
+        if (this.value && idx < pinDigits.length - 1) {
+          pinDigits[idx + 1].focus();
+        }
+        var all = Array.from(pinDigits).every(function(d) { return d.value !== ''; });
+        pinConfirmar.disabled = !all;
+        pinConfirmar.style.opacity = all ? '1' : '0.4';
+      });
+
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && !this.value && idx > 0) {
+          pinDigits[idx - 1].focus();
+          pinDigits[idx - 1].value = '';
+          pinConfirmar.disabled = true;
+          pinConfirmar.style.opacity = '0.4';
+        }
+        if (e.key === 'Enter' && !pinConfirmar.disabled) {
+          confirmarPin();
+        }
+      });
+    });
+
+    function confirmarPin() {
+      var pin = Array.from(pinDigits).map(function(d) { return d.value; }).join('');
+      if (pin.length !== 4) return;
+      pinHidden.value = pin;
+      form.submit();
+    }
+
+    pinConfirmar.addEventListener('click', confirmarPin);
+
+    pinCancelar.addEventListener('click', function() {
+      modalPin.style.display = 'none';
+      input.value = '';
+      btn.disabled = true;
+      confirmedOpen = false;
+      input.focus();
+    });
+
+    {% if pin_incorreto %}
+    document.addEventListener('DOMContentLoaded', function() {
+      input.value = '{{ numero_anterior }}';
+      btn.disabled = false;
+      mostrarPinModal('PIN incorreto. Tente novamente.');
+    });
+    {% endif %}
   </script>
 
 </body>

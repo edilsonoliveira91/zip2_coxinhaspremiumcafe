@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard CEO{% endblock %}
+
+{% block content %}
+<style>
+  .apple-dash {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    padding: 40px 32px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .apple-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6e6e73;
+  }
+  .apple-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #d2d2d7;
+  }
+  .apple-metric {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #1d1d1f;
+    line-height: 1;
+  }
+  .apple-metric-sm {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #1d1d1f;
+    line-height: 1;
+  }
+  .apple-text { color: #1d1d1f; }
+  .apple-text-secondary { color: #6e6e73; }
+  .apple-divider { border-color: #e5e5ea; }
+  .apple-row:hover { background: #f5f5f7; }
+  .apple-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #e8f4fd;
+    color: #0071e3;
+  }
+  .apple-btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e8e8ed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+</style>
+
+<div class="apple-dash">
+
+  <!-- Header -->
+  <div style="max-width:1100px; margin:0 auto;">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:36px;">
+      <div>
+        <p class="apple-label" style="margin-bottom:6px;">Coxinhas Premium Café</p>
+        <h1 style="font-size:28px; font-weight:700; letter-spacing:-0.5px; color:#1d1d1f; margin:0;">Dashboard CEO</h1>
+        <p class="apple-text-secondary" style="font-size:13px; margin-top:4px;">{{ hoje|date:"l, d \d\e F \d\e Y" }}</p>
+      </div>
+      <span class="apple-badge">● Hoje</span>
+    </div>
+
+    <!-- KPI Row -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+
+      <!-- Faturamento total -->
+      <div class="apple-card" style="padding:24px 28px;">
+        <p class="apple-label" style="margin-bottom:12px;">Faturamento do dia</p>
+        <p class="apple-metric">R$&nbsp;{{ total_dia|floatformat:2 }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">{{ qtd_comandas }} comanda{{ qtd_comandas|pluralize:"s" }} fechada{{ qtd_comandas|pluralize:"s" }}</p>
+      </div>
+
+      <!-- Ticket médio -->
+      <div class="apple-card" style="padding:24px 28px;">
+        <p class="apple-label" style="margin-bottom:12px;">Ticket médio</p>
+        {% if qtd_comandas %}
+        <p class="apple-metric">R$&nbsp;{% widthratio total_dia qtd_comandas 1 %}</p>
+        {% else %}
+        <p class="apple-metric" style="color:#d2d2d7;">—</p>
+        {% endif %}
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">por comanda fechada</p>
+      </div>
+
+      <!-- Comandas -->
+      <div class="apple-card" style="padding:24px 28px;">
+        <p class="apple-label" style="margin-bottom:12px;">Comandas fechadas</p>
+        <p class="apple-metric">{{ qtd_comandas }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">pagamentos aprovados hoje</p>
+      </div>
+
+    </div>
+
+    <!-- Métodos + Top Produtos -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+
+      <!-- Métodos de pagamento -->
+      <div class="apple-card" style="overflow:hidden;">
+        <div style="padding:20px 24px 16px; border-bottom:1px solid #e5e5ea;">
+          <p class="apple-label">Recebido por método — hoje</p>
+        </div>
+
+        <!-- Dinheiro -->
+        <div class="apple-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f2f2f7; transition:background .15s;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#e3f5e9; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">💵</div>
+            <span style="font-size:14px; font-weight:500; color:#1d1d1f;">Dinheiro</span>
+          </div>
+          <span style="font-size:15px; font-weight:600; color:#1d1d1f; font-variant-numeric:tabular-nums;">R$ {{ dinheiro|floatformat:2 }}</span>
+        </div>
+
+        <!-- PIX -->
+        <div class="apple-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f2f2f7; transition:background .15s;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#e3f5f5; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">📱</div>
+            <span style="font-size:14px; font-weight:500; color:#1d1d1f;">PIX</span>
+          </div>
+          <span style="font-size:15px; font-weight:600; color:#1d1d1f; font-variant-numeric:tabular-nums;">R$ {{ pix|floatformat:2 }}</span>
+        </div>
+
+        <!-- Cartão Crédito -->
+        <div class="apple-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f2f2f7; transition:background .15s;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#e8f0fd; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">💳</div>
+            <span style="font-size:14px; font-weight:500; color:#1d1d1f;">Cartão de Crédito</span>
+          </div>
+          <span style="font-size:15px; font-weight:600; color:#1d1d1f; font-variant-numeric:tabular-nums;">R$ {{ credito|floatformat:2 }}</span>
+        </div>
+
+        <!-- Cartão Débito -->
+        <div class="apple-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f2f2f7; transition:background .15s;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f0e8fd; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">💳</div>
+            <span style="font-size:14px; font-weight:500; color:#1d1d1f;">Cartão de Débito</span>
+          </div>
+          <span style="font-size:15px; font-weight:600; color:#1d1d1f; font-variant-numeric:tabular-nums;">R$ {{ debito|floatformat:2 }}</span>
+        </div>
+
+        <!-- Voucher -->
+        <div class="apple-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; transition:background .15s;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fdf5e3; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🎟️</div>
+            <span style="font-size:14px; font-weight:500; color:#1d1d1f;">Voucher</span>
+          </div>
+          <span style="font-size:15px; font-weight:600; color:#1d1d1f; font-variant-numeric:tabular-nums;">R$ {{ voucher|floatformat:2 }}</span>
+        </div>
+      </div>
+
+      <!-- Top 5 produtos -->
+      <div class="apple-card" style="overflow:hidden;">
+        <div style="padding:20px 24px 16px; border-bottom:1px solid #e5e5ea; display:flex; align-items:center; justify-content:space-between;">
+          <p class="apple-label">Top 5 produtos</p>
+          <span style="font-size:11px; color:#6e6e73;">Hoje</span>
+        </div>
+
+        {% if top_produtos %}
+          {% for prod in top_produtos %}
+          <div class="apple-row" style="display:flex; align-items:center; gap:16px; padding:14px 24px; {% if not forloop.last %}border-bottom:1px solid #f2f2f7;{% endif %} transition:background .15s;">
+            <span style="font-size:13px; font-weight:700; color:{% if forloop.counter == 1 %}#ff9f0a{% elif forloop.counter == 2 %}#8e8e93{% elif forloop.counter == 3 %}#ff6b35{% else %}#c7c7cc{% endif %}; width:20px; text-align:center; flex-shrink:0;">{{ forloop.counter }}</span>
+            <div style="flex:1; min-width:0;">
+              <p style="font-size:14px; font-weight:500; color:#1d1d1f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">{{ prod.product_name|default:"Produto" }}</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <span style="font-size:14px; font-weight:600; color:#1d1d1f;">{{ prod.total_qty }}</span>
+              <span style="font-size:11px; color:#6e6e73; font-weight:500;">un.</span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 24px; color:#c7c7cc;">
+            <svg style="width:32px;height:32px;margin-bottom:8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <p style="font-size:13px; font-weight:500;">Sem vendas hoje</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Gráfico 30 dias -->
+    <div class="apple-card" style="padding:28px 28px 24px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px;">
+        <div>
+          <p class="apple-label" style="margin-bottom:6px;">Faturamento diário</p>
+          <p style="font-size:17px; font-weight:600; color:#1d1d1f; margin:0;">Últimos 30 dias</p>
+        </div>
+        <span style="font-size:12px; color:#6e6e73; margin-top:4px;">Vendas aprovadas</span>
+      </div>
+      <div style="position:relative; height:220px;">
+        <canvas id="chartFaturamento"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var labels = {{ chart_labels|safe }};
+  var valores = {{ chart_valores|safe }};
+  var ctx = document.getElementById('chartFaturamento').getContext('2d');
+
+  var gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0, 'rgba(0,113,227,0.12)');
+  gradient.addColorStop(1, 'rgba(0,113,227,0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: valores,
+        borderColor: '#0071e3',
+        backgroundColor: gradient,
+        borderWidth: 2,
+        pointBackgroundColor: '#0071e3',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1d1d1f',
+          titleColor: '#f5f5f7',
+          bodyColor: '#f5f5f7',
+          padding: 10,
+          cornerRadius: 8,
+          titleFont: { size: 11, weight: '600', family: '-apple-system' },
+          bodyFont: { size: 13, weight: '700', family: '-apple-system' },
+          callbacks: {
+            label: function(ctx) {
+              return 'R$ ' + ctx.parsed.y.toFixed(2).replace('.', ',');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            font: { size: 11, family: '-apple-system' },
+            color: '#8e8e93',
+            maxRotation: 0,
+            maxTicksLimit: 10,
+          }
+        },
+        y: {
+          grid: { color: '#f2f2f7', drawBorder: false },
+          border: { display: false, dash: [4, 4] },
+          ticks: {
+            font: { size: 11, family: '-apple-system' },
+            color: '#8e8e93',
+            callback: function(v) {
+              if (v >= 1000) return 'R$' + (v/1000).toFixed(0) + 'k';
+              return 'R$' + v.toFixed(0);
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

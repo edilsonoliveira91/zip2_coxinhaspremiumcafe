@@ -174,3 +174,28 @@ class Garcom(models.Model):
 
     def __str__(self):
         return f"#{self.numero} - {self.nome}"
+
+
+class ConfigKioskPin(TimeStampedModel):
+    pin = models.CharField(
+        max_length=4,
+        default='0000',
+        verbose_name="PIN do Kiosk",
+        help_text="PIN de 4 dígitos que o funcionário deve digitar para abrir uma mesa no kiosk.",
+    )
+
+    class Meta:
+        verbose_name = "PIN do Kiosk"
+        verbose_name_plural = "PIN do Kiosk"
+
+    def __str__(self):
+        return f"PIN do Kiosk: {self.pin}"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={'pin': '0000'})
+        return obj

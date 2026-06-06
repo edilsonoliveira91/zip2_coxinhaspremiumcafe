@@ -133,12 +133,22 @@ class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request, code):
         try:
             FINALIZAVEIS = ('em_uso', 'aguardando_caixa', 'cortesia')
-            comanda = (
-                Comanda.objects
-                .filter(numero=code, status__in=FINALIZAVEIS)
-                .order_by('-id')
-                .first()
-            )
+
+            # Se vier comanda_id como query param, usa pk direto
+            # (evita buscar a comanda errada quando há duas do mesmo número)
+            comanda_id = request.GET.get('comanda_id')
+            if comanda_id:
+                try:
+                    comanda = Comanda.objects.get(pk=int(comanda_id), status__in=FINALIZAVEIS)
+                except (Comanda.DoesNotExist, ValueError):
+                    comanda = None
+            else:
+                comanda = (
+                    Comanda.objects
+                    .filter(numero=code, status__in=FINALIZAVEIS)
+                    .order_by('-id')
+                    .first()
+                )
             if comanda is None:
                 # Verifica se existe mas está em status não finalizável
                 outra = Comanda.objects.filter(numero=code).order_by('-id').first()
