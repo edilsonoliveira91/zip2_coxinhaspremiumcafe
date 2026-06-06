@@ -23,8 +23,10 @@ from django.http import JsonResponse
 from config.models import SystemConfig
 from django.contrib.auth.models import Permission
 from django.apps import apps
-from django.db.models.functions import Cast
-from django.db.models import IntegerField
+from checkouts.models import Checkout, CheckoutPayment
+from orders.models import PedidoItem
+from decimal import Decimal
+import json as _json
 
 
 class CustomLoginView(LoginView):
@@ -35,11 +37,109 @@ class CustomLoginView(LoginView):
     redirect_authenticated_user = True
     
     def get_success_url(self):
+        user = self.request.user
+        dashboard = getattr(user, 'dashboard_home', 'home')
+        if dashboard == 'ceo':
+            return reverse_lazy('accounts:ceo_dashboard')
+        elif dashboard == 'manage':
+            return reverse_lazy('accounts:manage_dashboard')
         return reverse_lazy('accounts:dashboard')
-    
+
+    def get_redirect_url(self):
+        # Ignora o parâmetro ?next= para sempre usar a tela configurada no usuário
+        return None
+
     def form_valid(self, form):
-        messages.success(self.request, f'Bem-vindo, {form.get_user().get_full_name() or form.get_user().username}!')
-        return super().form_valid(form)
+        user = form.get_user()
+        messages.success(self.request, f'Bem-vindo, {user.get_full_name() or user.username}!')
+        from django.contrib.auth import login as auth_login
+        auth_login(self.request, user)
+        dashboard = getattr(user, 'dashboard_home', 'home')
+        if dashboard == 'ceo':
+            return redirect(reverse_lazy('accounts:ceo_dashboard'))
+        elif dashboard == 'manage':
+            return redirect(reverse_lazy('accounts:manage_dashboard'))
+        return redirect(reverse_lazy('accounts:dashboard'))
+
+
+class CeoDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboards/ceo_dashboard.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import Sum, Count
+        hoje = timezone.localtime().date()
+
+        # Checkouts aprovados de hoje
+        checkouts_hoje = Checkout.objects.filter(
+            status='aprovado',
+            processed_at__date=hoje,
+        ).exclude(comanda__status__in=['cancelada', 'cortesia'])
+
+        parcial_ids = list(checkouts_hoje.filter(payment_method='parcial').values_list('id', flat=True))
+
+        def _sum_method(method):
+            simples = checkouts_hoje.exclude(payment_method='parcial').filter(
+                payment_method=method
+            ).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+            parcial = CheckoutPayment.objects.filter(
+                checkout_id__in=parcial_ids, payment_method=method
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            return simples + parcial
+
+        dinheiro   = _sum_method('dinheiro')
+        credito    = _sum_method('cartao_credito')
+        debito     = _sum_method('cartao_debito')
+        pix        = _sum_method('pix')
+        voucher    = _sum_method('voucher')
+        total_dia  = checkouts_hoje.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+        qtd_comandas = checkouts_hoje.count()
+
+        # Gráfico de linha: faturamento dos últimos 30 dias
+        labels = []
+        valores = []
+        for i in range(29, -1, -1):
+            dia = hoje - timezone.timedelta(days=i)
+            total = Checkout.objects.filter(
+                status='aprovado',
+                processed_at__date=dia,
+            ).exclude(comanda__status__in=['cancelada', 'cortesia']).aggregate(
+                total=Sum('total')
+            )['total'] or Decimal('0.00')
+            labels.append(dia.strftime('%d/%m'))
+            valores.append(float(total))
+
+        # Top 5 produtos do dia
+        top_produtos = (
+            PedidoItem.objects
+            .filter(pedido__comanda__checkout__processed_at__date=hoje,
+                    pedido__comanda__checkout__status='aprovado')
+            .exclude(pedido__comanda__status__in=['cancelada', 'cortesia'])
+            .values('product_name')
+            .annotate(total_qty=Sum('quantity'))
+            .order_by('-total_qty')[:5]
+        )
+
+        context.update({
+            'hoje': hoje,
+            'total_dia': total_dia,
+            'qtd_comandas': qtd_comandas,
+            'dinheiro': dinheiro,
+            'credito': credito,
+            'debito': debito,
+            'pix': pix,
+            'voucher': voucher,
+            'chart_labels': _json.dumps(labels),
+            'chart_valores': _json.dumps(valores),
+            'top_produtos': list(top_produtos),
+        })
+        return context
+
+
+class ManageDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboards/manage_dashboard.html'
+    login_url = reverse_lazy('accounts:login')
 
 
 class HomeView(LoginRequiredMixin, TemplateView):
@@ -67,9 +167,12 @@ class HomeView(LoginRequiredMixin, TemplateView):
             queryset=Pedido.objects.filter(status__in=['aguardando', 'preparando', 'pronta']),
             to_attr='pedidos_ativos',
         )
-        comandas_abertas = Comanda.objects.filter(
-            status__in=['em_uso', 'aguardando_caixa']
-        ).prefetch_related(_prefetch_pedidos).order_by(Cast('numero', output_field=IntegerField()))
+        comandas_abertas = sorted(
+            Comanda.objects.filter(
+                status__in=['em_uso', 'aguardando_caixa']
+            ).prefetch_related(_prefetch_pedidos),
+            key=lambda c: int(c.numero) if c.numero and str(c.numero).strip().isdigit() else 0
+        )
 
                 # ---> LÓGICA DE TEMPO DA CONFIGURAÇÃO <---
         config = SystemConfig.get_settings()
@@ -429,9 +532,12 @@ class HomeCardsView(LoginRequiredMixin, View):
             queryset=Pedido.objects.filter(status__in=['aguardando', 'preparando', 'pronta']),
             to_attr='pedidos_ativos',
         )
-        comandas_abertas = Comanda.objects.filter(
-            status__in=['em_uso', 'aguardando_caixa']
-        ).prefetch_related(_prefetch_pedidos).order_by(Cast('numero', output_field=IntegerField()))
+        comandas_abertas = sorted(
+            Comanda.objects.filter(
+                status__in=['em_uso', 'aguardando_caixa']
+            ).prefetch_related(_prefetch_pedidos),
+            key=lambda c: int(c.numero) if c.numero and str(c.numero).strip().isdigit() else 0
+        )
 
         for comanda in comandas_abertas:
             comanda.is_delayed = False
