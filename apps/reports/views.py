@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from orders.models import Comanda, Pedido, PedidoItem
 from products.models import Product
+from config.models import Garcom
 import threading
 import time
 import json
@@ -602,6 +603,7 @@ class PedidosReportView(BaseReportView):
         data_inicio = self.request.GET.get('data_inicio', '') or today.strftime('%Y-%m-%d')
         data_fim = self.request.GET.get('data_fim', '') or today.strftime('%Y-%m-%d')
         status_filtro = self.request.GET.get('status', '')
+        atendente_filtro = self.request.GET.get('atendente', '').strip()
         q = self.request.GET.get('q', '').strip()
 
         qs = (
@@ -614,6 +616,9 @@ class PedidosReportView(BaseReportView):
 
         if status_filtro:
             qs = qs.filter(status=status_filtro)
+
+        if atendente_filtro.isdigit():
+            qs = qs.filter(atendente_numero=int(atendente_filtro))
 
         if q:
             qs = qs.filter(
@@ -628,15 +633,24 @@ class PedidosReportView(BaseReportView):
         total_valor = qs.aggregate(t=Sum('total_amount'))['t'] or 0
         total_itens = qs.aggregate(t=Sum('items__quantity'))['t'] or 0
 
+        garcons = Garcom.objects.order_by('numero')
+        garcom_map = {g.numero: g.nome for g in garcons}
+
+        pedidos = list(qs)
+        for p in pedidos:
+            p.nome_atendente = garcom_map.get(p.atendente_numero) if p.atendente_numero else None
+
         context.update({
-            'pedidos': qs,
+            'pedidos': pedidos,
             'total_pedidos': total_pedidos,
             'total_valor': total_valor,
             'total_itens': total_itens,
             'data_inicio': data_inicio,
             'data_fim': data_fim,
             'status_filtro': status_filtro,
+            'atendente_filtro': atendente_filtro,
             'q': q,
             'status_choices': Pedido.STATUS_CHOICES,
+            'garcons': garcons,
         })
         return context

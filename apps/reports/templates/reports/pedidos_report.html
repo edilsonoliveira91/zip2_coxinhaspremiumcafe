@@ -99,6 +99,20 @@
                         </select>
                     </div>
 
+                    <!-- Atendente -->
+                    <div style="min-width: 170px;">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Atendente</label>
+                        <select name="atendente"
+                                style="width:100%; box-sizing:border-box; height:44px; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-family:inherit; color:#1D1D1F; background:white; outline:none; transition:border-color 0.15s, box-shadow 0.15s; -webkit-appearance:none; appearance:none;"
+                                onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                            <option value="">Todos</option>
+                            {% for garcom in garcons %}
+                            <option value="{{ garcom.numero }}" {% if atendente_filtro == garcom.numero|stringformat:"s" %}selected{% endif %}>{{ garcom.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <!-- Botões -->
                     <div style="display:flex; gap:8px;">
                         <button type="submit"
@@ -164,9 +178,10 @@
                     <!-- Atendente -->
                     <div style="text-align:center;">
                         {% if pedido.atendente_numero %}
-                        <div style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#EBF5FF; color:#007AFF; font-weight:700; font-size:14px;">
-                            {{ pedido.atendente_numero }}
-                        </div>
+                        <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:#EBF5FF; border-radius:20px; font-size:12px; font-weight:600; color:#007AFF; white-space:nowrap;">
+                            <span style="width:18px; height:18px; border-radius:50%; background:#007AFF; color:white; font-size:10px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">{{ pedido.atendente_numero }}</span>
+                            {{ pedido.nome_atendente|default:pedido.atendente_numero }}
+                        </span>
                         {% else %}
                         <span style="color:#C7C7CC; font-size:18px; line-height:1;">—</span>
                         {% endif %}
