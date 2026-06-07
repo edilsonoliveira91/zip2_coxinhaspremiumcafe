@@ -1,45 +1,36 @@
 {% load static %}
 <nav class="fixed top-0 left-0 right-0 bg-white/5 backdrop-blur-sm shadow-lg border-b border-gray-200/50 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-            <!-- Logo e Menu Principal -->
-            <div class="flex items-center">
-                <!-- Logo -->
-                <div class="flex-shrink-0">
-                    <a href="/" class="flex items-center space-x-3 group">
-                        <div class="w-10 h-10 rounded-xl transition-shadow overflow-hidden">
-                            <img src="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}" 
-                                alt="Coxinhas Premium Café" 
-                                class="w-full h-full object-cover">
-                        </div>
-                        <span class="font-bold text-xl text-gray-900 group-hover:text-orange-600 transition-colors">
-                            Coxinhas Premium Café
-                        </span>
-                    </a>
-                </div>
+    <div class="w-full px-4 sm:px-6 lg:px-10">
+        <div class="flex items-center h-16">
+            <!-- Logo (esquerda) -->
+            <div class="flex-shrink-0 flex items-center">
+                <a href="/" class="flex items-center space-x-2 group">
+                    <div class="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0" style="min-width:35px;min-height:35px;">
+                        <img src="{% static 'img/logo/logo-coxinhaspremiumcafe.png' %}"
+                            alt="Coxinhas Premium Café"
+                            style="width:40px;height:40px;object-fit:cover;display:block;">
+                    </div>
+                    <div class="flex flex-col leading-tight">
+                        <span class="font-bold text-xs text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-wide">Coxinhas</span>
+                        <span class="font-bold text-xs text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-wide">Premium</span>
+                        <span class="font-bold text-xs text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-wide">Café</span>
+                    </div>
+                </a>
+            </div>
 
-                <!-- Menu Desktop -->
-                <div class="hidden md:flex md:items-center md:space-x-1 md:ml-10">
+            <!-- Menu Desktop (centro) -->
+            <div class="hidden md:flex md:items-center md:space-x-1 mx-auto px-8">
                     <!-- Dashboard: Geralmente disponível para todos que fazem login -->
-                    <a href="/" class="bg-orange-50 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-orange-100">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6a2 2 0 01-2 2H10a2 2 0 01-2-2V5z"></path>
-                            </svg>
-                            <span>Inicio</span>
-                        </div>
+                    <a href="/" class="bg-orange-50 text-orange-700 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-orange-100">
+                        Início
                     </a>
 
-                    <!-- Dropdown Comandas (Apenas Administradores) -->
-                    {% if request.user.is_superuser or request.user.is_staff %}
+                    <!-- Dropdown Comandas -->
+                    {% if perms.orders.view_order or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpen: false }">
-                        <button @click="dropdownOpen = !dropdownOpen" 
+                        <button @click="dropdownOpen = !dropdownOpen"
                                 @click.away="dropdownOpen = false"
-                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
+                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1">
                             <span>Comandas</span>
                             <svg class="w-3 h-3 transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -76,12 +67,9 @@
                     <!-- Dropdown Produtos -->
                     {% if perms.products.view_product or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpenProdutos: false }">
-                        <button @click="dropdownOpenProdutos = !dropdownOpenProdutos" 
+                        <button @click="dropdownOpenProdutos = !dropdownOpenProdutos"
                                 @click.away="dropdownOpenProdutos = false"
-                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                            </svg>
+                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1">
                             <span>Produtos</span>
                             <svg class="w-3 h-3 transition-transform" :class="dropdownOpenProdutos ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -142,15 +130,43 @@
                     </div>
                     {% endif %}
 
-                    <!-- Dropdown Relatórios (Requer Permissão Financeira) -->
-                    {% if perms.financials.view_financial or request.user.is_superuser %}
-                    <div class="relative" x-data="{ dropdownOpen: false }">
-                        <button @click="dropdownOpen = !dropdownOpen" 
-                                @click.away="dropdownOpen = false"
-                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    <!-- Dropdown Cadastros -->
+                    {% if request.user.is_superuser or request.user.is_staff %}
+                    <div class="relative" x-data="{ dropdownOpenCadastros: false }">
+                        <button @click="dropdownOpenCadastros = !dropdownOpenCadastros"
+                                @click.away="dropdownOpenCadastros = false"
+                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1">
+                            <span>Cadastros</span>
+                            <svg class="w-3 h-3 transition-transform" :class="dropdownOpenCadastros ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
+                        </button>
+                        <div x-cloak x-show="dropdownOpenCadastros"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 transform -translate-y-2"
+                            x-transition:enter-end="opacity-100 transform translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 transform translate-y-0"
+                            x-transition:leave-end="opacity-0 transform -translate-y-2"
+                            class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                            <div class="py-2">
+                                <a href="{% url 'banks:bank_list' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                    </svg>
+                                    <span>Bancos</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Dropdown Relatórios -->
+                    {% if perms.orders.view_order or perms.financials.view_financial or request.user.is_superuser %}
+                    <div class="relative" x-data="{ dropdownOpen: false }">
+                        <button @click="dropdownOpen = !dropdownOpen"
+                                @click.away="dropdownOpen = false"
+                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1">
                             <span>Relatórios</span>
                             <svg class="w-3 h-3 transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -185,12 +201,14 @@
                                     </svg>
                                     <span>Cancelada / Cortesia</span>
                                 </a>
+                                {% if perms.financials.view_financial or request.user.is_superuser %}
                                 <a href="{% url 'financials:extrato' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 4h16v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 10v-2h12v2H6z"></path>
                                     </svg>
                                     <span>Extrato</span>
                                 </a>
+                                {% endif %}
                                 <a href="{% url 'reports:cozinha_report' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -211,12 +229,9 @@
                     <!-- Dropdown Caixa (Requer Permissão Financeira ou Caixa ADM) -->
                     {% if perms.financials.view_financial or perms.financials.view_caixaadm or perms.financials.view_fechamentocaixadiario or request.user.is_caixa or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpen: false }">
-                        <button @click="dropdownOpen = !dropdownOpen" 
+                        <button @click="dropdownOpen = !dropdownOpen"
                                 @click.away="dropdownOpen = false"
-                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
+                                class="text-gray-600 hover:text-orange-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1">
                             <span>Caixa</span>
                             <svg class="w-3 h-3 transition-transform" :class="dropdownOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -233,18 +248,22 @@
                             x-transition:leave-end="opacity-0 transform -translate-y-2"
                             class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
                             <div class="py-2">
+                                {% if perms.checkouts.view_checkout or request.user.is_superuser %}
                                 <a href="{% url 'financials:dashboard' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
                                     <span>Dashboard</span>
                                 </a>
+                                {% endif %}
+                                {% if perms.financials.add_sangria or request.user.is_superuser %}
                                 <a href="{% url 'financials:sangria' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                                     </svg>
                                     <span>Sangria</span>
                                 </a>
+                                {% endif %}
                                 <a href="#" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -271,11 +290,10 @@
                         </div>
                     </div>
                     {% endif %}
-                </div>
             </div>
 
-            <!-- Menu do Usuário Desktop (Sempre Visível para o usuário logado) -->
-            <div class="hidden md:flex md:items-center md:space-x-4">
+            <!-- Menu do Usuário Desktop (extrema direita) -->
+            <div class="flex-shrink-0 hidden md:flex md:items-center md:space-x-4">
                 <!-- Notificações -->
                 <!-- <div class="relative">
                     <button class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all relative">

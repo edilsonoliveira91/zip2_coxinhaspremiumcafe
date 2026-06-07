@@ -266,13 +266,23 @@ def status_mesa(request, numero):
     Prioriza comandas em uso para evitar encerramento indevido por registros antigos
     ou leituras transitórias durante deploy/restart.
     """
+    import re as _re
+
     comanda_em_uso = Comanda.objects.filter(numero=numero, status='em_uso').order_by('-created_at').first()
     if comanda_em_uso:
         return JsonResponse({'status': 'em_uso'})
 
-    # Sem comanda em uso: devolve o último status conhecido (se houver)
     comanda = Comanda.objects.filter(numero=numero).order_by('-created_at').first()
-    return JsonResponse({'status': comanda.status if comanda else 'livre'})
+    if not comanda:
+        return JsonResponse({'status': 'livre'})
+
+    if comanda.status == 'migrada' and comanda.motivo_cancelamento:
+        match = _re.search(r'MESA MIGRADA PARA > (\S+)', comanda.motivo_cancelamento)
+        if match:
+            novo_numero = match.group(1)
+            return JsonResponse({'status': 'migrada', 'novo_numero': novo_numero})
+
+    return JsonResponse({'status': comanda.status})
 
 
 def fechar_mesa(request, numero):

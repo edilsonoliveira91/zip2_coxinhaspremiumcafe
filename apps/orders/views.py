@@ -2987,10 +2987,10 @@ class TransferirMesaView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Sem permissão para transferir mesa.'}, status=403)
         novo_numero_raw = request.POST.get('novo_numero', '').strip()
 
-        if not novo_numero_raw.isdigit() or not (1 <= len(novo_numero_raw) <= 3):
-            return JsonResponse({'success': False, 'error': 'Número da nova mesa inválido.'}, status=400)
+        if not novo_numero_raw.isdigit() or not (1 <= int(novo_numero_raw) <= 99):
+            return JsonResponse({'success': False, 'error': 'Número da mesa deve ser entre 1 e 99.'}, status=400)
 
-        novo_numero = str(int(novo_numero_raw)).zfill(3)
+        novo_numero = str(int(novo_numero_raw))
 
         try:
             with transaction.atomic():
@@ -3007,7 +3007,7 @@ class TransferirMesaView(LoginRequiredMixin, View):
                 # Atualiza cliente_nome para refletir o novo número (ex: "MESA 05" → "MESA 07")
                 nome_origem = comanda_origem.cliente_nome or ''
                 if nome_origem.upper().startswith('MESA'):
-                    novo_cliente_nome = f"MESA {int(novo_numero)}"
+                    novo_cliente_nome = f"MESA {str(int(novo_numero)).zfill(2)}"
                 else:
                     novo_cliente_nome = nome_origem
 

@@ -40,6 +40,7 @@ urlpatterns = [
     path('reports/', include('reports.urls', namespace='reports')),
     path('config/', include('config.urls', namespace='config')),
     path('kiosk/', include('kiosk.urls', namespace='kiosk')),
+    path('banks/', include('banks.urls', namespace='banks')),
     
     # Service Worker na raiz (escopo cobre todas as URLs)
     path('sw.js', service_worker_view, name='service_worker'),

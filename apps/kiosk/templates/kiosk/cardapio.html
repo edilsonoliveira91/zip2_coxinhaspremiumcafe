@@ -1058,16 +1058,25 @@ async function executarFechamento() {
 // ── Polling: detecta fechamento remoto pelo caixa ──────────
 const STATUSS_ENCERRAMENTO = new Set(['aguardando_caixa', 'fechada', 'cancelada', 'cortesia']);
 let _statusFechamentoConsecutivo = 0;
+let _migracaoRedirecionando = false;
 
 setInterval(async () => {
   // Não interrompe se a tela de conta fechada já está visível
   if (document.getElementById('tela-conta-fechada').style.display === 'flex') return;
+  if (_migracaoRedirecionando) return;
   try {
     const r = await fetch(URL_STATUS, { cache: 'no-store' });
     const d = await r.json();
 
     if (d.status === 'em_uso') {
       _statusFechamentoConsecutivo = 0;
+      return;
+    }
+
+    // Mesa transferida: redireciona kiosk para nova mesa
+    if (d.status === 'migrada' && d.novo_numero) {
+      _migracaoRedirecionando = true;
+      window.location.href = '/kiosk/mesa/' + d.novo_numero + '/';
       return;
     }
 

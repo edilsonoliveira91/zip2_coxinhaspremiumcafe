@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bancos{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden" style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif; background: #F5F5F7;">
+    <div class="h-full overflow-y-auto">
+
+        <!-- Header -->
+        <div style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 20;">
+            <div style="padding: 20px 32px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                    <div>
+                        <h1 style="font-size: 28px; font-weight: 700; color: #1D1D1F; letter-spacing: -0.5px; margin: 0;">Bancos</h1>
+                        <p style="font-size: 13px; color: #6E6E73; margin: 2px 0 0 0;">Contas bancárias cadastradas no sistema</p>
+                    </div>
+                    <a href="{% url 'banks:bank_create' %}"
+                       style="display:inline-flex; align-items:center; gap:7px; min-height:44px; padding:0 20px; background:#007AFF; color:white; border-radius:12px; font-size:14px; font-weight:600; text-decoration:none; transition:background 0.15s;"
+                       onmouseover="this.style.background='#0051D5'"
+                       onmouseout="this.style.background='#007AFF'">
+                        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Novo Banco
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 24px 32px;">
+
+            {% if messages %}
+            {% for msg in messages %}
+            <div style="margin-bottom:16px; padding:14px 18px; border-radius:12px; font-size:14px; font-weight:500;
+                        background:{% if msg.tags == 'success' %}#E8F9EE{% else %}#FFEBEA{% endif %};
+                        color:{% if msg.tags == 'success' %}#1A7F3C{% else %}#FF3B30{% endif %};
+                        border:1px solid {% if msg.tags == 'success' %}rgba(52,199,89,0.25){% else %}rgba(255,59,48,0.25){% endif %};">
+                {{ msg }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Lista -->
+            <div style="background: white; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;">
+
+                {% if banks %}
+
+                <!-- Cabeçalho -->
+                <div style="display:grid; grid-template-columns:1fr 160px 110px 150px 120px; column-gap:16px; align-items:center; padding:0 24px; height:44px; background:#F5F5F7; border-bottom:1px solid rgba(0,0,0,0.07);">
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">Banco</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Nº da Conta</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Agência</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Valor Inicial</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Ações</div>
+                </div>
+
+                <!-- Linhas -->
+                {% for bank in banks %}
+                <div style="display:grid; grid-template-columns:1fr 160px 110px 150px 120px; column-gap:16px; align-items:center; padding:0 24px; min-height:64px; border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %}; transition:background 0.1s;"
+                     onmouseover="this.style.background='#FAFAFA'"
+                     onmouseout="this.style.background='white'">
+
+                    <!-- Nome -->
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:38px; height:38px; border-radius:11px; background:linear-gradient(145deg,#007AFF,#5AC8FA); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg style="width:18px;height:18px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-size:15px; font-weight:600; color:#1D1D1F;">{{ bank.nome }}</div>
+                            <div style="font-size:12px; color:#8E8E93; margin-top:1px;">Cadastrado em {{ bank.criado_em|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Conta -->
+                    <div style="font-size:14px; color:{% if bank.numero_conta %}#1D1D1F{% else %}#C7C7CC{% endif %}; font-variant-numeric:tabular-nums; text-align:center;">
+                        {{ bank.numero_conta|default:"—" }}
+                    </div>
+
+                    <!-- Agência -->
+                    <div style="font-size:14px; color:{% if bank.agencia %}#1D1D1F{% else %}#C7C7CC{% endif %}; text-align:center;">
+                        {{ bank.agencia|default:"—" }}
+                    </div>
+
+                    <!-- Valor inicial -->
+                    <div style="text-align:center;">
+                        {% if bank.valor_inicial is not None %}
+                        <span style="font-size:15px; font-weight:700; color:#34C759; font-variant-numeric:tabular-nums;">R$&nbsp;{{ bank.valor_inicial|floatformat:2 }}</span>
+                        {% else %}
+                        <span style="font-size:14px; color:#C7C7CC;">—</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Ações -->
+                    <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <a href="{% url 'banks:bank_statement' bank.pk %}"
+                           title="Ver extrato"
+                           style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#EAF3FF;color:#007AFF;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='#D1E8FF'"
+                           onmouseout="this.style.background='#EAF3FF'">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </a>
+                        <a href="{% url 'banks:bank_edit' bank.pk %}"
+                           title="Editar"
+                           style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#F5F5F7;color:#1D1D1F;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='#E5E5EA'"
+                           onmouseout="this.style.background='#F5F5F7'">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </a>
+                        <button onclick="confirmarExclusao('{% url 'banks:bank_delete' bank.pk %}', '{{ bank.nome }}')"
+                                title="Excluir"
+                                style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#FFF0F0;color:#FF3B30;border:none;cursor:pointer;transition:background 0.15s;"
+                                onmouseover="this.style.background='#FFE0E0'"
+                                onmouseout="this.style.background='#FFF0F0'">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                </div>
+                {% endfor %}
+
+                {% else %}
+
+                <!-- Vazio -->
+                <div style="text-align:center; padding:64px 32px;">
+                    <div style="width:60px;height:60px;border-radius:16px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                        <svg style="width:28px;height:28px;color:#C7C7CC;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </div>
+                    <p style="font-size:17px;font-weight:600;color:#1D1D1F;margin:0 0 6px 0;">Nenhum banco cadastrado</p>
+                    <p style="font-size:14px;color:#8E8E93;margin:0 0 20px 0;">Adicione o primeiro banco para começar.</p>
+                    <a href="{% url 'banks:bank_create' %}"
+                       style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 24px;background:#007AFF;color:white;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;">
+                        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Novo Banco
+                    </a>
+                </div>
+
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div id="modalExcluir" style="display:none; position:fixed; inset:0; z-index:60; background:rgba(0,0,0,0.45); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center;">
+    <div style="background:rgba(255,255,255,0.97); border-radius:20px; padding:28px 24px; max-width:340px; width:calc(100% - 48px); box-shadow:0 8px 40px rgba(0,0,0,0.18); border:1px solid rgba(0,0,0,0.06);">
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,#FF3B30,#FF6961);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+            <svg style="width:24px;height:24px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;color:#1D1D1F;text-align:center;margin:0 0 8px 0;">Excluir banco?</h3>
+        <p id="modalExcluirNome" style="font-size:14px;color:#6E6E73;text-align:center;margin:0 0 24px 0;"></p>
+        <div style="display:flex;gap:10px;">
+            <button onclick="fecharModalExcluir()"
+                    style="flex:1;min-height:44px;border-radius:12px;background:#F5F5F7;color:#007AFF;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+                Cancelar
+            </button>
+            <form id="formExcluir" method="post" style="flex:1;">
+                {% csrf_token %}
+                <button type="submit"
+                        style="width:100%;min-height:44px;border-radius:12px;background:#FF3B30;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+                    Excluir
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarExclusao(url, nome) {
+    const modal = document.getElementById('modalExcluir');
+    document.getElementById('formExcluir').action = url;
+    document.getElementById('modalExcluirNome').textContent = 'O banco "' + nome + '" será removido permanentemente.';
+    modal.style.display = 'flex';
+}
+function fecharModalExcluir() {
+    document.getElementById('modalExcluir').style.display = 'none';
+}
+document.getElementById('modalExcluir').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalExcluir();
+});
+</script>
+{% endblock %}

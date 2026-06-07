@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden" style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif; background: #F5F5F7;">
+    <div class="h-full overflow-y-auto">
+
+        <!-- Header -->
+        <div style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 20;">
+            <div style="padding: 20px 32px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <a href="{% url 'banks:bank_list' %}"
+                       style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#F5F5F7;color:#1D1D1F;text-decoration:none;flex-shrink:0;"
+                       onmouseover="this.style.background='#E5E5EA'"
+                       onmouseout="this.style.background='#F5F5F7'">
+                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 style="font-size:22px; font-weight:700; color:#1D1D1F; letter-spacing:-0.3px; margin:0;">{{ title }}</h1>
+                        <p style="font-size:13px; color:#6E6E73; margin:2px 0 0 0;">
+                            {% if is_editing %}Atualize os dados da conta bancária{% else %}Preencha os dados para cadastrar uma nova conta{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 32px; max-width: 560px; margin: 0 auto;">
+
+            {% if form.non_field_errors %}
+            <div style="margin-bottom:16px; padding:14px 18px; border-radius:12px; font-size:14px; background:#FFEBEA; color:#FF3B30; border:1px solid rgba(255,59,48,0.2);">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" id="bankForm">
+                {% csrf_token %}
+
+                <div style="background:white; border-radius:20px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden;">
+
+                    <!-- Ícone decorativo -->
+                    <div style="padding:28px 28px 0; display:flex; align-items:center; gap:14px;">
+                        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,#007AFF,#5AC8FA);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,122,255,0.3);">
+                            <svg style="width:24px;height:24px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-size:17px;font-weight:700;color:#1D1D1F;">Dados da Conta</div>
+                            <div style="font-size:13px;color:#8E8E93;margin-top:2px;">Somente o nome é obrigatório</div>
+                        </div>
+                    </div>
+
+                    <!-- Campos -->
+                    <div style="padding:24px 28px; display:flex; flex-direction:column; gap:18px;">
+
+                        <!-- Nome do Banco -->
+                        <div>
+                            <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:7px;">
+                                Nome do Banco <span style="color:#FF3B30;">*</span>
+                            </label>
+                            <input type="text"
+                                   name="nome"
+                                   value="{{ form.nome.value|default_if_none:'' }}"
+                                   placeholder="Ex: Banco do Brasil, Nubank..."
+                                   required
+                                   style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid {% if form.nome.errors %}#FF3B30{% else %}#D1D1D6{% endif %};border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;transition:border-color 0.15s,box-shadow 0.15s;background:white;"
+                                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                   onblur="this.style.borderColor='{% if form.nome.errors %}#FF3B30{% else %}#D1D1D6{% endif %}';this.style.boxShadow='none'">
+                            {% if form.nome.errors %}
+                            <p style="font-size:12px;color:#FF3B30;margin:6px 0 0 2px;">{{ form.nome.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Linha: Conta + Agência -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+                            <!-- Número da Conta -->
+                            <div>
+                                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:7px;">
+                                    Número da Conta
+                                    <span style="font-size:11px;font-weight:400;color:#8E8E93;margin-left:4px;">opcional</span>
+                                </label>
+                                <input type="text"
+                                       name="numero_conta"
+                                       value="{{ form.numero_conta.value|default_if_none:'' }}"
+                                       placeholder="00000-0"
+                                       style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;transition:border-color 0.15s,box-shadow 0.15s;background:white;"
+                                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                            </div>
+
+                            <!-- Agência -->
+                            <div>
+                                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:7px;">
+                                    Agência
+                                    <span style="font-size:11px;font-weight:400;color:#8E8E93;margin-left:4px;">opcional</span>
+                                </label>
+                                <input type="text"
+                                       name="agencia"
+                                       value="{{ form.agencia.value|default_if_none:'' }}"
+                                       placeholder="0000"
+                                       style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;transition:border-color 0.15s,box-shadow 0.15s;background:white;"
+                                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                            </div>
+                        </div>
+
+                        <!-- Valor Inicial -->
+                        <div>
+                            <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:7px;">
+                                Valor Inicial
+                                <span style="font-size:11px;font-weight:400;color:#8E8E93;margin-left:4px;">opcional</span>
+                            </label>
+                            <div style="position:relative;">
+                                <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:500;color:#8E8E93;pointer-events:none;user-select:none;">R$</span>
+                                <input type="number"
+                                       name="valor_inicial"
+                                       value="{{ form.valor_inicial.value|default_if_none:'' }}"
+                                       placeholder="0,00"
+                                       step="0.01"
+                                       min="0"
+                                       style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px 0 40px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;transition:border-color 0.15s,box-shadow 0.15s;background:white;"
+                                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Rodapé com botões -->
+                    <div style="padding:20px 28px;border-top:1px solid #F5F5F7;display:flex;gap:10px;">
+                        <a href="{% url 'banks:bank_list' %}"
+                           style="flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;background:#F5F5F7;color:#007AFF;font-size:15px;font-weight:600;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='#E5E5EA'"
+                           onmouseout="this.style.background='#F5F5F7'">
+                            Cancelar
+                        </a>
+                        <button type="submit"
+                                style="flex:2;min-height:44px;border-radius:12px;background:#007AFF;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                                onmouseover="this.style.background='#0051D5'"
+                                onmouseout="this.style.background='#007AFF'">
+                            {% if is_editing %}Salvar Alterações{% else %}Cadastrar Banco{% endif %}
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

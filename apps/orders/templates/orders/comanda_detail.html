@@ -846,8 +846,8 @@ async function confirmarRemoverItem() {
             id="input-nova-mesa"
             type="text"
             inputmode="numeric"
-            pattern="\d{1,3}"
-            maxlength="3"
+            pattern="\d{1,2}"
+            maxlength="2"
             placeholder="00"
             autocomplete="off"
             oninput="this.value=this.value.replace(/[^0-9]/g,'');document.getElementById('transferir-erro').style.display='none';this.classList.remove('input-erro');"
@@ -903,8 +903,8 @@ async function confirmarRemoverItem() {
         erroEl.style.display = 'none';
         input.classList.remove('input-erro');
 
-        if (!novoNum || !/^\d{1,3}$/.test(novoNum)) {
-            erroEl.textContent = 'Digite um número de mesa válido.';
+        if (!novoNum || !/^\d{1,2}$/.test(novoNum) || parseInt(novoNum) < 1 || parseInt(novoNum) > 99) {
+            erroEl.textContent = 'Digite um número de mesa entre 1 e 99.';
             erroEl.style.display = 'block';
             input.classList.add('input-erro');
             input.focus();

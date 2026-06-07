@@ -238,6 +238,27 @@
     </div>
     {% endif %}
 
+    <!-- Cadastros -->
+    {% if request.user.is_superuser or request.user.is_staff %}
+    <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
+      <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
+        Cadastros
+      </div>
+      <a href="{% url 'banks:bank_list' %}"
+         style="display:flex;align-items:center;gap:12px;padding:10px 20px;
+                color:#374151;text-decoration:none;font-size:14px;font-weight:500;">
+        <span style="width:36px;height:36px;background:#eff6ff;border-radius:10px;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:18px;height:18px;color:#2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+        </span>
+        Bancos
+      </a>
+    </div>
+    {% endif %}
+
     <!-- Relatórios -->
     {% if perms.financials.view_financial or request.user.is_superuser %}
     <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
