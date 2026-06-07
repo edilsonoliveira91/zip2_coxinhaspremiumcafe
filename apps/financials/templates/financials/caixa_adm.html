@@ -36,6 +36,21 @@
             <div class="text-2xl font-bold text-emerald-600">R$ {{ total_em_caixa|floatformat:2 }}</div>
             <div class="text-xs text-gray-400 mt-1">💵 Dinheiro: <span class="font-semibold text-gray-600">R$ {{ total_em_caixa_dinheiro|floatformat:2 }}</span></div>
           </div>
+          <!-- Divisor -->
+          <div class="w-px h-12 bg-gray-200"></div>
+          <!-- Card Total no Caixa ADM + Botao Transferir -->
+          <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+            <div style="background:linear-gradient(135deg,#007AFF 0%,#0055d4 100%); border-radius:16px; padding:14px 22px; text-align:center; min-width:180px;">
+              <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.75); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px;">Total no Caixa ADM</div>
+              <div style="font-size:26px; font-weight:800; color:#fff; letter-spacing:-.5px;">R$ {{ total_em_caixa|floatformat:2 }}</div>
+              {% if total_em_caixa_transferencias %}
+              <div style="font-size:11px; color:rgba(255,200,100,0.9); margin-top:2px;">&#8599; transferido: R$ {{ total_em_caixa_transferencias|floatformat:2 }}</div>
+              {% endif %}
+            </div>
+            <button onclick="abrirModalTransferencia()" style="width:100%; background:#007AFF; color:#fff; border:none; border-radius:12px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:-.1px; min-height:40px;">
+              &#8599; Transferir para Banco
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -299,6 +314,45 @@
         {% endfor %}
       {% endif %}
 
+      <!-- TRANSFERÊNCIAS PARA BANCOS -->
+      {% if transferencias_recentes %}
+      <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h2 class="text-base font-semibold text-gray-800">Transferências para Bancos</h2>
+            <span style="background:#dbeafe; color:#1d4ed8; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:700;">{{ transferencias_recentes|length }}</span>
+          </div>
+          {% if total_em_caixa_transferencias %}
+          <span style="font-size:13px; font-weight:700; color:#dc2626;">&#8599; Total transferido: R$ {{ total_em_caixa_transferencias|floatformat:2 }}</span>
+          {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Data</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Banco</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Descrição</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Valor</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Por</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in transferencias_recentes %}
+              <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280;">{{ t.criado_em|date:"d/m/Y H:i" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:600; color:#1d4ed8;">{{ t.banco_destino.nome|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151;">{{ t.descricao|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#dc2626;">- R$ {{ t.valor|floatformat:2 }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280;">{{ t.criado_por.get_full_name|default:t.criado_por.username }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 </div>
@@ -363,9 +417,87 @@
   ✓ Despesa registrada com sucesso!
 </div>
 
+<!-- ===== MODAL TRANSFERIR PARA BANCO ===== -->
+<div id="modal-transferencia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:20px; padding:32px; width:100%; max-width:460px; margin:16px; box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="font-size:20px; font-weight:800; color:#1D1D1F; font-family:-apple-system,sans-serif;">Transferir para Banco</h2>
+      <button onclick="fecharModalTransferencia()" style="background:none; border:none; font-size:22px; color:#8E8E93; cursor:pointer; line-height:1;">&#x2715;</button>
+    </div>
+    <p style="font-size:13px; color:#8E8E93; margin-bottom:24px; font-family:-apple-system,sans-serif;">Registra um depósito no extrato do banco selecionado.</p>
+
+    <form id="form-transferencia">
+      {% csrf_token %}
+
+      <!-- Banco destino -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#1D1D1F; margin-bottom:6px; font-family:-apple-system,sans-serif;">Banco destino *</label>
+        <select id="transf-banco" name="banco_id" required
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-family:-apple-system,sans-serif; color:#1D1D1F; outline:none; appearance:none; background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><path fill=%22%238E8E93%22 d=%22M4 6l4 4 4-4%22/></svg>') no-repeat right 14px center / 16px;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+          <option value="">Selecione um banco...</option>
+          {% for bank in banks %}
+          <option value="{{ bank.pk }}">{{ bank.nome }}{% if bank.numero_conta %} — Conta {{ bank.numero_conta }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Valor -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#1D1D1F; margin-bottom:6px; font-family:-apple-system,sans-serif;">Valor *</label>
+        <div style="position:relative;">
+          <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; font-weight:500; color:#8E8E93; pointer-events:none;">R$</span>
+          <input type="number" id="transf-valor" name="valor" step="0.01" min="0.01" required placeholder="0,00"
+            style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px 0 42px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-family:-apple-system,sans-serif; color:#1D1D1F; outline:none;"
+            onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+            onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+        </div>
+      </div>
+
+      <!-- Descrição -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#1D1D1F; margin-bottom:6px; font-family:-apple-system,sans-serif;">Descrição <span style="font-size:11px; font-weight:400; color:#8E8E93;">opcional</span></label>
+        <input type="text" id="transf-descricao" name="descricao" placeholder="Transferência do Caixa ADM"
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-family:-apple-system,sans-serif; color:#1D1D1F; outline:none;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+      </div>
+
+      <!-- Observação -->
+      <div style="margin-bottom:24px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#1D1D1F; margin-bottom:6px; font-family:-apple-system,sans-serif;">Observação <span style="font-size:11px; font-weight:400; color:#8E8E93;">opcional</span></label>
+        <textarea id="transf-obs" name="observacao" rows="2" placeholder="Notas adicionais..."
+          style="width:100%; box-sizing:border-box; padding:10px 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:14px; font-family:-apple-system,sans-serif; color:#1D1D1F; outline:none; resize:none;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'"></textarea>
+      </div>
+
+      <div id="transf-erro" style="display:none; background:#fee2e2; color:#991b1b; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px; font-family:-apple-system,sans-serif;"></div>
+
+      <div style="display:flex; gap:12px;">
+        <button type="button" onclick="fecharModalTransferencia()"
+          style="flex:1; min-height:44px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-weight:600; color:#1D1D1F; background:#fff; cursor:pointer; font-family:-apple-system,sans-serif;">
+          Cancelar
+        </button>
+        <button type="button" onclick="confirmarTransferencia()"
+          style="flex:1; min-height:44px; border:none; border-radius:12px; font-size:15px; font-weight:700; color:#fff; background:#007AFF; cursor:pointer; font-family:-apple-system,sans-serif;">
+          Transferir
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Notificação transferência -->
+<div id="notif-transferencia" style="display:none; position:fixed; bottom:24px; right:24px; background:#007AFF; color:#fff; border-radius:14px; padding:14px 22px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 4px 24px rgba(0,122,255,0.35); font-family:-apple-system,sans-serif;">
+  ✓ Transferência registrada com sucesso!
+</div>
+
 <script>
   const URL_DESPESA = "{% url 'financials:registrar_despesa_malote' %}";
   const URL_CONCLUIR = "{% url 'financials:concluir_malote' %}";
+  const URL_TRANSFERIR_BANCO = "{% url 'financials:transferir_caixaadm_banco' %}";
 
   function abrirModalDespesa(maloteId) {
     document.getElementById('despesa-malote-id').value = maloteId;
@@ -459,6 +591,64 @@
       btn.disabled = false;
       btn.textContent = '✓ Concluir';
       alert('Erro de conexão.');
+    }
+  }
+
+  // ── Modal Transferir para Banco ──────────────────────────────────────────
+  function abrirModalTransferencia() {
+    document.getElementById('transf-banco').value = '';
+    document.getElementById('transf-valor').value = '';
+    document.getElementById('transf-descricao').value = '';
+    document.getElementById('transf-obs').value = '';
+    document.getElementById('transf-erro').style.display = 'none';
+    document.getElementById('modal-transferencia').style.display = 'flex';
+  }
+
+  function fecharModalTransferencia() {
+    document.getElementById('modal-transferencia').style.display = 'none';
+  }
+
+  document.getElementById('modal-transferencia').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalTransferencia();
+  });
+
+  async function confirmarTransferencia() {
+    const erroEl = document.getElementById('transf-erro');
+    erroEl.style.display = 'none';
+    const bancoId = document.getElementById('transf-banco').value;
+    const valor = document.getElementById('transf-valor').value.trim();
+    if (!bancoId) { erroEl.textContent = 'Selecione um banco destino.'; erroEl.style.display = 'block'; return; }
+    if (!valor || parseFloat(valor) <= 0) { erroEl.textContent = 'Informe um valor válido.'; erroEl.style.display = 'block'; return; }
+
+    const btn = document.querySelector('#modal-transferencia button[onclick="confirmarTransferencia()"]');
+    btn.disabled = true;
+    btn.textContent = 'Aguarde...';
+
+    try {
+      const form = document.getElementById('form-transferencia');
+      const fd = new FormData(form);
+      const resp = await fetch(URL_TRANSFERIR_BANCO, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: fd,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        fecharModalTransferencia();
+        const notif = document.getElementById('notif-transferencia');
+        notif.style.display = 'block';
+        setTimeout(() => { location.reload(); }, 1200);
+      } else {
+        erroEl.textContent = data.error || 'Erro ao registrar transferência.';
+        erroEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Transferir';
+      }
+    } catch (e) {
+      erroEl.textContent = 'Erro de conexão.';
+      erroEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Transferir';
     }
   }
 </script>

@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/malote/enviar/', views.EnviarMaloteView.as_view(), name='enviar_malote'),
     path('api/malote/despesa/', views.RegistrarDespesaMaloteView.as_view(), name='registrar_despesa_malote'),
     path('api/malote/concluir/', views.ConcluirMaloteView.as_view(), name='concluir_malote'),
+    path('api/caixa-adm/transferir-banco/', views.TransferirCaixaAdmParaBancoView.as_view(), name='transferir_caixaadm_banco'),
 ]

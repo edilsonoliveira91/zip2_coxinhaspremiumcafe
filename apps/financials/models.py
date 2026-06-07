@@ -142,6 +142,44 @@ class CaixaAdm(models.Model):
         return self.fechamento.total_final - self.total_despesas
 
 
+class CaixaAdmTransferencia(models.Model):
+    """
+    Registro de transferência do saldo do Caixa ADM para um banco.
+    Debita do total conferido exibido na tela Caixa ADM.
+    """
+    banco_destino = models.ForeignKey(
+        'banks.Bank',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='transferencias_caixa_adm',
+        verbose_name="Banco destino",
+    )
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Valor",
+    )
+    descricao = models.CharField(max_length=200, verbose_name="Descrição", blank=True)
+    observacao = models.TextField(blank=True, verbose_name="Observação")
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='transferencias_caixa_adm',
+        verbose_name="Criado por",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+
+    class Meta:
+        verbose_name = "Transferência Caixa ADM"
+        verbose_name_plural = "Transferências Caixa ADM"
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f"Transferência R$ {self.valor} → {self.banco_destino}"
+
+
 class DespesaMalote(models.Model):
     """
     Despesa vinculada a um malote (CaixaAdm) registrada pelo ADM.

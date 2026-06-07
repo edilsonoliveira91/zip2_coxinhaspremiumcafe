@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote
+from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia
 from django.views import View
 from config.models import ConfigTrocoInicial, SystemConfig
 from products.models import Product
@@ -1001,9 +1001,20 @@ class CaixaAdmView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             total=Sum('fechamento__total_dinheiro')
         )['total'] or 0
         context['total_em_caixa_dinheiro'] = total_dinheiro_bruto - total_despesas_concluidos
+        total_transferencias = CaixaAdmTransferencia.objects.aggregate(
+            total=Sum('valor')
+        )['total'] or Decimal('0.00')
+
         context['total_em_caixa'] = (concluidos.aggregate(
             total=Sum('fechamento__total_final')
-        )['total'] or 0) - total_despesas_concluidos
+        )['total'] or 0) - total_despesas_concluidos - total_transferencias
+        context['total_em_caixa_transferencias'] = total_transferencias
+
+        from banks.models import Bank
+        context['banks'] = Bank.objects.order_by('nome')
+        context['transferencias_recentes'] = CaixaAdmTransferencia.objects.select_related(
+            'banco_destino', 'criado_por'
+        )[:10]
         return context
 
 
@@ -1066,4 +1077,60 @@ class ConcluirMaloteView(LoginRequiredMixin, View):
             'ok': True,
             'concluido_em': malote.concluido_em.strftime('%d/%m/%Y %H:%M'),
             'concluido_por': malote.concluido_por.get_full_name() or malote.concluido_por.username,
+        })
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
+    """
+    POST: registra uma transferência do Caixa ADM para um banco.
+    Cria um BankTransaction de depósito no banco destino.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from banks.models import Bank, BankTransaction
+        from django.shortcuts import get_object_or_404
+
+        banco_id = request.POST.get('banco_id', '').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        descricao = request.POST.get('descricao', '').strip() or 'Transferência do Caixa ADM'
+        observacao = request.POST.get('observacao', '').strip()
+
+        if not banco_id:
+            return JsonResponse({'ok': False, 'error': 'Selecione um banco destino.'}, status=400)
+        if not valor_raw:
+            return JsonResponse({'ok': False, 'error': 'Informe o valor.'}, status=400)
+
+        try:
+            valor = Decimal(valor_raw)
+            if valor <= 0:
+                raise ValueError
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
+
+        banco = get_object_or_404(Bank, pk=banco_id)
+
+        BankTransaction.objects.create(
+            bank=banco,
+            tipo='deposito',
+            descricao=descricao,
+            valor=valor,
+            is_entrada=True,
+            observacao=observacao,
+            criado_por=request.user,
+        )
+
+        CaixaAdmTransferencia.objects.create(
+            banco_destino=banco,
+            valor=valor,
+            descricao=descricao,
+            observacao=observacao,
+            criado_por=request.user,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'banco': banco.nome,
+            'valor': str(valor),
         })

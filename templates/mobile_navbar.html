@@ -482,33 +482,32 @@
   @media (max-width: 767px) {
     #mob-bottombar {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
+      bottom: 14px;
+      left: 16px;
+      right: 16px;
       z-index: 99;
       display: flex;
       align-items: center;
       justify-content: space-around;
-      gap: 4px;
-      padding: 6px;
-      padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+      gap: 2px;
+      padding: 3px;
+      padding-bottom: calc(3px + env(safe-area-inset-bottom, 0px));
 
-      /* ── Liquid Glass core ── */
-      background: rgba(255, 255, 255, 0.14);
-      -webkit-backdrop-filter: saturate(200%) blur(48px);
-      backdrop-filter: saturate(200%) blur(48px);
+      /* ── Liquid Glass core — mais transparente ── */
+      background: rgba(255, 255, 255, 0.07);
+      -webkit-backdrop-filter: saturate(180%) blur(60px);
+      backdrop-filter: saturate(180%) blur(60px);
 
-      /* Glass edges — refracts light */
-      border: 1px solid rgba(255, 255, 255, 0.52);
-      border-radius: 36px;
+      /* Glass edges */
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      border-radius: 32px;
 
       /* Layered shadow + inner specular highlight */
       box-shadow:
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
-        0 24px 64px rgba(0, 0, 0, 0.22),
-        0 8px 24px rgba(0, 0, 0, 0.14),
-        0 2px 6px rgba(0, 0, 0, 0.08);
+        inset 0 1px 0 rgba(255, 255, 255, 0.60),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+        0 16px 48px rgba(0, 0, 0, 0.18),
+        0 4px 16px rgba(0, 0, 0, 0.10);
     }
   }
 
@@ -518,13 +517,13 @@
     align-items: center;
     justify-content: center;
     flex: 1;
-    height: 54px;
-    border-radius: 28px;
+    height: 42px;
+    border-radius: 24px;
     text-decoration: none;
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(60, 60, 67, 0.72);
+    color: rgba(60, 60, 67, 0.65);
     transition: color 0.18s, background 0.18s, transform 0.12s;
     -webkit-tap-highlight-color: transparent;
     position: relative;
@@ -532,8 +531,8 @@
   }
 
   .mob-pill-btn svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
     stroke-width: 1.75;
   }
@@ -541,10 +540,10 @@
   /* Active/selected: frosted glass capsule behind icon */
   .mob-pill-btn.active {
     color: #f97316;
-    background: rgba(255, 255, 255, 0.38);
+    background: rgba(255, 255, 255, 0.28);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.8),
-      0 2px 10px rgba(0, 0, 0, 0.10);
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   /* Press feedback */
@@ -552,18 +551,18 @@
   .mob-pill-btn.clicking {
     transform: scale(0.86);
     color: #f97316;
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.20);
   }
 
   /* Divider */
   .mob-divider {
     width: 1px;
-    height: 26px;
-    background: rgba(255, 255, 255, 0.38);
+    height: 20px;
+    background: rgba(255, 255, 255, 0.32);
     flex-shrink: 0;
     align-self: center;
     border-radius: 1px;
-    margin: 0 2px;
+    margin: 0 1px;
   }
 </style>
 
