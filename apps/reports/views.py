@@ -589,3 +589,54 @@ class CozinhaReportView(LoginRequiredMixin, PermissionRequiredMixin, View):
             'data_inicio': data_inicio,
             'data_fim': data_fim,
         })
+
+
+class PedidosReportView(BaseReportView):
+    """Relatório de todos os pedidos realizados"""
+    template_name = 'reports/pedidos_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        today = timezone.localtime().date()
+        data_inicio = self.request.GET.get('data_inicio', '') or today.strftime('%Y-%m-%d')
+        data_fim = self.request.GET.get('data_fim', '') or today.strftime('%Y-%m-%d')
+        status_filtro = self.request.GET.get('status', '')
+        q = self.request.GET.get('q', '').strip()
+
+        qs = (
+            Pedido.objects
+            .select_related('comanda')
+            .prefetch_related('items')
+            .annotate(qtd_itens=Sum('items__quantity'))
+            .filter(created_at__date__gte=data_inicio, created_at__date__lte=data_fim)
+        )
+
+        if status_filtro:
+            qs = qs.filter(status=status_filtro)
+
+        if q:
+            qs = qs.filter(
+                Q(comanda__numero__icontains=q) |
+                Q(comanda__cliente_nome__icontains=q) |
+                Q(atendente_numero__icontains=q)
+            )
+
+        qs = qs.order_by('-created_at')
+
+        total_pedidos = qs.count()
+        total_valor = qs.aggregate(t=Sum('total_amount'))['t'] or 0
+        total_itens = qs.aggregate(t=Sum('items__quantity'))['t'] or 0
+
+        context.update({
+            'pedidos': qs,
+            'total_pedidos': total_pedidos,
+            'total_valor': total_valor,
+            'total_itens': total_itens,
+            'data_inicio': data_inicio,
+            'data_fim': data_fim,
+            'status_filtro': status_filtro,
+            'q': q,
+            'status_choices': Pedido.STATUS_CHOICES,
+        })
+        return context

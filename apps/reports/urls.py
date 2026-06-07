@@ -12,4 +12,5 @@ urlpatterns = [
     path('vendas/produtos/', views.SellsReportView.as_view(), name='sells_report'),
     path('cancelamentos-cortesias/', views.CanceledCortesiaReportView.as_view(), name='canceled_cortesia_report'),
     path('cozinha/', views.CozinhaReportView.as_view(), name='cozinha_report'),
+    path('pedidos/', views.PedidosReportView.as_view(), name='pedidos_report'),
 ]

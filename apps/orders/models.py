@@ -17,6 +17,7 @@ class Comanda(TimeStampedModel):
         ('aguardando_caixa', 'Aguardando Caixa'),
         ('cancelada', 'Cancelada'),
         ('cortesia', 'Cortesia'),
+        ('migrada', 'Migrada'),
     ]
 
     numero = models.CharField(
@@ -103,7 +104,7 @@ class Comanda(TimeStampedModel):
         Comandas já finalizadas (fechada/cancelada/cortesia) são imutáveis — o valor
         registrado no Checkout não pode ser alterado retroativamente.
         """
-        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia')
+        IMUTAVEIS = ('fechada', 'cancelada', 'cortesia', 'migrada')
         if self.status in IMUTAVEIS:
             return  # Não altera o valor de comandas já encerradas
         total = self.pedidos.filter(status__in=['aguardando', 'preparando', 'pronta', 'entregue']).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')

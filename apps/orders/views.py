@@ -2974,3 +2974,75 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
             'intent_urls': [single_intent],
             'contents': [single_content],
         })
+
+
+class TransferirMesaView(LoginRequiredMixin, View):
+    """
+    Migra todos os pedidos de uma comanda aberta para uma nova mesa.
+    A comanda original fica com status 'migrada'; a nova é criada em 'em_uso'.
+    """
+
+    def post(self, request, pk):
+        if not request.user.has_perm('orders.change_order'):
+            return JsonResponse({'success': False, 'error': 'Sem permissão para transferir mesa.'}, status=403)
+        novo_numero_raw = request.POST.get('novo_numero', '').strip()
+
+        if not novo_numero_raw.isdigit() or not (1 <= len(novo_numero_raw) <= 3):
+            return JsonResponse({'success': False, 'error': 'Número da nova mesa inválido.'}, status=400)
+
+        novo_numero = str(int(novo_numero_raw)).zfill(3)
+
+        try:
+            with transaction.atomic():
+                comanda_origem = Comanda.objects.select_for_update().get(
+                    pk=pk, status__in=['em_uso', 'aguardando_caixa']
+                )
+
+                if novo_numero == comanda_origem.numero:
+                    return JsonResponse({'success': False, 'error': 'A nova mesa deve ser diferente da atual.'}, status=400)
+
+                if Comanda.objects.filter(numero=novo_numero, status__in=['em_uso', 'aguardando_caixa']).exists():
+                    return JsonResponse({'success': False, 'error': f'Já existe uma mesa aberta com o número {novo_numero}.'}, status=400)
+
+                # Atualiza cliente_nome para refletir o novo número (ex: "MESA 05" → "MESA 07")
+                nome_origem = comanda_origem.cliente_nome or ''
+                if nome_origem.upper().startswith('MESA'):
+                    novo_cliente_nome = f"MESA {int(novo_numero)}"
+                else:
+                    novo_cliente_nome = nome_origem
+
+                numero_origem = comanda_origem.numero
+
+                nova_comanda = Comanda.objects.create(
+                    numero=novo_numero,
+                    cliente_nome=novo_cliente_nome,
+                    status='em_uso',
+                    motivo_cancelamento=f'MIGRADA DA MESA > {numero_origem}',
+                )
+
+                # Migra pedidos ativos (não cancelados)
+                comanda_origem.pedidos.exclude(status='cancelado').update(comanda=nova_comanda)
+
+                # Migra pagamentos parciais
+                comanda_origem.partial_payments.all().update(comanda=nova_comanda)
+
+                # Atualiza total da nova comanda
+                nova_comanda.update_total()
+
+                # Fecha origem como migrada
+                comanda_origem.status = 'migrada'
+                comanda_origem.motivo_cancelamento = f'MESA MIGRADA PARA > {novo_numero}'
+                comanda_origem.total_amount = Decimal('0.00')
+                comanda_origem.save(update_fields=['status', 'motivo_cancelamento', 'total_amount'])
+
+        except Comanda.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Comanda não encontrada ou não está aberta.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        redirect_url = reverse('orders:comanda_detail', kwargs={'numero': novo_numero})
+        return JsonResponse({
+            'success': True,
+            'message': f'Mesa transferida com sucesso para #{novo_numero}!',
+            'redirect_url': redirect_url,
+        })

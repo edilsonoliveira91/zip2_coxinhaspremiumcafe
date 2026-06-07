@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pedidos{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden" style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif; background: #F5F5F7;">
+    <div class="h-full overflow-y-auto">
+
+        <!-- ── Header ── -->
+        <div style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 20;">
+            <div style="padding: 20px 32px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h1 style="font-size: 28px; font-weight: 700; color: #1D1D1F; letter-spacing: -0.5px; margin: 0;">Pedidos</h1>
+                        <p style="font-size: 13px; color: #6E6E73; margin: 2px 0 0 0;">Listagem de todos os pedidos do período</p>
+                    </div>
+
+                    <!-- Totalizadores -->
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0; background: white; border-radius: 14px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;">
+                            <div style="padding: 12px 20px; text-align: center; border-right: 1px solid #F0F0F0;">
+                                <div style="font-size: 20px; font-weight: 700; color: #FF9500; line-height: 1;">{{ total_pedidos }}</div>
+                                <div style="font-size: 11px; color: #8E8E93; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Pedidos</div>
+                            </div>
+                            <div style="padding: 12px 20px; text-align: center; border-right: 1px solid #F0F0F0;">
+                                <div style="font-size: 20px; font-weight: 700; color: #007AFF; line-height: 1;">{{ total_itens }}</div>
+                                <div style="font-size: 11px; color: #8E8E93; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Itens</div>
+                            </div>
+                            <div style="padding: 12px 20px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: 700; color: #34C759; line-height: 1;">R$&nbsp;{{ total_valor|floatformat:2 }}</div>
+                                <div style="font-size: 11px; color: #8E8E93; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Total</div>
+                            </div>
+                        </div>
+
+                        <!-- Imprimir -->
+                        <button onclick="window.print()"
+                                style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; background: #F5F5F7; color: #1D1D1F; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+
+            <!-- ── Filtros ── -->
+            <form method="get"
+                  style="background: white; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px 24px;">
+                <div style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;">
+
+                    <!-- Busca -->
+                    <div style="flex: 1; min-width: 180px;">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Buscar</label>
+                        <div style="position:relative;">
+                            <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#A1A1A6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <input type="text" name="q" value="{{ q }}" placeholder="Mesa, cliente, atendente..."
+                                   style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px 0 38px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-family:inherit; color:#1D1D1F; outline:none; transition:border-color 0.15s, box-shadow 0.15s;"
+                                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                   onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                        </div>
+                    </div>
+
+                    <!-- Data início -->
+                    <div style="min-width: 150px;">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Data início</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                               style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-family:inherit; color:#1D1D1F; outline:none; transition:border-color 0.15s, box-shadow 0.15s;"
+                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                    </div>
+
+                    <!-- Data fim -->
+                    <div style="min-width: 150px;">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Data fim</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}"
+                               style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-family:inherit; color:#1D1D1F; outline:none; transition:border-color 0.15s, box-shadow 0.15s;"
+                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                    </div>
+
+                    <!-- Status -->
+                    <div style="min-width: 160px;">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Status</label>
+                        <select name="status"
+                                style="width:100%; box-sizing:border-box; height:44px; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-family:inherit; color:#1D1D1F; background:white; outline:none; transition:border-color 0.15s, box-shadow 0.15s; -webkit-appearance:none; appearance:none;"
+                                onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
+                                onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                            <option value="">Todos</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if status_filtro == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Botões -->
+                    <div style="display:flex; gap:8px;">
+                        <button type="submit"
+                                style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 20px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                                onmouseover="this.style.background='#0051D5'"
+                                onmouseout="this.style.background='#007AFF'">
+                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Buscar
+                        </button>
+                        <a href="{% url 'reports:pedidos_report' %}"
+                           style="display:inline-flex;align-items:center;min-height:44px;padding:0 20px;background:#F5F5F7;color:#007AFF;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;">
+                            Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- ── Lista de pedidos ── -->
+            <div style="background: white; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;">
+
+                {% if pedidos %}
+
+                <!-- Cabeçalho da tabela -->
+                <div style="display: grid; grid-template-columns: 56px 1fr 1fr 100px 100px 140px 130px 72px; align-items: center; padding: 0 24px; height: 44px; background: #F5F5F7; border-bottom: 1px solid rgba(0,0,0,0.08);">
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">#</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">Data e Hora</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">Mesa / Comanda</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Atendente</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Itens</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Status</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:right;">Valor Total</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Ações</div>
+                </div>
+
+                <!-- Linhas -->
+                {% for pedido in pedidos %}
+                <div style="display:grid; grid-template-columns:56px 1fr 1fr 100px 100px 140px 130px 72px; align-items:center; padding:0 24px; min-height:64px; border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %}; transition:background 0.1s;"
+                     onmouseover="this.style.background='#FAFAFA'"
+                     onmouseout="this.style.background='white'">
+
+                    <!-- # seq -->
+                    <div style="font-size:12px; font-weight:600; color:#C7C7CC; font-variant-numeric:tabular-nums;">{{ pedido.pedido_seq }}</div>
+
+                    <!-- Data e hora -->
+                    <div>
+                        <div style="font-size:14px; font-weight:600; color:#1D1D1F;">{{ pedido.created_at|date:"d/m/Y" }}</div>
+                        <div style="font-size:12px; color:#8E8E93; margin-top:2px;">{{ pedido.created_at|time:"H:i" }}</div>
+                    </div>
+
+                    <!-- Mesa / Comanda -->
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(145deg,#FF9500,#FF3B30); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px; flex-shrink:0;">
+                            {{ pedido.comanda.numero|add:"0" }}
+                        </div>
+                        <div>
+                            <div style="font-size:14px; font-weight:600; color:#1D1D1F; line-height:1.2;">{{ pedido.comanda.cliente_nome|default:"—" }}</div>
+                            <div style="font-size:12px; color:#8E8E93; margin-top:1px;">Mesa {{ pedido.comanda.numero|add:"0" }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Atendente -->
+                    <div style="text-align:center;">
+                        {% if pedido.atendente_numero %}
+                        <div style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#EBF5FF; color:#007AFF; font-weight:700; font-size:14px;">
+                            {{ pedido.atendente_numero }}
+                        </div>
+                        {% else %}
+                        <span style="color:#C7C7CC; font-size:18px; line-height:1;">—</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Qtd Itens -->
+                    <div style="text-align:center;">
+                        <span style="display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:26px; padding:0 8px; background:#F5F5F7; border-radius:8px; font-size:14px; font-weight:600; color:#1D1D1F;">
+                            {{ pedido.qtd_itens|default:"0" }}
+                        </span>
+                    </div>
+
+                    <!-- Status -->
+                    <div style="text-align:center;">
+                        {% if pedido.status == 'entregue' %}
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#E8F9EE;color:#34C759;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#34C759;display:inline-block;"></span>Entregue
+                        </span>
+                        {% elif pedido.status == 'preparando' %}
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#FFF5E6;color:#FF9500;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#FF9500;display:inline-block;"></span>Em Preparo
+                        </span>
+                        {% elif pedido.status == 'pronta' %}
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#EBF5FF;color:#007AFF;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#007AFF;display:inline-block;"></span>Pronta
+                        </span>
+                        {% elif pedido.status == 'cancelado' %}
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#FFEBEA;color:#FF3B30;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#FF3B30;display:inline-block;"></span>Cancelado
+                        </span>
+                        {% else %}
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#F5F5F7;color:#8E8E93;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#C7C7CC;display:inline-block;"></span>Aguardando
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Valor Total -->
+                    <div style="text-align:right;">
+                        <span style="font-size:15px; font-weight:700; color:#1D1D1F; font-variant-numeric:tabular-nums;">R$&nbsp;{{ pedido.total_amount|floatformat:2 }}</span>
+                    </div>
+
+                    <!-- Ação: Visualizar -->
+                    <div style="text-align:center;">
+                        <a href="{% url 'orders:comanda_detail' pedido.comanda.numero %}?id={{ pedido.comanda.pk }}"
+                           title="Visualizar comanda"
+                           style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#EBF5FF;color:#007AFF;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='#D6EAFF'"
+                           onmouseout="this.style.background='#EBF5FF'">
+                            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </a>
+                    </div>
+
+                </div>
+                {% endfor %}
+
+                {% else %}
+
+                <!-- Estado vazio -->
+                <div style="text-align:center; padding:64px 32px;">
+                    <div style="width:56px;height:56px;border-radius:16px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                        <svg style="width:28px;height:28px;color:#C7C7CC;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <p style="font-size:17px;font-weight:600;color:#1D1D1F;margin:0 0 6px 0;">Nenhum pedido encontrado</p>
+                    <p style="font-size:14px;color:#8E8E93;margin:0;">Ajuste os filtros para encontrar pedidos.</p>
+                </div>
+
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

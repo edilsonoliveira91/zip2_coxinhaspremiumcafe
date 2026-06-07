@@ -217,14 +217,15 @@ class HomeView(LoginRequiredMixin, TemplateView):
                         break # Já achou um atrasado na comanda, vira vermelho e escapa do loop
 
             # Label de exibição: mesa (kiosk) ou comanda normal
+            # display_badge sempre vem do numero (campo autoritativo), não do cliente_nome,
+            # para evitar inconsistência após transferência de mesa.
             if comanda.cliente_nome and comanda.cliente_nome.upper().startswith('MESA'):
                 comanda.display_label = comanda.cliente_nome
-                mesa_part = comanda.cliente_nome.split()[-1] if ' ' in comanda.cliente_nome else comanda.numero
-                comanda.display_badge = mesa_part
+                comanda.display_badge = str(int(comanda.numero)) if comanda.numero and comanda.numero.isdigit() else comanda.numero
             else:
                 comanda.display_label = f"Comanda {comanda.numero}"
                 comanda.display_badge = comanda.numero
-        
+
         # Estatísticas das comandas
         stats_comandas = {
             'em_uso': Comanda.objects.filter(status='em_uso').count(),
@@ -566,8 +567,7 @@ class HomeCardsView(LoginRequiredMixin, View):
                         break
             if comanda.cliente_nome and comanda.cliente_nome.upper().startswith('MESA'):
                 comanda.display_label = comanda.cliente_nome
-                mesa_part = comanda.cliente_nome.split()[-1] if ' ' in comanda.cliente_nome else comanda.numero
-                comanda.display_badge = mesa_part
+                comanda.display_badge = str(int(comanda.numero)) if comanda.numero and comanda.numero.isdigit() else comanda.numero
             else:
                 comanda.display_label = f"Comanda {comanda.numero}"
                 comanda.display_badge = comanda.numero

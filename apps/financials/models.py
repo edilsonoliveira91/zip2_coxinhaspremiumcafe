@@ -81,6 +81,9 @@ class FechamentoCaixaDiario(TimeStampedModel):
         verbose_name = "Fechamento de Caixa Diario"
         verbose_name_plural = "Fechamentos de Caixa Diarios"
         ordering = ['-data']
+        permissions = [
+            ('view_financial', 'Pode visualizar relatórios financeiros (extrato e fechamento)'),
+        ]
 
     def __str__(self):
         return f"Fechamento {self.data.strftime('%d/%m/%Y')} - R$ {self.total_final}"
