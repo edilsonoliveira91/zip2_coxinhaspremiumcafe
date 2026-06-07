@@ -482,7 +482,7 @@
   @media (max-width: 767px) {
     #mob-bottombar {
       position: fixed;
-      bottom: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       left: 16px;
       right: 16px;
       z-index: 99;
@@ -491,7 +491,6 @@
       justify-content: space-around;
       gap: 2px;
       padding: 3px;
-      padding-bottom: calc(3px + env(safe-area-inset-bottom, 0px));
 
       /* ── Liquid Glass core — mais transparente ── */
       background: rgba(255, 255, 255, 0.07);
