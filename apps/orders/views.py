@@ -2443,10 +2443,6 @@ class ImprimirPedidosNaoImpressosView(LoginRequiredMixin, View):
             return JsonResponse({'type': 'none'})
 
         Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
-        # Registra o atendente em cada pedido impresso (histórico por pedido)
-        Pedido.objects.filter(id__in=[p.id for p in pedidos]).update(atendente_numero=numero)
-        # Atualiza o atendente atual na comanda (para exibição do badge no card)
-        Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
 
         mob_all = []
         desk_all = []
@@ -2884,20 +2880,25 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         comanda.atendimento_em = timezone.now()
         comanda.save(update_fields=['em_atendimento', 'atendente_numero', 'atendimento_em'])
 
-        # Gera conteúdo de impressão (pedidos ativos)
+        # Pedidos NOVOS que ainda não foram impressos — são estes que serão impressos agora
         pedidos = list(
             comanda.pedidos
-            .filter(status__in=['aguardando', 'preparando', 'pronta'])
+            .filter(status='aguardando', impresso=False)
             .prefetch_related('items__product')
             .order_by('id')
         )
         if not pedidos:
             return JsonResponse({'success': True, 'type': 'none'})
 
-        Pedido.objects.filter(id__in=[p.id for p in pedidos], started_at__isnull=True).update(started_at=timezone.now())
-        # Registra o atendente em cada pedido impresso (histórico por pedido)
-        Pedido.objects.filter(id__in=[p.id for p in pedidos]).update(atendente_numero=numero)
-        # Atualiza o atendente atual na comanda (para exibição do badge no card)
+        ids_novos = [p.id for p in pedidos]
+
+        Pedido.objects.filter(id__in=ids_novos, started_at__isnull=True).update(started_at=timezone.now())
+
+        # Só registra o atendente em pedidos que ainda NÃO têm atendente definido.
+        # Pedidos já impressos por outro atendente mantêm seu atendente original.
+        Pedido.objects.filter(id__in=ids_novos, atendente_numero__isnull=True).update(atendente_numero=numero)
+
+        # Atualiza o atendente atual na comanda (badge no card)
         Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
 
         mob_all = []
