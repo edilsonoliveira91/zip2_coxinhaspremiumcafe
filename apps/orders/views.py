@@ -2962,23 +2962,31 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
             desk.append("")
             desk_all.extend(desk)
 
-        mob_all.append("")
-        mob_all.append("")
-        mob_all.append("")
-        cut = chr(0x1d) + chr(0x56) + chr(0x00)
-        encoded = urllib.parse.quote("\n".join(mob_all) + cut)
-        single_intent = f"rawbt:{encoded}"
+        ua = request.META.get('HTTP_USER_AGENT', '').lower()
+        client_mobile = request.META.get('HTTP_X_CLIENT_MOBILE', '')
+        is_mobile = 'android' in ua or 'iphone' in ua or 'ipad' in ua or client_mobile == '1'
 
-        desk_all.append("")
-        desk_all.append("VA")
-        single_content = "\n".join(desk_all)
-
-        return JsonResponse({
-            'success': True,
-            'type': 'rawbt_multi',
-            'intent_urls': [single_intent],
-            'contents': [single_content],
-        })
+        if is_mobile:
+            mob_all.append("")
+            mob_all.append("")
+            mob_all.append("")
+            cut = chr(0x1d) + chr(0x56) + chr(0x00)
+            encoded = urllib.parse.quote("\n".join(mob_all) + cut)
+            return JsonResponse({
+                'success': True,
+                'type': 'rawbt',
+                'intent_url': f"rawbt:{encoded}",
+            })
+        else:
+            desk_all.append("")
+            desk_all.append("")
+            desk_all.append("")
+            desk_all.append("\x1d\x56\x41")
+            return JsonResponse({
+                'success': True,
+                'type': 'bridge',
+                'content_text': "\n".join(desk_all),
+            })
 
 
 class TransferirMesaView(LoginRequiredMixin, View):

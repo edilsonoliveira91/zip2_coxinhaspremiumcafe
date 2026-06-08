@@ -423,6 +423,7 @@ async function confirmarAtendimento() {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                'X-Client-Mobile': isMobile ? '1' : '0',
             },
             body: JSON.stringify({ numero_atendente: numero }),
         });
@@ -438,32 +439,33 @@ async function confirmarAtendimento() {
         }
 
         if (data.type === 'none') {
-            // Sem pedidos — apenas registrou atendimento
             atualizarDashboard();
+            btn.disabled = false;
+            btn.innerHTML = 'OK';
             return;
         }
 
-        if (data.type === 'rawbt_multi') {
-            if (isMobile) {
-                const urls = data.intent_urls;
-                if (urls.length > 0) {
-                    if (urls.length === 1) {
-                        const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
-                    } else {
-                        localStorage.setItem('rawbtQueue', JSON.stringify(urls.slice(1)));
-                        const _a = document.createElement('a'); _a.href = urls[0]; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
-                    }
+        if (data.type === 'rawbt') {
+            const _a = document.createElement('a'); _a.href = data.intent_url; document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
+            atualizarDashboard();
+            btn.disabled = false;
+            btn.innerHTML = 'OK';
+            return;
+        }
+
+        if (data.type === 'bridge') {
+            try {
+                const bridgeResp = await fetch(FLASK_BRIDGE_URL_HOME, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: data.content_text })
+                });
+                const bridgeData = await bridgeResp.json();
+                if (!bridgeData.success) {
+                    alert('Erro ao imprimir: ' + (bridgeData.message || 'desconhecido'));
                 }
-            } else {
-                for (const conteudo of data.contents) {
-                    try {
-                        await fetch(FLASK_BRIDGE_URL_HOME, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: conteudo })
-                        });
-                    } catch (e) {}
-                }
+            } catch (e) {
+                alert('Erro ao conectar com a impressora.');
             }
             atualizarDashboard();
         }
