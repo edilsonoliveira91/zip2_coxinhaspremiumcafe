@@ -2880,6 +2880,17 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         comanda.atendimento_em = timezone.now()
         comanda.save(update_fields=['em_atendimento', 'atendente_numero', 'atendimento_em'])
 
+        # Registra o atendente em TODOS os pedidos ativos sem atendente (aguardando/preparando/pronta).
+        # Isso garante que em_atendimento=True no card independente do estado da cozinha.
+        Pedido.objects.filter(
+            comanda=comanda,
+            status__in=['aguardando', 'preparando', 'pronta'],
+            atendente_numero__isnull=True,
+        ).update(atendente_numero=numero)
+
+        # Atualiza o atendente atual na comanda (badge no card)
+        Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
+
         # Pedidos NOVOS que ainda não foram impressos — são estes que serão impressos agora
         pedidos = list(
             comanda.pedidos
@@ -2893,13 +2904,6 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         ids_novos = [p.id for p in pedidos]
 
         Pedido.objects.filter(id__in=ids_novos, started_at__isnull=True).update(started_at=timezone.now())
-
-        # Só registra o atendente em pedidos que ainda NÃO têm atendente definido.
-        # Pedidos já impressos por outro atendente mantêm seu atendente original.
-        Pedido.objects.filter(id__in=ids_novos, atendente_numero__isnull=True).update(atendente_numero=numero)
-
-        # Atualiza o atendente atual na comanda (badge no card)
-        Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
 
         mob_all = []
         desk_all = []
