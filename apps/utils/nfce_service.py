@@ -1356,10 +1356,14 @@ class NFCeService:
                 self.certificado.senha_pfx.encode('utf-8')
             )
             
-            if certificate.not_valid_after < timezone.now():
+            import pytz as _pytz
+            _not_after = certificate.not_valid_after
+            if _not_after.tzinfo is None:
+                _not_after = _pytz.utc.localize(_not_after)
+            if _not_after < timezone.now():
                 return {
                     'valido': False,
-                    'erro': f'Certificado expirou em {certificate.not_valid_after.strftime("%d/%m/%Y")}'
+                    'erro': f'Certificado expirou em {_not_after.strftime("%d/%m/%Y")}'
                 }
             
             return {
@@ -2099,8 +2103,9 @@ class NFCeService:
             
         except Exception as e:
             print(f"[ERROR] Erro ao salvar cupom fiscal: {e}")
+            _html = locals().get('cupom_html', '')
             return {
                 'arquivo_salvo': False,
                 'erro': str(e),
-                'html_content': cupom_html  # Retorna HTML mesmo se não conseguir salvar
+                'html_content': _html  # Retorna HTML mesmo se não conseguir salvar
             }

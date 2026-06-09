@@ -1377,11 +1377,11 @@ class OrderCupomContentView(LoginRequiredMixin, View):
     def get(self, request, code):
         comanda = get_object_or_404(
             Comanda.objects.prefetch_related('pedidos__items__product'),
-            code=code
+            numero=code
         )
 
         is_fiscal = request.GET.get('fiscal') in ['1', 'true', 'True']
-        if is_fiscal and not order.tem_nfce:
+        if is_fiscal and not comanda.tem_nfce:
             return JsonResponse({
                 'success': False,
                 'message': 'Esta comanda não possui NFCe emitida'
@@ -1389,16 +1389,24 @@ class OrderCupomContentView(LoginRequiredMixin, View):
 
         if is_fiscal:
             from apps.utils.epson_service import EpsonTMT20XService
+            from companys.models import Company
+            from apps.utils.nfce_service import NFCeService
+
+            empresa = Company.objects.filter(ativa=True).first()
+            qr_code_url = ''
+            if empresa:
+                nfce_service = NFCeService(empresa)
+                qr_code_url = nfce_service._gerar_qr_code(comanda.nfce_chave, comanda.total_amount)
 
             dados_nfce = {
-                'numero': order.nfce_numero,
-                'chave_acesso': order.nfce_chave,
-                'order': order,
-                'qr_code': f"{order.nfce_chave}|2|2|1|HASH_AQUI"
+                'numero': comanda.nfce_numero,
+                'chave_acesso': comanda.nfce_chave,
+                'order': comanda,
+                'qr_code': qr_code_url,
             }
             resultado_emissao = {
                 'sucesso': True,
-                'protocolo': order.nfce_protocolo,
+                'protocolo': comanda.nfce_protocolo,
                 'modo': 'autorizada'
             }
 
@@ -1415,7 +1423,7 @@ class OrderCupomContentView(LoginRequiredMixin, View):
                 'tipo': 'cupom_fiscal'
             })
 
-        content = gerar_cupom_texto(order, is_fiscal)
+        content = gerar_cupom_texto(comanda, is_fiscal)
         return JsonResponse({
             'success': True,
             'content': content,

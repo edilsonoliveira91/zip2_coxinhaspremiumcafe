@@ -151,10 +151,14 @@ class Company(TimeStampedModel):
         return f"{self.razao_social} ({self.cnpj})"
     
     def get_proximo_numero_nfce(self):
-        """Retorna e incrementa o próximo número da NFCe"""
-        numero_atual = self.proximo_numero_nfce
-        self.proximo_numero_nfce += 1
-        self.save()
+        """Retorna e incrementa o próximo número da NFCe (atomic para evitar duplicatas)"""
+        from django.db import transaction
+        from django.db.models import F
+        with transaction.atomic():
+            updated = Company.objects.filter(pk=self.pk).select_for_update().values_list('proximo_numero_nfce', flat=True).first()
+            numero_atual = updated
+            Company.objects.filter(pk=self.pk).update(proximo_numero_nfce=F('proximo_numero_nfce') + 1)
+            self.proximo_numero_nfce = numero_atual + 1
         return numero_atual
     
     @property
