@@ -1,0 +1,742 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conferência de Caixa{% endblock %}
+
+{% block content %}
+<div class="flex-1 overflow-hidden">
+  <div class="h-full overflow-y-auto">
+
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="px-6 py-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Conferência de Caixa</h1>
+          <p class="text-gray-500 mt-1">Fechamentos de caixa para conferência e transferência</p>
+        </div>
+        <div class="flex items-center gap-6">
+          <div class="text-center">
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Fechamentos</div>
+            <div class="text-4xl font-bold text-indigo-600">{{ fechamentos|length }}</div>
+          </div>
+          <div class="w-px h-12 bg-gray-200"></div>
+          <div class="text-center">
+            <div class="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Total Geral</div>
+            <div class="text-2xl font-bold text-emerald-600">R$ {{ total_geral|floatformat:2 }}</div>
+            <div class="text-xs text-gray-400 mt-1">💵 Dinheiro: <span class="font-semibold text-gray-600">R$ {{ total_dinheiro|floatformat:2 }}</span></div>
+          </div>
+          <div class="w-px h-12 bg-gray-200"></div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+            <div style="background:linear-gradient(135deg,#007AFF 0%,#0055d4 100%); border-radius:16px; padding:14px 22px; text-align:center; min-width:180px;">
+              <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.75); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px;">Total Disponível</div>
+              <div style="font-size:26px; font-weight:800; color:#fff; letter-spacing:-.5px;">R$ {{ total_geral|floatformat:2 }}</div>
+              {% if total_transferencias %}
+              <div style="font-size:11px; color:rgba(255,200,100,0.9); margin-top:2px;">&#8599; transferido: R$ {{ total_transferencias|floatformat:2 }}</div>
+              {% endif %}
+            </div>
+            <button onclick="abrirModalTransferencia()" style="width:100%; background:#007AFF; color:#fff; border:none; border-radius:12px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:-.1px; min-height:40px;">
+              &#8599; Transferir para Banco
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+
+      {% include 'components/messages.html' %}
+
+      <!-- GRID DE CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+
+        {% for f in fechamentos %}
+        {% if f.total_restante > 0 or f.total_transferido == 0 %}
+        <div class="bg-white rounded-3xl border border-gray-200 hover:shadow-lg transition-shadow flex flex-col overflow-hidden">
+
+          <!-- Cabeçalho do card -->
+          <div class="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-base font-bold text-gray-900 whitespace-nowrap">{{ f.data|date:"d/m/Y" }}</span>
+                {% if f.malote %}
+                  {% if f.malote.concluido %}
+                  <span style="background:#d1fae5; color:#065f46; border-radius:9999px; padding:2px 8px; font-size:11px; font-weight:600;">✓ Conferido</span>
+                  {% else %}
+                  <span style="background:#fef3c7; color:#92400e; border-radius:9999px; padding:2px 8px; font-size:11px; font-weight:600;">Em análise</span>
+                  {% endif %}
+                {% else %}
+                <span style="background:#e0e7ff; color:#3730a3; border-radius:9999px; padding:2px 8px; font-size:11px; font-weight:600;">Fechado</span>
+                {% endif %}
+                {% if f.ajustes.all %}
+                <span style="background:#fef9c3; color:#854d0e; border-radius:9999px; padding:2px 8px; font-size:11px; font-weight:600;" title="Este caixa foi editado {{ f.ajustes.count }} vez(es)">
+                  ✏ {{ f.ajustes.count }}
+                </span>
+                {% endif %}
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Total em caixa</div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <div class="text-xs text-gray-400 mb-2">{{ f.total_comandas }} comanda{{ f.total_comandas|pluralize }}</div>
+              <div class="text-2xl font-bold whitespace-nowrap {% if f.total_restante <= 0 %}text-gray-400{% else %}text-emerald-600{% endif %}">
+                R$ {% if f.total_restante <= 0 %}0,00{% else %}{{ f.total_restante|floatformat:2 }}{% endif %}
+              </div>
+              {% if f.total_transferido > 0 %}
+              <div style="font-size:10px;color:#9ca3af;margin-top:2px;">de R$ {{ f.total_final|floatformat:2 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Valores -->
+          <div class="px-6 py-4 flex-1 space-y-1">
+            {% with data_card=f.data|date:"d/m/Y" %}
+
+            {% include "financials/partials/metodo_row.html" with data_card=data_card metodo="dinheiro" label="Dinheiro" rest=f.rest_dinheiro transf=f.transf_dinheiro cor="text-green-600" %}
+            {% include "financials/partials/metodo_row.html" with data_card=data_card metodo="debito"   label="Débito"   rest=f.rest_debito   transf=f.transf_debito   cor="text-purple-600" %}
+            {% include "financials/partials/metodo_row.html" with data_card=data_card metodo="credito"  label="Crédito"  rest=f.rest_credito  transf=f.transf_credito  cor="text-blue-600" %}
+            {% include "financials/partials/metodo_row.html" with data_card=data_card metodo="pix"      label="PIX"      rest=f.rest_pix      transf=f.transf_pix      cor="text-cyan-600" %}
+
+            {% endwith %}
+
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Troco Inicial</span>
+              <span class="text-sm font-bold text-amber-600">R$ {{ f.valor_inicial|floatformat:2 }}</span>
+            </div>
+            <div class="flex items-center justify-between py-0.5">
+              <span class="text-sm text-gray-600">Sangrias</span>
+              <span class="text-sm font-bold text-red-600">- R$ {{ f.total_sangrias|floatformat:2 }}</span>
+            </div>
+
+            <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Restante</span>
+              <span class="text-base font-extrabold {% if f.total_restante <= 0 %}text-gray-400{% else %}text-emerald-600{% endif %}">
+                {% if f.total_restante <= 0 %}R$ 0,00{% else %}R$ {{ f.total_restante|floatformat:2 }}{% endif %}
+              </span>
+            </div>
+
+          </div>
+
+          <!-- Rodapé -->
+          <div class="px-6 pb-6 pt-4 border-t border-gray-100 space-y-2">
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-400">Fechado por</span>
+              <span class="text-xs font-medium text-gray-700">{{ f.fechado_por.get_full_name|default:f.fechado_por.username }}</span>
+            </div>
+
+            {% if f.observacao %}
+            <div class="pt-1">
+              <div class="text-xs text-gray-400 mb-0.5">Observação</div>
+              <div class="text-xs text-gray-600 italic">{{ f.observacao }}</div>
+            </div>
+            {% endif %}
+
+            {% if f.malote and f.malote.despesas.all %}
+            <div class="pt-2 border-t border-gray-100 mt-2">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Despesas</div>
+              {% for despesa in f.malote.despesas.all %}
+              <div style="background:#fef9f0; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                  <span style="font-size:12px; color:#374151; font-weight:600;">{{ despesa.descricao }}</span>
+                  <span style="font-size:12px; font-weight:700; color:#dc2626;">R$ {{ despesa.valor|floatformat:2 }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:10px; color:#9ca3af;">{{ despesa.registrado_em|date:"d/m/Y H:i" }}</span>
+                  {% if despesa.comprovante %}
+                  <a href="{{ despesa.comprovante.url }}" target="_blank" style="font-size:10px; color:#2563eb; font-weight:600; text-decoration:underline;">📎 Ver comprovante</a>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="pt-2" style="display:flex; gap:8px; margin-bottom:4px;">
+              <button
+                onclick="abrirModalEditar({{ f.id }}, '{{ f.data|date:'d/m/Y' }}', '{{ f.valor_inicial|floatformat:2 }}', '{{ f.total_dinheiro|floatformat:2 }}', '{{ f.total_debito|floatformat:2 }}', '{{ f.total_credito|floatformat:2 }}', '{{ f.total_pix|floatformat:2 }}', '{{ f.total_sangrias|floatformat:2 }}')"
+                style="flex:1; text-align:center; background:#f3f4f6; border:1px solid #d1d5db; border-radius:10px; padding:9px 0; font-size:12px; font-weight:700; color:#374151; cursor:pointer;">
+                ✏ Editar
+              </button>
+              <button
+                onclick="abrirModalTransferenciaCard('{{ f.data|date:'d/m/Y' }}', '{{ f.total_final|floatformat:2 }}')"
+                style="flex:1; text-align:center; background:#007AFF; color:#fff; border:none; border-radius:10px; padding:9px 0; font-size:12px; font-weight:700; cursor:pointer;">
+                &#8599; Transferir
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="col-span-4 bg-white rounded-3xl border border-gray-200 p-12 text-center">
+          <p class="text-lg font-bold text-gray-700">Nenhum fechamento encontrado</p>
+          <p class="text-sm text-gray-400 mt-1">Os fechamentos de caixa aparecerão aqui automaticamente.</p>
+        </div>
+        {% endfor %}
+
+      </div><!-- /grid -->
+
+      <!-- TRANSFERÊNCIAS PARA BANCOS -->
+      {% if transferencias_recentes %}
+      <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h2 class="text-base font-semibold text-gray-800">Transferências para Bancos</h2>
+            <span style="background:#dbeafe; color:#1d4ed8; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:700;">{{ transferencias_recentes|length }}</span>
+          </div>
+          {% if total_transferencias %}
+          <span style="font-size:13px; font-weight:700; color:#dc2626;">&#8599; Total transferido: R$ {{ total_transferencias|floatformat:2 }}</span>
+          {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Usuário</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Data</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Caixa</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Banco</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Método</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Bandeira</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Valor</th>
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in transferencias_recentes %}
+              <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151; font-weight:500;">{{ t.criado_por.get_full_name|default:t.criado_por.username|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280;">{{ t.criado_em|date:"d/m/Y H:i" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; font-weight:600; color:#374151;">{{ t.data_caixa|date:"d/m/Y"|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:600; color:#1d4ed8;">{{ t.banco_destino.nome|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center;">
+                  <span style="display:inline-block; padding:3px 10px; border-radius:9999px; font-size:12px; font-weight:700;
+                    {% if t.metodo_pagamento == 'dinheiro' %}background:#dcfce7; color:#166534;
+                    {% elif t.metodo_pagamento == 'credito' %}background:#dbeafe; color:#1d4ed8;
+                    {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe; color:#5b21b6;
+                    {% elif t.metodo_pagamento == 'pix' %}background:#fef9c3; color:#854d0e;
+                    {% else %}background:#f3f4f6; color:#6b7280;{% endif %}">
+                    {{ t.get_metodo_pagamento_display|default:"—" }}
+                  </span>
+                </td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151;">{{ t.bandeira|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#dc2626;">- R$ {{ t.valor|floatformat:2 }}</td>
+                <td style="padding:12px 16px; text-align:center;">
+                  <button onclick="excluirTransferencia({{ t.pk }}, this)"
+                          style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#fee2e2;border:none;cursor:pointer;color:#dc2626;"
+                          title="Excluir transferência"
+                          onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- HISTÓRICO DE AJUSTES (dados ocultos por fechamento, consumidos pelo modal) -->
+      {% for f in fechamentos %}
+      {% if f.ajustes.all %}
+      <div id="ajustes-{{ f.id }}" style="display:none;">
+        {% for aj in f.ajustes.all %}
+        {% with alterados=aj.campos_alterados %}
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#fafafa;">
+
+          <!-- Cabeçalho do ajuste -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
+            <div>
+              <span style="font-size:12px; font-weight:700; color:#374151;">{{ aj.ajustado_por.get_full_name|default:aj.ajustado_por.username }}</span>
+              <span style="font-size:11px; color:#9ca3af; margin-left:6px;">{{ aj.ajustado_em|date:"d/m/Y H:i" }}</span>
+            </div>
+            <span style="font-size:11px; background:#dbeafe; color:#1d4ed8; border-radius:9999px; padding:2px 8px; font-weight:600; white-space:nowrap;">
+              Total: R$ {{ aj.total_final|floatformat:2 }}
+            </span>
+          </div>
+
+          <!-- Diff por método -->
+          {% if alterados %}
+          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:8px;">
+            {% for label, antes, depois in alterados %}
+            <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+              <span style="min-width:90px; color:#6b7280; font-weight:600;">{{ label }}</span>
+              <span style="color:#dc2626; font-weight:600;">R$ {{ antes|floatformat:2 }}</span>
+              <span style="color:#9ca3af;">→</span>
+              <span style="color:#16a34a; font-weight:700;">R$ {{ depois|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="font-size:12px; color:#9ca3af; margin-bottom:8px;">Nenhum valor alterado.</div>
+          {% endif %}
+
+          <!-- Motivo -->
+          {% if aj.observacao %}
+          <div style="font-size:11px; color:#6b7280; border-top:1px solid #e5e7eb; padding-top:6px; margin-top:2px;">
+            <span style="font-weight:600;">Motivo:</span> {{ aj.observacao }}
+          </div>
+          {% endif %}
+
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL EDITAR FECHAMENTO ===== -->
+<div id="modal-editar" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10001; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:20px; padding:0; width:100%; max-width:500px; margin:16px; box-shadow:0 24px 64px rgba(0,0,0,0.25); max-height:90vh; overflow-y:auto;">
+
+    <!-- Cabeçalho -->
+    <div style="padding:24px 28px 16px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:#fff; z-index:1; border-radius:20px 20px 0 0;">
+      <div>
+        <h2 style="font-size:18px; font-weight:800; color:#1D1D1F; font-family:-apple-system,sans-serif; margin:0;">Editar Fechamento</h2>
+        <p id="editar-subtitulo" style="font-size:13px; color:#8E8E93; margin:4px 0 0; font-family:-apple-system,sans-serif;"></p>
+      </div>
+      <button onclick="fecharModalEditar()" style="background:none; border:none; font-size:22px; color:#8E8E93; cursor:pointer; line-height:1;">&#x2715;</button>
+    </div>
+
+    <form id="form-editar" style="padding:24px 28px;">
+      {% csrf_token %}
+      <input type="hidden" id="editar-fechamento-id" name="fechamento_id" value="">
+
+      <!-- Campos de valores -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💵 Dinheiro</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-dinheiro" name="total_dinheiro" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💳 Débito</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-debito" name="total_debito" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💳 Crédito</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-credito" name="total_credito" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">📱 PIX</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-pix" name="total_pix" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💰 Troco Inicial</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-troco" name="valor_inicial" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💸 Sangrias</label>
+          <div style="position:relative;">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
+            <input type="number" id="editar-sangrias" name="total_sangrias" step="0.01" min="0" placeholder="0,00"
+              style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
+              onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Total calculado em tempo real -->
+      <div style="background:#f0fdf4; border:1.5px solid #6ee7b7; border-radius:12px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-size:13px; font-weight:600; color:#065f46;">Total Final (calculado)</span>
+        <span id="editar-total-preview" style="font-size:18px; font-weight:800; color:#065f46;">R$ 0,00</span>
+      </div>
+
+      <!-- Motivo obrigatório -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#1D1D1F; margin-bottom:6px; font-family:-apple-system,sans-serif;">Motivo do ajuste *</label>
+        <textarea id="editar-observacao" name="observacao" rows="2" placeholder="Descreva o motivo da correção..."
+          style="width:100%; box-sizing:border-box; padding:10px 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:14px; font-family:-apple-system,sans-serif; color:#1D1D1F; outline:none; resize:none;"
+          onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'"></textarea>
+      </div>
+
+      <div id="editar-erro" style="display:none; background:#fee2e2; color:#991b1b; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px;"></div>
+
+      <div style="display:flex; gap:12px; margin-bottom:24px;">
+        <button type="button" onclick="fecharModalEditar()"
+          style="flex:1; min-height:44px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-weight:600; color:#1D1D1F; background:#fff; cursor:pointer; font-family:-apple-system,sans-serif;">
+          Cancelar
+        </button>
+        <button type="button" id="btn-salvar-edicao" onclick="salvarEdicao()"
+          style="flex:1; min-height:44px; border:none; border-radius:12px; font-size:15px; font-weight:700; color:#fff; background:#16a34a; cursor:pointer; font-family:-apple-system,sans-serif;">
+          Salvar Ajuste
+        </button>
+      </div>
+
+      <!-- Histórico de ajustes -->
+      <div id="editar-historico-wrapper" style="display:none; border-top:1px solid #f3f4f6; padding-top:16px;">
+        <div style="font-size:12px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px;">Histórico de Ajustes</div>
+        <div id="editar-historico-corpo"></div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ===== MODAL TRANSFERIR PARA BANCO ===== -->
+<div id="modal-transferencia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:20px; width:100%; max-width:480px; margin:16px; box-shadow:0 24px 64px rgba(0,0,0,0.25); max-height:92vh; overflow-y:auto; font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+
+    <!-- Cabeçalho -->
+    <div style="padding:22px 24px 14px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:#fff; z-index:1; border-radius:20px 20px 0 0;">
+      <div>
+        <h2 style="font-size:17px; font-weight:700; color:#1D1D1F; margin:0;">Transferir para Banco</h2>
+        <p style="font-size:13px; color:#8E8E93; margin:3px 0 0;">Registra entrada no extrato do banco</p>
+      </div>
+      <button onclick="fecharModalTransferencia()" style="background:#F2F2F7; border:none; width:30px; height:30px; border-radius:50%; font-size:14px; color:#8E8E93; cursor:pointer; display:flex; align-items:center; justify-content:center;">&#x2715;</button>
+    </div>
+
+    <form id="form-transferencia" style="padding:20px 24px 24px;">
+      {% csrf_token %}
+
+      <!-- Data do Caixa (disabled) -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Data do Caixa</label>
+        <input type="text" id="transf-data-caixa" name="data_caixa" readonly
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #E5E5EA; border-radius:12px; font-size:15px; color:#8E8E93; background:#F2F2F7; outline:none; cursor:not-allowed;">
+      </div>
+
+      <!-- Banco destino -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Banco Destino *</label>
+        <select id="transf-banco" name="banco_id" required
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; color:#1D1D1F; outline:none; appearance:none; background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><path fill=%22%238E8E93%22 d=%22M4 6l4 4 4-4%22/></svg>') no-repeat right 14px center / 16px; cursor:pointer;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+          <option value="">Selecione um banco...</option>
+          {% for bank in banks %}
+          <option value="{{ bank.pk }}">{{ bank.nome }}{% if bank.numero_conta %} — {{ bank.numero_conta }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Valor -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Valor *</label>
+        <div style="position:relative;">
+          <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; font-weight:500; color:#8E8E93; pointer-events:none;">R$</span>
+          <input type="number" id="transf-valor" name="valor" step="0.01" min="0.01" required placeholder="0,00"
+            style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px 0 42px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; color:#1D1D1F; outline:none;"
+            onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+            onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+        </div>
+      </div>
+
+      <!-- Método de pagamento -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Método de Pagamento *</label>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;">
+          {% for val, label in metodos_pagamento %}
+          <label style="cursor:pointer;">
+            <input type="radio" name="metodo_pagamento" value="{{ val }}" id="metodo-{{ val }}"
+                   onchange="onMetodoChange(this.value)"
+                   style="display:none;">
+            <div class="metodo-chip" data-val="{{ val }}"
+                 style="text-align:center; padding:10px 4px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:13px; font-weight:600; color:#8E8E93; background:#fff; transition:all .15s; user-select:none;">
+              {{ label }}
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Bandeira (visível apenas para crédito/débito) -->
+      <div id="transf-bandeira-wrapper" style="display:none; margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Bandeira</label>
+        {% if bandeiras_pinpad %}
+        <select id="transf-bandeira" name="bandeira"
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; color:#1D1D1F; outline:none; appearance:none; background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><path fill=%22%238E8E93%22 d=%22M4 6l4 4 4-4%22/></svg>') no-repeat right 14px center / 16px; cursor:pointer;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+          <option value="">Selecione a bandeira...</option>
+          {% for b in bandeiras_pinpad %}
+          <option value="{{ b.nome }}">{{ b.nome }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="text" id="transf-bandeira" name="bandeira" placeholder="Ex: Visa, Mastercard…"
+          style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; color:#1D1D1F; outline:none;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+        {% endif %}
+      </div>
+
+      <!-- Observação -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Observação <span style="font-size:11px; font-weight:400; text-transform:none;">opcional</span></label>
+        <textarea id="transf-obs" name="observacao" rows="2" placeholder="Notas adicionais..."
+          style="width:100%; box-sizing:border-box; padding:10px 14px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:14px; color:#1D1D1F; outline:none; resize:none; font-family:inherit;"
+          onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'"></textarea>
+      </div>
+
+      <div id="transf-erro" style="display:none; background:#fee2e2; color:#991b1b; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px;"></div>
+
+      <div style="display:flex; gap:12px;">
+        <button type="button" onclick="fecharModalTransferencia()"
+          style="flex:1; min-height:44px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; font-weight:600; color:#1D1D1F; background:#fff; cursor:pointer; font-family:inherit;">
+          Cancelar
+        </button>
+        <button type="button" id="btn-confirmar-transf" onclick="confirmarTransferencia()"
+          style="flex:2; min-height:44px; border:none; border-radius:12px; font-size:15px; font-weight:700; color:#fff; background:#007AFF; cursor:pointer; font-family:inherit;">
+          Transferir
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Notificações -->
+<div id="notif-transferencia" style="display:none; position:fixed; bottom:24px; right:24px; background:#007AFF; color:#fff; border-radius:14px; padding:14px 22px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 4px 24px rgba(0,122,255,0.35); font-family:-apple-system,sans-serif;">
+  ✓ Transferência registrada com sucesso!
+</div>
+<div id="notif-edicao" style="display:none; position:fixed; bottom:24px; right:24px; background:#16a34a; color:#fff; border-radius:14px; padding:14px 22px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 4px 24px rgba(22,163,74,0.35); font-family:-apple-system,sans-serif;">
+  ✓ Fechamento atualizado com sucesso!
+</div>
+
+<script>
+  const URL_TRANSFERIR_BANCO = "{% url 'financials:transferir_caixaadm_banco' %}";
+  const URL_ATUALIZAR_FECHAMENTO = "{% url 'financials:atualizar_fechamento_caixa' %}";
+
+  // ── Editar ───────────────────────────────────────────────────────────────
+  function abrirModalEditar(fechId, dataStr, troco, dinheiro, debito, credito, pix, sangrias) {
+    document.getElementById('editar-fechamento-id').value = fechId;
+    document.getElementById('editar-subtitulo').textContent = 'Caixa de ' + dataStr;
+    document.getElementById('editar-troco').value    = troco.replace(',', '.');
+    document.getElementById('editar-dinheiro').value = dinheiro.replace(',', '.');
+    document.getElementById('editar-debito').value   = debito.replace(',', '.');
+    document.getElementById('editar-credito').value  = credito.replace(',', '.');
+    document.getElementById('editar-pix').value      = pix.replace(',', '.');
+    document.getElementById('editar-sangrias').value = sangrias.replace(',', '.');
+    document.getElementById('editar-observacao').value = '';
+    document.getElementById('editar-erro').style.display = 'none';
+    atualizarTotalPreview();
+
+    // Histórico de ajustes
+    var srcEl = document.getElementById('ajustes-' + fechId);
+    var corpo = document.getElementById('editar-historico-corpo');
+    var wrapper = document.getElementById('editar-historico-wrapper');
+    if (srcEl) {
+      corpo.innerHTML = srcEl.innerHTML;
+      wrapper.style.display = 'block';
+    } else {
+      corpo.innerHTML = '';
+      wrapper.style.display = 'none';
+    }
+
+    document.getElementById('modal-editar').style.display = 'flex';
+  }
+
+  function fecharModalEditar() {
+    document.getElementById('modal-editar').style.display = 'none';
+  }
+
+  document.getElementById('modal-editar').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalEditar();
+  });
+
+  function _parseVal(id) {
+    return parseFloat(document.getElementById(id).value) || 0;
+  }
+
+  function atualizarTotalPreview() {
+    var entradas = _parseVal('editar-dinheiro') + _parseVal('editar-debito') +
+                   _parseVal('editar-credito') + _parseVal('editar-pix');
+    var total = entradas - _parseVal('editar-sangrias');
+    document.getElementById('editar-total-preview').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+  }
+
+  ['editar-dinheiro','editar-debito','editar-credito','editar-pix','editar-sangrias','editar-troco'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', atualizarTotalPreview);
+  });
+
+  async function salvarEdicao() {
+    const erroEl = document.getElementById('editar-erro');
+    erroEl.style.display = 'none';
+    const observacao = document.getElementById('editar-observacao').value.trim();
+    if (!observacao) {
+      erroEl.textContent = 'Informe o motivo do ajuste.';
+      erroEl.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('btn-salvar-edicao');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    try {
+      const form = document.getElementById('form-editar');
+      const fd = new FormData(form);
+      const resp = await fetch(URL_ATUALIZAR_FECHAMENTO, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: fd,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        fecharModalEditar();
+        document.getElementById('notif-edicao').style.display = 'block';
+        setTimeout(() => { location.reload(); }, 1200);
+      } else {
+        erroEl.textContent = data.error || 'Erro ao salvar ajuste.';
+        erroEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Salvar Ajuste';
+      }
+    } catch (e) {
+      erroEl.textContent = 'Erro de conexão.';
+      erroEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Salvar Ajuste';
+    }
+  }
+
+
+  function abrirTransfMetodo(dataStr, metodo, valorStr) {
+    _resetTransfModal();
+    document.getElementById('transf-data-caixa').value = dataStr;
+    document.getElementById('transf-valor').value = valorStr.replace(',', '.');
+    // pré-seleciona o método
+    var radio = document.getElementById('metodo-' + metodo);
+    if (radio) { radio.checked = true; onMetodoChange(metodo); }
+    document.getElementById('modal-transferencia').style.display = 'flex';
+  }
+
+  // ── Transferir ───────────────────────────────────────────────────────────
+  function _resetTransfModal() {
+    document.getElementById('transf-data-caixa').value = '';
+    document.getElementById('transf-banco').value = '';
+    document.getElementById('transf-valor').value = '';
+    document.getElementById('transf-obs').value = '';
+    document.getElementById('transf-erro').style.display = 'none';
+    // reset método
+    document.querySelectorAll('input[name="metodo_pagamento"]').forEach(r => r.checked = false);
+    document.querySelectorAll('.metodo-chip').forEach(c => {
+      c.style.borderColor = '#D1D1D6'; c.style.color = '#8E8E93'; c.style.background = '#fff';
+    });
+    document.getElementById('transf-bandeira-wrapper').style.display = 'none';
+    var b = document.getElementById('transf-bandeira');
+    if (b) b.value = '';
+  }
+
+  function onMetodoChange(val) {
+    document.querySelectorAll('.metodo-chip').forEach(c => {
+      const active = c.dataset.val === val;
+      c.style.borderColor = active ? '#007AFF' : '#D1D1D6';
+      c.style.color       = active ? '#007AFF' : '#8E8E93';
+      c.style.background  = active ? '#EFF6FF' : '#fff';
+      c.style.fontWeight  = active ? '700' : '600';
+    });
+    var wrapper = document.getElementById('transf-bandeira-wrapper');
+    wrapper.style.display = (val === 'credito' || val === 'debito') ? 'block' : 'none';
+  }
+
+  // Chips clicáveis mesmo clicando no div (DOM já está pronto — script está no fim da página)
+  document.querySelectorAll('.metodo-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var val = chip.dataset.val;
+      var radio = document.getElementById('metodo-' + val);
+      if (radio) { radio.checked = true; onMetodoChange(val); }
+    });
+  });
+
+  function abrirModalTransferencia() {
+    _resetTransfModal();
+    document.getElementById('modal-transferencia').style.display = 'flex';
+  }
+
+  function abrirModalTransferenciaCard(dataStr, valorStr) {
+    _resetTransfModal();
+    document.getElementById('transf-data-caixa').value = dataStr;
+    document.getElementById('transf-valor').value = valorStr.replace(',', '.');
+    document.getElementById('modal-transferencia').style.display = 'flex';
+  }
+
+  function fecharModalTransferencia() {
+    document.getElementById('modal-transferencia').style.display = 'none';
+  }
+
+  document.getElementById('modal-transferencia').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalTransferencia();
+  });
+
+  async function confirmarTransferencia() {
+    const erroEl = document.getElementById('transf-erro');
+    erroEl.style.display = 'none';
+    const bancoId = document.getElementById('transf-banco').value;
+    const valor   = document.getElementById('transf-valor').value.trim();
+    const metodo  = document.querySelector('input[name="metodo_pagamento"]:checked');
+
+    if (!bancoId) { erroEl.textContent = 'Selecione um banco destino.'; erroEl.style.display = 'block'; return; }
+    if (!valor || parseFloat(valor) <= 0) { erroEl.textContent = 'Informe um valor válido.'; erroEl.style.display = 'block'; return; }
+    if (!metodo) { erroEl.textContent = 'Selecione o método de pagamento.'; erroEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('btn-confirmar-transf');
+    btn.disabled = true;
+    btn.textContent = 'Aguarde...';
+
+    try {
+      const form = document.getElementById('form-transferencia');
+      const fd = new FormData(form);
+      const resp = await fetch(URL_TRANSFERIR_BANCO, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: fd,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        fecharModalTransferencia();
+        document.getElementById('notif-transferencia').style.display = 'block';
+        setTimeout(() => { location.reload(); }, 1200);
+      } else {
+        erroEl.textContent = data.error || 'Erro ao registrar transferência.';
+        erroEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Transferir';
+      }
+    } catch (e) {
+      erroEl.textContent = 'Erro de conexão.';
+      erroEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Transferir';
+    }
+  }
+</script>
+{% endblock %}

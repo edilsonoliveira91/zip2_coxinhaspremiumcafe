@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia
+from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia, AjusteFechamentoCaixaDiario
 from django.views import View
 from config.models import ConfigTrocoInicial, SystemConfig
 from products.models import Product
@@ -621,6 +621,18 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
                 if tem_novo:
                     datas_abertas.append(data)
 
+        # Pré-carrega despesas por data para os dias abertos
+        datas_abertas_set = set(datas_abertas)
+        malotes_abertos = (
+            CaixaAdm.objects
+            .filter(fechamento__data__in=datas_abertas_set)
+            .prefetch_related('despesas', 'despesas__registrado_por')
+            .select_related('fechamento')
+        )
+        despesas_por_data = {}
+        for malote in malotes_abertos:
+            despesas_por_data[malote.fechamento.data] = list(malote.despesas.all())
+
         dias_abertos = []
         for data in datas_abertas:
             extrato = self._calcular_extrato(data)
@@ -630,9 +642,15 @@ class FechamentoCaixaDiarioView(LoginRequiredMixin, PermissionRequiredMixin, Tem
                 'data_iso': data.strftime('%Y-%m-%d'),
                 'eh_hoje': data == today,
                 'extrato': extrato,
+                'despesas': despesas_por_data.get(data, []),
             })
 
-        historico = FechamentoCaixaDiario.objects.select_related('fechado_por').order_by('-data')[:30]
+        historico = (
+            FechamentoCaixaDiario.objects
+            .select_related('fechado_por', 'malote')
+            .prefetch_related('malote__despesas', 'malote__despesas__registrado_por')
+            .order_by('-data')[:30]
+        )
 
         # Totais de malotes
         agg_aberto = CaixaAdm.objects.filter(concluido=False).aggregate(
@@ -1058,6 +1076,107 @@ class RegistrarDespesaMaloteView(LoginRequiredMixin, View):
         })
 
 
+class RegistrarDespesaFechamentoView(LoginRequiredMixin, View):
+    """
+    POST: registra uma despesa em um FechamentoCaixaDiario.
+    Auto-cria o CaixaAdm (malote) se ainda não existir.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from django.shortcuts import get_object_or_404
+        fechamento = get_object_or_404(FechamentoCaixaDiario, pk=pk)
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        descricao = request.POST.get('descricao', '').strip()
+        comprovante = request.FILES.get('comprovante')
+
+        if not valor_raw or not descricao:
+            return JsonResponse({'ok': False, 'error': 'Campos obrigatórios faltando.'}, status=400)
+
+        try:
+            valor = Decimal(valor_raw)
+            if valor <= 0:
+                raise ValueError
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
+
+        malote, _ = CaixaAdm.objects.get_or_create(
+            fechamento=fechamento,
+            defaults={'enviado_por': request.user},
+        )
+
+        despesa = DespesaMalote.objects.create(
+            malote=malote,
+            valor=valor,
+            descricao=descricao,
+            comprovante=comprovante,
+            registrado_por=request.user,
+        )
+        return JsonResponse({
+            'ok': True,
+            'despesa_id': despesa.pk,
+            'valor': str(despesa.valor),
+            'descricao': despesa.descricao,
+            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+        })
+
+
+class RegistrarDespesaDiaView(LoginRequiredMixin, View):
+    """
+    POST: registra uma despesa via data_iso (para cards de dia aberto).
+    Cria ou atualiza o FechamentoCaixaDiario stub e auto-cria o CaixaAdm.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from datetime import datetime as dt_cls
+        data_iso = request.POST.get('data_iso', '').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        descricao = request.POST.get('descricao', '').strip()
+        comprovante = request.FILES.get('comprovante')
+
+        if not data_iso or not valor_raw or not descricao:
+            return JsonResponse({'ok': False, 'error': 'Campos obrigatórios faltando.'}, status=400)
+
+        try:
+            data = dt_cls.strptime(data_iso, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'ok': False, 'error': 'Data inválida.'}, status=400)
+
+        try:
+            valor = Decimal(valor_raw)
+            if valor <= 0:
+                raise ValueError
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
+
+        # Obtém o fechamento existente; se não existir, cria um stub com valores zerados
+        fechamento, _ = FechamentoCaixaDiario.objects.get_or_create(
+            data=data,
+            defaults={'fechado_por': request.user},
+        )
+
+        malote, _ = CaixaAdm.objects.get_or_create(
+            fechamento=fechamento,
+            defaults={'enviado_por': request.user},
+        )
+
+        despesa = DespesaMalote.objects.create(
+            malote=malote,
+            valor=valor,
+            descricao=descricao,
+            comprovante=comprovante,
+            registrado_por=request.user,
+        )
+        return JsonResponse({
+            'ok': True,
+            'despesa_id': despesa.pk,
+            'valor': str(despesa.valor),
+            'descricao': despesa.descricao,
+            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+        })
+
+
 class ConcluirMaloteView(LoginRequiredMixin, View):
     """
     POST: marca um malote como concluído/conferido.
@@ -1092,15 +1211,19 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         from banks.models import Bank, BankTransaction
         from django.shortcuts import get_object_or_404
 
-        banco_id = request.POST.get('banco_id', '').strip()
+        banco_id  = request.POST.get('banco_id', '').strip()
         valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
-        descricao = request.POST.get('descricao', '').strip() or 'Transferência do Caixa ADM'
+        metodo    = request.POST.get('metodo_pagamento', 'dinheiro').strip()
+        bandeira  = request.POST.get('bandeira', '').strip()
         observacao = request.POST.get('observacao', '').strip()
+        data_caixa_raw = request.POST.get('data_caixa', '').strip()
 
         if not banco_id:
             return JsonResponse({'ok': False, 'error': 'Selecione um banco destino.'}, status=400)
         if not valor_raw:
             return JsonResponse({'ok': False, 'error': 'Informe o valor.'}, status=400)
+        if not metodo:
+            return JsonResponse({'ok': False, 'error': 'Selecione o método de pagamento.'}, status=400)
 
         try:
             valor = Decimal(valor_raw)
@@ -1109,7 +1232,54 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         except Exception:
             return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
 
+        # data_caixa: vem como DD/MM/YYYY do template
+        data_caixa = None
+        if data_caixa_raw:
+            from datetime import datetime, timedelta
+            try:
+                data_caixa = datetime.strptime(data_caixa_raw, '%d/%m/%Y').date()
+            except ValueError:
+                try:
+                    data_caixa = datetime.strptime(data_caixa_raw, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+
+        metodos_validos = {'dinheiro', 'debito', 'credito', 'pix'}
+        if metodo not in metodos_validos:
+            metodo = 'dinheiro'
+
+        # Calcula data prevista de liquidação com base na pinpad ativa
+        from pinpads.models import Pinpad
+        from datetime import date as date_type, timedelta
+        from django.utils import timezone
+
+        pinpad = Pinpad.objects.filter(is_active=True).first()
+        data_base = data_caixa or date_type.today()
+
+        if pinpad:
+            dias_map = {
+                'credito': pinpad.dias_credito,
+                'debito':  pinpad.dias_debito,
+                'pix':     pinpad.dias_pix,
+                'dinheiro': 0,
+            }
+            dias = dias_map.get(metodo, 0)
+        else:
+            dias = 0
+
+        data_prevista_liquidacao = data_base + timedelta(days=dias)
+
+        # Data da BankTransaction = data de liquidação (futura se dias > 0)
+        import datetime as _dt
+        data_tx = timezone.make_aware(
+            _dt.datetime.combine(data_prevista_liquidacao, _dt.time(23, 59))
+        )
+
         banco = get_object_or_404(Bank, pk=banco_id)
+
+        descricao = f"Caixa {data_caixa_raw} — {dict(CaixaAdmTransferencia.METODO_CHOICES).get(metodo, metodo)}"
+        if bandeira:
+            descricao += f" ({bandeira})"
 
         BankTransaction.objects.create(
             bank=banco,
@@ -1117,6 +1287,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
             descricao=descricao,
             valor=valor,
             is_entrada=True,
+            data=data_tx,
             observacao=observacao,
             criado_por=request.user,
         )
@@ -1124,6 +1295,10 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         CaixaAdmTransferencia.objects.create(
             banco_destino=banco,
             valor=valor,
+            metodo_pagamento=metodo,
+            bandeira=bandeira,
+            data_caixa=data_caixa,
+            data_prevista_liquidacao=data_prevista_liquidacao,
             descricao=descricao,
             observacao=observacao,
             criado_por=request.user,
@@ -1134,3 +1309,196 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
             'banco': banco.nome,
             'valor': str(valor),
         })
+
+
+class ConciliarTransferenciaView(LoginRequiredMixin, View):
+    """
+    POST: marca uma CaixaAdmTransferencia como conciliada e antecipa a
+    BankTransaction correspondente para a data de hoje.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from banks.models import BankTransaction
+        from django.utils import timezone
+        from django.shortcuts import get_object_or_404
+
+        transferencia = get_object_or_404(CaixaAdmTransferencia, pk=pk)
+
+        if transferencia.conciliado:
+            return JsonResponse({'ok': False, 'error': 'Já conciliada.'}, status=400)
+
+        agora = timezone.now()
+
+        # Atualiza a BankTransaction futura para hoje
+        BankTransaction.objects.filter(
+            bank=transferencia.banco_destino,
+            is_entrada=True,
+            valor=transferencia.valor,
+            descricao=transferencia.descricao,
+            data__date__gt=agora.date(),
+        ).update(data=agora)
+
+        transferencia.conciliado = True
+        transferencia.conciliado_em = agora
+        transferencia.conciliado_por = request.user
+        transferencia.save(update_fields=['conciliado', 'conciliado_em', 'conciliado_por'])
+
+        return JsonResponse({'ok': True})
+
+
+class AtualizarFechamentoCaixaView(LoginRequiredMixin, View):
+    """
+    POST: atualiza os valores de um FechamentoCaixaDiario e registra um
+    AjusteFechamentoCaixaDiario como auditoria da alteração.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        from django.shortcuts import get_object_or_404
+
+        fechamento_id = request.POST.get('fechamento_id', '').strip()
+        observacao = request.POST.get('observacao', '').strip()
+
+        if not fechamento_id:
+            return JsonResponse({'ok': False, 'error': 'Fechamento não informado.'}, status=400)
+
+        def _dec(key):
+            raw = request.POST.get(key, '0').replace(',', '.').strip()
+            try:
+                v = Decimal(raw)
+                return v if v >= 0 else Decimal('0.00')
+            except Exception:
+                return Decimal('0.00')
+
+        fechamento = get_object_or_404(FechamentoCaixaDiario, pk=fechamento_id)
+
+        # Captura valores ANTES do ajuste
+        prev_valor_inicial  = fechamento.valor_inicial
+        prev_total_dinheiro = fechamento.total_dinheiro
+        prev_total_debito   = fechamento.total_debito
+        prev_total_credito  = fechamento.total_credito
+        prev_total_pix      = fechamento.total_pix
+        prev_total_sangrias = fechamento.total_sangrias
+        prev_total_final    = fechamento.total_final
+
+        valor_inicial  = _dec('valor_inicial')
+        total_dinheiro = _dec('total_dinheiro')
+        total_debito   = _dec('total_debito')
+        total_credito  = _dec('total_credito')
+        total_pix      = _dec('total_pix')
+        total_sangrias = _dec('total_sangrias')
+        total_entradas = total_dinheiro + total_debito + total_credito + total_pix
+        total_final    = total_entradas - total_sangrias
+
+        fechamento.valor_inicial  = valor_inicial
+        fechamento.total_dinheiro = total_dinheiro
+        fechamento.total_debito   = total_debito
+        fechamento.total_credito  = total_credito
+        fechamento.total_pix      = total_pix
+        fechamento.total_sangrias = total_sangrias
+        fechamento.total_entradas = total_entradas
+        fechamento.total_final    = total_final
+        fechamento.save()
+
+        AjusteFechamentoCaixaDiario.objects.create(
+            fechamento=fechamento,
+            ajustado_por=request.user,
+            # Antes
+            prev_valor_inicial=prev_valor_inicial,
+            prev_total_dinheiro=prev_total_dinheiro,
+            prev_total_debito=prev_total_debito,
+            prev_total_credito=prev_total_credito,
+            prev_total_pix=prev_total_pix,
+            prev_total_sangrias=prev_total_sangrias,
+            prev_total_final=prev_total_final,
+            # Depois
+            valor_inicial=valor_inicial,
+            total_dinheiro=total_dinheiro,
+            total_debito=total_debito,
+            total_credito=total_credito,
+            total_pix=total_pix,
+            total_sangrias=total_sangrias,
+            total_entradas=total_entradas,
+            total_final=total_final,
+            observacao=observacao,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'total_final': str(total_final),
+            'total_entradas': str(total_entradas),
+        })
+
+
+class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Exibe todos os FechamentoCaixaDiario como cards — assim que o caixa é
+    fechado, aparece automaticamente aqui para conferência e transferência.
+    """
+    permission_required = 'financials.view_caixaadm'
+    template_name = 'financials/conferencia_caixa.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fechamentos = (
+            FechamentoCaixaDiario.objects
+            .select_related('fechado_por', 'malote', 'malote__concluido_por')
+            .prefetch_related('malote__despesas', 'ajustes', 'ajustes__ajustado_por')
+            .order_by('-data')
+        )
+        total_geral = fechamentos.aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+        total_dinheiro = fechamentos.aggregate(
+            total=Sum('total_dinheiro')
+        )['total'] or Decimal('0.00')
+        total_transferencias = CaixaAdmTransferencia.objects.aggregate(
+            total=Sum('valor')
+        )['total'] or Decimal('0.00')
+
+        from banks.models import Bank
+        from pinpads.models import Pinpad
+
+        # Monta lookup de transferências por (data_caixa, metodo)
+        transf_rows = (
+            CaixaAdmTransferencia.objects
+            .values('data_caixa', 'metodo_pagamento')
+            .annotate(total=Sum('valor'))
+        )
+        transf_lookup = {
+            (r['data_caixa'], r['metodo_pagamento']): r['total'] or Decimal('0')
+            for r in transf_rows
+        }
+
+        # Anota cada fechamento com restantes por método
+        fechamentos_list = list(fechamentos)
+        for f in fechamentos_list:
+            t_din = transf_lookup.get((f.data, 'dinheiro'), Decimal('0'))
+            t_deb = transf_lookup.get((f.data, 'debito'),   Decimal('0'))
+            t_cre = transf_lookup.get((f.data, 'credito'),  Decimal('0'))
+            t_pix = transf_lookup.get((f.data, 'pix'),      Decimal('0'))
+            f.transf_dinheiro = t_din
+            f.transf_debito   = t_deb
+            f.transf_credito  = t_cre
+            f.transf_pix      = t_pix
+            f.rest_dinheiro   = max(f.total_dinheiro - t_din, Decimal('0'))
+            f.rest_debito     = max(f.total_debito   - t_deb, Decimal('0'))
+            f.rest_credito    = max(f.total_credito  - t_cre, Decimal('0'))
+            f.rest_pix        = max(f.total_pix      - t_pix, Decimal('0'))
+            f.total_transferido = t_din + t_deb + t_cre + t_pix
+            f.total_restante    = max(f.total_final - f.total_transferido, Decimal('0'))
+
+        pinpad_ativo = Pinpad.objects.filter(is_active=True).prefetch_related('bandeiras').first()
+        context['fechamentos'] = fechamentos_list
+        context['total_geral'] = total_geral
+        context['total_dinheiro'] = total_dinheiro
+        context['total_transferencias'] = total_transferencias
+        context['banks'] = Bank.objects.order_by('nome')
+        context['bandeiras_pinpad'] = list(pinpad_ativo.bandeiras.values('nome')) if pinpad_ativo else []
+        context['metodos_pagamento'] = CaixaAdmTransferencia.METODO_CHOICES
+        context['transferencias_recentes'] = CaixaAdmTransferencia.objects.select_related(
+            'banco_destino', 'criado_por'
+        )[:10]
+        return context

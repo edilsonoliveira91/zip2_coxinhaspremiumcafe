@@ -160,6 +160,27 @@ class CaixaAdmTransferencia(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name="Valor",
     )
+    METODO_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('debito',   'Débito'),
+        ('credito',  'Crédito'),
+        ('pix',      'PIX'),
+    ]
+    metodo_pagamento = models.CharField(
+        max_length=10, choices=METODO_CHOICES, default='dinheiro', verbose_name="Método"
+    )
+    bandeira = models.CharField(max_length=100, blank=True, verbose_name="Bandeira")
+    data_caixa = models.DateField(null=True, blank=True, verbose_name="Data do Caixa")
+    data_prevista_liquidacao = models.DateField(null=True, blank=True, verbose_name="Data prevista de liquidação")
+    conciliado = models.BooleanField(default=False, verbose_name="Conciliado")
+    conciliado_em = models.DateTimeField(null=True, blank=True, verbose_name="Conciliado em")
+    conciliado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='transferencias_conciliadas',
+        verbose_name="Conciliado por",
+    )
     descricao = models.CharField(max_length=200, verbose_name="Descrição", blank=True)
     observacao = models.TextField(blank=True, verbose_name="Observação")
     criado_por = models.ForeignKey(
@@ -219,3 +240,65 @@ class DespesaMalote(models.Model):
 
     def __str__(self):
         return f"Despesa R$ {self.valor} - {self.malote} - {self.descricao[:40]}"
+
+
+class AjusteFechamentoCaixaDiario(models.Model):
+    """
+    Auditoria de cada edição manual em um FechamentoCaixaDiario.
+    Armazena valores ANTES (prev_*) e DEPOIS do ajuste para exibir o diff.
+    """
+    fechamento = models.ForeignKey(
+        FechamentoCaixaDiario,
+        on_delete=models.CASCADE,
+        related_name='ajustes',
+        verbose_name="Fechamento",
+    )
+    ajustado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='ajustes_fechamento',
+        verbose_name="Ajustado por",
+    )
+    ajustado_em = models.DateTimeField(auto_now_add=True, verbose_name="Ajustado em")
+
+    # Valores ANTES do ajuste
+    prev_valor_inicial  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Troco Inicial (antes)")
+    prev_total_dinheiro = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Dinheiro (antes)")
+    prev_total_debito   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Débito (antes)")
+    prev_total_credito  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Crédito (antes)")
+    prev_total_pix      = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="PIX (antes)")
+    prev_total_sangrias = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Sangrias (antes)")
+    prev_total_final    = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Final (antes)")
+
+    # Valores DEPOIS do ajuste
+    valor_inicial  = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Troco Inicial (depois)")
+    total_dinheiro = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Dinheiro (depois)")
+    total_debito   = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Débito (depois)")
+    total_credito  = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Crédito (depois)")
+    total_pix      = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="PIX (depois)")
+    total_sangrias = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Sangrias (depois)")
+    total_entradas = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total Entradas (depois)")
+    total_final    = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total Final (depois)")
+
+    observacao = models.TextField(blank=True, verbose_name="Motivo do ajuste")
+
+    class Meta:
+        verbose_name = "Ajuste de Fechamento"
+        verbose_name_plural = "Ajustes de Fechamento"
+        ordering = ['-ajustado_em']
+
+    def __str__(self):
+        return f"Ajuste {self.fechamento.data} por {self.ajustado_por} em {self.ajustado_em:%d/%m/%Y %H:%M}"
+
+    def campos_alterados(self):
+        """Retorna lista de (label, valor_antes, valor_depois) apenas dos campos que mudaram."""
+        campos = [
+            ('Dinheiro',      self.prev_total_dinheiro, self.total_dinheiro),
+            ('Débito',        self.prev_total_debito,   self.total_debito),
+            ('Crédito',       self.prev_total_credito,  self.total_credito),
+            ('PIX',           self.prev_total_pix,      self.total_pix),
+            ('Troco Inicial', self.prev_valor_inicial,  self.valor_inicial),
+            ('Sangrias',      self.prev_total_sangrias, self.total_sangrias),
+        ]
+        return [(label, antes, depois) for label, antes, depois in campos if antes != depois]

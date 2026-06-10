@@ -118,22 +118,48 @@
 
           </div>
 
+          <!-- Despesas do dia (se houver) -->
+          {% if dia.despesas %}
+          <div id="despesas-lista-{{ dia.data_iso }}" class="px-6 pt-2 border-t border-gray-100 mt-0">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Despesas</div>
+            {% for despesa in dia.despesas %}
+            <div style="background:#fef9f0; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                <span style="font-size:12px; color:#374151; font-weight:600;">{{ despesa.descricao }}</span>
+                <span style="font-size:12px; font-weight:700; color:#dc2626;">R$ {{ despesa.valor|floatformat:2 }}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:10px; color:#9ca3af;">{{ despesa.registrado_em|date:"d/m/Y H:i" }}</span>
+                {% if despesa.comprovante %}
+                <a href="{{ despesa.comprovante.url }}" target="_blank" style="font-size:10px; color:#2563eb; font-weight:600; text-decoration:underline;">📎 Ver comprovante</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
           <!-- Formulário de fechamento -->
-          <div class="px-6 pb-6 pt-8 border-t border-gray-100">
+          <div class="px-6 pb-6 pt-4 border-t border-gray-100">
             <form method="post" action="{% url 'financials:realizar_fechamento' %}" id="form-{{ dia.data_iso }}">
               {% csrf_token %}
               <input type="hidden" name="data" value="{{ dia.data_iso }}">
               <label class="block text-xs font-medium text-gray-500 mb-1">Observação</label>
               <textarea name="observacao" rows="2"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 mb-4"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 mb-3"
                 placeholder="Ex: movimento normal..."></textarea>
-              <button type="button" onclick="confirmarFechamento('{{ dia.data_iso }}', '{{ dia.data_fmt }}')"
-                style="background-color: #16a34a; color: white; width: 100%; padding: 10px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; font-size: 14px; transition: all 0.2s; margin-bottom: 10px;"
-                onmouseover="this.style.opacity='0.9'; this.style.transform='scale(1.02)'"
-                onmouseout="this.style.opacity='1'; this.style.transform='scale(1)'">
-                Fechar Caixa — {{ dia.data_fmt }}
-              </button>
             </form>
+            <div style="display:flex; gap:8px; margin-bottom:0;">
+              <button onclick="abrirModalDespesaDia('{{ dia.data_iso }}', '{{ dia.data_fmt }}')"
+                style="flex:1; text-align:center; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:8px 0; font-size:12px; font-weight:700; color:#991b1b; cursor:pointer;">
+                Despesa
+              </button>
+              <button type="button" onclick="confirmarFechamento('{{ dia.data_iso }}', '{{ dia.data_fmt }}')"
+                style="flex:1; background-color:#16a34a; color:white; padding:8px 0; border-radius:8px; font-weight:700; border:none; cursor:pointer; font-size:12px;"
+                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                ✓ Fechar Caixa
+              </button>
+            </div>
           </div>
 
         </div>
@@ -416,92 +442,151 @@ document.getElementById('modal-malote').addEventListener('click', function(e) {
 });
 </script>
 
-<!-- Modal confirmação de malote -->
-<div id="modal-malote" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:9998; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); border:1px solid #e5e7eb; width:100%; max-width:320px; margin:0 auto;">
-    <div style="padding:20px 20px 12px;">
-      <p style="font-size:14px; font-weight:600; color:#111827; margin:0 0 6px;">Enviar Malote</p>
-      <p style="font-size:12px; color:#6b7280; margin:0;" id="modal-malote-texto">Confirma o envio do malote?</p>
-    </div>
-    <div style="padding:0 20px 20px; display:flex; gap:8px;">
-      <button onclick="fecharModalMalote()"
-        style="flex:1; padding:9px; background:#f3f4f6; border:none; border-radius:8px; font-size:13px; font-weight:500; color:#4b5563; cursor:pointer;">
-        Cancelar
-      </button>
-      <button onclick="confirmarEnvioMalote()"
-        style="flex:1; padding:9px; background:#2563eb; border:none; border-radius:8px; font-size:13px; font-weight:600; color:#fff; cursor:pointer;">
-        Sim, enviar
-      </button>
-    </div>
+<!-- ===== MODAL DESPESA DIA ===== -->
+<div id="modal-despesa-dia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:440px; margin:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h2 style="font-size:18px; font-weight:700; color:#111827; margin-bottom:4px;">Registrar Despesa</h2>
+    <p id="despesa-dia-subtitulo" style="font-size:13px; color:#6b7280; margin-bottom:20px;">Vincule uma despesa a este caixa</p>
+    <form id="form-despesa-dia" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" id="despesa-dia-iso" value="">
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Valor *</label>
+        <div style="position:relative;">
+          <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#6b7280; font-size:14px;">R$</span>
+          <input id="despesa-dia-valor" name="valor" type="text" inputmode="decimal" placeholder="0,00"
+            style="width:100%; padding:10px 12px 10px 36px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; outline:none; box-sizing:border-box;"
+            onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Descrição *</label>
+        <input id="despesa-dia-descricao" name="descricao" type="text" placeholder="Ex: Troco, compra de material..."
+          style="width:100%; padding:10px 12px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; outline:none; box-sizing:border-box;"
+          onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Comprovante <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional</span></label>
+        <label for="despesa-dia-comprovante" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border:2px dashed #D1D1D6; border-radius:10px; cursor:pointer; background:#f9fafb;">
+          <svg xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;color:#6b7280;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span id="despesa-dia-comprovante-label" style="font-size:13px; color:#6b7280;">Foto ou documento (JPG, PNG, PDF)</span>
+        </label>
+        <input id="despesa-dia-comprovante" name="comprovante" type="file" accept="image/*,.pdf" style="display:none;"
+          onchange="document.getElementById('despesa-dia-comprovante-label').textContent = this.files.length ? this.files[0].name : 'Foto ou documento (JPG, PNG, PDF)'">
+      </div>
+      <div id="despesa-dia-erro" style="display:none; background:#fee2e2; color:#991b1b; border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:12px;"></div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="fecharModalDespesaDia()"
+          style="flex:1; padding:10px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; font-weight:600; color:#374151; background:#fff; cursor:pointer;">
+          Cancelar
+        </button>
+        <button type="button" onclick="salvarDespesaDia()"
+          style="flex:1; padding:10px; border:none; border-radius:10px; font-size:14px; font-weight:600; color:#fff; background:#dc2626; cursor:pointer;">
+          Registrar
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- Notificação malote -->
-<div id="notif-malote" style="display:none; position:fixed; bottom:24px; right:24px; z-index:10000; background:#065f46; color:#fff; border-radius:10px; padding:14px 20px; font-size:13px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,0.18);">
-  ✓ Malote enviado com sucesso!
+<!-- Notificação despesa dia -->
+<div id="notif-despesa-dia" style="display:none; position:fixed; bottom:24px; right:24px; background:#065f46; color:#fff; border-radius:12px; padding:14px 20px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+  ✓ Despesa registrada com sucesso!
 </div>
 
 <script>
-var maloteFechamentoIdAtual = null;
-var maloteDateFmtAtual = null;
-var maloteUrl = "{% url 'financials:enviar_malote' %}";
-var csrfToken = "{{ csrf_token }}";
+var despesaDiaIsoAtual = null;
 
-function abrirModalMalote(fechamentoId, dateFmt) {
-  maloteFechamentoIdAtual = fechamentoId;
-  maloteDateFmtAtual = dateFmt;
-  document.getElementById('modal-malote-texto').innerHTML =
-    'Tem certeza que deseja enviar o malote do dia <strong>' + dateFmt + '</strong>?';
-  document.getElementById('modal-malote').style.display = 'flex';
+function abrirModalDespesaDia(dataIso, dataFmt) {
+  despesaDiaIsoAtual = dataIso;
+  document.getElementById('despesa-dia-iso').value = dataIso;
+  document.getElementById('despesa-dia-subtitulo').textContent = 'Caixa do dia ' + dataFmt;
+  document.getElementById('despesa-dia-valor').value = '';
+  document.getElementById('despesa-dia-descricao').value = '';
+  document.getElementById('despesa-dia-comprovante').value = '';
+  document.getElementById('despesa-dia-comprovante-label').textContent = 'Foto ou documento (JPG, PNG, PDF)';
+  document.getElementById('despesa-dia-erro').style.display = 'none';
+  document.getElementById('modal-despesa-dia').style.display = 'flex';
 }
 
-function fecharModalMalote() {
-  document.getElementById('modal-malote').style.display = 'none';
-  maloteFechamentoIdAtual = null;
+function fecharModalDespesaDia() {
+  document.getElementById('modal-despesa-dia').style.display = 'none';
+  despesaDiaIsoAtual = null;
 }
 
-function confirmarEnvioMalote() {
-  if (!maloteFechamentoIdAtual) return;
-  var id = maloteFechamentoIdAtual;
-  fecharModalMalote();
-
-  var formData = new FormData();
-  formData.append('fechamento_id', id);
-  formData.append('csrfmiddlewaretoken', csrfToken);
-
-  fetch(maloteUrl, {
-    method: 'POST',
-    body: formData,
-    credentials: 'same-origin',
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.ok) {
-      var row = document.getElementById('row-malote-' + id);
-      var btn = document.getElementById('btn-malote-' + id);
-      if (row) {
-        row.style.backgroundColor = '#f0fdf4';
-      }
-      if (btn) {
-        btn.disabled = true;
-        btn.style.background = '#d1fae5';
-        btn.style.border = '1px solid #6ee7b7';
-        btn.style.color = '#065f46';
-        btn.style.cursor = 'default';
-        btn.textContent = '✓ MALOTE ENVIADO';
-        btn.removeAttribute('onclick');
-      }
-      var notif = document.getElementById('notif-malote');
-      notif.style.display = 'block';
-      setTimeout(function() { notif.style.display = 'none'; }, 3000);
-    }
-  })
-  .catch(function() {});
-}
-
-document.getElementById('modal-malote').addEventListener('click', function(e) {
-  if (e.target === this) fecharModalMalote();
+document.getElementById('modal-despesa-dia').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalDespesaDia();
 });
-</script>
 
+async function salvarDespesaDia() {
+  var erroEl = document.getElementById('despesa-dia-erro');
+  erroEl.style.display = 'none';
+  var dataIso = document.getElementById('despesa-dia-iso').value;
+  var valor = document.getElementById('despesa-dia-valor').value.trim();
+  var descricao = document.getElementById('despesa-dia-descricao').value.trim();
+
+  if (!valor) { erroEl.textContent = 'Informe o valor.'; erroEl.style.display = 'block'; return; }
+  if (!descricao) { erroEl.textContent = 'Informe a descrição.'; erroEl.style.display = 'block'; return; }
+
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('data_iso', dataIso);
+  fd.append('valor', valor);
+  fd.append('descricao', descricao);
+  var comprovante = document.getElementById('despesa-dia-comprovante');
+  if (comprovante.files.length > 0) fd.append('comprovante', comprovante.files[0]);
+
+  var btn = document.querySelector('#modal-despesa-dia button[onclick="salvarDespesaDia()"]');
+  btn.disabled = true; btn.textContent = 'Aguarde...';
+
+  try {
+    var resp = await fetch('/financials/api/despesa-dia/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: fd,
+    });
+    var data = await resp.json();
+    if (data.ok) {
+      fecharModalDespesaDia();
+      // Injeta despesa no card
+      var cardId = 'card-' + dataIso;
+      var card = document.getElementById(cardId);
+      if (card) {
+        var despesasDiv = document.getElementById('despesas-lista-' + dataIso);
+        if (!despesasDiv) {
+          // Cria o bloco de despesas se não existe
+          var bordaT = card.querySelector('.border-t.border-gray-100');
+          var novaDiv = document.createElement('div');
+          novaDiv.id = 'despesas-lista-' + dataIso;
+          novaDiv.style.cssText = 'padding:8px 24px 4px;border-top:1px solid #f3f4f6;';
+          novaDiv.innerHTML = '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Despesas</div>';
+          if (bordaT) { card.insertBefore(novaDiv, bordaT); }
+          despesasDiv = novaDiv;
+        }
+        var item = document.createElement('div');
+        item.style.cssText = 'background:#fef9f0;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:6px;';
+        item.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;">'
+          + '<span style="font-size:12px;color:#374151;font-weight:600;">' + data.descricao + '</span>'
+          + '<span style="font-size:12px;font-weight:700;color:#dc2626;">R$ ' + parseFloat(data.valor).toFixed(2).replace('.', ',') + '</span>'
+          + '</div>'
+          + '<div style="font-size:10px;color:#9ca3af;margin-top:2px;">' + data.registrado_em + '</div>';
+        despesasDiv.appendChild(item);
+      }
+      var notif = document.getElementById('notif-despesa-dia');
+      notif.style.display = 'block';
+      setTimeout(function() { notif.style.display = 'none'; }, 2500);
+    } else {
+      erroEl.textContent = data.error || 'Erro ao registrar despesa.';
+      erroEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Registrar';
+    }
+  } catch(e) {
+    erroEl.textContent = 'Erro de conexão.';
+    erroEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Registrar';
+  }
+}
+</script>
 {% endblock %}

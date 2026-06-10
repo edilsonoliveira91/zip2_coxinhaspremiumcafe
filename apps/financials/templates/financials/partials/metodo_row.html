@@ -1,0 +1,19 @@
+<div class="flex items-center justify-between py-0.5">
+  <div style="display:flex;align-items:center;gap:4px;">
+    <span class="text-sm text-gray-600">{{ label }}</span>
+    {% if rest > 0 %}
+    <button onclick="abrirTransfMetodo('{{ data_card }}', '{{ metodo }}', '{{ rest|floatformat:2 }}')"
+            title="Transferir {{ label }}"
+            style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;background:transparent;border:none;cursor:pointer;padding:0;color:#007AFF;flex-shrink:0;">
+      <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+    </button>
+    {% endif %}
+  </div>
+  {% if rest <= 0 and transf > 0 %}
+  <span style="background:#e5e7eb;color:#9ca3af;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;">TRANSFERIDO</span>
+  {% else %}
+  <span class="text-sm font-bold {{ cor }}">R$ {{ rest|floatformat:2 }}</span>
+  {% endif %}
+</div>

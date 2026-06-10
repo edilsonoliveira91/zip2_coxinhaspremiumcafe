@@ -23,4 +23,9 @@ urlpatterns = [
     path('api/malote/despesa/', views.RegistrarDespesaMaloteView.as_view(), name='registrar_despesa_malote'),
     path('api/malote/concluir/', views.ConcluirMaloteView.as_view(), name='concluir_malote'),
     path('api/caixa-adm/transferir-banco/', views.TransferirCaixaAdmParaBancoView.as_view(), name='transferir_caixaadm_banco'),
+    path('api/transferencia/<int:pk>/conciliar/', views.ConciliarTransferenciaView.as_view(), name='conciliar_transferencia'),
+    path('conferencia-caixa/', views.ConferenciaCaixaView.as_view(), name='conferencia_caixa'),
+    path('api/fechamento/atualizar/', views.AtualizarFechamentoCaixaView.as_view(), name='atualizar_fechamento_caixa'),
+    path('api/fechamento/<int:pk>/despesa/', views.RegistrarDespesaFechamentoView.as_view(), name='registrar_despesa_fechamento'),
+    path('api/despesa-dia/', views.RegistrarDespesaDiaView.as_view(), name='registrar_despesa_dia'),
 ]
