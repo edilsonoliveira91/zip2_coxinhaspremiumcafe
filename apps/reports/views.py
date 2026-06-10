@@ -42,9 +42,9 @@ class NFCeReportView(BaseReportView):
         if not data_fim:
             data_fim = today.strftime('%Y-%m-%d')
 
-        # Busca comandas com NFCe emitida (fechada ou cortesia)
+        # Busca apenas comandas FECHADAS com NFCe emitida (cortesia e canceladas não emitem cupom)
         queryset = Comanda.objects.filter(
-            status__in=['fechada', 'cortesia'],
+            status='fechada',
             nfce_numero__isnull=False,
             nfce_emitida_em__date__gte=data_inicio,
             nfce_emitida_em__date__lte=data_fim,
@@ -60,9 +60,9 @@ class NFCeReportView(BaseReportView):
         total_valor = queryset.aggregate(total=Sum('total_amount'))['total'] or 0
         valor_medio = total_valor / total_cupons if total_cupons > 0 else 0
 
-        # Comandas finalizadas sem NFC-e no período
+        # Apenas comandas FECHADAS sem NFC-e (cortesia e canceladas nunca emitem cupom fiscal)
         sem_nfce_qs = Comanda.objects.filter(
-            status__in=['fechada', 'cortesia'],
+            status='fechada',
             nfce_emitida_em__isnull=True,
             created_at__date__gte=data_inicio,
             created_at__date__lte=data_fim,
