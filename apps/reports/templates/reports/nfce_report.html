@@ -545,6 +545,7 @@
 <script>
 const CSRF = '{{ csrf_token }}';
 let _pollingTimer = null;
+let _pollingFailCount = 0;
 
 function mostrarAba(aba) {
     const painelEmitidas = document.getElementById('painel-emitidas');
@@ -762,7 +763,9 @@ async function iniciarLote() {
 async function verificarStatus() {
     try {
         const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const s = await resp.json();
+        _pollingFailCount = 0;  // reset ao ter sucesso
 
         const total = s.total || 1;
         const proc = s.processados || 0;
@@ -808,7 +811,12 @@ async function verificarStatus() {
         }
 
     } catch(e) {
-        // silencia erros de polling
+        _pollingFailCount++;
+        if (_pollingFailCount >= 5) {
+            clearInterval(_pollingTimer);
+            document.getElementById('loteStatus').textContent = 'Erro de comunicação com o servidor. Atualize a página para verificar o status.';
+            document.getElementById('loteBtnFechar').classList.remove('hidden');
+        }
     }
 }
 </script>

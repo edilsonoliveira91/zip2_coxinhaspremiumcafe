@@ -334,9 +334,12 @@ class EmitirLoteView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         global _lote_state
 
+        # Verifica e reserva atomicamente — evita race condition se dois requests chegam juntos
         with _lote_lock:
             if _lote_state['running']:
                 return JsonResponse({'ok': False, 'message': 'Já existe uma emissão em lote em andamento.'})
+            # Reserva running=True DENTRO do mesmo lock (antes da query)
+            _lote_state['running'] = True
 
         # Busca apenas comandas FECHADAS sem NFC-e (cortesia e canceladas não emitem cupom fiscal)
         pendentes = list(Comanda.objects.filter(
@@ -345,6 +348,8 @@ class EmitirLoteView(LoginRequiredMixin, View):
         ).order_by('created_at'))
 
         if not pendentes:
+            with _lote_lock:
+                _lote_state['running'] = False
             return JsonResponse({'ok': True, 'message': 'Nenhuma comanda pendente de NFC-e.'})
 
         with _lote_lock:
@@ -397,10 +402,14 @@ class EmitirLoteView(LoginRequiredMixin, View):
                                     'erro': resultado.get('erro', 'Erro desconhecido'),
                                 })
                     except Exception as e:
+                        try:
+                            erro_msg = str(e) or repr(e)
+                        except Exception:
+                            erro_msg = repr(e)
                         with _lote_lock:
                             _lote_state['erros'].append({
                                 'comanda': str(comanda.numero),
-                                'erro': str(e),
+                                'erro': erro_msg,
                             })
                     finally:
                         with _lote_lock:
