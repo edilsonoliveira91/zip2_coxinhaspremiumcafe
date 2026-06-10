@@ -9,49 +9,41 @@
 
     <!-- Header sticky -->
     <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:20;">
-        <div style="padding:18px 32px;">
+        <div style="padding:16px 28px;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                <!-- Voltar + título -->
                 <div style="display:flex;align-items:center;gap:14px;">
                     <a href="{% url 'banks:bank_list' %}"
-                       style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#F5F5F7;color:#1D1D1F;text-decoration:none;flex-shrink:0;"
+                       style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#F5F5F7;color:#1D1D1F;text-decoration:none;flex-shrink:0;"
                        onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
-                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg style="width:17px;height:17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                     </a>
                     <div>
-                        <h1 style="font-size:24px;font-weight:700;color:#1D1D1F;letter-spacing:-0.4px;margin:0;">{{ bank.nome }}</h1>
-                        <p style="font-size:13px;color:#6E6E73;margin:2px 0 0 0;">
+                        <h1 style="font-size:22px;font-weight:700;color:#1D1D1F;letter-spacing:-0.4px;margin:0;">{{ bank.nome }}</h1>
+                        <p style="font-size:12px;color:#6E6E73;margin:1px 0 0 0;">
                             {% if bank.numero_conta %}Conta {{ bank.numero_conta }}{% endif %}
                             {% if bank.agencia %} · Ag. {{ bank.agencia }}{% endif %}
                         </p>
                     </div>
                 </div>
-                <!-- Ações -->
                 <div style="display:flex;align-items:center;gap:8px;">
                     <button onclick="abrirModal('modalAdicionar')"
-                            style="display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 16px;background:#34C759;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                            style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;background:#34C759;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;"
                             onmouseover="this.style.background='#2AA34A'" onmouseout="this.style.background='#34C759'">
-                        <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                        </svg>
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         Adicionar
                     </button>
                     <button onclick="abrirModal('modalPagar')"
-                            style="display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 16px;background:#FF3B30;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                            style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;background:#FF3B30;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;"
                             onmouseover="this.style.background='#CC2F26'" onmouseout="this.style.background='#FF3B30'">
-                        <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                         Pagar
                     </button>
                     <button onclick="abrirModal('modalTransferir')"
-                            style="display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 16px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                            style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;"
                             onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">
-                        <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                        </svg>
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                         Transferir
                     </button>
                 </div>
@@ -59,11 +51,11 @@
         </div>
     </div>
 
-    <div style="padding:24px 32px;max-width:960px;margin:0 auto;">
+    <div style="padding:20px 28px;">
 
         {% if messages %}
         {% for msg in messages %}
-        <div style="margin-bottom:16px;padding:14px 18px;border-radius:12px;font-size:14px;font-weight:500;
+        <div style="margin-bottom:14px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;
                     background:{% if msg.tags == 'success' %}#E8F9EE{% else %}#FFEBEA{% endif %};
                     color:{% if msg.tags == 'success' %}#1A7F3C{% else %}#FF3B30{% endif %};
                     border:1px solid {% if msg.tags == 'success' %}rgba(52,199,89,0.25){% else %}rgba(255,59,48,0.25){% endif %};">
@@ -72,154 +64,232 @@
         {% endfor %}
         {% endif %}
 
-        <!-- Cards de saldo -->
+        <!-- ── CARDS DE SALDO (topo, largura total) ── -->
         {% if filtrado %}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
-            <!-- Saldo antes do período -->
-            <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Antes do período</div>
-                <div style="font-size:26px;font-weight:700;color:#1D1D1F;letter-spacing:-0.5px;">
-                    R$&nbsp;{{ saldo_anterior|floatformat:2 }}
-                </div>
-                {% if data_inicio %}<div style="font-size:12px;color:#8E8E93;margin-top:4px;">até {{ data_inicio }}</div>{% endif %}
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+            <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Antes do período</div>
+                <div style="font-size:24px;font-weight:700;color:#1D1D1F;letter-spacing:-0.5px;">R$&nbsp;{{ saldo_anterior|floatformat:2 }}</div>
+                {% if data_inicio %}<div style="font-size:12px;color:#8E8E93;margin-top:3px;">até {{ data_inicio }}</div>{% endif %}
             </div>
-            <!-- Movimentação no período -->
-            <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">No período</div>
-                <div style="font-size:26px;font-weight:700;letter-spacing:-0.5px;color:{% if total_periodo >= 0 %}#34C759{% else %}#FF3B30{% endif %};">
+            <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">No período</div>
+                <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:{% if total_periodo >= 0 %}#34C759{% else %}#FF3B30{% endif %};">
                     {% if total_periodo >= 0 %}+{% endif %}R$&nbsp;{{ total_periodo|floatformat:2 }}
                 </div>
-                {% if data_inicio and data_fim %}<div style="font-size:12px;color:#8E8E93;margin-top:4px;">{{ data_inicio }} → {{ data_fim }}</div>{% endif %}
+                {% if data_inicio and data_fim %}<div style="font-size:12px;color:#8E8E93;margin-top:3px;">{{ data_inicio }} → {{ data_fim }}</div>{% endif %}
             </div>
-            <!-- Saldo atual -->
-            <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:16px;padding:20px 22px;box-shadow:0 4px 16px rgba(0,122,255,0.25);">
-                <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Saldo atual</div>
-                <div style="font-size:26px;font-weight:700;color:white;letter-spacing:-0.5px;">
-                    R$&nbsp;{{ saldo_atual|floatformat:2 }}
-                </div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Total em conta</div>
+            <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:16px;padding:18px 20px;box-shadow:0 4px 16px rgba(0,122,255,0.25);">
+                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Saldo disponível</div>
+                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">R$&nbsp;{{ saldo_atual|floatformat:2 }}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Total em conta hoje</div>
             </div>
         </div>
         {% else %}
-        <!-- Sem filtro: só saldo atual -->
-        <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:20px;padding:28px 32px;margin-bottom:24px;box-shadow:0 8px 24px rgba(0,122,255,0.22);display:flex;align-items:center;justify-content:space-between;">
-            <div>
-                <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Saldo disponível</div>
-                <div style="font-size:38px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ saldo_atual|floatformat:2 }}</div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px;">{{ transacoes.count }} movimentação{{ transacoes.count|pluralize }}</div>
+        <div style="display:grid;grid-template-columns:1fr{% if a_receber %} 1fr{% endif %};gap:14px;margin-bottom:20px;">
+            <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(0,122,255,0.22);display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Saldo disponível</div>
+                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ saldo_atual|floatformat:2 }}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Dinheiro em conta hoje</div>
+                </div>
+                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg style="width:26px;height:26px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                </div>
             </div>
-            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:18px;display:flex;align-items:center;justify-content:center;">
-                <svg style="width:32px;height:32px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                </svg>
+            {% if a_receber %}
+            <div style="background:linear-gradient(145deg,#FF9500,#FFCC00);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(255,149,0,0.22);display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">A Receber</div>
+                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ total_a_receber|floatformat:2 }}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:4px;">{{ a_receber|length }} lançamento{{ a_receber|length|pluralize }} pendente{{ a_receber|length|pluralize }}</div>
+                </div>
+                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg style="width:26px;height:26px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
             </div>
+            {% endif %}
         </div>
         {% endif %}
 
-        <!-- Filtros -->
-        <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px;">
-                <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">De</label>
-                <input type="date" name="data_inicio" value="{{ data_inicio }}"
-                       style="flex:1;min-height:38px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;font-family:inherit;color:#1D1D1F;outline:none;"
-                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
-                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px;">
-                <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">Até</label>
-                <input type="date" name="data_fim" value="{{ data_fim }}"
-                       style="flex:1;min-height:38px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;font-family:inherit;color:#1D1D1F;outline:none;"
-                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
-                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
-            </div>
-            <button type="submit"
-                    style="min-height:38px;padding:0 20px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
-                Filtrar
-            </button>
-            {% if filtrado %}
-            <a href="{% url 'banks:bank_statement' bank.pk %}"
-               style="min-height:38px;padding:0 16px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
-                Limpar
-            </a>
-            {% endif %}
-        </form>
+        <!-- ── LAYOUT DUAS COLUNAS ── -->
+        <div style="display:grid;grid-template-columns:1fr{% if a_receber %} 1fr{% endif %};gap:14px;align-items:start;">
 
-        <!-- Listagem de transações -->
-        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+            <!-- ═══════════════ COLUNA ESQUERDA — EXTRATO ═══════════════ -->
+            <div>
+                <!-- Filtros -->
+                <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:170px;">
+                        <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">De</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                               style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
+                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                    </div>
+                    <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:170px;">
+                        <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">Até</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}"
+                               style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
+                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                    </div>
+                    <button type="submit"
+                            style="min-height:36px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
+                        Filtrar
+                    </button>
+                    {% if filtrado %}
+                    <a href="{% url 'banks:bank_statement' bank.pk %}"
+                       style="min-height:36px;padding:0 14px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
+                        Limpar
+                    </a>
+                    {% endif %}
+                </form>
 
-            {% if transacoes %}
-            <!-- Cabeçalho da tabela -->
-            <div style="display:grid;grid-template-columns:160px 1fr 120px 130px;column-gap:16px;align-items:center;padding:0 24px;height:40px;background:#F5F5F7;border-bottom:1px solid rgba(0,0,0,0.07);">
-                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Data / Hora</div>
-                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Descrição</div>
-                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Tipo</div>
-                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Valor</div>
-            </div>
+                <!-- Listagem de transações -->
+                <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
 
-            {% for tx in transacoes %}
-            <div style="display:grid;grid-template-columns:160px 1fr 120px 130px;column-gap:16px;align-items:center;padding:0 24px;min-height:60px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;"
-                 onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                    {% if transacoes %}
+                    <div style="display:grid;grid-template-columns:140px 1fr 110px 120px;column-gap:14px;align-items:center;padding:0 20px;height:38px;background:#F5F5F7;border-bottom:1px solid rgba(0,0,0,0.07);">
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Data / Hora</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Descrição</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Tipo</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Valor</div>
+                    </div>
 
-                <!-- Data -->
-                <div>
-                    <div style="font-size:14px;font-weight:500;color:#1D1D1F;">{{ tx.data|date:"d/m/Y" }}</div>
-                    <div style="font-size:12px;color:#8E8E93;">{{ tx.data|date:"H:i" }}</div>
-                </div>
+                    {% for tx in transacoes %}
+                    <div style="display:grid;grid-template-columns:140px 1fr 110px 120px;column-gap:14px;align-items:center;padding:0 20px;min-height:58px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;"
+                         onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                        <div>
+                            <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ tx.data|date:"d/m/Y" }}</div>
+                            <div style="font-size:12px;color:#8E8E93;">{{ tx.data|date:"H:i" }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ tx.descricao }}</div>
+                            {% if tx.observacao %}<div style="font-size:11px;color:#8E8E93;margin-top:1px;">{{ tx.observacao }}</div>{% endif %}
+                            {% if tx.banco_destino %}
+                            <div style="font-size:11px;color:#8E8E93;margin-top:1px;">{% if tx.is_entrada %}De{% else %}Para{% endif %}: {{ tx.banco_destino.nome }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="text-align:center;">
+                            {% if tx.tipo == 'deposito' %}
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;background:#E8F9EE;color:#1A7F3C;font-size:11px;font-weight:600;">
+                                <span style="width:5px;height:5px;border-radius:50%;background:#34C759;display:inline-block;"></span>Depósito
+                            </span>
+                            {% elif tx.tipo == 'pagamento' %}
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;background:#FFEBEA;color:#CC2F26;font-size:11px;font-weight:600;">
+                                <span style="width:5px;height:5px;border-radius:50%;background:#FF3B30;display:inline-block;"></span>Pagamento
+                            </span>
+                            {% elif tx.tipo == 'transferencia' %}
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;background:#EAF3FF;color:#0051D5;font-size:11px;font-weight:600;">
+                                <span style="width:5px;height:5px;border-radius:50%;background:#007AFF;display:inline-block;"></span>Transferência
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:{% if tx.is_entrada %}#34C759{% else %}#FF3B30{% endif %};">
+                                {% if tx.is_entrada %}+{% else %}−{% endif %}R$&nbsp;{{ tx.valor|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
 
-                <!-- Descrição -->
-                <div>
-                    <div style="font-size:14px;font-weight:500;color:#1D1D1F;">{{ tx.descricao }}</div>
-                    {% if tx.observacao %}<div style="font-size:12px;color:#8E8E93;margin-top:1px;">{{ tx.observacao }}</div>{% endif %}
-                    {% if tx.banco_destino %}
-                    <div style="font-size:12px;color:#8E8E93;margin-top:1px;">
-                        {% if tx.is_entrada %}De{% else %}Para{% endif %}: {{ tx.banco_destino.nome }}
+                    {% else %}
+                    <div style="text-align:center;padding:48px 24px;">
+                        <div style="width:48px;height:48px;border-radius:14px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                            <svg style="width:24px;height:24px;color:#C7C7CC;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                        <p style="font-size:15px;font-weight:600;color:#1D1D1F;margin:0 0 4px 0;">Nenhuma movimentação</p>
+                        <p style="font-size:13px;color:#8E8E93;margin:0;">{% if filtrado %}Nenhuma transação no período selecionado.{% else %}Use os botões acima para registrar movimentações.{% endif %}</p>
                     </div>
                     {% endif %}
+
+                </div>
+            </div><!-- fim coluna esquerda -->
+
+            <!-- ═══════════════ COLUNA DIREITA — A RECEBER ═══════════════ -->
+            {% if a_receber %}
+            <div id="sec-a-receber" style="position:sticky;top:76px;">
+
+                <!-- Mesmo espaçador de altura do filtro da esquerda -->
+                <div style="height:52px;display:flex;align-items:center;padding:0 4px;margin-bottom:16px;">
+                    <div style="font-size:13px;font-weight:600;color:#8E8E93;">
+                        {{ a_receber|length }} lançamento{{ a_receber|length|pluralize }} · Total
+                        <span style="color:#FF9500;font-weight:700;">R$&nbsp;{{ total_a_receber|floatformat:2 }}</span>
+                    </div>
                 </div>
 
-                <!-- Tipo badge -->
-                <div style="text-align:center;">
-                    {% if tx.tipo == 'deposito' %}
-                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#E8F9EE;color:#1A7F3C;font-size:12px;font-weight:600;">
-                        <span style="width:6px;height:6px;border-radius:50%;background:#34C759;display:inline-block;"></span>
-                        Depósito
-                    </span>
-                    {% elif tx.tipo == 'pagamento' %}
-                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#FFEBEA;color:#CC2F26;font-size:12px;font-weight:600;">
-                        <span style="width:6px;height:6px;border-radius:50%;background:#FF3B30;display:inline-block;"></span>
-                        Pagamento
-                    </span>
-                    {% elif tx.tipo == 'transferencia' %}
-                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#EAF3FF;color:#0051D5;font-size:12px;font-weight:600;">
-                        <span style="width:6px;height:6px;border-radius:50%;background:#007AFF;display:inline-block;"></span>
-                        Transferência
-                    </span>
-                    {% endif %}
-                </div>
+                <!-- Lista estilo extrato -->
+                <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
 
-                <!-- Valor -->
-                <div style="text-align:right;">
-                    <span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:{% if tx.is_entrada %}#34C759{% else %}#FF3B30{% endif %};">
-                        {% if tx.is_entrada %}+{% else %}−{% endif %}R$&nbsp;{{ tx.valor|floatformat:2 }}
-                    </span>
-                </div>
+                    <!-- Cabeçalho -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr 90px 80px;column-gap:12px;align-items:center;padding:0 18px;height:38px;background:#F5F5F7;border-bottom:1px solid rgba(0,0,0,0.07);">
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Data Caixa / Transf.</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Método · Liquidação</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Valor</div>
+                        <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Ação</div>
+                    </div>
 
-            </div>
-            {% endfor %}
+                    {% for t in a_receber %}
+                    {% with dias_restantes=t.data_prevista_liquidacao|timeuntil %}
+                    <div id="row-transf-{{ t.pk }}"
+                         style="display:grid;grid-template-columns:1fr 1fr 90px 80px;column-gap:12px;align-items:center;padding:0 18px;min-height:62px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;"
+                         onmouseover="this.style.background='#FFFBF5'" onmouseout="this.style.background='white'">
 
-            {% else %}
-            <div style="text-align:center;padding:56px 32px;">
-                <div style="width:56px;height:56px;border-radius:16px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
-                    <svg style="width:26px;height:26px;color:#C7C7CC;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
+                        <!-- Datas -->
+                        <div>
+                            <div style="font-size:13px;font-weight:600;color:#1D1D1F;">{{ t.data_caixa|date:"d/m/Y"|default:"—" }}</div>
+                            <div style="font-size:11px;color:#8E8E93;margin-top:1px;">Transf. {{ t.criado_em|date:"d/m H:i" }}</div>
+                        </div>
+
+                        <!-- Método + liquidação -->
+                        <div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                                <span style="padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:700;
+                                    {% if t.metodo_pagamento == 'credito' %}background:#dbeafe;color:#1d4ed8;
+                                    {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe;color:#5b21b6;
+                                    {% elif t.metodo_pagamento == 'pix' %}background:#fef9c3;color:#854d0e;
+                                    {% else %}background:#dcfce7;color:#166534;{% endif %}">
+                                    {{ t.get_metodo_pagamento_display }}
+                                </span>
+                                {% if t.bandeira %}<span style="font-size:11px;color:#6E6E73;">{{ t.bandeira }}</span>{% endif %}
+                            </div>
+                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;">{{ t.data_prevista_liquidacao|date:"d/m/Y" }}</div>
+                            <div style="font-size:11px;color:#FF9500;font-weight:600;">em {{ dias_restantes }}</div>
+                        </div>
+
+                        <!-- Valor -->
+                        <div style="text-align:right;">
+                            <span style="font-size:14px;font-weight:700;color:#FF9500;font-variant-numeric:tabular-nums;">
+                                +R$&nbsp;{{ t.valor|floatformat:2 }}
+                            </span>
+                        </div>
+
+                        <!-- Conciliar -->
+                        <div style="text-align:center;">
+                            <button onclick="conciliar({{ t.pk }}, this)"
+                                    style="min-height:32px;padding:0 10px;background:#34C759;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;"
+                                    onmouseover="this.style.background='#2AA34A'" onmouseout="this.style.background='#34C759'">
+                                Conciliar
+                            </button>
+                        </div>
+
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+
                 </div>
-                <p style="font-size:16px;font-weight:600;color:#1D1D1F;margin:0 0 6px 0;">Nenhuma movimentação</p>
-                <p style="font-size:13px;color:#8E8E93;margin:0;">{% if filtrado %}Nenhuma transação no período selecionado.{% else %}Use os botões acima para registrar movimentações.{% endif %}</p>
             </div>
             {% endif %}
+            <!-- fim coluna direita -->
 
-        </div>
+        </div><!-- fim grid duas colunas -->
+
     </div>
 </div>
 </div>
@@ -229,9 +299,7 @@
     <div style="background:white;border-radius:20px;padding:28px 24px;max-width:380px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.18);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
             <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#34C759,#30B352);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                </svg>
+                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             </div>
             <div>
                 <div style="font-size:17px;font-weight:700;color:#1D1D1F;">Adicionar Saldo</div>
@@ -256,9 +324,7 @@
     <div style="background:white;border-radius:20px;padding:28px 24px;max-width:380px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.18);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
             <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#FF3B30,#FF6961);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
+                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             </div>
             <div>
                 <div style="font-size:17px;font-weight:700;color:#1D1D1F;">Registrar Pagamento</div>
@@ -283,9 +349,7 @@
     <div style="background:white;border-radius:20px;padding:28px 24px;max-width:380px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.18);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
             <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#007AFF,#5AC8FA);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                </svg>
+                <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
             </div>
             <div>
                 <div style="font-size:17px;font-weight:700;color:#1D1D1F;">Transferir</div>
@@ -294,7 +358,6 @@
         </div>
         <form method="post" action="{% url 'banks:bank_transferir' bank.pk %}">
             {% csrf_token %}
-            <!-- Banco destino -->
             <div style="margin-bottom:14px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Banco destino</label>
                 <select name="banco_destino"
@@ -319,17 +382,33 @@
 </div>
 
 <script>
-function abrirModal(id) {
-    const m = document.getElementById(id);
-    m.style.display = 'flex';
-}
-function fecharModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
+function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
 document.querySelectorAll('[id^="modal"]').forEach(m => {
-    m.addEventListener('click', function(e) {
-        if (e.target === this) fecharModal(this.id);
-    });
+    m.addEventListener('click', function(e) { if (e.target === this) fecharModal(this.id); });
 });
+
+async function conciliar(pk, btn) {
+    if (!confirm('Confirmar conciliação? O valor entrará no extrato hoje.')) return;
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+        const resp = await fetch(`/financials/api/transferencia/${pk}/conciliar/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            const card = document.getElementById('row-transf-' + pk);
+            if (card) { card.style.opacity = '0'; setTimeout(() => { location.reload(); }, 450); }
+        } else {
+            alert(data.error || 'Erro ao conciliar.');
+            btn.disabled = false; btn.textContent = 'Conciliar';
+        }
+    } catch (e) {
+        alert('Erro de conexão.');
+        btn.disabled = false; btn.textContent = 'Conciliar';
+    }
+}
 </script>
 {% endblock %}

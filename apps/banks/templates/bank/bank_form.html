@@ -110,12 +110,14 @@
                             </div>
                         </div>
 
-                        <!-- Valor Inicial -->
+                        <!-- Valor Inicial (somente na criação) -->
+                        {% if not is_editing %}
                         <div>
                             <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:7px;">
-                                Valor Inicial
+                                Saldo Inicial
                                 <span style="font-size:11px;font-weight:400;color:#8E8E93;margin-left:4px;">opcional</span>
                             </label>
+                            <p style="font-size:12px;color:#8E8E93;margin:0 0 8px;">Será registrado como um lançamento de "Saldo Inicial" no extrato do banco.</p>
                             <div style="position:relative;">
                                 <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:500;color:#8E8E93;pointer-events:none;user-select:none;">R$</span>
                                 <input type="number"
@@ -129,6 +131,7 @@
                                        onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
                             </div>
                         </div>
+                        {% endif %}
 
                     </div>
 

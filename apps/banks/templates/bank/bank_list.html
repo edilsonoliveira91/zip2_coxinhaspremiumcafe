@@ -51,7 +51,7 @@
                     <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">Banco</div>
                     <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Nº da Conta</div>
                     <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Agência</div>
-                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Valor Inicial</div>
+                    <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Saldo Atual</div>
                     <div style="font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px; text-align:center;">Ações</div>
                 </div>
 
@@ -84,13 +84,12 @@
                         {{ bank.agencia|default:"—" }}
                     </div>
 
-                    <!-- Valor inicial -->
+                    <!-- Saldo Atual -->
                     <div style="text-align:center;">
-                        {% if bank.valor_inicial is not None %}
-                        <span style="font-size:15px; font-weight:700; color:#34C759; font-variant-numeric:tabular-nums;">R$&nbsp;{{ bank.valor_inicial|floatformat:2 }}</span>
-                        {% else %}
-                        <span style="font-size:14px; color:#C7C7CC;">—</span>
-                        {% endif %}
+                        <span style="font-size:15px; font-weight:700; font-variant-numeric:tabular-nums;
+                            color:{% if bank.saldo_atual >= 0 %}#34C759{% else %}#FF3B30{% endif %};">
+                            R$&nbsp;{{ bank.saldo_atual|floatformat:2 }}
+                        </span>
                     </div>
 
                     <!-- Ações -->
@@ -126,6 +125,20 @@
 
                 </div>
                 {% endfor %}
+
+                <!-- Rodapé: total geral -->
+                <div style="display:grid; grid-template-columns:1fr 160px 110px 150px 120px; column-gap:16px; align-items:center; padding:0 24px; height:48px; background:#F5F5F7; border-top:1px solid rgba(0,0,0,0.07);">
+                    <div style="font-size:12px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.5px;">Total em caixa</div>
+                    <div></div>
+                    <div></div>
+                    <div style="text-align:center;">
+                        <span style="font-size:16px; font-weight:800; font-variant-numeric:tabular-nums;
+                            color:{% if total_geral >= 0 %}#1D1D1F{% else %}#FF3B30{% endif %};">
+                            R$&nbsp;{{ total_geral|floatformat:2 }}
+                        </span>
+                    </div>
+                    <div></div>
+                </div>
 
                 {% else %}
 

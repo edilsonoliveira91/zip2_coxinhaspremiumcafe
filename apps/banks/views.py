@@ -4,19 +4,89 @@ from django.views import View as BaseView
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
+from django.core.exceptions import PermissionDenied
 from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
 
-from .models import Bank, BankTransaction
-from .forms import BankForm
+from .models import Bank, BankTransaction, UserBankAccess
+from .forms import BankForm, BankEditForm
 
+
+# ── Helpers de acesso ────────────────────────────────────────────────────────
+
+def _has_global(user, perm):
+    return user.is_superuser or user.has_perm(f'banks.{perm}')
+
+
+def _check_bank(user, bank, action):
+    """
+    Verifica se o usuário pode executar `action` num banco específico.
+    action: 'view' | 'change' | 'add_tx' | 'del_tx'
+    Retorna True se tem acesso global ou acesso por UserBankAccess.
+    """
+    global_map = {
+        'view':   'view_bank',
+        'change': 'change_bank',
+        'add_tx': 'add_banktransaction',
+        'del_tx': 'delete_banktransaction',
+    }
+    if _has_global(user, global_map[action]):
+        return True
+
+    field_map = {
+        'view':   'can_view',
+        'change': 'can_change',
+        'add_tx': 'can_add_transaction',
+        'del_tx': 'can_delete_transaction',
+    }
+    try:
+        access = UserBankAccess.objects.get(user=user, bank=bank)
+        return getattr(access, field_map[action], False)
+    except UserBankAccess.DoesNotExist:
+        return False
+
+
+def _accessible_banks(user):
+    """Queryset de bancos que o usuário pode visualizar."""
+    if _has_global(user, 'view_bank'):
+        return Bank.objects.all()
+    return Bank.objects.filter(user_accesses__user=user, user_accesses__can_view=True)
+
+
+# ── Views ─────────────────────────────────────────────────────────────────────
 
 class BankListView(LoginRequiredMixin, ListView):
     model = Bank
     template_name = 'bank/bank_list.html'
     context_object_name = 'banks'
+
+    def get_queryset(self):
+        from django.db.models import Sum, Q
+        hoje = date.today()
+        return _accessible_banks(self.request.user).annotate(
+            _entradas=Sum(
+                'transactions__valor',
+                filter=Q(transactions__is_entrada=True, transactions__data__date__lte=hoje),
+            ),
+            _saidas=Sum(
+                'transactions__valor',
+                filter=Q(transactions__is_entrada=False, transactions__data__date__lte=hoje),
+            ),
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        total_geral = Decimal('0.00')
+        for bank in ctx['banks']:
+            vi       = bank.valor_inicial or Decimal('0.00')
+            entradas = bank._entradas     or Decimal('0.00')
+            saidas   = bank._saidas       or Decimal('0.00')
+            bank.saldo_atual = vi + entradas - saidas
+            total_geral += bank.saldo_atual
+        ctx['total_geral'] = total_geral
+        return ctx
 
 
 class BankCreateView(LoginRequiredMixin, CreateView):
@@ -25,6 +95,11 @@ class BankCreateView(LoginRequiredMixin, CreateView):
     template_name = 'bank/bank_form.html'
     success_url = reverse_lazy('banks:bank_list')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not _has_global(request.user, 'add_bank'):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['title'] = 'Novo Banco'
@@ -32,9 +107,21 @@ class BankCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
+        valor_inicial = form.cleaned_data.get('valor_inicial') or Decimal('0.00')
         form.instance.criado_por = self.request.user
-        messages.success(self.request, f'Banco "{form.instance.nome}" cadastrado com sucesso!')
-        return super().form_valid(form)
+        form.instance.valor_inicial = Decimal('0.00')  # saldo via transaction, não campo direto
+        response = super().form_valid(form)
+        if valor_inicial > 0:
+            BankTransaction.objects.create(
+                bank=self.object,
+                tipo='deposito',
+                descricao='Saldo Inicial',
+                valor=valor_inicial,
+                is_entrada=True,
+                criado_por=self.request.user,
+            )
+        messages.success(self.request, f'Banco "{self.object.nome}" cadastrado com sucesso!')
+        return response
 
     def form_invalid(self, form):
         messages.error(self.request, 'Corrija os erros abaixo.')
@@ -43,9 +130,15 @@ class BankCreateView(LoginRequiredMixin, CreateView):
 
 class BankUpdateView(LoginRequiredMixin, UpdateView):
     model = Bank
-    form_class = BankForm
+    form_class = BankEditForm
     template_name = 'bank/bank_form.html'
     success_url = reverse_lazy('banks:bank_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        bank = get_object_or_404(Bank, pk=kwargs['pk'])
+        if not _check_bank(request.user, bank, 'change'):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -66,6 +159,11 @@ class BankDeleteView(LoginRequiredMixin, DeleteView):
     model = Bank
     success_url = reverse_lazy('banks:bank_list')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not _has_global(request.user, 'delete_bank'):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         bank = self.get_object()
         messages.success(request, f'Banco "{bank.nome}" removido.')
@@ -78,7 +176,11 @@ class BankStatementView(LoginRequiredMixin, BaseView):
     def get(self, request, pk):
         from django.shortcuts import render
         bank = get_object_or_404(Bank, pk=pk)
-        outros_bancos = Bank.objects.exclude(pk=pk)
+
+        if not _check_bank(request.user, bank, 'view'):
+            raise PermissionDenied
+
+        outros_bancos = _accessible_banks(request.user).exclude(pk=pk)
 
         data_inicio_str = request.GET.get('data_inicio', '')
         data_fim_str = request.GET.get('data_fim', '')
@@ -99,22 +201,25 @@ class BankStatementView(LoginRequiredMixin, BaseView):
                 pass
 
         valor_inicial = bank.valor_inicial or Decimal('0.00')
+        hoje = date.today()
 
         def calc_saldo(qs):
             entradas = qs.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             saidas = qs.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             return entradas - saidas
 
-        all_txs = bank.transactions.all()
-        saldo_atual = valor_inicial + calc_saldo(all_txs)
+        settled_txs = bank.transactions.filter(data__date__lte=hoje)
+        a_receber_txs = bank.transactions.filter(data__date__gt=hoje, is_entrada=True).order_by('data')
+        saldo_atual = valor_inicial + calc_saldo(settled_txs)
+        total_a_receber = a_receber_txs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
         saldo_anterior = None
         total_periodo = None
         filtrado = bool(data_inicio or data_fim)
 
         if filtrado:
-            before_qs = bank.transactions.all()
-            period_qs = bank.transactions.all()
+            before_qs = settled_txs
+            period_qs = settled_txs
 
             if data_inicio:
                 before_qs = before_qs.filter(data__date__lt=data_inicio)
@@ -127,7 +232,14 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             total_periodo = calc_saldo(period_qs)
             transacoes = period_qs.order_by('-data', '-id')
         else:
-            transacoes = all_txs.order_by('-data', '-id')
+            transacoes = settled_txs.order_by('-data', '-id')
+
+        from financials.models import CaixaAdmTransferencia
+        a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
+            banco_destino=bank,
+            data_prevista_liquidacao__gt=hoje,
+            conciliado=False,
+        ).select_related('criado_por').order_by('data_prevista_liquidacao')
 
         return render(request, self.template_name, {
             'bank': bank,
@@ -139,12 +251,21 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             'filtrado': filtrado,
             'data_inicio': data_inicio_str,
             'data_fim': data_fim_str,
+            'a_receber': a_receber_detalhe,
+            'total_a_receber': total_a_receber,
+            'hoje': hoje,
+            'can_add_tx': _check_bank(request.user, bank, 'add_tx'),
+            'can_change': _check_bank(request.user, bank, 'change'),
+            'can_del_tx': _check_bank(request.user, bank, 'del_tx'),
         })
 
 
 class BankAdicionarView(LoginRequiredMixin, BaseView):
     def post(self, request, pk):
         bank = get_object_or_404(Bank, pk=pk)
+        if not _check_bank(request.user, bank, 'add_tx'):
+            raise PermissionDenied
+
         descricao = request.POST.get('descricao', '').strip() or 'Depósito'
         observacao = request.POST.get('observacao', '').strip()
         try:
@@ -157,12 +278,8 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
             return redirect('banks:bank_statement', pk=pk)
 
         BankTransaction.objects.create(
-            bank=bank,
-            tipo='deposito',
-            descricao=descricao,
-            valor=valor,
-            is_entrada=True,
-            observacao=observacao,
+            bank=bank, tipo='deposito', descricao=descricao,
+            valor=valor, is_entrada=True, observacao=observacao,
             criado_por=request.user,
         )
         messages.success(request, f'Depósito de R$ {valor:.2f} adicionado.')
@@ -172,6 +289,9 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
 class BankPagarView(LoginRequiredMixin, BaseView):
     def post(self, request, pk):
         bank = get_object_or_404(Bank, pk=pk)
+        if not _check_bank(request.user, bank, 'add_tx'):
+            raise PermissionDenied
+
         descricao = request.POST.get('descricao', '').strip() or 'Pagamento'
         observacao = request.POST.get('observacao', '').strip()
         try:
@@ -184,12 +304,8 @@ class BankPagarView(LoginRequiredMixin, BaseView):
             return redirect('banks:bank_statement', pk=pk)
 
         BankTransaction.objects.create(
-            bank=bank,
-            tipo='pagamento',
-            descricao=descricao,
-            valor=valor,
-            is_entrada=False,
-            observacao=observacao,
+            bank=bank, tipo='pagamento', descricao=descricao,
+            valor=valor, is_entrada=False, observacao=observacao,
             criado_por=request.user,
         )
         messages.success(request, f'Pagamento de R$ {valor:.2f} registrado.')
@@ -199,6 +315,9 @@ class BankPagarView(LoginRequiredMixin, BaseView):
 class BankTransferirView(LoginRequiredMixin, BaseView):
     def post(self, request, pk):
         bank = get_object_or_404(Bank, pk=pk)
+        if not _check_bank(request.user, bank, 'add_tx'):
+            raise PermissionDenied
+
         destino_id = request.POST.get('banco_destino')
         descricao = request.POST.get('descricao', '').strip() or 'Transferência'
         observacao = request.POST.get('observacao', '').strip()
@@ -216,26 +335,18 @@ class BankTransferirView(LoginRequiredMixin, BaseView):
             banco_destino = Bank.objects.filter(pk=destino_id).first()
 
         BankTransaction.objects.create(
-            bank=bank,
-            tipo='transferencia',
+            bank=bank, tipo='transferencia',
             descricao=f'Transferência para {banco_destino.nome if banco_destino else "externo"}',
-            valor=valor,
-            is_entrada=False,
-            observacao=observacao,
-            banco_destino=banco_destino,
-            criado_por=request.user,
+            valor=valor, is_entrada=False, observacao=observacao,
+            banco_destino=banco_destino, criado_por=request.user,
         )
 
         if banco_destino:
             BankTransaction.objects.create(
-                bank=banco_destino,
-                tipo='transferencia',
+                bank=banco_destino, tipo='transferencia',
                 descricao=f'Transferência de {bank.nome}',
-                valor=valor,
-                is_entrada=True,
-                observacao=observacao,
-                banco_destino=bank,
-                criado_por=request.user,
+                valor=valor, is_entrada=True, observacao=observacao,
+                banco_destino=bank, criado_por=request.user,
             )
 
         messages.success(request, f'Transferência de R$ {valor:.2f} realizada.')

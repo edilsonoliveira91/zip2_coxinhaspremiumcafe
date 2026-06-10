@@ -46,19 +46,19 @@ class CustomUserCreationForm(UserCreationForm):
 
 class UserPermissionForm(forms.ModelForm):
     password = forms.CharField(
-        required=True, 
+        required=True,
         label='Senha',
         widget=forms.PasswordInput()
     )
     confirm_password = forms.CharField(
-        required=True, 
+        required=True,
         label='Confirmar Senha',
         widget=forms.PasswordInput()
     )
 
     class Meta:
         model = User
-        fields = ['username', 'is_caixa', 'dashboard_home']
+        fields = ['username', 'first_name', 'last_name', 'email', 'is_active', 'is_caixa', 'dashboard_home']
 
     def clean(self):
         cleaned_data = super().clean()

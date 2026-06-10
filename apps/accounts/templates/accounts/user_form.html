@@ -4,386 +4,731 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 p-6">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-                <p class="text-sm text-gray-500 mt-1">Configure o acesso e os privilégios deste utilizador no sistema.</p>
-            </div>
-            <div>
-                <a href="{% url 'accounts:user_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span class="mr-2">←</span> Voltar
-                </a>
-            </div>
-        </div>
+<style>
+  /* ── Apple HIG base ── */
+  .uf-wrap {
+    min-height: 100vh;
+    background: #F5F5F7;
+    padding: 24px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    box-sizing: border-box;
+  }
+  .uf-inner { max-width: 1200px; margin: 0 auto; }
 
-        <!-- Formulário (Grelha de 3 Colunas Segura) -->
-        <form method="post" id="userForm">
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-            <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
-                {% for error in form.non_field_errors %}
-                    <p class="text-sm">{{ error }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
+  /* Header */
+  .uf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 20px 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .uf-header h1 { font-size: 20px; font-weight: 700; color: #1D1D1F; margin: 0; }
+  .uf-header p  { font-size: 13px; color: #8E8E93; margin: 4px 0 0; }
+  .uf-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; background: #F5F5F7; color: #007AFF;
+    font-size: 14px; font-weight: 600; border-radius: 10px;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .uf-back:hover { background: #E8E8ED; }
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- COLUNA ESQUERDA: Dados de Acesso (1/3 do ecrã) -->
-                <div class="lg:col-span-1 space-y-6">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden sticky top-6">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-                                <span class="mr-2">🔐</span> Dados de Acesso
-                            </h2>
-                        </div>
-                        
-                        <div class="p-6 space-y-5">
-                            <!-- Nome de Usuário -->
-                            <div>
-                                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Nome de Usuário <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" 
-                                       name="username" 
-                                       id="{{ form.username.id_for_label }}"
-                                       required
-                                       value="{{ form.username.value|default_if_none:'' }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       placeholder="Ex: admin">
-                                {% if form.username.errors %}
-                                    <p class="text-red-500 text-xs mt-1">{{ form.username.errors.0 }}</p>
-                                {% endif %}
-                            </div>
+  /* Error banner */
+  .uf-error {
+    background: #FFF1F0; border: 1px solid #FFD6D3; color: #C0392B;
+    padding: 14px 18px; border-radius: 12px; font-size: 14px; margin-bottom: 20px;
+  }
 
-                            <!-- Senha -->
-                            <div>
-                                <label for="id_password" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Senha {% if not is_editing %}<span class="text-red-500">*</span>{% endif %}
-                                </label>
-                                <input type="password" 
-                                       name="password" 
-                                       id="id_password"
-                                       {% if not is_editing %}required{% endif %}
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       placeholder="••••••••">
-                                {% if form.password.errors %}
-                                    <p class="text-red-500 text-xs mt-1">{{ form.password.errors.0 }}</p>
-                                {% endif %}
-                                {% if is_editing %}
-                                    <p class="text-gray-400 text-xs mt-1">Deixe em branco para manter a senha atual.</p>
-                                {% endif %}
-                            </div>
-                            
-                            <!-- Confirmar Senha -->
-                            <div>
-                                <label for="id_confirm_password" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Confirmar Senha {% if not is_editing %}<span class="text-red-500">*</span>{% endif %}
-                                </label>
-                                <input type="password" 
-                                       name="confirm_password" 
-                                       id="id_confirm_password"
-                                       {% if not is_editing %}required{% endif %}
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       placeholder="••••••••">
-                                {% if form.confirm_password.errors %}
-                                    <p class="text-red-500 text-xs mt-1">{{ form.confirm_password.errors.0 }}</p>
-                                {% endif %}
-                            </div>
+  /* Grid layout */
+  .uf-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (min-width: 1024px) {
+    .uf-grid { grid-template-columns: 360px 1fr; }
+  }
 
-                            <!-- Operador de Caixa -->
-                            <div class="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                                <div>
-                                    <label for="id_is_caixa" class="text-sm font-medium text-gray-800 cursor-pointer">Operador de Caixa</label>
-                                    <p class="text-xs text-gray-500 mt-0.5">Permite operar e fechar o caixa</p>
-                                </div>
-                                <input type="checkbox"
-                                       name="is_caixa"
-                                       id="id_is_caixa"
-                                       {% if form.instance.is_caixa %}checked{% endif %}
-                                       class="h-5 w-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 cursor-pointer">
-                            </div>
+  /* Left column sticky */
+  .uf-left { display: flex; flex-direction: column; gap: 14px; }
+  @media (min-width: 1024px) {
+    .uf-left { position: sticky; top: 20px; }
+  }
 
-                            <!-- Tela inicial após login -->
-                            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <label for="id_dashboard_home" class="block text-sm font-medium text-gray-800 mb-1">Tela inicial após login</label>
-                                <p class="text-xs text-gray-500 mb-2">Para qual tela o usuário será direcionado ao fazer login</p>
-                                <select name="dashboard_home"
-                                        id="id_dashboard_home"
-                                        class="w-full px-3 py-2 border border-blue-200 rounded-md text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
-                                    <option value="home" {% if form.instance.dashboard_home == 'home' or not form.instance.pk %}selected{% endif %}>Dashboard Principal (Comandas)</option>
-                                    <option value="ceo" {% if form.instance.dashboard_home == 'ceo' %}selected{% endif %}>Dashboard CEO</option>
-                                    <option value="manage" {% if form.instance.dashboard_home == 'manage' %}selected{% endif %}>Dashboard Gerencial</option>
-                                </select>
-                            </div>
-                        </div>
+  /* Cards */
+  .uf-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .uf-card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #F2F2F7;
+  }
+  .uf-card-header p {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    color: #8E8E93; text-transform: uppercase; margin: 0;
+  }
+  .uf-card-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
 
-                        <!-- Botões de Ação -->
-                        <div class="px-6 py-5 bg-gray-50 border-t border-gray-100 flex flex-col gap-3">
-                            <button type="submit" 
-                                    class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
-                                {% if is_editing %}Salvar Alterações{% else %}Criar Usuário{% endif %}
-                            </button>
-                            <a href="{% url 'accounts:user_list' %}" 
-                               class="w-full flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
-                                Cancelar
-                            </a>
-                        </div>
-                    </div>
-                </div>
+  /* Inputs */
+  .uf-field { display: flex; flex-direction: column; gap: 5px; }
+  .uf-label { font-size: 12px; font-weight: 600; color: #3A3A3C; }
+  .uf-label .req { color: #FF3B30; }
+  .uf-input, .uf-select {
+    width: 100%; min-height: 44px; padding: 10px 14px;
+    border: 1.5px solid #D1D1D6; border-radius: 10px;
+    font-size: 15px; color: #1D1D1F; background: white;
+    outline: none; box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .uf-input::placeholder { color: #A1A1A6; }
+  .uf-input:focus, .uf-select:focus {
+    border-color: #007AFF;
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+  }
+  .uf-hint { font-size: 12px; color: #8E8E93; }
+  .uf-field-error { font-size: 12px; color: #FF3B30; }
 
-                <!-- COLUNA DIREITA: Permissões (2/3 do ecrã) -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-                                <span class="mr-2">🛡️</span> Gestão de Privilégios
-                            </h2>
-                            <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
-                                Módulos do Sistema
-                            </span>
-                        </div>
-                        
-                        <div class="p-6 space-y-4">
-                            {% for app_name, models in permissions_by_app.items %}
-                            <!-- Card do Setor -->
-                            <div class="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                                
-                                <!-- Cabeçalho do Setor -->
-                                <div class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50" onclick="toggleSector('{{ app_name|slugify }}')">
-                                    <div class="flex items-center">
-                                        <svg id="icon-{{ app_name|slugify }}" class="w-5 h-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                        <input type="checkbox" 
-                                               class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ml-3 sector-checkbox cursor-pointer"
-                                               data-sector="{{ app_name|slugify }}"
-                                               onclick="event.stopPropagation()"/>
-                                        <span class="ml-3 font-semibold text-gray-700 uppercase">{{ app_name }}</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Modelos (Escondidos) -->
-                                <div class="hidden bg-gray-50 border-t border-gray-200" id="models-{{ app_name|slugify }}">
-                                    <div class="p-4 space-y-4">
-                                        {% for model_name, model_data in models.items %}
-                                        <div class="bg-white rounded border border-gray-200 p-4">
-                                            
-                                            <!-- Checkbox do Modelo -->
-                                            <div class="flex items-center mb-3 pb-2 border-b border-gray-100">
-                                                <input type="checkbox" 
-                                                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 model-checkbox cursor-pointer"
-                                                       data-sector="{{ app_name|slugify }}"
-                                                       data-model="{{ model_name }}"/>
-                                                <span class="ml-2 font-medium text-gray-800">{{ model_data.name|capfirst }}</span>
-                                            </div>
+  /* 2-col grid inside card */
+  .uf-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-                                            <!-- Permissões CRUD individuais -->
-                                            {% if model_data.permissions %}
-                                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                                {% for perm in model_data.permissions %}
-                                                <label class="inline-flex items-center text-sm p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                                    <input type="checkbox" 
-                                                           name="permissions"
-                                                           value="{{ perm.id }}"
-                                                           class="h-4 w-4 rounded border-gray-300 cursor-pointer permission-checkbox
-                                                                {% if 'view' in perm.codename %}text-green-500 focus:ring-green-500
-                                                                {% elif 'add' in perm.codename %}text-blue-500 focus:ring-blue-500
-                                                                {% elif 'change' in perm.codename %}text-yellow-500 focus:ring-yellow-500
-                                                                {% elif 'delete' in perm.codename %}text-red-500 focus:ring-red-500{% endif %}"
-                                                           data-sector="{{ app_name|slugify }}"
-                                                           data-model="{{ model_name }}"
-                                                           data-type="{% if 'delete' in perm.codename %}delete{% elif 'add' in perm.codename %}add{% elif 'change' in perm.codename %}change{% else %}view{% endif %}"
-                                                           {% if perm.id in user_permissions %}checked{% endif %}/>
-                                                    
-                                                    <span class="ml-2 font-medium
-                                                        {% if 'view' in perm.codename %}text-green-700
-                                                        {% elif 'add' in perm.codename %}text-blue-700
-                                                        {% elif 'change' in perm.codename %}text-yellow-700
-                                                        {% elif 'delete' in perm.codename %}text-red-700
-                                                        {% else %}text-gray-600{% endif %}">
-                                                        {% if 'view' in perm.codename %}Visualizar
-                                                        {% elif 'add' in perm.codename %}Adicionar
-                                                        {% elif 'change' in perm.codename %}Alterar
-                                                        {% elif 'delete' in perm.codename %}Remover
-                                                        {% else %}{{ perm.name }}{% endif %}
-                                                    </span>
-                                                </label>
-                                                {% endfor %}
-                                            </div>
-                                            {% endif %}
+  /* Toggle rows */
+  .uf-toggle-list { padding: 4px 0; }
+  .uf-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; gap: 16px;
+  }
+  .uf-toggle-row + .uf-toggle-row { border-top: 1px solid #F2F2F7; }
+  .uf-toggle-label p:first-child { font-size: 15px; font-weight: 500; color: #1D1D1F; margin: 0; }
+  .uf-toggle-label p:last-child  { font-size: 12px; color: #8E8E93; margin: 2px 0 0; }
 
-                                            <!-- Permissões Customizadas -->
-                                            {% if model_data.custom_permissions %}
-                                            <div class="mt-3 pt-3 border-t border-purple-100">
-                                                <p class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2">⚡ Permissões Especiais</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    {% for perm in model_data.custom_permissions %}
-                                                    <label class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-lg text-sm cursor-pointer hover:bg-purple-100 transition-colors">
-                                                        <input type="checkbox"
-                                                               name="permissions"
-                                                               value="{{ perm.id }}"
-                                                               class="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500 cursor-pointer permission-checkbox"
-                                                               data-sector="{{ app_name|slugify }}"
-                                                               data-model="{{ model_name }}"
-                                                               data-type="custom"
-                                                               {% if perm.id in user_permissions %}checked{% endif %}/>
-                                                        <span class="font-medium text-purple-800">{{ perm.name }}</span>
-                                                    </label>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endif %}
+  /* Apple-style toggle switch */
+  .apple-toggle { position: relative; display: inline-block; width: 51px; height: 31px; flex-shrink: 0; cursor: pointer; }
+  .apple-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .apple-track {
+    position: absolute; inset: 0; background: #E5E5EA;
+    border-radius: 31px; transition: background 0.25s;
+  }
+  .apple-thumb {
+    position: absolute; width: 27px; height: 27px; left: 2px; bottom: 2px;
+    background: white; border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+    transition: transform 0.25s;
+  }
+  .apple-toggle input:checked ~ .apple-track { background: #34C759; }
+  .apple-toggle input:checked ~ .apple-thumb { transform: translateX(20px); }
+  /* Cores dos toggles de banco por ação */
+  .bt-change input:checked ~ .apple-track { background: #FF9500; }
+  .bt-add    input:checked ~ .apple-track { background: #007AFF; }
+  .bt-delete input:checked ~ .apple-track { background: #FF3B30; }
 
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+  /* Dashboard select inside toggle section */
+  .uf-select-row { padding: 14px 20px; border-top: 1px solid #F2F2F7; }
+  .uf-select-row .uf-label { margin-bottom: 4px; display: block; }
+  .uf-select-row .uf-hint { margin-bottom: 10px; display: block; }
 
-            </div>
-        </form>
+  /* Action buttons */
+  .uf-actions { display: flex; flex-direction: column; gap: 10px; }
+  .uf-btn-primary {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 44px; padding: 10px 20px;
+    background: #007AFF; color: white;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+    transition: opacity 0.15s;
+    text-decoration: none;
+  }
+  .uf-btn-primary:hover { opacity: 0.88; }
+  .uf-btn-secondary {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 44px;
+    background: #F5F5F7; color: #1D1D1F;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    border: none; border-radius: 10px; cursor: pointer;
+    text-decoration: none; box-sizing: border-box;
+    transition: background 0.15s;
+  }
+  .uf-btn-secondary:hover { background: #E8E8ED; }
+
+  /* ── Right column: Permissions ── */
+  .uf-perm-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #F2F2F7;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .uf-perm-header h2 { font-size: 17px; font-weight: 600; color: #1D1D1F; margin: 0; }
+  .uf-perm-header p  { font-size: 13px; color: #8E8E93; margin: 4px 0 0; }
+  .uf-badge {
+    font-size: 11px; font-weight: 600; color: #007AFF;
+    background: #EAF3FF; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid rgba(0,122,255,0.2); white-space: nowrap;
+  }
+  .uf-perm-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Sector card */
+  .uf-sector {
+    border: 1px solid #E5E5EA; border-radius: 12px; overflow: hidden; background: white;
+  }
+  .uf-sector-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; cursor: pointer; background: #FAFAFA;
+    transition: background 0.12s; user-select: none;
+  }
+  .uf-sector-head:hover { background: #F2F2F7; }
+  .uf-sector-head-left { display: flex; align-items: center; gap: 10px; }
+  .uf-sector-arrow {
+    width: 14px; height: 14px; color: #8E8E93; flex-shrink: 0;
+    transition: transform 0.2s; display: block;
+  }
+  .uf-sector-title {
+    font-size: 12px; font-weight: 700; color: #1D1D1F;
+    text-transform: uppercase; letter-spacing: 0.07em;
+  }
+  .uf-sector-body {
+    display: none; background: #F9F9FB; border-top: 1px solid #E5E5EA;
+    padding: 12px 14px; display: none; flex-direction: column; gap: 8px;
+  }
+
+  /* Model card */
+  .uf-model {
+    background: white; border: 1px solid #E5E5EA; border-radius: 10px; padding: 14px;
+  }
+  .uf-model-head {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #F2F2F7;
+  }
+  .uf-model-name { font-size: 14px; font-weight: 600; color: #1D1D1F; }
+
+  /* Permission checkboxes */
+  .uf-perms-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; }
+  @media (min-width: 640px) { .uf-perms-grid { grid-template-columns: repeat(4,1fr); } }
+  .uf-perm-label {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    background: #F9F9FB; border: 1px solid #F2F2F7;
+    transition: background 0.12s;
+  }
+  .uf-perm-label:hover { background: #F2F2F7; }
+  .uf-perm-text { font-size: 13px; font-weight: 500; }
+  .perm-view  { color: #1A7F37; } .perm-view-cb  { accent-color: #34C759; }
+  .perm-add   { color: #0051D5; } .perm-add-cb   { accent-color: #007AFF; }
+  .perm-change{ color: #C4600A; } .perm-change-cb{ accent-color: #FF9500; }
+  .perm-delete{ color: #C0392B; } .perm-delete-cb{ accent-color: #FF3B30; }
+
+  /* Custom permissions */
+  .uf-custom-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F2F2F7; }
+  .uf-custom-title {
+    font-size: 10px; font-weight: 700; color: #AF52DE;
+    text-transform: uppercase; letter-spacing: 0.09em; margin: 0 0 8px;
+  }
+  .uf-custom-perms { display: flex; flex-wrap: wrap; gap: 6px; }
+  .uf-custom-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; background: #F9F0FF;
+    border: 1px solid #D9A6F5; border-radius: 8px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .uf-custom-label:hover { background: #F0E0FF; }
+  .uf-custom-label span { font-size: 13px; font-weight: 500; color: #7E22CE; }
+</style>
+
+<div class="uf-wrap">
+  <div class="uf-inner">
+
+    <!-- Header -->
+    <div class="uf-header">
+      <div>
+        <h1>{{ title }}</h1>
+        <p>Configure o acesso e os privilégios deste utilizador no sistema.</p>
+      </div>
+      <a href="{% url 'accounts:user_list' %}" class="uf-back">← Voltar</a>
     </div>
+
+    <!-- Error banner -->
+    {% if form.non_field_errors %}
+    <div class="uf-error">
+      {% for error in form.non_field_errors %}<p style="margin:0;">{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" id="userForm">
+      {% csrf_token %}
+
+      <div class="uf-grid">
+
+        <!-- ══════════ LEFT COLUMN ══════════ -->
+        <div class="uf-left">
+
+          <!-- Perfil -->
+          <div class="uf-card">
+            <div class="uf-card-header"><p>Perfil</p></div>
+            <div class="uf-card-body">
+              <div class="uf-grid-2">
+                <div class="uf-field">
+                  <label class="uf-label">Primeiro Nome</label>
+                  <input type="text" name="first_name" class="uf-input"
+                    value="{{ form.instance.first_name|default_if_none:'' }}"
+                    placeholder="Nome">
+                </div>
+                <div class="uf-field">
+                  <label class="uf-label">Sobrenome</label>
+                  <input type="text" name="last_name" class="uf-input"
+                    value="{{ form.instance.last_name|default_if_none:'' }}"
+                    placeholder="Sobrenome">
+                </div>
+              </div>
+              <div class="uf-field">
+                <label class="uf-label">E-mail</label>
+                <input type="email" name="email" class="uf-input"
+                  value="{{ form.instance.email|default_if_none:'' }}"
+                  placeholder="email@exemplo.com">
+              </div>
+            </div>
+          </div>
+
+          <!-- Acesso ao Sistema -->
+          <div class="uf-card">
+            <div class="uf-card-header"><p>Acesso ao Sistema</p></div>
+            <div class="uf-card-body">
+              <div class="uf-field">
+                <label class="uf-label" for="{{ form.username.id_for_label }}">
+                  Nome de usuário <span class="req">*</span>
+                </label>
+                <input type="text" name="username" id="{{ form.username.id_for_label }}"
+                  class="uf-input" required
+                  value="{{ form.username.value|default_if_none:'' }}"
+                  placeholder="Ex: garcom01">
+                {% if form.username.errors %}
+                  <span class="uf-field-error">{{ form.username.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="uf-field">
+                <label class="uf-label" for="id_password">
+                  Senha {% if not is_editing %}<span class="req">*</span>{% endif %}
+                </label>
+                <input type="password" name="password" id="id_password"
+                  class="uf-input" {% if not is_editing %}required{% endif %}
+                  placeholder="••••••••">
+                {% if is_editing %}
+                  <span class="uf-hint">Deixe em branco para manter a senha atual.</span>
+                {% endif %}
+                {% if form.password.errors %}
+                  <span class="uf-field-error">{{ form.password.errors.0 }}</span>
+                {% endif %}
+              </div>
+              <div class="uf-field">
+                <label class="uf-label" for="id_confirm_password">
+                  Confirmar Senha {% if not is_editing %}<span class="req">*</span>{% endif %}
+                </label>
+                <input type="password" name="confirm_password" id="id_confirm_password"
+                  class="uf-input" {% if not is_editing %}required{% endif %}
+                  placeholder="••••••••">
+                {% if form.confirm_password.errors %}
+                  <span class="uf-field-error">{{ form.confirm_password.errors.0 }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Configurações -->
+          <div class="uf-card">
+            <div class="uf-card-header"><p>Configurações</p></div>
+            <div class="uf-toggle-list">
+
+              <div class="uf-toggle-row">
+                <div class="uf-toggle-label">
+                  <p>Usuário Ativo</p>
+                  <p>Permite que o usuário faça login no sistema</p>
+                </div>
+                <label class="apple-toggle">
+                  <input type="checkbox" name="is_active"
+                    {% if form.instance.is_active or not is_editing %}checked{% endif %}>
+                  <span class="apple-track"></span>
+                  <span class="apple-thumb"></span>
+                </label>
+              </div>
+
+              <div class="uf-toggle-row">
+                <div class="uf-toggle-label">
+                  <p>Operador de Caixa</p>
+                  <p>Acesso para operar e fechar o caixa</p>
+                </div>
+                <label class="apple-toggle">
+                  <input type="checkbox" name="is_caixa"
+                    {% if form.instance.is_caixa %}checked{% endif %}>
+                  <span class="apple-track"></span>
+                  <span class="apple-thumb"></span>
+                </label>
+              </div>
+
+              <div class="uf-select-row">
+                <label class="uf-label uf-select-row" for="id_dashboard_home" style="padding:0; border:none; font-size:15px; font-weight:500; color:#1D1D1F;">Tela inicial após login</label>
+                <span class="uf-hint" style="display:block; margin-bottom:10px;">Para onde o usuário é direcionado ao entrar</span>
+                <select name="dashboard_home" id="id_dashboard_home" class="uf-select">
+                  <option value="home" {% if form.instance.dashboard_home == 'home' or not form.instance.pk %}selected{% endif %}>Dashboard Principal (Comandas)</option>
+                  <option value="ceo" {% if form.instance.dashboard_home == 'ceo' %}selected{% endif %}>Dashboard CEO</option>
+                  <option value="manage" {% if form.instance.dashboard_home == 'manage' %}selected{% endif %}>Dashboard Gerencial</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="uf-actions">
+            <button type="submit" class="uf-btn-primary">
+              {% if is_editing %}Salvar Alterações{% else %}Criar Usuário{% endif %}
+            </button>
+            <a href="{% url 'accounts:user_list' %}" class="uf-btn-secondary">Cancelar</a>
+          </div>
+
+        </div>
+        <!-- ══════════ END LEFT ══════════ -->
+
+        <!-- ══════════ RIGHT COLUMN: Permissions ══════════ -->
+        <div>
+          <div class="uf-card">
+            <div class="uf-perm-header">
+              <div>
+                <h2>Gestão de Privilégios</h2>
+                <p>Selecione quais módulos e ações este usuário pode executar</p>
+              </div>
+              <span class="uf-badge">Módulos do Sistema</span>
+            </div>
+
+            <div class="uf-perm-body">
+              {% for app_name, models in permissions_by_app.items %}
+              <div class="uf-sector" id="sector-{{ app_name|slugify }}">
+
+                <!-- Sector header -->
+                <div class="uf-sector-head" onclick="toggleSector('{{ app_name|slugify }}')">
+                  <div class="uf-sector-head-left">
+                    <svg id="arrow-{{ app_name|slugify }}" class="uf-sector-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <input type="checkbox"
+                      class="sector-checkbox"
+                      data-sector="{{ app_name|slugify }}"
+                      onclick="event.stopPropagation()"
+                      style="width:17px;height:17px;border-radius:5px;accent-color:#007AFF;cursor:pointer;flex-shrink:0;">
+                    <span class="uf-sector-title">{{ app_name }}</span>
+                  </div>
+                </div>
+
+                <!-- Models body (collapsed by default) -->
+                <div id="models-{{ app_name|slugify }}" class="uf-sector-body" style="display:none;">
+                  {% for model_name, model_data in models.items %}
+                  <div class="uf-model">
+
+                    <!-- Model header -->
+                    <div class="uf-model-head">
+                      <input type="checkbox"
+                        class="model-checkbox"
+                        data-sector="{{ app_name|slugify }}"
+                        data-model="{{ model_name }}"
+                        style="width:16px;height:16px;border-radius:4px;accent-color:#007AFF;cursor:pointer;flex-shrink:0;">
+                      <span class="uf-model-name">{{ model_data.name|capfirst }}</span>
+                    </div>
+
+                    <!-- Standard CRUD permissions -->
+                    {% if model_data.permissions %}
+                    <div class="uf-perms-grid">
+                      {% for perm in model_data.permissions %}
+                      {% if 'view' in perm.codename %}
+                        {% with ptype="view" %}
+                        <label class="uf-perm-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox perm-view-cb"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="view"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#34C759;">
+                          <span class="uf-perm-text perm-view">Visualizar</span>
+                        </label>
+                        {% endwith %}
+                      {% elif 'add' in perm.codename %}
+                        <label class="uf-perm-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox perm-add-cb"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="add"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#007AFF;">
+                          <span class="uf-perm-text perm-add">Adicionar</span>
+                        </label>
+                      {% elif 'change' in perm.codename %}
+                        <label class="uf-perm-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox perm-change-cb"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="change"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#FF9500;">
+                          <span class="uf-perm-text perm-change">Alterar</span>
+                        </label>
+                      {% elif 'delete' in perm.codename %}
+                        <label class="uf-perm-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox perm-delete-cb"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="delete"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#FF3B30;">
+                          <span class="uf-perm-text perm-delete">Remover</span>
+                        </label>
+                      {% else %}
+                        <label class="uf-perm-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="other"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#007AFF;">
+                          <span class="uf-perm-text" style="color:#3A3A3C;">{{ perm.name }}</span>
+                        </label>
+                      {% endif %}
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Custom (special) permissions -->
+                    {% if model_data.custom_permissions %}
+                    <div class="uf-custom-section">
+                      <p class="uf-custom-title">Permissões Especiais</p>
+                      <div class="uf-custom-perms">
+                        {% for perm in model_data.custom_permissions %}
+                        <label class="uf-custom-label">
+                          <input type="checkbox" name="permissions" value="{{ perm.id }}"
+                            class="permission-checkbox"
+                            data-sector="{{ app_name|slugify }}" data-model="{{ model_name }}" data-type="custom"
+                            {% if perm.id in user_permissions %}checked{% endif %}
+                            style="width:15px;height:15px;border-radius:4px;cursor:pointer;accent-color:#AF52DE;">
+                          <span>{{ perm.name }}</span>
+                        </label>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    {% endif %}
+
+                  </div>
+                  {% endfor %}
+                </div>
+
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <!-- ══════════ Bank-specific access ══════════ -->
+        {% if bank_rows %}
+        <div style="grid-column: 1 / -1;">
+          <div class="uf-card">
+            <div class="uf-perm-header">
+              <div>
+                <h2>Acesso por Banco</h2>
+                <p>Defina quais bancos este usuário pode acessar e com quais ações. Usuários com a permissão global <strong>Bancos → Visualizar</strong> já têm acesso a todos.</p>
+              </div>
+              <span class="uf-badge" style="background:#FFF3E0; color:#E65100; border-color:rgba(230,81,0,0.2);">Por Banco</span>
+            </div>
+
+            <div style="padding:0; overflow-x:auto;">
+              <!-- Header row -->
+              <div style="display:grid; grid-template-columns:1fr repeat(4,100px); min-width:480px; padding:10px 20px; background:#F9F9FB; border-bottom:1px solid #E5E5EA;">
+                <span style="font-size:11px; font-weight:700; color:#8E8E93; text-transform:uppercase; letter-spacing:0.08em;">Banco</span>
+                <span style="font-size:11px; font-weight:700; color:#34C759; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Visualizar</span>
+                <span style="font-size:11px; font-weight:700; color:#FF9500; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Editar</span>
+                <span style="font-size:11px; font-weight:700; color:#007AFF; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Lançar</span>
+                <span style="font-size:11px; font-weight:700; color:#FF3B30; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Remover</span>
+              </div>
+
+              {% for row in bank_rows %}
+              <div style="display:grid; grid-template-columns:1fr repeat(4,100px); min-width:480px; padding:14px 20px; border-bottom:1px solid #F2F2F7; align-items:center; background:white; transition:background 0.1s;"
+                   onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                <div>
+                  <p style="font-size:15px; font-weight:500; color:#1D1D1F; margin:0;">{{ row.bank.nome }}</p>
+                  {% if row.bank.numero_conta %}
+                  <p style="font-size:12px; color:#8E8E93; margin:2px 0 0;">
+                    Conta {{ row.bank.numero_conta }}{% if row.bank.agencia %} · Ag. {{ row.bank.agencia }}{% endif %}
+                  </p>
+                  {% endif %}
+                </div>
+
+                <!-- Visualizar -->
+                <div style="display:flex; justify-content:center;">
+                  <label class="apple-toggle" style="width:44px; height:26px;">
+                    <input type="checkbox" name="bank_view_{{ row.bank.id }}"
+                      {% if row.can_view %}checked{% endif %}>
+                    <span class="apple-track" style="border-radius:26px;"></span>
+                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                  </label>
+                </div>
+                <!-- Editar -->
+                <div style="display:flex; justify-content:center;">
+                  <label class="apple-toggle bt-change" style="width:44px; height:26px;">
+                    <input type="checkbox" name="bank_change_{{ row.bank.id }}"
+                      {% if row.can_change %}checked{% endif %}>
+                    <span class="apple-track" style="border-radius:26px;"></span>
+                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                  </label>
+                </div>
+                <!-- Lançar -->
+                <div style="display:flex; justify-content:center;">
+                  <label class="apple-toggle bt-add" style="width:44px; height:26px;">
+                    <input type="checkbox" name="bank_add_tx_{{ row.bank.id }}"
+                      {% if row.can_add_transaction %}checked{% endif %}>
+                    <span class="apple-track" style="border-radius:26px;"></span>
+                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                  </label>
+                </div>
+                <!-- Remover -->
+                <div style="display:flex; justify-content:center;">
+                  <label class="apple-toggle bt-delete" style="width:44px; height:26px;">
+                    <input type="checkbox" name="bank_del_tx_{{ row.bank.id }}"
+                      {% if row.can_delete_transaction %}checked{% endif %}>
+                    <span class="apple-track" style="border-radius:26px;"></span>
+                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+
+              <div style="padding:12px 20px; background:#F9F9FB; border-top:1px solid #E5E5EA;">
+                <p style="font-size:12px; color:#8E8E93; margin:0;">
+                  Ao ativar <strong>Lançar</strong> ou <strong>Remover</strong>, recomenda-se também ativar <strong>Visualizar</strong> para que o usuário consiga acessar o extrato do banco.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        <!-- ══════════ END Bank access ══════════ -->
+
+        <!-- ══════════ END RIGHT ══════════ -->
+
+      </div>
+    </form>
+
+  </div>
 </div>
 {% endblock content %}
 
 {% block extra_js %}
 <script>
-function toggleSector(sectorSlug) {
-    const modelsContainer = document.getElementById(`models-${sectorSlug}`);
-    const icon = document.getElementById(`icon-${sectorSlug}`);
-    
-    if (modelsContainer.classList.contains('hidden')) {
-        modelsContainer.classList.remove('hidden');
-        icon.classList.add('rotate-180');
-    } else {
-        modelsContainer.classList.add('hidden');
-        icon.classList.remove('rotate-180');
-    }
+function toggleSector(slug) {
+  const body  = document.getElementById('models-' + slug);
+  const arrow = document.getElementById('arrow-'  + slug);
+  const open  = body.style.display === 'flex' || body.style.display === 'block';
+  body.style.display  = open ? 'none' : 'flex';
+  body.style.flexDirection = 'column';
+  arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // 1. Checkbox Mestre do Setor
-    document.querySelectorAll('.sector-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const sector = this.dataset.sector;
-            const isChecked = this.checked;
-            
-            document.querySelectorAll(`.model-checkbox[data-sector="${sector}"]`).forEach(modelCb => {
-                modelCb.checked = isChecked;
-                modelCb.indeterminate = false;
-            });
-            
-            document.querySelectorAll(`.permission-checkbox[data-sector="${sector}"]`).forEach(permCb => {
-                const isDelete = permCb.dataset.type === 'delete';
-                if (isChecked && !isDelete) { permCb.checked = true; } 
-                else if (!isChecked) { permCb.checked = false; }
-            });
-            
-            if (isChecked) {
-                const modelsContainer = document.getElementById(`models-${sector}`);
-                const icon = document.getElementById(`icon-${sector}`);
-                if (modelsContainer && modelsContainer.classList.contains('hidden')) {
-                    modelsContainer.classList.remove('hidden');
-                    icon.classList.add('rotate-180');
-                }
-            }
-        });
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Sector master checkbox ──────────────────────────────────
+  document.querySelectorAll('.sector-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var sector = this.dataset.sector;
+      var checked = this.checked;
+
+      document.querySelectorAll('.model-checkbox[data-sector="' + sector + '"]').forEach(function (m) {
+        m.checked = checked;
+        m.indeterminate = false;
+      });
+      document.querySelectorAll('.permission-checkbox[data-sector="' + sector + '"]').forEach(function (p) {
+        if (checked && p.dataset.type !== 'delete') p.checked = true;
+        else if (!checked) p.checked = false;
+      });
+
+      if (checked) {
+        var body = document.getElementById('models-' + sector);
+        if (body && body.style.display === 'none') toggleSector(sector);
+      }
     });
+  });
 
-    // 2. Checkbox do Modelo (Médio)
-    document.querySelectorAll('.model-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const sector = this.dataset.sector;
-            const model = this.dataset.model;
-            const isChecked = this.checked;
-
-            document.querySelectorAll(`.permission-checkbox[data-sector="${sector}"][data-model="${model}"]`).forEach(permCb => {
-                const isDelete = permCb.dataset.type === 'delete';
-                if (isChecked && !isDelete) { permCb.checked = true; } 
-                else if (!isChecked) { permCb.checked = false; }
-            });
-            updateSectorCheckbox(sector);
-        });
+  // ── Model checkbox ──────────────────────────────────────────
+  document.querySelectorAll('.model-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var sector = this.dataset.sector;
+      var model  = this.dataset.model;
+      var checked = this.checked;
+      document.querySelectorAll('.permission-checkbox[data-sector="' + sector + '"][data-model="' + model + '"]').forEach(function (p) {
+        if (checked && p.dataset.type !== 'delete') p.checked = true;
+        else if (!checked) p.checked = false;
+      });
+      updateSector(sector);
     });
+  });
 
-    // 3. Update Reversivo da Ação de Checkbox Individual
-    document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const sector = this.dataset.sector;
-            const model = this.dataset.model;
-            
-            updateModelCheckbox(sector, model);
-            updateSectorCheckbox(sector);
-        });
+  // ── Individual permission checkbox ─────────────────────────
+  document.querySelectorAll('.permission-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      updateModel(this.dataset.sector, this.dataset.model);
+      updateSector(this.dataset.sector);
     });
+  });
 
-    function updateModelCheckbox(sector, model) {
-        const modelCb = document.querySelector(`.model-checkbox[data-sector="${sector}"][data-model="${model}"]`);
-        if (!modelCb) return;
-
-        const perms = Array.from(document.querySelectorAll(`.permission-checkbox[data-sector="${sector}"][data-model="${model}"]`));
-        const requiredPerms = perms.filter(p => p.dataset.type !== 'delete');
-        const checkedRequired = requiredPerms.filter(p => p.checked).length;
-
-        if (checkedRequired === requiredPerms.length && requiredPerms.length > 0) {
-            modelCb.checked = true;
-            modelCb.indeterminate = false;
-        } else if (checkedRequired === 0) {
-            modelCb.checked = false;
-            modelCb.indeterminate = false;
-        } else {
-            modelCb.checked = false;
-            modelCb.indeterminate = true;
-        }
+  // ── Helpers ────────────────────────────────────────────────
+  function updateModel(sector, model) {
+    var modelCb = document.querySelector('.model-checkbox[data-sector="' + sector + '"][data-model="' + model + '"]');
+    if (!modelCb) return;
+    var perms    = Array.from(document.querySelectorAll('.permission-checkbox[data-sector="' + sector + '"][data-model="' + model + '"]'));
+    var required = perms.filter(function (p) { return p.dataset.type !== 'delete'; });
+    var nChecked = required.filter(function (p) { return p.checked; }).length;
+    if (nChecked === required.length && required.length > 0) {
+      modelCb.checked = true; modelCb.indeterminate = false;
+    } else if (nChecked === 0) {
+      modelCb.checked = false; modelCb.indeterminate = false;
+    } else {
+      modelCb.checked = false; modelCb.indeterminate = true;
     }
+  }
 
-    function updateSectorCheckbox(sector) {
-        const sectorCb = document.querySelector(`.sector-checkbox[data-sector="${sector}"]`);
-        if (!sectorCb) return;
-
-        const modelCbs = Array.from(document.querySelectorAll(`.model-checkbox[data-sector="${sector}"]`));
-        const checkedModels = modelCbs.filter(cb => cb.checked).length;
-        const indeterminateModels = modelCbs.filter(cb => cb.indeterminate).length;
-        
-        if (checkedModels === modelCbs.length && modelCbs.length > 0 && indeterminateModels === 0) {
-            sectorCb.checked = true;
-            sectorCb.indeterminate = false;
-        } else if (checkedModels === 0 && indeterminateModels === 0) {
-            sectorCb.checked = false;
-            sectorCb.indeterminate = false;
-        } else {
-            sectorCb.checked = false;
-            sectorCb.indeterminate = true;
-        }
+  function updateSector(sector) {
+    var sectorCb = document.querySelector('.sector-checkbox[data-sector="' + sector + '"]');
+    if (!sectorCb) return;
+    var models   = Array.from(document.querySelectorAll('.model-checkbox[data-sector="' + sector + '"]'));
+    var nChecked = models.filter(function (m) { return m.checked; }).length;
+    var nIndet   = models.filter(function (m) { return m.indeterminate; }).length;
+    if (nChecked === models.length && models.length > 0 && nIndet === 0) {
+      sectorCb.checked = true; sectorCb.indeterminate = false;
+    } else if (nChecked === 0 && nIndet === 0) {
+      sectorCb.checked = false; sectorCb.indeterminate = false;
+    } else {
+      sectorCb.checked = false; sectorCb.indeterminate = true;
     }
+  }
 
-    // Initialize States
-    const uniqueSectorModels = new Set();
-    document.querySelectorAll('.permission-checkbox').forEach(cb => {
-        uniqueSectorModels.add(`${cb.dataset.sector}|${cb.dataset.model}`);
-    });
-    uniqueSectorModels.forEach(item => {
-        const [sector, model] = item.split('|');
-        updateModelCheckbox(sector, model);
-    });
+  // ── Initialize checkbox states ──────────────────────────────
+  var seen = new Set();
+  document.querySelectorAll('.permission-checkbox').forEach(function (cb) {
+    seen.add(cb.dataset.sector + '|' + cb.dataset.model);
+  });
+  seen.forEach(function (key) {
+    var parts = key.split('|');
+    updateModel(parts[0], parts[1]);
+  });
+  var sectors = new Set();
+  document.querySelectorAll('.sector-checkbox').forEach(function (cb) { sectors.add(cb.dataset.sector); });
+  sectors.forEach(updateSector);
 
-    const uniqueSectors = new Set();
-    document.querySelectorAll('.sector-checkbox').forEach(cb => {
-        uniqueSectors.add(cb.dataset.sector);
-    });
-    uniqueSectors.forEach(sector => {
-        updateSectorCheckbox(sector);
-    });
+  // ── Auto-expand sectors that have checked permissions ──────
+  sectors.forEach(function (sector) {
+    var hasChecked = Array.from(document.querySelectorAll('.permission-checkbox[data-sector="' + sector + '"]')).some(function (p) { return p.checked; });
+    if (hasChecked) toggleSector(sector);
+  });
+
 });
 </script>
 {% endblock extra_js %}

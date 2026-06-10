@@ -315,6 +315,7 @@ def get_permissions_by_app():
     # ── Tradução: app label → nome em português ──────────────────────────
     APP_LABELS_PT = {
         'accounts':  'Usuários e Acessos',
+        'banks':     'Bancos',
         'orders':    'Pedidos e Comandas',
         'products':  'Produtos e Estoque',
         'checkouts': 'Caixa',
@@ -330,42 +331,58 @@ def get_permissions_by_app():
     # ── Tradução: model name (lower) → nome em português ─────────────────
     MODEL_NAMES_PT = {
         # accounts
-        'user':                    'Usuário',
+        'user':                        'Usuário',
+        # banks
+        'bank':                        'Banco',
+        'banktransaction':             'Transação Bancária',
         # orders
-        'comanda':                 'Comanda',
-        'pedido':                  'Pedido',
-        'pedidoitem':              'Item do Pedido',
+        'comanda':                     'Comanda',
+        'pedido':                      'Pedido',
+        'pedidoitem':                  'Item do Pedido',
+        'comandapartialpayment':       'Pagamento Parcial',
+        'itemremovidolog':             'Log de Item Removido',
         # products
-        'product':                 'Produto',
-        'combo':                   'Combo',
-        'comboitem':               'Item do Combo',
-        'adicional':               'Adicional',
-        'opcionalobrigatorio':     'Opcional Obrigatório',
-        'stockentry':              'Entrada de Estoque',
-        'stockexit':               'Saída de Estoque',
-        'rawmaterial':             'Matéria-Prima',
+        'product':                     'Produto',
+        'combo':                       'Combo',
+        'comboitem':                   'Item do Combo',
+        'adicional':                   'Adicional',
+        'opcionalobrigatorio':         'Opcional Obrigatório',
+        'stockentry':                  'Entrada de Estoque',
+        'stockexit':                   'Saída de Estoque',
+        'rawmaterial':                 'Matéria-Prima',
         # checkouts
-        'checkout':                'Fechamento de Caixa',
-        'sessaocaixa':             'Sessão de Caixa',
-        'checkoutpayment':         'Pagamento do Caixa',
+        'checkout':                    'Fechamento de Caixa',
+        'sessaocaixa':                 'Sessão de Caixa',
+        'checkoutpayment':             'Pagamento do Caixa',
         # financials
-        'sangria':                 'Sangria',
-        'fechamentocaixadiario':   'Fechamento Diário de Caixa',
-        'caixaadm':                'Caixa ADM (Malotes)',
-        'despesamalote':           'Despesa do Malote',
+        'sangria':                     'Sangria',
+        'fechamentocaixadiario':       'Fechamento Diário de Caixa',
+        'ajustefechamentocaixadiario': 'Ajuste de Fechamento Diário',
+        'caixaadm':                    'Caixa ADM (Malotes)',
+        'caixaadmtransferencia':       'Transferência Caixa ADM',
+        'despesamalote':               'Despesa do Malote',
         # pinpads
-        'pinpad':                  'Maquininha (Pinpad)',
+        'pinpad':                      'Maquininha (Pinpad)',
+        'bandeirapinpad':              'Bandeira de Maquininha',
         # companys
-        'company':                 'Empresa',
+        'company':                     'Empresa',
+        'certificadodigital':          'Certificado Digital',
         # reports
-        'report':                  'Relatório',
+        'report':                      'Relatório',
         # config
-        'systemconfig':            'Configuração do Sistema (legado)',
-        'configtempoespera':        'Tempo de Espera',
-        'configtrocoinicial':        'Troco Inicial',
-        'configquebracaixa':         'Quebra de Caixa',
-        'configcomissao':            'Comissão',
+        'systemconfig':                'Configuração do Sistema (legado)',
+        'configtempoespera':           'Tempo de Espera',
+        'configtrocoinicial':          'Troco Inicial',
+        'configquebracaixa':           'Quebra de Caixa',
+        'configcomissao':              'Comissão',
+        'configkioskpin':              'PIN do Kiosk',
+        'garcom':                      'Garçom',
+        # kiosk
+        'kioskslide':                  'Slide do Kiosk',
     }
+
+    # Modelos legados que não devem aparecer na tela de permissões
+    EXCLUDED_MODELS = {'order', 'orderitem'}
 
     excluded_apps = {
         'admin', 'auth', 'contenttypes', 'sessions', 'messages',
@@ -396,6 +413,8 @@ def get_permissions_by_app():
         permissions_by_model = {}
         for perm in all_perms:
             model_name = perm.content_type.model
+            if model_name in EXCLUDED_MODELS:
+                continue
             if model_name not in permissions_by_model:
                 display_name = MODEL_NAMES_PT.get(model_name, perm.content_type.name.title())
                 permissions_by_model[model_name] = {
@@ -421,6 +440,48 @@ def get_permissions_by_app():
 
     return permissions_by_app
 
+def _save_bank_accesses(user, post_data):
+    """Sincroniza registros de UserBankAccess a partir dos dados do POST."""
+    from banks.models import Bank, UserBankAccess
+    for bank in Bank.objects.all():
+        can_view  = f'bank_view_{bank.id}'   in post_data
+        can_change = f'bank_change_{bank.id}' in post_data
+        can_add   = f'bank_add_tx_{bank.id}' in post_data
+        can_del   = f'bank_del_tx_{bank.id}' in post_data
+        if any([can_view, can_change, can_add, can_del]):
+            UserBankAccess.objects.update_or_create(
+                user=user, bank=bank,
+                defaults={
+                    'can_view': can_view,
+                    'can_change': can_change,
+                    'can_add_transaction': can_add,
+                    'can_delete_transaction': can_del,
+                }
+            )
+        else:
+            UserBankAccess.objects.filter(user=user, bank=bank).delete()
+
+
+def _get_bank_context(user_to_edit=None):
+    """Retorna lista de dicts {bank, can_view, can_change, ...} para o template."""
+    from banks.models import Bank, UserBankAccess
+    accesses = {}
+    if user_to_edit:
+        for a in UserBankAccess.objects.filter(user=user_to_edit):
+            accesses[a.bank_id] = a
+    rows = []
+    for bank in Bank.objects.order_by('nome'):
+        acc = accesses.get(bank.id)
+        rows.append({
+            'bank':                  bank,
+            'can_view':              acc.can_view              if acc else False,
+            'can_change':            acc.can_change            if acc else False,
+            'can_add_transaction':   acc.can_add_transaction   if acc else False,
+            'can_delete_transaction':acc.can_delete_transaction if acc else False,
+        })
+    return rows
+
+
 @login_required
 @permission_required("accounts.add_user", raise_exception=True)
 def user_create(request):
@@ -430,24 +491,22 @@ def user_create(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
-            user.is_staff = True  # Padrão do sistema para conseguir fazer login
+            user.is_staff = True
             user.save()
-            
-            # MAGIA: Captura todos os checkboxes marcados na tela e salva
-            permissions_ids = request.POST.getlist('permissions')
-            user.user_permissions.set(permissions_ids)
-            
+            user.user_permissions.set(request.POST.getlist('permissions'))
+            _save_bank_accesses(user, request.POST)
             messages.success(request, f'✅ Usuário {user.username} criado com sucesso!')
             return redirect('accounts:user_list')
     else:
         form = UserPermissionForm()
-    
+
     return render(request, 'accounts/user_form.html', {
         'form': form,
         'title': 'Criar Novo Usuário',
         'is_editing': False,
         'permissions_by_app': get_permissions_by_app(),
-        'user_permissions': []
+        'user_permissions': [],
+        'bank_rows': _get_bank_context(),
     })
 
 @login_required
@@ -455,22 +514,19 @@ def user_create(request):
 def user_edit(request, user_id):
     """Edita as permissões de um usuário existente (dinamicamente)"""
     user_to_edit = get_object_or_404(User, id=user_id)
-    
+
     if request.method == 'POST':
         form = UserPermissionForm(request.POST, instance=user_to_edit)
         form.fields['password'].required = False
         form.fields['confirm_password'].required = False
-        
+
         if form.is_valid():
             user = form.save(commit=False)
             if form.cleaned_data.get('password'):
                 user.set_password(form.cleaned_data['password'])
             user.save()
-            
-            # Atualiza permissões do banco nativo do Django
-            permissions_ids = request.POST.getlist('permissions')
-            user.user_permissions.set(permissions_ids)
-            
+            user.user_permissions.set(request.POST.getlist('permissions'))
+            _save_bank_accesses(user, request.POST)
             messages.success(request, f'✅ Permissões de {user.username} atualizadas!')
             return redirect('accounts:user_list')
     else:
@@ -480,14 +536,15 @@ def user_edit(request, user_id):
         form.fields['password'].help_text = 'Deixe em branco para manter a senha atual'
         
     user_permissions = [perm.id for perm in user_to_edit.user_permissions.all()]
-    
+
     return render(request, 'accounts/user_form.html', {
         'form': form,
         'title': f'Editar: {user_to_edit.username}',
         'is_editing': True,
         'user_to_edit': user_to_edit,
         'permissions_by_app': get_permissions_by_app(),
-        'user_permissions': user_permissions
+        'user_permissions': user_permissions,
+        'bank_rows': _get_bank_context(user_to_edit),
     })
 
 

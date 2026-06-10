@@ -65,3 +65,31 @@ class BankTransaction(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - R$ {self.valor} ({self.bank.nome})"
+
+
+class UserBankAccess(models.Model):
+    """Controla quais bancos específicos cada usuário pode acessar e com quais ações."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='bank_accesses',
+        verbose_name='Usuário',
+    )
+    bank = models.ForeignKey(
+        Bank,
+        on_delete=models.CASCADE,
+        related_name='user_accesses',
+        verbose_name='Banco',
+    )
+    can_view            = models.BooleanField(default=False, verbose_name='Visualizar')
+    can_change          = models.BooleanField(default=False, verbose_name='Editar')
+    can_add_transaction = models.BooleanField(default=False, verbose_name='Lançar transações')
+    can_delete_transaction = models.BooleanField(default=False, verbose_name='Remover transações')
+
+    class Meta:
+        verbose_name = 'Acesso ao Banco'
+        verbose_name_plural = 'Acessos a Bancos'
+        unique_together = ('user', 'bank')
+
+    def __str__(self):
+        return f'{self.user.username} → {self.bank.nome}'
