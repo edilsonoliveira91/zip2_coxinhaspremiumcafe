@@ -81,9 +81,11 @@ class UserBankAccess(models.Model):
         related_name='user_accesses',
         verbose_name='Banco',
     )
-    can_view            = models.BooleanField(default=False, verbose_name='Visualizar')
-    can_change          = models.BooleanField(default=False, verbose_name='Editar')
-    can_add_transaction = models.BooleanField(default=False, verbose_name='Lançar transações')
+    can_view               = models.BooleanField(default=False, verbose_name='Visualizar')
+    can_change             = models.BooleanField(default=False, verbose_name='Editar')
+    can_add_transaction    = models.BooleanField(default=False, verbose_name='Adicionar depósito')
+    can_pay_transaction    = models.BooleanField(default=False, verbose_name='Registrar pagamento')
+    can_transfer_transaction = models.BooleanField(default=False, verbose_name='Transferir')
     can_delete_transaction = models.BooleanField(default=False, verbose_name='Remover transações')
 
     class Meta:

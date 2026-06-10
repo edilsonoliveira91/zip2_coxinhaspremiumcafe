@@ -444,17 +444,21 @@ def _save_bank_accesses(user, post_data):
     """Sincroniza registros de UserBankAccess a partir dos dados do POST."""
     from banks.models import Bank, UserBankAccess
     for bank in Bank.objects.all():
-        can_view  = f'bank_view_{bank.id}'   in post_data
-        can_change = f'bank_change_{bank.id}' in post_data
-        can_add   = f'bank_add_tx_{bank.id}' in post_data
-        can_del   = f'bank_del_tx_{bank.id}' in post_data
-        if any([can_view, can_change, can_add, can_del]):
+        can_view     = f'bank_view_{bank.id}'        in post_data
+        can_change   = f'bank_change_{bank.id}'      in post_data
+        can_add      = f'bank_add_tx_{bank.id}'      in post_data
+        can_pay      = f'bank_pay_tx_{bank.id}'      in post_data
+        can_transfer = f'bank_transfer_tx_{bank.id}' in post_data
+        can_del      = f'bank_del_tx_{bank.id}'      in post_data
+        if any([can_view, can_change, can_add, can_pay, can_transfer, can_del]):
             UserBankAccess.objects.update_or_create(
                 user=user, bank=bank,
                 defaults={
-                    'can_view': can_view,
-                    'can_change': can_change,
-                    'can_add_transaction': can_add,
+                    'can_view':               can_view,
+                    'can_change':             can_change,
+                    'can_add_transaction':    can_add,
+                    'can_pay_transaction':    can_pay,
+                    'can_transfer_transaction': can_transfer,
                     'can_delete_transaction': can_del,
                 }
             )
@@ -473,11 +477,13 @@ def _get_bank_context(user_to_edit=None):
     for bank in Bank.objects.order_by('nome'):
         acc = accesses.get(bank.id)
         rows.append({
-            'bank':                  bank,
-            'can_view':              acc.can_view              if acc else False,
-            'can_change':            acc.can_change            if acc else False,
-            'can_add_transaction':   acc.can_add_transaction   if acc else False,
-            'can_delete_transaction':acc.can_delete_transaction if acc else False,
+            'bank':                    bank,
+            'can_view':                acc.can_view                if acc else False,
+            'can_change':              acc.can_change              if acc else False,
+            'can_add_transaction':     acc.can_add_transaction     if acc else False,
+            'can_pay_transaction':     acc.can_pay_transaction     if acc else False,
+            'can_transfer_transaction':acc.can_transfer_transaction if acc else False,
+            'can_delete_transaction':  acc.can_delete_transaction  if acc else False,
         })
     return rows
 

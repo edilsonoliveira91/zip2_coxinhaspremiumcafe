@@ -23,23 +23,27 @@ def _has_global(user, perm):
 def _check_bank(user, bank, action):
     """
     Verifica se o usuário pode executar `action` num banco específico.
-    action: 'view' | 'change' | 'add_tx' | 'del_tx'
+    action: 'view' | 'change' | 'add_tx' | 'pay_tx' | 'transfer_tx' | 'del_tx'
     Retorna True se tem acesso global ou acesso por UserBankAccess.
     """
     global_map = {
-        'view':   'view_bank',
-        'change': 'change_bank',
-        'add_tx': 'add_banktransaction',
-        'del_tx': 'delete_banktransaction',
+        'view':        'view_bank',
+        'change':      'change_bank',
+        'add_tx':      'add_banktransaction',
+        'pay_tx':      'add_banktransaction',
+        'transfer_tx': 'add_banktransaction',
+        'del_tx':      'delete_banktransaction',
     }
     if _has_global(user, global_map[action]):
         return True
 
     field_map = {
-        'view':   'can_view',
-        'change': 'can_change',
-        'add_tx': 'can_add_transaction',
-        'del_tx': 'can_delete_transaction',
+        'view':        'can_view',
+        'change':      'can_change',
+        'add_tx':      'can_add_transaction',
+        'pay_tx':      'can_pay_transaction',
+        'transfer_tx': 'can_transfer_transaction',
+        'del_tx':      'can_delete_transaction',
     }
     try:
         access = UserBankAccess.objects.get(user=user, bank=bank)
@@ -252,9 +256,11 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             'a_receber': a_receber_detalhe,
             'total_a_receber': total_a_receber,
             'hoje': hoje,
-            'can_add_tx': _check_bank(request.user, bank, 'add_tx'),
-            'can_change': _check_bank(request.user, bank, 'change'),
-            'can_del_tx': _check_bank(request.user, bank, 'del_tx'),
+            'can_add_tx':      _check_bank(request.user, bank, 'add_tx'),
+            'can_pay_tx':      _check_bank(request.user, bank, 'pay_tx'),
+            'can_transfer_tx': _check_bank(request.user, bank, 'transfer_tx'),
+            'can_change':      _check_bank(request.user, bank, 'change'),
+            'can_del_tx':      _check_bank(request.user, bank, 'del_tx'),
         })
 
 
@@ -287,7 +293,7 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
 class BankPagarView(LoginRequiredMixin, BaseView):
     def post(self, request, pk):
         bank = get_object_or_404(Bank, pk=pk)
-        if not _check_bank(request.user, bank, 'add_tx'):
+        if not _check_bank(request.user, bank, 'pay_tx'):
             raise PermissionDenied
 
         descricao = request.POST.get('descricao', '').strip() or 'Pagamento'
@@ -313,7 +319,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
 class BankTransferirView(LoginRequiredMixin, BaseView):
     def post(self, request, pk):
         bank = get_object_or_404(Bank, pk=pk)
-        if not _check_bank(request.user, bank, 'add_tx'):
+        if not _check_bank(request.user, bank, 'transfer_tx'):
             raise PermissionDenied
 
         destino_id = request.POST.get('banco_destino')

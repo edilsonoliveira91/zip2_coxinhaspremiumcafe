@@ -400,8 +400,8 @@
         </div>
         <!-- ══════════ END LEFT ══════════ -->
 
-        <!-- ══════════ RIGHT COLUMN: Permissions ══════════ -->
-        <div>
+        <!-- ══════════ RIGHT COLUMN: Permissions + Bank access ══════════ -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
           <div class="uf-card">
             <div class="uf-perm-header">
               <div>
@@ -522,97 +522,99 @@
 
                   </div>
                   {% endfor %}
-                </div>
 
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-        <!-- ══════════ Bank-specific access ══════════ -->
-        {% if bank_rows %}
-        <div style="grid-column: 1 / -1;">
-          <div class="uf-card">
-            <div class="uf-perm-header">
-              <div>
-                <h2>Acesso por Banco</h2>
-                <p>Defina quais bancos este usuário pode acessar e com quais ações. Usuários com a permissão global <strong>Bancos → Visualizar</strong> já têm acesso a todos.</p>
-              </div>
-              <span class="uf-badge" style="background:#FFF3E0; color:#E65100; border-color:rgba(230,81,0,0.2);">Por Banco</span>
-            </div>
-
-            <div style="padding:0; overflow-x:auto;">
-              <!-- Header row -->
-              <div style="display:grid; grid-template-columns:1fr repeat(4,100px); min-width:480px; padding:10px 20px; background:#F9F9FB; border-bottom:1px solid #E5E5EA;">
-                <span style="font-size:11px; font-weight:700; color:#8E8E93; text-transform:uppercase; letter-spacing:0.08em;">Banco</span>
-                <span style="font-size:11px; font-weight:700; color:#34C759; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Visualizar</span>
-                <span style="font-size:11px; font-weight:700; color:#FF9500; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Editar</span>
-                <span style="font-size:11px; font-weight:700; color:#007AFF; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Lançar</span>
-                <span style="font-size:11px; font-weight:700; color:#FF3B30; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Remover</span>
-              </div>
-
-              {% for row in bank_rows %}
-              <div style="display:grid; grid-template-columns:1fr repeat(4,100px); min-width:480px; padding:14px 20px; border-bottom:1px solid #F2F2F7; align-items:center; background:white; transition:background 0.1s;"
-                   onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
-                <div>
-                  <p style="font-size:15px; font-weight:500; color:#1D1D1F; margin:0;">{{ row.bank.nome }}</p>
-                  {% if row.bank.numero_conta %}
-                  <p style="font-size:12px; color:#8E8E93; margin:2px 0 0;">
-                    Conta {{ row.bank.numero_conta }}{% if row.bank.agencia %} · Ag. {{ row.bank.agencia }}{% endif %}
-                  </p>
+                  {% if app_name == 'Bancos' and bank_rows %}
+                  <!-- ── Acesso por Banco (dentro do setor Bancos) ── -->
+                  <div style="background:white; border:1px solid #E5E5EA; border-radius:10px; overflow:hidden; margin-top:4px;">
+                    <div style="padding:12px 14px; background:#F5F5F7; border-bottom:1px solid #E5E5EA; display:flex; align-items:center; justify-content:space-between;">
+                      <span style="font-size:12px; font-weight:700; color:#1D1D1F; text-transform:uppercase; letter-spacing:0.07em;">Acesso por Banco</span>
+                      <span style="font-size:11px; font-weight:600; color:#E65100; background:#FFF3E0; border:1px solid rgba(230,81,0,0.2); padding:3px 10px; border-radius:20px;">Individual</span>
+                    </div>
+                    <div style="padding:8px 14px 4px; background:#F9F9FB; border-bottom:1px solid #E5E5EA;">
+                      <p style="font-size:12px; color:#8E8E93; margin:0;">Usuários com <strong>Visualizar</strong> global já têm acesso a todos os bancos.</p>
+                    </div>
+                    <!-- Header colunas -->
+                    <div style="display:grid; grid-template-columns:1fr repeat(6,68px); min-width:520px; padding:8px 14px; background:#F9F9FB; border-bottom:1px solid #E5E5EA; overflow-x:auto;">
+                      <span style="font-size:10px; font-weight:700; color:#8E8E93; text-transform:uppercase; letter-spacing:0.08em;">Banco</span>
+                      <span style="font-size:10px; font-weight:700; color:#34C759; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Ver</span>
+                      <span style="font-size:10px; font-weight:700; color:#FF9500; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Editar</span>
+                      <span style="font-size:10px; font-weight:700; color:#34C759; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Adicionar</span>
+                      <span style="font-size:10px; font-weight:700; color:#FF3B30; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Pagar</span>
+                      <span style="font-size:10px; font-weight:700; color:#007AFF; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Transferir</span>
+                      <span style="font-size:10px; font-weight:700; color:#FF3B30; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Remover</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                    {% for row in bank_rows %}
+                    <div style="display:grid; grid-template-columns:1fr repeat(6,68px); min-width:520px; padding:10px 14px; border-bottom:1px solid #F2F2F7; align-items:center; background:white; transition:background 0.1s;"
+                         onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                      <div>
+                        <p style="font-size:14px; font-weight:500; color:#1D1D1F; margin:0;">{{ row.bank.nome }}</p>
+                        {% if row.bank.numero_conta %}
+                        <p style="font-size:11px; color:#8E8E93; margin:1px 0 0;">Conta {{ row.bank.numero_conta }}{% if row.bank.agencia %} · Ag. {{ row.bank.agencia }}{% endif %}</p>
+                        {% endif %}
+                      </div>
+                      <!-- Ver -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_view_{{ row.bank.id }}" {% if row.can_view %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                      <!-- Editar -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle bt-change" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_change_{{ row.bank.id }}" {% if row.can_change %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                      <!-- Adicionar -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_add_tx_{{ row.bank.id }}" {% if row.can_add_transaction %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                      <!-- Pagar -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle bt-delete" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_pay_tx_{{ row.bank.id }}" {% if row.can_pay_transaction %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                      <!-- Transferir -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle bt-add" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_transfer_tx_{{ row.bank.id }}" {% if row.can_transfer_transaction %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                      <!-- Remover -->
+                      <div style="display:flex; justify-content:center;">
+                        <label class="apple-toggle bt-delete" style="width:44px; height:26px;">
+                          <input type="checkbox" name="bank_del_tx_{{ row.bank.id }}" {% if row.can_delete_transaction %}checked{% endif %}>
+                          <span class="apple-track" style="border-radius:26px;"></span>
+                          <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
+                        </label>
+                      </div>
+                    </div>
+                    {% endfor %}
+                    </div>
+                  </div>
                   {% endif %}
+
                 </div>
 
-                <!-- Visualizar -->
-                <div style="display:flex; justify-content:center;">
-                  <label class="apple-toggle" style="width:44px; height:26px;">
-                    <input type="checkbox" name="bank_view_{{ row.bank.id }}"
-                      {% if row.can_view %}checked{% endif %}>
-                    <span class="apple-track" style="border-radius:26px;"></span>
-                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
-                  </label>
-                </div>
-                <!-- Editar -->
-                <div style="display:flex; justify-content:center;">
-                  <label class="apple-toggle bt-change" style="width:44px; height:26px;">
-                    <input type="checkbox" name="bank_change_{{ row.bank.id }}"
-                      {% if row.can_change %}checked{% endif %}>
-                    <span class="apple-track" style="border-radius:26px;"></span>
-                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
-                  </label>
-                </div>
-                <!-- Lançar -->
-                <div style="display:flex; justify-content:center;">
-                  <label class="apple-toggle bt-add" style="width:44px; height:26px;">
-                    <input type="checkbox" name="bank_add_tx_{{ row.bank.id }}"
-                      {% if row.can_add_transaction %}checked{% endif %}>
-                    <span class="apple-track" style="border-radius:26px;"></span>
-                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
-                  </label>
-                </div>
-                <!-- Remover -->
-                <div style="display:flex; justify-content:center;">
-                  <label class="apple-toggle bt-delete" style="width:44px; height:26px;">
-                    <input type="checkbox" name="bank_del_tx_{{ row.bank.id }}"
-                      {% if row.can_delete_transaction %}checked{% endif %}>
-                    <span class="apple-track" style="border-radius:26px;"></span>
-                    <span class="apple-thumb" style="width:22px; height:22px; bottom:2px; left:2px;"></span>
-                  </label>
-                </div>
               </div>
               {% endfor %}
-
-              <div style="padding:12px 20px; background:#F9F9FB; border-top:1px solid #E5E5EA;">
-                <p style="font-size:12px; color:#8E8E93; margin:0;">
-                  Ao ativar <strong>Lançar</strong> ou <strong>Remover</strong>, recomenda-se também ativar <strong>Visualizar</strong> para que o usuário consiga acessar o extrato do banco.
-                </p>
-              </div>
             </div>
           </div>
-        </div>
-        {% endif %}
-        <!-- ══════════ END Bank access ══════════ -->
 
+        </div>
         <!-- ══════════ END RIGHT ══════════ -->
 
       </div>
