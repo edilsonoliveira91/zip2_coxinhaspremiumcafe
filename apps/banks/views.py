@@ -298,6 +298,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
 
         descricao = request.POST.get('descricao', '').strip() or 'Pagamento'
         observacao = request.POST.get('observacao', '').strip()
+        comprovante = request.FILES.get('comprovante')
         try:
             valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
@@ -310,6 +311,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
         BankTransaction.objects.create(
             bank=bank, tipo='pagamento', descricao=descricao,
             valor=valor, is_entrada=False, observacao=observacao,
+            comprovante=comprovante,
             criado_por=request.user,
         )
         messages.success(request, f'Pagamento de R$ {valor:.2f} registrado.')

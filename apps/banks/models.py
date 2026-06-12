@@ -49,6 +49,11 @@ class BankTransaction(models.Model):
         related_name='transactions_recebidas',
         verbose_name="Banco Destino",
     )
+    comprovante = models.FileField(
+        upload_to='bank_comprovantes/',
+        null=True, blank=True,
+        verbose_name="Comprovante",
+    )
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='bank_transactions'

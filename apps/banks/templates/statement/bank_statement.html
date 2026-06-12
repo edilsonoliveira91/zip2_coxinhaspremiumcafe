@@ -175,7 +175,18 @@
                             <div style="font-size:12px;color:#8E8E93;">{{ tx.data|date:"H:i" }}</div>
                         </div>
                         <div>
-                            <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ tx.descricao }}</div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ tx.descricao }}</span>
+                                {% if tx.comprovante %}
+                                <a href="{{ tx.comprovante.url }}" target="_blank" title="Ver comprovante"
+                                   style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:#EAF3FF;color:#007AFF;flex-shrink:0;text-decoration:none;"
+                                   onclick="event.stopPropagation()">
+                                    <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                    </svg>
+                                </a>
+                                {% endif %}
+                            </div>
                             {% if tx.observacao %}<div style="font-size:11px;color:#8E8E93;margin-top:1px;">{{ tx.observacao }}</div>{% endif %}
                             {% if tx.banco_destino %}
                             <div style="font-size:11px;color:#8E8E93;margin-top:1px;">{% if tx.is_entrada %}De{% else %}Para{% endif %}: {{ tx.banco_destino.nome }}</div>
@@ -352,7 +363,7 @@
 
 <!-- ===== MODAL PAGAR ===== -->
 <div id="modalPagar" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:20px;padding:28px 24px;max-width:380px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+    <div style="background:white;border-radius:20px;padding:28px 24px;max-width:420px;width:calc(100% - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.18);max-height:90vh;overflow-y:auto;">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
             <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#FF3B30,#FF6961);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -362,14 +373,56 @@
                 <div style="font-size:13px;color:#8E8E93;">Saída de {{ bank.nome }}</div>
             </div>
         </div>
-        <form method="post" action="{% url 'banks:bank_pagar' bank.pk %}">
+        <form method="post" action="{% url 'banks:bank_pagar' bank.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
-            {% include 'statement/_form_fields.html' with label_valor="Valor do pagamento" placeholder_desc="Ex: Fornecedor, Aluguel..." %}
-            <div style="display:flex;gap:10px;margin-top:20px;">
+            <!-- Valor -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Valor do pagamento</label>
+                <div style="position:relative;">
+                    <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:500;color:#8E8E93;pointer-events:none;">R$</span>
+                    <input type="number" name="valor" step="0.01" min="0.01" required placeholder="0,00"
+                           style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px 0 40px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;"
+                           onfocus="this.style.borderColor='#FF3B30';this.style.boxShadow='0 0 0 3px rgba(255,59,48,0.12)'"
+                           onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                </div>
+            </div>
+            <!-- Descrição -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Descrição <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional</span></label>
+                <input type="text" name="descricao" placeholder="Ex: Fornecedor, Aluguel, Conta de luz..."
+                       style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;"
+                       onfocus="this.style.borderColor='#FF3B30';this.style.boxShadow='0 0 0 3px rgba(255,59,48,0.12)'"
+                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+            </div>
+            <!-- Comprovante -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Comprovante <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional</span></label>
+                <label id="labelComprovantePagar" for="inputComprovantePagar"
+                       style="display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border:1.5px dashed #D1D1D6;border-radius:12px;cursor:pointer;transition:border-color 0.15s,background 0.15s;background:#FAFAFA;"
+                       onmouseover="this.style.borderColor='#FF3B30';this.style.background='#FFF5F5'"
+                       onmouseout="this.style.borderColor='#D1D1D6';this.style.background='#FAFAFA'">
+                    <svg style="width:18px;height:18px;color:#8E8E93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                    </svg>
+                    <span id="textoComprovantePagar" style="font-size:14px;color:#8E8E93;">Foto ou documento (PDF, imagem...)</span>
+                </label>
+                <input id="inputComprovantePagar" type="file" name="comprovante" accept="image/*,.pdf,.doc,.docx"
+                       style="display:none;"
+                       onchange="atualizarNomeArquivo('inputComprovantePagar','textoComprovantePagar')">
+            </div>
+            <!-- Observação -->
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Observação <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional</span></label>
+                <textarea name="observacao" rows="2" placeholder="Notas adicionais..."
+                          style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:14px;font-family:inherit;color:#1D1D1F;outline:none;resize:none;"
+                          onfocus="this.style.borderColor='#FF3B30';this.style.boxShadow='0 0 0 3px rgba(255,59,48,0.12)'"
+                          onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
                 <button type="button" onclick="fecharModal('modalPagar')"
                         style="flex:1;min-height:44px;border-radius:12px;background:#F5F5F7;color:#007AFF;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Cancelar</button>
                 <button type="submit"
-                        style="flex:2;min-height:44px;border-radius:12px;background:#FF3B30;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Pagar</button>
+                        style="flex:2;min-height:44px;border-radius:12px;background:#FF3B30;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Registrar Pagamento</button>
             </div>
         </form>
     </div>
@@ -494,6 +547,22 @@ function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
 document.querySelectorAll('[id^="modal"]').forEach(m => {
     m.addEventListener('click', function(e) { if (e.target === this) fecharModal(this.id); });
 });
+
+function atualizarNomeArquivo(inputId, textoId) {
+    const input = document.getElementById(inputId);
+    const texto = document.getElementById(textoId);
+    if (input.files && input.files[0]) {
+        const nome = input.files[0].name;
+        const tamanho = (input.files[0].size / 1024).toFixed(0);
+        texto.textContent = nome + ' (' + tamanho + ' KB)';
+        texto.style.color = '#1D1D1F';
+        texto.style.fontWeight = '500';
+    } else {
+        texto.textContent = 'Foto ou documento (PDF, imagem...)';
+        texto.style.color = '#8E8E93';
+        texto.style.fontWeight = '400';
+    }
+}
 
 function abrirEditarTx(pk, descricao, valor, data, observacao) {
     document.getElementById('formEditarTx').action = "{% url 'banks:tx_edit' bank.pk 0 %}".replace('/0/', '/' + pk + '/');
