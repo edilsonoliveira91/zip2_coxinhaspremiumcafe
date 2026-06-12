@@ -47,7 +47,7 @@ def _catalog_version_value():
 
 def entrada(request):
     """Tela inicial do kiosk — teclado numérico para digitar o número da mesa."""
-    # AJAX: verifica se mesa já está aberta
+    # AJAX: verifica status da mesa antes de abrir
     if request.method == 'GET' and request.GET.get('check'):
         numero = request.GET.get('check', '').strip()
         aberta = Comanda.objects.filter(numero=numero, status='em_uso').exists()
@@ -222,8 +222,6 @@ def enviar_pedido(request, numero):
 
         # Só grava no banco quando tudo já está validado
         with transaction.atomic():
-            # Busca APENAS comanda em_uso. Nunca adiciona pedidos a aguardando_caixa.
-            # select_for_update evita race condition.
             comanda = Comanda.objects.select_for_update().filter(
                 numero=numero, status='em_uso'
             ).order_by('-created_at').first()

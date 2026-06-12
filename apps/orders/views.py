@@ -2882,6 +2882,15 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         if not (1 <= numero <= 99):
             return JsonResponse({'success': False, 'error': 'Número deve ser entre 1 e 99'}, status=400)
 
+        # Captura os pedidos ativos SEM atendente ANTES de atualizar — estes serão impressos
+        ids_para_imprimir = list(
+            Pedido.objects.filter(
+                comanda=comanda,
+                status__in=['aguardando', 'preparando', 'pronta'],
+                atendente_numero__isnull=True,
+            ).values_list('id', flat=True)
+        )
+
         # Marca atendimento
         comanda.em_atendimento = True
         comanda.atendente_numero = numero
@@ -2889,7 +2898,6 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         comanda.save(update_fields=['em_atendimento', 'atendente_numero', 'atendimento_em'])
 
         # Registra o atendente em TODOS os pedidos ativos sem atendente (aguardando/preparando/pronta).
-        # Isso garante que em_atendimento=True no card independente do estado da cozinha.
         Pedido.objects.filter(
             comanda=comanda,
             status__in=['aguardando', 'preparando', 'pronta'],
@@ -2899,10 +2907,9 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
         # Atualiza o atendente atual na comanda (badge no card)
         Comanda.objects.filter(pk=comanda.pk).update(atendente_numero=numero)
 
-        # Pedidos NOVOS que ainda não foram impressos — são estes que serão impressos agora
+        # Busca os pedidos capturados para montar o conteúdo de impressão
         pedidos = list(
-            comanda.pedidos
-            .filter(status='aguardando', impresso=False)
+            Pedido.objects.filter(id__in=ids_para_imprimir)
             .prefetch_related('items__product')
             .order_by('id')
         )
@@ -2910,7 +2917,6 @@ class IniciarAtendimentoView(LoginRequiredMixin, View):
             return JsonResponse({'success': True, 'type': 'none'})
 
         ids_novos = [p.id for p in pedidos]
-
         Pedido.objects.filter(id__in=ids_novos, started_at__isnull=True).update(started_at=timezone.now())
 
         mob_all = []

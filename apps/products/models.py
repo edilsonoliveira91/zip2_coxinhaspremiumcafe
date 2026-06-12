@@ -150,6 +150,24 @@ class Product(TimeStampedModel):
         default='',
         verbose_name="CCLASS"
     )
+    aliq_ibs_uf = models.DecimalField(
+        max_digits=7,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        verbose_name="Alíquota IBS Estadual (%)"
+    )
+    aliq_ibs_mun = models.DecimalField(
+        max_digits=7,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        verbose_name="Alíquota IBS Municipal (%)"
+    )
+    aliq_cbs = models.DecimalField(
+        max_digits=7,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        verbose_name="Alíquota CBS (%)"
+    )
 
     class Meta:
         verbose_name = "Produto"

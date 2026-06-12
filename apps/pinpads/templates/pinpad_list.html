@@ -1,513 +1,215 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Configuração de Pinpads{% endblock %}
+{% block title %}Pinpads{% endblock %}
 
 {% block content %}
+<div style="background:#F5F5F7;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
 
-<div class="flex-1 overflow-hidden">
-    <div class="h-full overflow-y-auto">
-        <!-- Header -->
-        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-            <div class="px-6 py-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Pinpads</h1>
-                        <p class="mt-1 text-sm text-gray-600">Configuração de maquininhas de cartão</p>
-                    </div>
-                    
-                    <!-- Estatísticas -->
-                    <div class="hidden md:flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-blue-600">{{ total_pinpads }}</div>
-                            <div class="text-xs text-gray-500">Total</div>
-                        </div>
-                        <div class="w-px h-8 bg-gray-300"></div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600">{{ active_pinpads }}</div>
-                            <div class="text-xs text-gray-500">Ativos</div>
-                        </div>
-                        {% if default_pinpad %}
-                        <div class="w-px h-8 bg-gray-300"></div>
-                        <div class="text-center">
-                            <div class="text-lg font-bold text-orange-600">⭐</div>
-                            <div class="text-xs text-gray-500">{{ default_pinpad.name|truncatechars:15 }}</div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
+    <!-- ───────────── HEADER ───────────── -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+        <div style="max-width:700px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:17px;font-weight:600;color:#1D1D1F;">Pinpads</span>
+            <div style="display:flex;align-items:center;gap:16px;">
+                <span style="font-size:13px;color:#6E6E73;">
+                    <span style="color:#007AFF;font-weight:600;">{{ active_pinpads }}</span> ativo{{ active_pinpads|pluralize }}
+                    <span style="margin:0 6px;color:#D1D1D6;">·</span>
+                    {{ total_pinpads }} total
+                </span>
+                <a href="{% url 'pinpads:create' %}"
+                   style="background:#007AFF;color:white;border-radius:8px;padding:7px 14px;font-size:14px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M6 1V11M1 6H11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Novo
+                </a>
             </div>
-        </div>
-
-        <!-- Conteúdo Principal -->
-        <div class="flex-1 p-6 space-y-6">
-            <!-- Filtros e Ações -->
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
-                <div class="flex items-end gap-4">
-                    <!-- Busca -->
-                    <div class="w-64 flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar pinpad</label>
-                        <div class="relative">
-                            <input type="text" 
-                                id="searchInput"
-                                placeholder="Nome ou provedor..."
-                                value="{{ current_search }}"
-                                class="w-full h-12 pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Filtro por Provedor -->
-                    <div class="w-48 flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Provedor</label>
-                        <select id="providerFilter" 
-                                class="w-full h-12 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Todos os Provedores</option>
-                            {% for value, label in provider_choices %}
-                            <option value="{{ value }}" {% if value == current_provider %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Filtro por Status -->
-                    <div class="w-48 flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <select id="statusFilter" 
-                                class="w-full h-12 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Todos os Status</option>
-                            {% for value, label in status_choices %}
-                            <option value="{{ value }}" {% if value == current_status %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Filtro por Ativo -->
-                    <div class="w-40 flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Situação</label>
-                        <select id="activeFilter" 
-                                class="w-full h-12 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Todos</option>
-                            <option value="true" {% if current_active == 'true' %}selected{% endif %}>Apenas Ativos</option>
-                            <option value="false" {% if current_active == 'false' %}selected{% endif %}>Apenas Inativos</option>
-                        </select>
-                    </div>
-
-                    <!-- Separador visual -->
-                    <div class="w-px h-12 bg-gray-300 flex-shrink-0"></div>
-
-                    <!-- Botão Limpar -->
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button onclick="clearFilters()" 
-                                class="h-12 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 focus:ring-2 focus:ring-gray-300 transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                            <span>Limpar</span>
-                        </button>
-                    </div>
-
-                    <!-- Botão Novo Pinpad -->
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <a href="{% url 'pinpads:create' %}" 
-                        class="h-12 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            <span>Novo Pinpad</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lista de Pinpads -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {% for pinpad in pinpads %}
-                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
-                    <!-- Header do Card -->
-                    <div class="p-6 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-3xl">
-                                    {% if pinpad.provider == 'stone' %}💎
-                                    {% elif pinpad.provider == 'cielo' %}🔵
-                                    {% elif pinpad.provider == 'rede' %}🟠
-                                    {% elif pinpad.provider == 'pagseguro' %}💳
-                                    {% elif pinpad.provider == 'mercado_pago' %}💙
-                                    {% elif pinpad.provider == 'getnet' %}🟣
-                                    {% elif pinpad.provider == 'safrapay' %}🟡
-                                    {% elif pinpad.provider == 'bin' %}🏦
-                                    {% else %}💼{% endif %}
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900">{{ pinpad.name }}</h3>
-                                    <p class="text-sm text-gray-500">{{ pinpad.get_provider_display }}</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Status e Default -->
-                            <div class="flex flex-col items-end space-y-1">
-                                {% if pinpad.is_default %}
-                                <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">⭐ Padrão</span>
-                                {% endif %}
-                                
-                                <span class="text-xs px-2 py-1 rounded-full 
-                                    {% if pinpad.status == 'ativo' %}bg-green-100 text-green-800
-                                    {% elif pinpad.status == 'inativo' %}bg-gray-100 text-gray-800
-                                    {% elif pinpad.status == 'manutencao' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
-                                    {{ pinpad.get_status_display }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Conteúdo do Card -->
-                    <div class="p-6">
-                        <!-- Descrição -->
-                        {% if pinpad.description %}
-                        <p class="text-gray-600 text-sm mb-4">{{ pinpad.description|truncatechars:100 }}</p>
-                        {% endif %}
-
-                        <!-- Recursos Suportados -->
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            {% if pinpad.supports_credit %}
-                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">💳 Crédito</span>
-                            {% endif %}
-                            {% if pinpad.supports_debit %}
-                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">💰 Débito</span>
-                            {% endif %}
-                            {% if pinpad.supports_contactless %}
-                            <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">📡 Contactless</span>
-                            {% endif %}
-                        </div>
-
-                        <!-- Taxas -->
-                        <div class="bg-gray-50 rounded-xl p-3 mb-4">
-                            <div class="grid grid-cols-2 gap-2 text-xs">
-                                {% if pinpad.supports_credit %}
-                                <div>
-                                    <span class="text-gray-500">Crédito:</span>
-                                    <span class="font-semibold">{{ pinpad.credit_fee_percentage }}%</span>
-                                    {% if pinpad.credit_fee_fixed %}
-                                    <span class="text-gray-400">+ R$ {{ pinpad.credit_fee_fixed }}</span>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                                {% if pinpad.supports_debit %}
-                                <div>
-                                    <span class="text-gray-500">Débito:</span>
-                                    <span class="font-semibold">{{ pinpad.debit_fee_percentage }}%</span>
-                                    {% if pinpad.debit_fee_fixed %}
-                                    <span class="text-gray-400">+ R$ {{ pinpad.debit_fee_fixed }}</span>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Informações Técnicas -->
-                        <div class="text-xs text-gray-500 space-y-1">
-                            {% if pinpad.terminal_id %}
-                            <div class="flex justify-between">
-                                <span>Terminal ID:</span>
-                                <span>{{ pinpad.terminal_id }}</span>
-                            </div>
-                            {% endif %}
-                            <div class="flex justify-between">
-                                <span>Timeout:</span>
-                                <span>{{ pinpad.timeout }}s</span>
-                            </div>
-                            {% if pinpad.max_amount %}
-                            <div class="flex justify-between">
-                                <span>Valor Máx:</span>
-                                <span>R$ {{ pinpad.max_amount }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Status do Último Teste -->
-                        {% if pinpad.last_test_at %}
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-gray-500">Último teste:</span>
-                                <div class="flex items-center space-x-1">
-                                    {% if pinpad.last_test_success %}
-                                    <span class="text-green-600">✅</span>
-                                    {% else %}
-                                    <span class="text-red-600">❌</span>
-                                    {% endif %}
-                                    <span class="text-gray-500">{{ pinpad.last_test_at|date:"d/m/Y H:i" }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Ações -->
-                    <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex space-x-2">
-                                <!-- Testar Conexão -->
-                                <button onclick="testPinpad('{{ pinpad.pk }}')" 
-                                        class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                        title="Testar Conexão">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </button>
-
-                                <!-- Definir como Padrão -->
-                                {% if not pinpad.is_default and pinpad.is_active %}
-                                <button onclick="setAsDefault('{{ pinpad.pk }}')" 
-                                        class="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
-                                        title="Definir como Padrão">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                    </svg>
-                                </button>
-                                {% endif %}
-
-                                <!-- Ativar/Desativar -->
-                                <button onclick="toggleStatus('{{ pinpad.pk }}')" 
-                                        class="p-2 text-gray-400 hover:text-{% if pinpad.is_active %}red{% else %}green{% endif %}-600 hover:bg-{% if pinpad.is_active %}red{% else %}green{% endif %}-50 rounded-lg transition-all"
-                                        title="{% if pinpad.is_active %}Desativar{% else %}Ativar{% endif %}">
-                                    {% if pinpad.is_active %}
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
-                                    </svg>
-                                    {% else %}
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    {% endif %}
-                                </button>
-                            </div>
-
-                            <div class="flex space-x-2">
-                                <!-- Editar -->
-                                <a href="{% url 'pinpads:edit' pinpad.pk %}" 
-                                   class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                   title="Editar">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </a>
-
-                                <!-- Excluir -->
-                                {% if not pinpad.is_default %}
-                                <button onclick="deletePinpad('{{ pinpad.pk }}', '{{ pinpad.name }}')" 
-                                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                        title="Excluir">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <!-- Estado Vazio -->
-                <div class="col-span-full">
-                    <div class="text-center py-12">
-                        <div class="text-6xl mb-4">📱</div>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum pinpad cadastrado</h3>
-                        <p class="text-gray-500 mb-6">Comece adicionando sua primeira maquininha de cartão</p>
-                        <a href="{% url 'pinpads:create' %}" 
-                           class="inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            <span>Cadastrar Primeiro Pinpad</span>
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- Paginação -->
-            {% if is_paginated %}
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
-                <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-700">
-                        Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ paginator.count }} pinpads
-                    </div>
-                    <div class="flex space-x-2">
-                        {% if page_obj.has_previous %}
-                            <a href="?page={{ page_obj.previous_page_number }}" 
-                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                                Anterior
-                            </a>
-                        {% endif %}
-                        {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}" 
-                               class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
-                                Próximo
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
+
+    <!-- ───────────── CONTEÚDO ───────────── -->
+    <div style="max-width:700px;margin:0 auto;padding:28px 20px 60px;">
+
+        <!-- Busca -->
+        <div style="position:relative;margin-bottom:20px;">
+            <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10.5 10.5L14 14M6.5 11.5a5 5 0 100-10 5 5 0 000 10z" stroke="#A1A1A6" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input id="searchInput" type="text" placeholder="Buscar pinpad…" value="{{ current_search }}"
+                   style="width:100%;height:44px;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:0 16px 0 40px;font-size:15px;color:#1D1D1F;outline:none;box-sizing:border-box;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,0.05);"
+                   id="searchInput">
+        </div>
+
+        {% if pinpads %}
+        <!-- ── GRID DE CARDS ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            {% for pinpad in pinpads %}
+            <div style="background:#fff;border-radius:20px;border:1px solid rgba(0,0,0,0.07);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;transition:box-shadow .2s;"
+                 onmouseenter="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.10)'"
+                 onmouseleave="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'">
+
+                <!-- Card header -->
+                <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(0,0,0,0.06);">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                        <div style="flex:1;min-width:0;">
+                            <p style="font-size:16px;font-weight:600;color:#1D1D1F;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pinpad.name }}</p>
+                            <p style="font-size:12px;color:#6E6E73;margin:2px 0 0;">{{ pinpad.bandeiras.count }} bandeira{{ pinpad.bandeiras.count|pluralize }}</p>
+                        </div>
+                        <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+                            {% if pinpad.is_active %}background:#E8F9ED;color:#1C7A34;{% else %}background:#F2F2F7;color:#A1A1A6;{% endif %}">
+                            {% if pinpad.is_active %}Ativo{% else %}Inativo{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Dias de liquidação -->
+                <div style="padding:14px 18px;border-bottom:1px solid rgba(0,0,0,0.06);">
+                    <p style="font-size:11px;font-weight:600;color:#A1A1A6;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;">Liquidação</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+                        <div style="background:#F5F5F7;border-radius:10px;padding:8px 4px;">
+                            <p style="font-size:20px;font-weight:700;color:#007AFF;margin:0;line-height:1;">{{ pinpad.dias_credito }}</p>
+                            <p style="font-size:10px;color:#6E6E73;margin:3px 0 0;font-weight:500;">Crédito</p>
+                        </div>
+                        <div style="background:#F5F5F7;border-radius:10px;padding:8px 4px;">
+                            <p style="font-size:20px;font-weight:700;color:#34C759;margin:0;line-height:1;">{{ pinpad.dias_debito }}</p>
+                            <p style="font-size:10px;color:#6E6E73;margin:3px 0 0;font-weight:500;">Débito</p>
+                        </div>
+                        <div style="background:#F5F5F7;border-radius:10px;padding:8px 4px;">
+                            <p style="font-size:20px;font-weight:700;color:#AF52DE;margin:0;line-height:1;">{{ pinpad.dias_pix }}</p>
+                            <p style="font-size:10px;color:#6E6E73;margin:3px 0 0;font-weight:500;">PIX</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bandeiras (compacto) -->
+                {% if pinpad.bandeiras.all %}
+                <div style="padding:12px 18px;border-bottom:1px solid rgba(0,0,0,0.06);">
+                    <p style="font-size:11px;font-weight:600;color:#A1A1A6;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Bandeiras</p>
+                    {% for b in pinpad.bandeiras.all|slice:":4" %}
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;{% if not forloop.last %}border-bottom:1px solid rgba(0,0,0,0.04);{% endif %}">
+                        <span style="font-size:13px;color:#1D1D1F;">{{ b.nome }}</span>
+                        <span style="font-size:12px;color:#6E6E73;">
+                            <span style="color:#007AFF;">{{ b.taxa_credito }}%</span>
+                            <span style="margin:0 3px;color:#D1D1D6;">/</span>
+                            <span style="color:#34C759;">{{ b.taxa_debito }}%</span>
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% if pinpad.bandeiras.count > 4 %}
+                    <p style="font-size:12px;color:#A1A1A6;margin:6px 0 0;">+{{ pinpad.bandeiras.count|add:"-4" }} bandeira{{ pinpad.bandeiras.count|add:"-4"|pluralize }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Ações -->
+                <div style="padding:10px 18px;display:flex;align-items:center;justify-content:space-between;">
+                    <button onclick="toggleStatus('{{ pinpad.pk }}')"
+                            style="font-size:13px;font-weight:500;background:none;border:none;cursor:pointer;padding:6px 0;font-family:inherit;
+                            color:{% if pinpad.is_active %}#FF3B30{% else %}#34C759{% endif %};">
+                        {% if pinpad.is_active %}Desativar{% else %}Ativar{% endif %}
+                    </button>
+                    <div style="display:flex;gap:4px;">
+                        <a href="{% url 'pinpads:edit' pinpad.pk %}"
+                           style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#F5F5F7;color:#6E6E73;text-decoration:none;transition:background .15s;"
+                           title="Editar"
+                           onmouseenter="this.style.background='#E5E5EA'"
+                           onmouseleave="this.style.background='#F5F5F7'">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </a>
+                        <button onclick="deletePinpad('{{ pinpad.pk }}', '{{ pinpad.name }}')"
+                                style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#F5F5F7;color:#6E6E73;border:none;cursor:pointer;transition:background .15s;font-family:inherit;"
+                                title="Excluir"
+                                onmouseenter="this.style.background='#FFE5E3';this.style.color='#FF3B30'"
+                                onmouseleave="this.style.background='#F5F5F7';this.style.color='#6E6E73'">
+                            <svg width="14" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if is_paginated %}
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:24px;">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}"
+               style="padding:8px 18px;background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:14px;color:#007AFF;text-decoration:none;font-weight:500;">Anterior</a>
+            {% endif %}
+            <span style="padding:8px 16px;font-size:14px;color:#6E6E73;align-self:center;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}"
+               style="padding:8px 18px;background:#007AFF;border-radius:10px;font-size:14px;color:white;text-decoration:none;font-weight:500;">Próximo</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Estado vazio -->
+        <div style="text-align:center;padding:80px 20px;">
+            <div style="width:72px;height:72px;background:#fff;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+            </div>
+            <p style="font-size:20px;font-weight:600;color:#1D1D1F;margin:0 0 6px;">Sem pinpads cadastradas</p>
+            <p style="font-size:15px;color:#6E6E73;margin:0 0 28px;">Adicione a primeira maquininha de cartão</p>
+            <a href="{% url 'pinpads:create' %}"
+               style="background:#007AFF;color:white;border-radius:12px;padding:13px 28px;font-size:16px;font-weight:600;text-decoration:none;display:inline-block;">
+                Adicionar Pinpad
+            </a>
+        </div>
+        {% endif %}
+    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-// Função para obter CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
+(function () {
+    var t;
+    var inp = document.getElementById('searchInput');
+    if (inp) {
+        inp.addEventListener('input', function () {
+            clearTimeout(t);
+            t = setTimeout(function () {
+                var p = new URLSearchParams();
+                if (inp.value.trim()) p.set('search', inp.value.trim());
+                window.location.href = window.location.pathname + (p.toString() ? '?' + p : '');
+            }, 400);
+        });
     }
-    return cookieValue;
-}
 
-// Aplicar filtros
-function applyFilters() {
-    const searchParams = new URLSearchParams();
-    
-    const search = document.getElementById('searchInput').value;
-    const provider = document.getElementById('providerFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const active = document.getElementById('activeFilter').value;
-    
-    if (search) searchParams.set('search', search);
-    if (provider) searchParams.set('provider', provider);
-    if (status) searchParams.set('status', status);
-    if (active) searchParams.set('active', active);
-    
-    window.location.href = '?' + searchParams.toString();
-}
+    function getCsrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
 
-// Limpar filtros
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('providerFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('activeFilter').value = '';
-    window.location.href = window.location.pathname;
-}
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Aplicar filtros em tempo real
-    document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 500));
-    document.getElementById('providerFilter').addEventListener('change', applyFilters);
-    document.getElementById('statusFilter').addEventListener('change', applyFilters);
-    document.getElementById('activeFilter').addEventListener('change', applyFilters);
-});
-
-// Debounce function
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+    window.toggleStatus = function (pk) {
+        if (!confirm('Alterar status desta pinpad?')) return;
+        fetch('/pinpads/' + pk + '/toggle-status/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() }
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.success) location.reload();
+            else alert(d.message);
+        });
     };
-}
 
-// Testar pinpad
-async function testPinpad(pinpadId) {
-    if (!confirm('Testar conexão com este pinpad?')) return;
-    
-    try {
-        const response = await fetch(`/pinpads/${pinpadId}/test/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`Teste realizado com sucesso!\n${result.message}`);
-            location.reload();
-        } else {
-            alert(`Erro no teste: ${result.message}`);
+    window.deletePinpad = function (pk, nome) {
+        if (confirm('Excluir "' + nome + '"?\n\nEsta ação não pode ser desfeita.')) {
+            window.location.href = '/pinpads/' + pk + '/delete/';
         }
-    } catch (error) {
-        alert('Erro ao realizar teste de conexão!');
-    }
-}
-
-// Definir como padrão
-async function setAsDefault(pinpadId) {
-    if (!confirm('Definir este pinpad como padrão do sistema?')) return;
-    
-    try {
-        const response = await fetch(`/pinpads/${pinpadId}/set-default/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(result.message);
-            location.reload();
-        } else {
-            alert(`Erro: ${result.message}`);
-        }
-    } catch (error) {
-        alert('Erro ao definir pinpad como padrão!');
-    }
-}
-
-// Ativar/Desativar pinpad
-async function toggleStatus(pinpadId) {
-    if (!confirm('Alterar status deste pinpad?')) return;
-    
-    try {
-        const response = await fetch(`/pinpads/${pinpadId}/toggle-status/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(result.message);
-            location.reload();
-        } else {
-            alert(`Erro: ${result.message}`);
-        }
-    } catch (error) {
-        alert('Erro ao alterar status do pinpad!');
-    }
-}
-
-// Excluir pinpad
-function deletePinpad(pinpadId, pinpadName) {
-    if (confirm(`Excluir o pinpad "${pinpadName}"?\n\nEsta ação não pode ser desfeita!`)) {
-        window.location.href = `/pinpads/${pinpadId}/delete/`;
-    }
-}
+    };
+})();
 </script>
 {% endblock %}

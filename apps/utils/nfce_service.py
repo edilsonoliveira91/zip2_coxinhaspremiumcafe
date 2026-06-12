@@ -775,6 +775,13 @@ class NFCeService:
         total_cofins_nf = Decimal('0.00')
         total_vbc_icms = Decimal('0.00')
         total_vicms = Decimal('0.00')
+        total_ibs_uf_nf = Decimal('0.00')
+        total_ibs_mun_nf = Decimal('0.00')
+        total_cbs_nf = Decimal('0.00')
+        from datetime import date as _date
+        # NT 2025.002 v1.40: homologação obrigatório 01/07/2026, produção 03/08/2026
+        _cutoff_ibs = _date(2026, 7, 1) if ambiente == '2' else _date(2026, 8, 3)
+        _ibs_ativo = crt != '1' and _date.today() >= _cutoff_ibs
 
         for i, item in enumerate(all_items, 1):
             if isinstance(item, dict) and item.get('_fallback'):
@@ -791,6 +798,11 @@ class NFCeService:
                 cst_pis_item = '99'
                 aliq_pis_item = Decimal('0.00')
                 aliq_cofins_item = Decimal('0.00')
+                cst_ibs_item = ''
+                cclass_item = ''
+                aliq_ibs_uf_item = Decimal('0.0000')
+                aliq_ibs_mun_item = Decimal('0.0000')
+                aliq_cbs_item = Decimal('0.0000')
             else:
                 nome_orig = item.product.name[:120]
                 qty = float(item.quantity)
@@ -831,6 +843,12 @@ class NFCeService:
                 cst_pis_item = str(getattr(item.product, 'cst_pis_cofins', '') or '99').strip().zfill(2)
                 aliq_pis_item = Decimal(str(getattr(item.product, 'aliq_pis', 0) or 0))
                 aliq_cofins_item = Decimal(str(getattr(item.product, 'aliq_cofins', 0) or 0))
+                # IBS/CBS (NT 2025.002 — obrigatório a partir de 03/08/2026)
+                cst_ibs_item = str(getattr(item.product, 'cst_ibs_cbs', '') or '01').strip().zfill(2)
+                cclass_item = str(getattr(item.product, 'cclass', '') or '').strip()
+                aliq_ibs_uf_item = Decimal(str(getattr(item.product, 'aliq_ibs_uf', 0) or 0))
+                aliq_ibs_mun_item = Decimal(str(getattr(item.product, 'aliq_ibs_mun', 0) or 0))
+                aliq_cbs_item = Decimal(str(getattr(item.product, 'aliq_cbs', 0) or 0))
 
             total_item_sum += v_prod
 
@@ -960,6 +978,36 @@ class NFCeService:
                 etree.SubElement(cofins_outr, 'pCOFINS').text = '0.00'
                 etree.SubElement(cofins_outr, 'vCOFINS').text = '0.00'
 
+            # gIBSCBS — NT 2025.002 (obrigatório regime normal a partir de 03/08/2026)
+            if _ibs_ativo:
+                _v_bc_ibs = Decimal(str(v_prod)).quantize(Decimal('0.01'))
+                _v_ibs_uf = (_v_bc_ibs * aliq_ibs_uf_item / Decimal('100')).quantize(Decimal('0.01'))
+                _v_ibs_mun = (_v_bc_ibs * aliq_ibs_mun_item / Decimal('100')).quantize(Decimal('0.01'))
+                _v_ibs = _v_ibs_uf + _v_ibs_mun
+                _v_cbs = (_v_bc_ibs * aliq_cbs_item / Decimal('100')).quantize(Decimal('0.01'))
+                _v_ibs_cbs = _v_ibs + _v_cbs
+                total_ibs_uf_nf += _v_ibs_uf
+                total_ibs_mun_nf += _v_ibs_mun
+                total_cbs_nf += _v_cbs
+
+                g_ibs_cbs = etree.SubElement(imposto, 'gIBSCBS')
+                etree.SubElement(g_ibs_cbs, 'CST').text = cst_ibs_item if cst_ibs_item else '01'
+                if cclass_item:
+                    etree.SubElement(g_ibs_cbs, 'cClassTrib').text = cclass_item
+                etree.SubElement(g_ibs_cbs, 'vBC').text = f'{_v_bc_ibs:.2f}'
+                g_ibs = etree.SubElement(g_ibs_cbs, 'gIBS')
+                g_ibs_uf = etree.SubElement(g_ibs, 'gIBSUF')
+                etree.SubElement(g_ibs_uf, 'pAliqUF').text = f'{aliq_ibs_uf_item:.4f}'
+                etree.SubElement(g_ibs_uf, 'vIBSUF').text = f'{_v_ibs_uf:.2f}'
+                g_ibs_mun = etree.SubElement(g_ibs, 'gIBSMun')
+                etree.SubElement(g_ibs_mun, 'pAliqMun').text = f'{aliq_ibs_mun_item:.4f}'
+                etree.SubElement(g_ibs_mun, 'vIBSMun').text = f'{_v_ibs_mun:.2f}'
+                etree.SubElement(g_ibs, 'vIBS').text = f'{_v_ibs:.2f}'
+                g_cbs = etree.SubElement(g_ibs_cbs, 'gCBS')
+                etree.SubElement(g_cbs, 'pAliq').text = f'{aliq_cbs_item:.4f}'
+                etree.SubElement(g_cbs, 'vCBS').text = f'{_v_cbs:.2f}'
+                etree.SubElement(g_ibs_cbs, 'vIBSCBS').text = f'{_v_ibs_cbs:.2f}'
+
         # ── total ─────────────────────────────────────────────────────────────
         total = etree.SubElement(infNFe, 'total')
         icms_tot = etree.SubElement(total, 'ICMSTot')
@@ -982,6 +1030,10 @@ class NFCeService:
         etree.SubElement(icms_tot, 'vCOFINS').text = f'{total_cofins_nf:.2f}'
         etree.SubElement(icms_tot, 'vOutro').text = '0.00'
         etree.SubElement(icms_tot, 'vNF').text = f'{valor_total:.2f}'
+        if _ibs_ativo:
+            _total_ibs = total_ibs_uf_nf + total_ibs_mun_nf
+            _total_ibs_cbs = _total_ibs + total_cbs_nf
+            etree.SubElement(icms_tot, 'vIBSCBS').text = f'{_total_ibs_cbs:.2f}'
 
         # ── transp ────────────────────────────────────────────────────────────
         transp = etree.SubElement(infNFe, 'transp')

@@ -12,6 +12,7 @@ NFCE_FIELDS = [
     'ncm', 'cfop', 'cst_icms', 'base_calculo_icms', 'aliq_icms',
     'codigo_cbenef', 'dados_adicionais_nfe', 'cst_pis_cofins',
     'aliq_pis', 'aliq_cofins', 'cst_ibs_cbs', 'cclass',
+    'aliq_ibs_uf', 'aliq_ibs_mun', 'aliq_cbs',
 ]
 
 
@@ -29,6 +30,7 @@ class ProductForm(forms.ModelForm):
             'ncm', 'cfop', 'cst_icms', 'base_calculo_icms', 'aliq_icms',
             'codigo_cbenef', 'dados_adicionais_nfe', 'cst_pis_cofins',
             'aliq_pis', 'aliq_cofins', 'cst_ibs_cbs', 'cclass',
+            'aliq_ibs_uf', 'aliq_ibs_mun', 'aliq_cbs',
         ]
         
         _input_class = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -129,6 +131,27 @@ class ProductForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                 'placeholder': 'Código de classificação'
             }),
+            'aliq_ibs_uf': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.0001',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.0000'
+            }),
+            'aliq_ibs_mun': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.0001',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.0000'
+            }),
+            'aliq_cbs': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'step': '0.0001',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.0000'
+            }),
         }
         
         labels = {
@@ -150,8 +173,11 @@ class ProductForm(forms.ModelForm):
             'cst_pis_cofins': 'CST PIS e COFINS',
             'aliq_pis': 'Alíquota PIS (%)',
             'aliq_cofins': 'Alíquota COFINS (%)',
-            'cst_ibs_cbs': 'CST IBS CBS',
-            'cclass': 'CCLASS',
+            'cst_ibs_cbs': 'CST IBS/CBS',
+            'cclass': 'Cód. Classificação Tributária',
+            'aliq_ibs_uf': 'Alíquota IBS Estadual (%)',
+            'aliq_ibs_mun': 'Alíquota IBS Municipal (%)',
+            'aliq_cbs': 'Alíquota CBS (%)',
         }
 
     def __init__(self, *args, **kwargs):

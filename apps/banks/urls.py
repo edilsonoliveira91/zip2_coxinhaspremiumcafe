@@ -12,4 +12,6 @@ urlpatterns = [
     path('<int:pk>/adicionar/', views.BankAdicionarView.as_view(), name='bank_adicionar'),
     path('<int:pk>/pagar/', views.BankPagarView.as_view(), name='bank_pagar'),
     path('<int:pk>/transferir/', views.BankTransferirView.as_view(), name='bank_transferir'),
+    path('<int:bank_pk>/lancamento/<int:tx_pk>/editar/', views.BankTransactionEditView.as_view(), name='tx_edit'),
+    path('<int:bank_pk>/lancamento/<int:tx_pk>/excluir/', views.BankTransactionDeleteView.as_view(), name='tx_delete'),
 ]

@@ -355,3 +355,53 @@ class BankTransferirView(LoginRequiredMixin, BaseView):
 
         messages.success(request, f'Transferência de R$ {valor:.2f} realizada.')
         return redirect('banks:bank_statement', pk=pk)
+
+
+class BankTransactionEditView(LoginRequiredMixin, BaseView):
+    def post(self, request, bank_pk, tx_pk):
+        bank = get_object_or_404(Bank, pk=bank_pk)
+        if not _check_bank(request.user, bank, 'change'):
+            raise PermissionDenied
+
+        tx = get_object_or_404(BankTransaction, pk=tx_pk, bank=bank)
+
+        descricao = request.POST.get('descricao', '').strip() or tx.descricao
+        observacao = request.POST.get('observacao', '').strip()
+        data_str = request.POST.get('data', '').strip()
+
+        try:
+            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
+        except Exception:
+            valor = tx.valor
+
+        if valor <= 0:
+            messages.error(request, 'Informe um valor válido.')
+            return redirect('banks:bank_statement', pk=bank_pk)
+
+        tx.descricao = descricao
+        tx.observacao = observacao
+        tx.valor = valor
+
+        if data_str:
+            try:
+                from django.utils import timezone as tz
+                naive = datetime.strptime(data_str, '%Y-%m-%dT%H:%M')
+                tx.data = tz.make_aware(naive)
+            except ValueError:
+                pass
+
+        tx.save()
+        messages.success(request, 'Lançamento atualizado com sucesso.')
+        return redirect('banks:bank_statement', pk=bank_pk)
+
+
+class BankTransactionDeleteView(LoginRequiredMixin, BaseView):
+    def post(self, request, bank_pk, tx_pk):
+        bank = get_object_or_404(Bank, pk=bank_pk)
+        if not _check_bank(request.user, bank, 'del_tx'):
+            raise PermissionDenied
+
+        tx = get_object_or_404(BankTransaction, pk=tx_pk, bank=bank)
+        tx.delete()
+        messages.success(request, 'Lançamento removido.')
+        return redirect('banks:bank_statement', pk=bank_pk)

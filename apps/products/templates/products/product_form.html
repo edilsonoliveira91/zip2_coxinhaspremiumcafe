@@ -580,18 +580,39 @@
                                     {% if form.aliq_cofins.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_cofins.errors.0 }}</p>{% endif %}
                                 </div>
 
-                                <!-- CST IBS CBS -->
+                                <!-- CST IBS/CBS -->
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-700">CST IBS CBS</label>
+                                    <label class="block text-sm font-medium text-gray-700">CST IBS/CBS</label>
                                     {{ form.cst_ibs_cbs }}
                                     {% if form.cst_ibs_cbs.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cst_ibs_cbs.errors.0 }}</p>{% endif %}
                                 </div>
 
-                                <!-- CCLASS -->
+                                <!-- Cód. Classificação Tributária -->
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-700">CCLASS</label>
+                                    <label class="block text-sm font-medium text-gray-700">Cód. Classificação Tributária</label>
                                     {{ form.cclass }}
                                     {% if form.cclass.errors %}<p class="text-red-500 text-xs mt-1">{{ form.cclass.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Alíquota IBS Estadual -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota IBS Estadual (%)</label>
+                                    {{ form.aliq_ibs_uf }}
+                                    {% if form.aliq_ibs_uf.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_ibs_uf.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Alíquota IBS Municipal -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota IBS Municipal (%)</label>
+                                    {{ form.aliq_ibs_mun }}
+                                    {% if form.aliq_ibs_mun.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_ibs_mun.errors.0 }}</p>{% endif %}
+                                </div>
+
+                                <!-- Alíquota CBS -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Alíquota CBS (%)</label>
+                                    {{ form.aliq_cbs }}
+                                    {% if form.aliq_cbs.errors %}<p class="text-red-500 text-xs mt-1">{{ form.aliq_cbs.errors.0 }}</p>{% endif %}
                                 </div>
 
                                 <!-- Dados Adicionais NF-e (span 2 colunas no md) -->
