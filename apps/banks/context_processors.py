@@ -10,10 +10,11 @@ def bank_access(request):
     if request.user.is_superuser or request.user.has_perm('banks.view_bank'):
         return {'user_has_bank_access': True}
 
-    from .models import UserBankAccess
-    has_access = UserBankAccess.objects.filter(
-        user=request.user,
-        can_view=True,
-    ).exists()
+    # Usa a relação inversa do User — não importa o modelo diretamente,
+    # evitando problemas de AppRegistry durante a inicialização do Django.
+    try:
+        has_access = request.user.bank_accesses.filter(can_view=True).exists()
+    except Exception:
+        has_access = False
 
     return {'user_has_bank_access': has_access}
