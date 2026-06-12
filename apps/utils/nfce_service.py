@@ -1008,6 +1008,12 @@ class NFCeService:
                 etree.SubElement(g_cbs, 'vCBS').text = f'{_v_cbs:.2f}'
                 etree.SubElement(g_ibs_cbs, 'vIBSCBS').text = f'{_v_ibs_cbs:.2f}'
 
+        # Garante que vProd/vNF no ICMSTot == soma exata dos det.prod.vProd (obrig. SEFAZ)
+        # Cobre cenários onde total_amount armazenado difere dos itens por arredondamento
+        # ou porque pedidos foram cancelados depois que a comanda foi fechada/cortesia.
+        if total_item_sum > 0:
+            valor_total = round(total_item_sum, 2)
+
         # ── total ─────────────────────────────────────────────────────────────
         total = etree.SubElement(infNFe, 'total')
         icms_tot = etree.SubElement(total, 'ICMSTot')

@@ -2232,12 +2232,8 @@ class CortesiaComandaView(LoginRequiredMixin, View):
             return redirect('orders:comanda_detail', numero=numero)
 
         with transaction.atomic():
-            comanda.status = 'cortesia'
-            comanda.motivo_cancelamento = observacao
-            comanda.updated_by = request.user
-            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
-
-            # Cancela todos os pedidos ativos
+            # Cancela pedidos ativos ANTES de setar status, para que update_total
+            # consiga recalcular (status ainda não está em IMUTAVEIS).
             for pedido in comanda.pedidos.filter(
                 status__in=['aguardando', 'preparando', 'pronta']
             ):
@@ -2245,9 +2241,13 @@ class CortesiaComandaView(LoginRequiredMixin, View):
                 pedido.observations = f"[CORTESIA - {observacao}] {pedido.observations or ''}"
                 pedido.save()
 
-            # Recalcula o total da comanda (exclui itens cancelados) para que
-            # o extrato de caixa reflita apenas o que foi efetivamente consumido.
+            # Recalcula o total excluindo os pedidos cancelados acima.
             comanda.update_total()
+
+            comanda.status = 'cortesia'
+            comanda.motivo_cancelamento = observacao
+            comanda.updated_by = request.user
+            comanda.save(update_fields=['status', 'motivo_cancelamento', 'updated_by', 'updated_at'])
 
         messages.success(request, f'Comanda #{numero} registrada como cortesia.')
         return redirect('accounts:dashboard')

@@ -239,7 +239,7 @@
     {% endif %}
 
     <!-- Cadastros -->
-    {% if request.user.is_superuser or request.user.is_staff %}
+    {% if user_has_bank_access %}
     <div style="border-top:1px solid #f3f4f6;margin:4px 0;">
       <div style="padding:8px 20px 4px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">
         Cadastros
