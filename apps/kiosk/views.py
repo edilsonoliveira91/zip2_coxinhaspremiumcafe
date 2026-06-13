@@ -19,6 +19,12 @@ from config.models import ConfigKioskPin
 from django.db import transaction
 
 
+def _normalizar_numero(numero):
+    """Remove zeros à esquerda para evitar duplicatas (ex: '07' e '7' → '7')."""
+    s = str(numero).strip()
+    return str(int(s)) if s.isdigit() else s
+
+
 def _slides_fingerprint():
     rows = KioskSlide.objects.values_list(
         'id', 'title', 'order', 'is_active', 'image', 'created_at'
@@ -49,12 +55,12 @@ def entrada(request):
     """Tela inicial do kiosk — teclado numérico para digitar o número da mesa."""
     # AJAX: verifica status da mesa antes de abrir
     if request.method == 'GET' and request.GET.get('check'):
-        numero = request.GET.get('check', '').strip()
+        numero = _normalizar_numero(request.GET.get('check', ''))
         aberta = Comanda.objects.filter(numero=numero, status='em_uso').exists()
         return JsonResponse({'aberta': aberta})
 
     if request.method == 'POST':
-        numero = request.POST.get('numero', '').strip()
+        numero = _normalizar_numero(request.POST.get('numero', ''))
         if numero:
             pin_enviado = request.POST.get('pin', '').strip()
             config_pin = ConfigKioskPin.get_settings()
@@ -65,8 +71,7 @@ def entrada(request):
                     'pin_incorreto': True,
                     'numero_anterior': numero,
                 })
-            numero_limpo = str(numero).strip()
-            mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+            mesa_numero = numero.zfill(2) if numero.isdigit() else numero
             mesa_label = f"MESA {mesa_numero}"
             comanda = Comanda.objects.filter(
                 numero=numero, status='em_uso'
@@ -86,8 +91,8 @@ def entrada(request):
 def cardapio(request, numero):
     """Tela principal de pedido — categorias, produtos e carrinho."""
     # Abre (ou recupera) a comanda da mesa assim que o cardápio é acessado
-    numero_limpo = str(numero).strip()
-    mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+    numero = _normalizar_numero(numero)
+    mesa_numero = numero.zfill(2) if numero.isdigit() else numero
     mesa_label = f"MESA {mesa_numero}"
     # Busca apenas comanda em_uso. Se o tablet acordar com a URL do cardápio
     # e a mesa já estiver aguardando_caixa, redireciona para a entrada
@@ -176,8 +181,8 @@ def enviar_pedido(request, numero):
         if not itens:
             return JsonResponse({'erro': 'Carrinho vazio'}, status=400)
 
-        numero_limpo = str(numero).strip()
-        mesa_numero = numero_limpo.zfill(2) if numero_limpo.isdigit() else numero_limpo
+        numero = _normalizar_numero(numero)
+        mesa_numero = numero.zfill(2) if numero.isdigit() else numero
         mesa_label = f"MESA {mesa_numero}"
 
         # Valida e prepara todos os itens ANTES da transação
@@ -266,6 +271,7 @@ def status_mesa(request, numero):
     """
     import re as _re
 
+    numero = _normalizar_numero(numero)
     comanda_em_uso = Comanda.objects.filter(numero=numero, status='em_uso').order_by('-created_at').first()
     if comanda_em_uso:
         return JsonResponse({'status': 'em_uso'})
@@ -285,6 +291,7 @@ def status_mesa(request, numero):
 
 def fechar_mesa(request, numero):
     """Marca a comanda da mesa como aguardando_caixa (cliente indo pagar)."""
+    numero = _normalizar_numero(numero)
     with transaction.atomic():
         comanda = Comanda.objects.select_for_update().filter(numero=numero, status='em_uso').first()
         if not comanda:
@@ -297,6 +304,7 @@ def fechar_mesa(request, numero):
 
 def ver_conta(request, numero):
     """Retorna JSON com todos os itens pedidos da mesa e o total."""
+    numero = _normalizar_numero(numero)
     comanda = Comanda.objects.filter(
         numero=numero, status__in=('em_uso', 'aguardando_caixa')
     ).order_by('-created_at').first()

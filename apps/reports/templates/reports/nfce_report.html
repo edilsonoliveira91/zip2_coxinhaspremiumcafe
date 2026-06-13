@@ -4,542 +4,477 @@
 {% block title %}Relatório NFC-e{% endblock %}
 
 {% block content %}
-<!-- Banner de status do último lote -->
-<div id="bannerLote" class="hidden fixed top-4 left-1/2 z-50 w-full max-w-lg px-4" style="transform:translateX(-50%);">
-    <div id="bannerLoteInner" class="rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4">
-        <div id="bannerLoteIcon" class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"></div>
-        <div class="flex-1 min-w-0">
-            <p id="bannerLoteTitulo" class="text-sm font-bold leading-snug"></p>
-            <p id="bannerLoteTexto" class="text-xs mt-0.5 leading-snug opacity-80"></p>
+<!-- Banner lote -->
+<div id="bannerLote" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:80;width:100%;max-width:480px;padding:0 16px;pointer-events:none;">
+  <div id="bannerLoteInner" style="border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:14px 18px;display:flex;align-items:flex-start;gap:14px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;pointer-events:all;">
+    <div id="bannerLoteIcon" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+    <div style="flex:1;min-width:0;">
+      <p id="bannerLoteTitulo" style="font-size:14px;font-weight:700;margin:0 0 2px 0;"></p>
+      <p id="bannerLoteTexto" style="font-size:12px;margin:0;opacity:0.85;line-height:1.4;"></p>
+    </div>
+    <button onclick="document.getElementById('bannerLote').style.display='none'" style="background:none;border:none;cursor:pointer;opacity:0.7;padding:2px;line-height:0;flex-shrink:0;">
+      <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;background:#F5F5F7;">
+  <div class="h-full overflow-y-auto">
+
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:20;">
+      <div style="padding:20px 32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <h1 style="font-size:28px;font-weight:700;color:#1D1D1F;letter-spacing:-0.5px;margin:0;">Relatório NFC-e</h1>
+            <p style="font-size:13px;color:#6E6E73;margin:2px 0 0 0;">Cupons fiscais emitidos no período</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&filtrar_por={{ filtrar_por }}"
+               style="display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px;background:#F5F5F7;color:#1D1D1F;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(0,0,0,0.1);transition:background 0.15s;"
+               onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+              <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Baixar XMLs
+            </a>
+            <button onclick="window.print()"
+                    style="display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px;background:#F5F5F7;color:#1D1D1F;border-radius:10px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.1);cursor:pointer;transition:background 0.15s;"
+                    onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+              <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Imprimir
+            </button>
+            <button onclick="abrirModalLote()"
+                    style="display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 18px;background:#FF9500;color:white;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;"
+                    onmouseover="this.style.background='#E08600'" onmouseout="this.style.background='#FF9500'">
+              <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Gerar Todas
+            </button>
+          </div>
         </div>
-        <button onclick="document.getElementById('bannerLote').classList.add('hidden')" class="opacity-60 hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </div>
+    </div>
+
+    <div style="padding:24px 32px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Cards de resumo -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+
+        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:20px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#EAF3FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg style="width:22px;height:22px;color:#007AFF;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 4px 0;">Cupons emitidos</p>
+              <p style="font-size:28px;font-weight:700;color:#1D1D1F;margin:0;line-height:1;">{{ total_cupons }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:20px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#E8F9EE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg style="width:22px;height:22px;color:#34C759;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 4px 0;">Valor total</p>
+              <p style="font-size:22px;font-weight:700;color:#34C759;margin:0;line-height:1;">R$ {{ total_valor|floatformat:2 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:20px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#FFF5E6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg style="width:22px;height:22px;color:#FF9500;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 4px 0;">Ticket médio</p>
+              <p style="font-size:22px;font-weight:700;color:#FF9500;margin:0;line-height:1;">R$ {{ valor_medio|floatformat:2 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:white;border-radius:16px;border:1px solid {% if total_sem_nfce > 0 %}rgba(255,149,0,0.3){% else %}rgba(0,0,0,0.08){% endif %};box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:20px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:{% if total_sem_nfce > 0 %}#FFF5E6{% else %}#E8F9EE{% endif %};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg style="width:22px;height:22px;color:{% if total_sem_nfce > 0 %}#FF9500{% else %}#34C759{% endif %};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {% if total_sem_nfce > 0 %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                {% else %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>{% endif %}
+              </svg>
+            </div>
+            <div>
+              <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 4px 0;">Sem NFC-e</p>
+              <p style="font-size:28px;font-weight:700;color:{% if total_sem_nfce > 0 %}#FF9500{% else %}#34C759{% endif %};margin:0;line-height:1;">{{ total_sem_nfce }}</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Painel de status do lote (persistente) -->
+      <div id="painelLote" style="display:none;background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #F5F5F7;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div id="painelLoteIcone" style="width:36px;height:36px;border-radius:10px;background:#FFF5E6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg id="painelLoteIconeSvg" style="width:18px;height:18px;color:#FF9500;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+              <p id="painelLoteTitulo" style="font-size:14px;font-weight:700;color:#1D1D1F;margin:0;">Emissão em andamento…</p>
+              <p id="painelLoteSubtitulo" style="font-size:12px;color:#8E8E93;margin:2px 0 0 0;">Aguarde a conclusão</p>
+            </div>
+          </div>
+          <button onclick="document.getElementById('painelLote').style.display='none'"
+                  style="width:30px;height:30px;border-radius:8px;background:#F5F5F7;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#8E8E93;transition:background 0.15s;"
+                  onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+            <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="padding:16px 20px;">
+          <div id="painelLoteProgressWrap" style="display:none;margin-bottom:16px;">
+            <div style="background:#F5F5F7;border-radius:100px;height:6px;overflow:hidden;">
+              <div id="painelLoteProgressBar" style="height:6px;border-radius:100px;background:#007AFF;transition:width 0.5s ease;width:0%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+              <span id="painelLoteProgressText" style="font-size:12px;color:#8E8E93;"></span>
+              <span id="painelLoteProgressPct" style="font-size:12px;color:#8E8E93;font-weight:600;"></span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div style="background:#E8F9EE;border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(52,199,89,0.2);">
+              <p style="font-size:26px;font-weight:800;color:#34C759;margin:0;" id="painelLoteSucesso">0</p>
+              <p style="font-size:11px;color:#1A7F3C;font-weight:600;margin:4px 0 0 0;">Emitidos com sucesso</p>
+            </div>
+            <div style="background:#FFEBEA;border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,59,48,0.2);">
+              <p style="font-size:26px;font-weight:800;color:#FF3B30;margin:0;" id="painelLoteErros">0</p>
+              <p style="font-size:11px;color:#C0392B;font-weight:600;margin:4px 0 0 0;">Com erro</p>
+            </div>
+          </div>
+          <div id="painelLoteErrosList" style="display:none;">
+            <p style="font-size:12px;font-weight:700;color:#FF3B30;margin:0 0 8px 0;">Detalhes dos erros:</p>
+            <div id="painelLoteErrosItems" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <form method="get" id="filter-form" style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:20px 24px;">
+        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;margin-bottom:7px;">Filtrar por</label>
+            <select name="filtrar_por"
+                    style="width:100%;min-height:44px;padding:0 36px 0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;background:white url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2214%22 height=%2214%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238E8E93%22 stroke-width=%222.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%226 9 12 15 18 9%22/></svg>') no-repeat right 12px center;outline:none;font-family:inherit;box-sizing:border-box;appearance:none;-webkit-appearance:none;cursor:pointer;">
+              <option value="emissao" {% if filtrar_por == 'emissao' %}selected{% endif %}>Data de emissão</option>
+              <option value="comanda" {% if filtrar_por == 'comanda' %}selected{% endif %}>Data da comanda</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;margin-bottom:7px;">Data início</label>
+            <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                   style="width:100%;min-height:44px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;font-family:inherit;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;margin-bottom:7px;">Data fim</label>
+            <input type="date" name="data_fim" value="{{ data_fim }}"
+                   style="width:100%;min-height:44px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;font-family:inherit;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;min-width:120px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;margin-bottom:7px;">Nº Comanda</label>
+            <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 42"
+                   style="width:100%;min-height:44px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;font-family:inherit;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:transparent;margin-bottom:7px;">x</label>
+            <button type="submit"
+                    style="display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 20px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background 0.15s;"
+                    onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              Filtrar
+            </button>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:transparent;margin-bottom:7px;">x</label>
+            <a href="?"
+               style="display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px;background:#F5F5F7;color:#1D1D1F;border-radius:10px;font-size:14px;font-weight:600;border:1px solid rgba(0,0,0,0.1);text-decoration:none;white-space:nowrap;transition:background 0.15s;"
+               onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+              <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              Limpar
+            </a>
+          </div>
+        </div>
+        <p style="font-size:12px;color:#8E8E93;margin:12px 0 0 0;">
+          {% if filtrar_por == 'comanda' %}
+          Comandas <strong style="color:#1D1D1F;">abertas</strong> de <strong style="color:#1D1D1F;">{{ data_inicio }}</strong> a <strong style="color:#1D1D1F;">{{ data_fim }}</strong>
+          {% else %}
+          Cupons <strong style="color:#1D1D1F;">emitidos</strong> de <strong style="color:#1D1D1F;">{{ data_inicio }}</strong> a <strong style="color:#1D1D1F;">{{ data_fim }}</strong>
+          {% endif %}
+          {% if numero_comanda %} · Comanda <strong style="color:#1D1D1F;">#{{ numero_comanda }}</strong>{% endif %}
+        </p>
+      </form>
+
+      <!-- Abas (segmented control) -->
+      <div style="display:inline-flex;gap:0;background:white;border-radius:12px;border:1px solid rgba(0,0,0,0.08);padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <button id="tab-emitidas" onclick="mostrarAba('emitidas')"
+                style="display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all 0.15s;background:#007AFF;color:white;box-shadow:0 2px 6px rgba(0,122,255,0.3);">
+          <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Emitidos
+          <span style="background:rgba(255,255,255,0.25);color:white;border-radius:20px;font-size:11px;font-weight:700;padding:1px 8px;">{{ total_cupons }}</span>
         </button>
-    </div>
-</div>
+        <button id="tab-sem-nfce" onclick="mostrarAba('sem-nfce')"
+                style="display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all 0.15s;background:transparent;color:#6E6E73;">
+          <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Sem NFC-e
+          {% if total_sem_nfce > 0 %}
+          <span style="background:#FFF5E6;color:#FF9500;border-radius:20px;font-size:11px;font-weight:700;padding:1px 8px;border:1px solid rgba(255,149,0,0.3);">{{ total_sem_nfce }}</span>
+          {% else %}
+          <span style="background:#E8F9EE;color:#34C759;border-radius:20px;font-size:11px;font-weight:700;padding:1px 8px;">0</span>
+          {% endif %}
+        </button>
+      </div>
 
-<div class="flex-1 overflow-hidden">
-    <div class="h-full overflow-y-auto">
-
-        <!-- Header -->
-        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-            <div class="px-6 py-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Relatório NFC-e</h1>
-                        <p class="mt-1 text-sm text-gray-600">Cupons fiscais emitidos no período</p>
-                    </div>
-                    <div class="hidden md:flex items-center space-x-3">
-                        <!-- Cards rápidos no header -->
-                        <div class="flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-green-600">{{ total_cupons }}</div>
-                                <div class="text-xs text-gray-500">Emitidos</div>
-                            </div>
-                            <div class="w-px h-8 bg-gray-200"></div>
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-orange-500">{{ total_sem_nfce }}</div>
-                                <div class="text-xs text-gray-500">Sem NFC-e</div>
-                            </div>
-                            <div class="w-px h-8 bg-gray-200"></div>
-                            <div class="text-center">
-                                <div class="text-xl font-bold text-gray-900">R$ {{ total_valor|floatformat:2 }}</div>
-                                <div class="text-xs text-gray-500">Total</div>
-                            </div>
-                        </div>
-                        <!-- Baixar XMLs -->
-                        <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}"
-                           style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#f3f4f6;color:#374151;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;text-decoration:none;">
-                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            Baixar XMLs
-                        </a>
-                        <!-- Gerar Todas -->
-                        <button onclick="abrirModalLote()"
-                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
-                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Gerar Todas
-                        </button>
-                        <!-- Imprimir -->
-                        <button onclick="window.print()"
-                                style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#f3f4f6;color:#374151;border-radius:12px;font-weight:600;font-size:13px;border:none;cursor:pointer;">
-                            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                            </svg>
-                            Imprimir
-                        </button>
-                    </div>
-                </div>
-            </div>
+      <!-- Tabela: Emitidas -->
+      <div id="painel-emitidas" style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+        <div style="padding:16px 24px;border-bottom:1px solid #F5F5F7;">
+          <h2 style="font-size:16px;font-weight:700;color:#1D1D1F;margin:0;">Cupons Fiscais Emitidos</h2>
         </div>
-
-        <!-- Conteúdo Principal -->
-        <div class="flex-1 p-6 space-y-6">
-
-            <!-- Filtros -->
-            <form method="get" id="filter-form" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
-                <div class="flex items-end gap-4 flex-wrap">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
-                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
-                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
-                        <input type="date" name="data_fim" value="{{ data_fim }}"
-                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nº Comanda</label>
-                        <input type="text" name="numero_comanda" value="{{ numero_comanda }}" placeholder="Ex: 42"
-                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    </div>
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button type="submit"
-                                class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            <span>Filtrar</span>
-                        </button>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <a href="?"
-                           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center space-x-2"
-                           style="display:inline-flex;">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                            <span>Limpar</span>
-                        </a>
-                    </div>
-                </div>
-                <div class="mt-3 text-xs text-gray-400">
-                    Mostrando cupons de <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>{% if numero_comanda %} &middot; Comanda <strong>#{{ numero_comanda }}</strong>{% endif %}
-                </div>
-            </form>
-
-            <!-- Painel de Status do Lote (persistente) -->
-            <div id="painelLote" class="hidden bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div id="painelLoteIcone" class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center">
-                            <svg id="painelLoteIconeSvg" class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 id="painelLoteTitulo" class="text-sm font-bold text-gray-900">Emissão em andamento…</h3>
-                            <p id="painelLoteSubtitulo" class="text-xs text-gray-500 mt-0.5">Aguarde a conclusão</p>
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('painelLote').classList.add('hidden')" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="p-5">
-                    <!-- Barra de progresso (aparece durante emissão) -->
-                    <div id="painelLoteProgressWrap" class="hidden mb-4">
-                        <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                            <div id="painelLoteProgressBar" class="h-2.5 rounded-full transition-all duration-500" style="width:0%;background:linear-gradient(135deg,#f97316,#ef4444)"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-1.5">
-                            <span id="painelLoteProgressText">0 de 0 processados</span>
-                            <span id="painelLoteProgressPct">0%</span>
-                        </div>
-                    </div>
-                    <!-- Cards sucesso / erro -->
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-green-50 rounded-2xl p-4 text-center border border-green-100">
-                            <p class="text-3xl font-black text-green-600" id="painelLoteSucesso">0</p>
-                            <p class="text-xs text-green-700 mt-1 font-medium">Emitidos com sucesso</p>
-                        </div>
-                        <div class="bg-red-50 rounded-2xl p-4 text-center border border-red-100">
-                            <p class="text-3xl font-black text-red-600" id="painelLoteErros">0</p>
-                            <p class="text-xs text-red-700 mt-1 font-medium">Com erro</p>
-                        </div>
-                    </div>
-                    <!-- Lista detalhada de erros -->
-                    <div id="painelLoteErrosList" class="hidden">
-                        <p class="text-xs font-semibold text-red-600 mb-2">Detalhes dos erros:</p>
-                        <div id="painelLoteErrosItems" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cards Resumo -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                    </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#F5F5F7;">
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">NF-e</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Comanda</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Emitida em</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Abertura</th>
+                <th style="padding:10px 20px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Valor</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Protocolo / Chave</th>
+                <th style="padding:10px 20px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in nfce_list %}
+              <tr style="border-top:1px solid #F5F5F7;transition:background 0.1s;"
+                  onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                <td style="padding:14px 20px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(145deg,#34C759,#30D158);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;flex-shrink:0;">NF</div>
                     <div>
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Cupons emitidos</p>
-                        <p class="text-3xl font-bold text-gray-900 leading-none mt-1">{{ total_cupons }}</p>
+                      <div style="font-size:14px;font-weight:700;color:#1D1D1F;">#{{ order.nfce_numero }}</div>
+                      <div style="font-size:11px;color:#8E8E93;margin-top:1px;">Série 001</div>
                     </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Valor total</p>
-                        <p class="text-2xl font-bold text-green-600 leading-none mt-1">R$ {{ total_valor|floatformat:2 }}</p>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Ticket médio</p>
-                        <p class="text-2xl font-bold text-yellow-600 leading-none mt-1">R$ {{ valor_medio|floatformat:2 }}</p>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-orange-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xs text-orange-500 font-medium uppercase tracking-wide">Sem NFC-e</p>
-                        <p class="text-3xl font-bold text-orange-600 leading-none mt-1">{{ total_sem_nfce }}</p>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Abas -->
-            <div class="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-1.5 flex gap-1 w-fit">
-                <button id="tab-emitidas" onclick="mostrarAba('emitidas')"
-                        class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-gray-900 text-white shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Emitidos
-                    <span class="px-2 py-0.5 bg-white/20 text-white rounded-full text-xs font-bold">{{ total_cupons }}</span>
-                </button>
-                <button id="tab-sem-nfce" onclick="mostrarAba('sem-nfce')"
-                        class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Sem NFC-e
-                    {% if total_sem_nfce > 0 %}
-                    <span class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold">{{ total_sem_nfce }}</span>
+                  </div>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:28px;height:28px;border-radius:8px;background:#EAF3FF;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#007AFF;flex-shrink:0;">#</span>
+                    <span style="font-size:14px;font-weight:600;color:#1D1D1F;">{{ order.numero }}</span>
+                  </div>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ order.nfce_emitida_em|date:"d/m/Y" }}</div>
+                  <div style="font-size:11px;color:#8E8E93;margin-top:2px;">{{ order.nfce_emitida_em|date:"H:i" }}</div>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ order.created_at|date:"d/m/Y" }}</div>
+                  <div style="font-size:11px;color:#8E8E93;margin-top:2px;">{{ order.created_at|date:"H:i" }}</div>
+                </td>
+                <td style="padding:14px 20px;text-align:right;">
+                  <span style="font-size:15px;font-weight:700;color:#34C759;">R$ {{ order.total_amount|floatformat:2 }}</span>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="font-size:12px;font-family:monospace;font-weight:600;color:#1D1D1F;">{{ order.nfce_protocolo|default:"—" }}</div>
+                  {% if order.nfce_chave %}
+                  <div style="font-size:11px;font-family:monospace;color:#8E8E93;margin-top:2px;">{{ order.nfce_chave|slice:":22" }}…</div>
+                  {% endif %}
+                </td>
+                <td style="padding:14px 20px;text-align:center;">
+                  <div style="display:inline-flex;align-items:center;gap:6px;">
+                    <a href="{% url 'orders:cupom_nfce_id' order.id %}" target="_blank" title="Ver cupom fiscal"
+                       style="width:34px;height:34px;border-radius:9px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;color:#1D1D1F;text-decoration:none;transition:background 0.15s;"
+                       onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+                      <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </a>
+                    {% if order.nfce_xml_path %}
+                    <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ order.nfce_emitida_em|date:'Y-m-d' }}&data_fim={{ order.nfce_emitida_em|date:'Y-m-d' }}&numero_comanda={{ order.numero }}"
+                       title="Baixar XML NFC-e"
+                       style="width:34px;height:34px;border-radius:9px;background:#EAF3FF;display:inline-flex;align-items:center;justify-content:center;color:#007AFF;text-decoration:none;transition:background 0.15s;"
+                       onmouseover="this.style.background='#D6EAFF'" onmouseout="this.style.background='#EAF3FF'">
+                      <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </a>
                     {% else %}
-                    <span class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs font-bold">0</span>
+                    <span title="XML não disponível" style="width:34px;height:34px;border-radius:9px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;color:#C7C7CC;cursor:not-allowed;">
+                      <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </span>
                     {% endif %}
-                </button>
-            </div>
-
-            <!-- Tabela Emitidas -->
-            <div id="painel-emitidas" class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Cupons Fiscais Emitidos</h2>
-                </div>
-
-                <div class="w-full">
-                    <div class="overflow-x-auto">
-                        <table class="w-full table-fixed divide-y divide-gray-200">
-                            <thead class="bg-gray-50/50">
-                                <tr>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NF-e</th>
-                                    <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comanda</th>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emitida em</th>
-                                    <th class="w-36 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protocolo / Chave</th>
-                                    <th class="w-36 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for order in nfce_list %}
-                                <tr class="hover:bg-gray-50 transition-colors">
-
-                                    <!-- NF-e -->
-                                    <td class="w-40 px-4 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                NF
-                                            </div>
-                                            <div class="ml-3 min-w-0">
-                                                <div class="text-sm font-bold text-gray-900">#{{ order.nfce_numero }}</div>
-                                                <div class="text-xs text-gray-400">Série 001</div>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- Comanda -->
-                                    <td class="w-36 px-4 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                #
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-bold text-gray-900">#{{ order.numero }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- Emitida em -->
-                                    <td class="w-40 px-4 py-4">
-                                        <div class="text-sm text-gray-900">{{ order.nfce_emitida_em|date:"d/m/Y" }}</div>
-                                        <div class="text-xs text-gray-500">{{ order.nfce_emitida_em|date:"H:i" }}</div>
-                                    </td>
-
-                                    <!-- Valor -->
-                                    <td class="w-36 px-4 py-4 text-right">
-                                        <div class="text-base font-bold text-green-600">R$ {{ order.total_amount|floatformat:2 }}</div>
-                                    </td>
-
-                                    <!-- Protocolo / Chave -->
-                                    <td class="px-4 py-4">
-                                        <div class="text-xs font-mono font-semibold text-gray-700">{{ order.nfce_protocolo|default:"—" }}</div>
-                                        {% if order.nfce_chave %}
-                                        <div class="text-xs text-gray-400 font-mono mt-0.5">{{ order.nfce_chave|slice:":22" }}…</div>
-                                        {% endif %}
-                                    </td>
-
-                                    <!-- Ações -->
-                                    <td class="w-36 px-4 py-4">
-                                        <div class="flex items-center justify-center space-x-1">
-                                            <!-- Ver cupom -->
-                                            <a href="{% url 'orders:cupom_nfce_id' order.id %}" target="_blank"
-                                               class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                                               title="Ver cupom fiscal">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                                </svg>
-                                            </a>
-                                            <!-- Baixar XML -->
-                                            {% if order.nfce_xml_path %}
-                                            <a href="{% url 'reports:download_xml_zip' %}?data_inicio={{ order.nfce_emitida_em|date:'Y-m-d' }}&data_fim={{ order.nfce_emitida_em|date:'Y-m-d' }}&numero_comanda={{ order.numero }}"
-                                               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                               title="Baixar XML NFC-e">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                </svg>
-                                            </a>
-                                            {% else %}
-                                            <span class="p-2 text-gray-300 cursor-not-allowed rounded-lg" title="XML não disponível">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                </svg>
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="6" class="px-6 py-16 text-center">
-                                        <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        <p class="text-gray-500 font-semibold">Nenhum cupom fiscal no período</p>
-                                        <p class="text-gray-400 text-sm mt-1">Ajuste os filtros ou emita uma NFC-e.</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {% if total_cupons > 0 %}
-                <div class="bg-gray-50/50 px-6 py-3 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
-                    <span>{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }} encontrado{{ total_cupons|pluralize:",s" }}</span>
-                    <span class="font-semibold text-green-600">Total: R$ {{ total_valor|floatformat:2 }}</span>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Tabela Sem NFC-e -->
-            <div id="painel-sem-nfce" class="hidden bg-white/80 backdrop-blur-sm rounded-3xl border border-orange-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-orange-100 flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900">Comandas sem NFC-e</h2>
-                    <span class="text-xs text-orange-600 font-medium">{{ total_sem_nfce }} pendente{{ total_sem_nfce|pluralize:",s" }}</span>
-                </div>
-
-                <div class="w-full">
-                    <div class="overflow-x-auto">
-                        <table class="w-full table-fixed divide-y divide-gray-200">
-                            <thead class="bg-orange-50/50">
-                                <tr>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comanda</th>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aberta em</th>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechada em</th>
-                                    <th class="w-36 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for order in sem_nfce_list %}
-                                <tr class="hover:bg-orange-50/40 transition-colors">
-                                    <td class="w-40 px-4 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                #
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-bold text-gray-900">#{{ order.numero }}</div>
-                                                <div class="text-xs text-gray-400">{{ order.cliente_nome|default:"Sem nome" }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="w-40 px-4 py-4">
-                                        <div class="text-sm text-gray-900">{{ order.created_at|date:"d/m/Y" }}</div>
-                                        <div class="text-xs text-gray-500">{{ order.created_at|date:"H:i" }}</div>
-                                    </td>
-                                    <td class="w-40 px-4 py-4">
-                                        <div class="text-sm text-gray-900">{{ order.updated_at|date:"d/m/Y" }}</div>
-                                        <div class="text-xs text-gray-500">{{ order.updated_at|date:"H:i" }}</div>
-                                    </td>
-                                    <td class="w-36 px-4 py-4 text-right">
-                                        <div class="text-base font-bold {% if order.status == 'cortesia' %}text-purple-600{% else %}text-green-600{% endif %}">
-                                            R$ {{ order.total_amount|floatformat:2 }}
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        {% if order.status == 'cortesia' %}
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
-                                            Cortesia
-                                        </span>
-                                        {% else %}
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-lg">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            Não emitida
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center">
-                                        <svg class="w-12 h-12 text-green-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <p class="text-gray-500 font-semibold">Todas as comandas têm NFC-e!</p>
-                                        <p class="text-gray-400 text-sm mt-1">Nenhuma comanda pendente no período.</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {% if total_sem_nfce > 0 %}
-                <div class="bg-orange-50/50 px-6 py-3 border-t border-orange-100 flex items-center justify-between text-sm text-gray-600">
-                    <span>{{ total_sem_nfce }} comanda{{ total_sem_nfce|pluralize:",s" }} sem cupom fiscal</span>
-                    <button onclick="abrirModalLote()"
-                            style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:10px;font-weight:600;font-size:12px;border:none;cursor:pointer;">
-                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        Gerar Todas
-                    </button>
-                </div>
-                {% endif %}
-            </div>
-
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" style="padding:64px 32px;text-align:center;">
+                  <div style="width:56px;height:56px;border-radius:16px;background:#F5F5F7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <svg style="width:26px;height:26px;color:#C7C7CC;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  </div>
+                  <p style="font-size:16px;font-weight:600;color:#1D1D1F;margin:0 0 6px 0;">Nenhum cupom no período</p>
+                  <p style="font-size:13px;color:#8E8E93;margin:0;">Ajuste os filtros ou emita NFC-e.</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+        {% if total_cupons > 0 %}
+        <div style="padding:12px 24px;border-top:1px solid #F5F5F7;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#8E8E93;">{{ total_cupons }} cupom{{ total_cupons|pluralize:",s" }} encontrado{{ total_cupons|pluralize:",s" }}</span>
+          <span style="font-size:14px;font-weight:700;color:#34C759;">Total: R$ {{ total_valor|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Tabela: Sem NFC-e -->
+      <div id="painel-sem-nfce" style="display:none;background:white;border-radius:16px;border:1px solid rgba(255,149,0,0.25);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+        <div style="padding:16px 24px;border-bottom:1px solid #F5F5F7;display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:16px;font-weight:700;color:#1D1D1F;margin:0;">Comandas sem NFC-e</h2>
+          <span style="font-size:12px;font-weight:600;color:#FF9500;">{{ total_sem_nfce }} pendente{{ total_sem_nfce|pluralize:",s" }}</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#F5F5F7;">
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Comanda</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Aberta em</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Fechada em</th>
+                <th style="padding:10px 20px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Valor</th>
+                <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in sem_nfce_list %}
+              <tr style="border-top:1px solid #F5F5F7;transition:background 0.1s;"
+                  onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='white'">
+                <td style="padding:14px 20px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(145deg,#FF9500,#FF6B00);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:800;flex-shrink:0;">#</div>
+                    <div>
+                      <div style="font-size:14px;font-weight:700;color:#1D1D1F;">#{{ order.numero }}</div>
+                      <div style="font-size:11px;color:#8E8E93;margin-top:1px;">{{ order.cliente_nome|default:"Sem nome" }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ order.created_at|date:"d/m/Y" }}</div>
+                  <div style="font-size:11px;color:#8E8E93;margin-top:2px;">{{ order.created_at|date:"H:i" }}</div>
+                </td>
+                <td style="padding:14px 20px;">
+                  <div style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ order.updated_at|date:"d/m/Y" }}</div>
+                  <div style="font-size:11px;color:#8E8E93;margin-top:2px;">{{ order.updated_at|date:"H:i" }}</div>
+                </td>
+                <td style="padding:14px 20px;text-align:right;">
+                  <span style="font-size:15px;font-weight:700;color:{% if order.status == 'cortesia' %}#7E22CE{% else %}#34C759{% endif %};">R$ {{ order.total_amount|floatformat:2 }}</span>
+                </td>
+                <td style="padding:14px 20px;">
+                  {% if order.status == 'cortesia' %}
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#7E22CE;background:#F5F0FF;border:1px solid rgba(126,34,206,0.2);padding:4px 10px;border-radius:20px;">Cortesia</span>
+                  {% else %}
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#FF9500;background:#FFF5E6;border:1px solid rgba(255,149,0,0.3);padding:4px 10px;border-radius:20px;">
+                    <span style="width:5px;height:5px;border-radius:50%;background:#FF9500;flex-shrink:0;display:inline-block;"></span>
+                    Não emitida
+                  </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="padding:48px 32px;text-align:center;">
+                  <div style="width:52px;height:52px;border-radius:16px;background:#E8F9EE;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
+                    <svg style="width:24px;height:24px;color:#34C759;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </div>
+                  <p style="font-size:16px;font-weight:600;color:#1D1D1F;margin:0 0 6px 0;">Tudo certo!</p>
+                  <p style="font-size:13px;color:#8E8E93;margin:0;">Todas as comandas do período têm NFC-e emitida.</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if total_sem_nfce > 0 %}
+        <div style="padding:12px 24px;border-top:1px solid #F5F5F7;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#8E8E93;">{{ total_sem_nfce }} comanda{{ total_sem_nfce|pluralize:",s" }} sem cupom fiscal</span>
+          <button onclick="abrirModalLote()"
+                  style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;background:#FF9500;color:white;border-radius:9px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                  onmouseover="this.style.background='#E08600'" onmouseout="this.style.background='#FF9500'">
+            <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Gerar Todas
+          </button>
+        </div>
+        {% endif %}
+      </div>
+
     </div>
+  </div>
 </div>
 
-<!-- Modal Gerar Todas -->
-<div id="modalLote" class="fixed inset-0 z-50 hidden" style="background:rgba(0,0,0,0.5);">
-    <div class="flex items-center justify-center min-h-full p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col" style="max-height:90vh;">
+<!-- Modal: Gerar Todas -->
+<div id="modalLote" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div style="background:rgba(255,255,255,0.97);border-radius:20px;max-width:400px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.2);border:1px solid rgba(0,0,0,0.06);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
 
-            <!-- Etapa 1: Confirmação -->
-            <div id="loteEtapa1" class="p-8">
-                <div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                    <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <h2 class="text-xl font-bold text-gray-900 text-center mb-2">Emitir todas as NFC-e</h2>
-                <p class="text-gray-500 text-center text-sm mb-6">Serão emitidas NFC-e para <strong>todas as comandas finalizadas</strong> que ainda não possuem cupom fiscal. A emissão ocorre uma a uma em segundo plano.</p>
-                <div class="flex gap-3">
-                    <button onclick="fecharModalLote()" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
-                    <button onclick="iniciarLote()" class="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors">Confirmar</button>
-                </div>
-            </div>
-
-            <!-- Etapa 2: Progresso -->
-            <div id="loteEtapa2" class="hidden flex flex-col" style="min-height:0;">
-
-                <!-- Header fixo -->
-                <div class="px-8 pt-8 pb-4 flex-shrink-0">
-                    <h2 class="text-xl font-bold text-gray-900 text-center mb-5">Emitindo NFC-e…</h2>
-
-                    <div class="bg-gray-100 rounded-full h-3 mb-3 overflow-hidden">
-                        <div id="loteProgressBar" class="h-3 rounded-full transition-all duration-500" style="width:0%;background:linear-gradient(135deg,#f97316,#ef4444)"></div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-500 mb-5">
-                        <span id="loteProgressText">0 de 0 processados</span>
-                        <span id="loteProgressPct">0%</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-green-50 rounded-xl p-3 text-center">
-                            <p class="text-2xl font-black text-green-600" id="loteSucesso">0</p>
-                            <p class="text-xs text-green-700 mt-1">Com sucesso</p>
-                        </div>
-                        <div class="bg-red-50 rounded-xl p-3 text-center">
-                            <p class="text-2xl font-black text-red-600" id="loteErros">0</p>
-                            <p class="text-xs text-red-700 mt-1">Com erro</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lista de cupons emitidos com scroll -->
-                <div id="loteEmitidasList" class="hidden px-8 pb-2 flex-shrink-0">
-                    <p class="text-xs font-semibold text-green-600 mb-2">Cupons emitidos:</p>
-                    <div id="loteEmitidasItems" class="space-y-1 overflow-y-auto" style="max-height:156px;"></div>
-                </div>
-
-                <!-- Lista de erros com scroll (máximo 6 itens visíveis ~156px) -->
-                <div id="loteErrosList" class="hidden px-8 pb-2 flex-shrink-0">
-                    <p class="text-xs font-semibold text-red-600 mb-2">Comandas com erro:</p>
-                    <div id="loteErrosItems" class="space-y-1 overflow-y-auto" style="max-height:156px;"></div>
-                </div>
-
-                <!-- Rodapé fixo -->
-                <div class="px-8 pb-8 pt-4 flex-shrink-0">
-                    <p id="loteStatus" class="text-center text-xs text-gray-400 mb-4">Processando em segundo plano…</p>
-                    <div id="loteBtnFechar" class="hidden">
-                        <button onclick="fecharModalLote(); location.reload();"
-                                style="width:100%;padding:0.75rem 1rem;background:#111827;color:#fff;border:none;border-radius:0.75rem;font-weight:500;cursor:pointer;font-size:0.875rem;transition:background 0.2s;"
-                                onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#111827'">
-                            ✕ &nbsp;Concluído — Atualizar página
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
+    <!-- Etapa 1 -->
+    <div id="loteEtapa1" style="padding:32px 28px;">
+      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#FF9500,#FF6B00);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <svg style="width:28px;height:28px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <h2 style="font-size:18px;font-weight:700;color:#1D1D1F;text-align:center;margin:0 0 10px 0;">Emitir todas as NFC-e</h2>
+      <p style="font-size:14px;color:#6E6E73;text-align:center;line-height:1.5;margin:0 0 28px 0;">Serão emitidas NFC-e para <strong style="color:#1D1D1F;">todas as comandas finalizadas</strong> que ainda não possuem cupom fiscal. A emissão ocorre uma a uma em segundo plano.</p>
+      <div style="display:flex;gap:10px;">
+        <button onclick="fecharModalLote()"
+                style="flex:1;min-height:44px;border-radius:12px;background:#F5F5F7;color:#007AFF;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">Cancelar</button>
+        <button onclick="iniciarLote()"
+                style="flex:1;min-height:44px;border-radius:12px;background:#FF9500;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                onmouseover="this.style.background='#E08600'" onmouseout="this.style.background='#FF9500'">Confirmar</button>
+      </div>
     </div>
+
+    <!-- Etapa 2 -->
+    <div id="loteEtapa2" style="display:none;flex-direction:column;min-height:0;">
+      <div style="padding:28px 28px 20px;flex-shrink:0;">
+        <h2 style="font-size:18px;font-weight:700;color:#1D1D1F;text-align:center;margin:0 0 20px 0;">Emitindo NFC-e…</h2>
+        <div style="background:#F5F5F7;border-radius:100px;height:6px;overflow:hidden;margin-bottom:8px;">
+          <div id="loteProgressBar" style="height:6px;border-radius:100px;background:#007AFF;transition:width 0.5s ease;width:0%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <span id="loteProgressText" style="font-size:12px;color:#8E8E93;"></span>
+          <span id="loteProgressPct" style="font-size:12px;color:#8E8E93;font-weight:600;"></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:#E8F9EE;border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(52,199,89,0.2);">
+            <p style="font-size:26px;font-weight:800;color:#34C759;margin:0;" id="loteSucesso">0</p>
+            <p style="font-size:11px;color:#1A7F3C;font-weight:600;margin:4px 0 0 0;">Com sucesso</p>
+          </div>
+          <div style="background:#FFEBEA;border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,59,48,0.2);">
+            <p style="font-size:26px;font-weight:800;color:#FF3B30;margin:0;" id="loteErros">0</p>
+            <p style="font-size:11px;color:#C0392B;font-weight:600;margin:4px 0 0 0;">Com erro</p>
+          </div>
+        </div>
+      </div>
+      <div id="loteEmitidasList" style="display:none;padding:0 28px 8px;flex-shrink:0;">
+        <p style="font-size:12px;font-weight:700;color:#34C759;margin:0 0 8px 0;">Cupons emitidos:</p>
+        <div id="loteEmitidasItems" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;"></div>
+      </div>
+      <div id="loteErrosList" style="display:none;padding:0 28px 8px;flex-shrink:0;">
+        <p style="font-size:12px;font-weight:700;color:#FF3B30;margin:0 0 8px 0;">Comandas com erro:</p>
+        <div id="loteErrosItems" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;"></div>
+      </div>
+      <div style="padding:12px 28px 28px;flex-shrink:0;">
+        <p id="loteStatus" style="font-size:12px;color:#8E8E93;text-align:center;margin:0 0 16px 0;">Processando em segundo plano…</p>
+        <div id="loteBtnFechar" style="display:none;">
+          <button onclick="fecharModalLote(); location.reload();"
+                  style="width:100%;min-height:44px;border-radius:12px;background:#1D1D1F;color:white;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;"
+                  onmouseover="this.style.background='#3A3A3C'" onmouseout="this.style.background='#1D1D1F'">
+            Concluído — Atualizar página
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -548,182 +483,170 @@ let _pollingTimer = null;
 let _pollingFailCount = 0;
 
 function mostrarAba(aba) {
-    const painelEmitidas = document.getElementById('painel-emitidas');
-    const painelSem = document.getElementById('painel-sem-nfce');
     const tabEmitidas = document.getElementById('tab-emitidas');
-    const tabSem = document.getElementById('tab-sem-nfce');
-    const ATIVO = 'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-gray-900 text-white shadow-sm';
-    const INATIVO = 'flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-100';
+    const tabSem      = document.getElementById('tab-sem-nfce');
+    const painelEmitidas = document.getElementById('painel-emitidas');
+    const painelSem      = document.getElementById('painel-sem-nfce');
 
     if (aba === 'emitidas') {
-        painelEmitidas.classList.remove('hidden');
-        painelSem.classList.add('hidden');
-        tabEmitidas.className = ATIVO;
-        tabSem.className = INATIVO;
+        painelEmitidas.style.display = 'block';
+        painelSem.style.display = 'none';
+        tabEmitidas.style.background = '#007AFF';
+        tabEmitidas.style.color = 'white';
+        tabEmitidas.style.boxShadow = '0 2px 6px rgba(0,122,255,0.3)';
+        tabSem.style.background = 'transparent';
+        tabSem.style.color = '#6E6E73';
+        tabSem.style.boxShadow = 'none';
     } else {
-        painelSem.classList.remove('hidden');
-        painelEmitidas.classList.add('hidden');
-        tabSem.className = ATIVO;
-        tabEmitidas.className = INATIVO;
+        painelSem.style.display = 'block';
+        painelEmitidas.style.display = 'none';
+        tabSem.style.background = '#007AFF';
+        tabSem.style.color = 'white';
+        tabSem.style.boxShadow = '0 2px 6px rgba(0,122,255,0.3)';
+        tabEmitidas.style.background = 'transparent';
+        tabEmitidas.style.color = '#6E6E73';
+        tabEmitidas.style.boxShadow = 'none';
     }
 }
 
-// Atualiza o painel persistente com os dados do estado do lote
 function atualizarPainelLote(s) {
-    const painel = document.getElementById('painelLote');
-    const titulo = document.getElementById('painelLoteTitulo');
-    const subtitulo = document.getElementById('painelLoteSubtitulo');
-    const icone = document.getElementById('painelLoteIcone');
+    const painel     = document.getElementById('painelLote');
+    const titulo     = document.getElementById('painelLoteTitulo');
+    const subtitulo  = document.getElementById('painelLoteSubtitulo');
+    const icone      = document.getElementById('painelLoteIcone');
     const progressWrap = document.getElementById('painelLoteProgressWrap');
-    const progressBar = document.getElementById('painelLoteProgressBar');
+    const progressBar  = document.getElementById('painelLoteProgressBar');
     const progressText = document.getElementById('painelLoteProgressText');
-    const progressPct = document.getElementById('painelLoteProgressPct');
+    const progressPct  = document.getElementById('painelLoteProgressPct');
     const errosLen = (s.erros || []).length;
     const total = s.total || 1;
-    const proc = s.processados || 0;
-    const pct = Math.round((proc / total) * 100);
+    const proc  = s.processados || 0;
+    const pct   = Math.round((proc / total) * 100);
 
-    // Mostra o painel
-    painel.classList.remove('hidden');
-
-    // Atualiza counts
+    painel.style.display = 'block';
     document.getElementById('painelLoteSucesso').textContent = s.sucesso || 0;
-    document.getElementById('painelLoteErros').textContent = errosLen;
+    document.getElementById('painelLoteErros').textContent   = errosLen;
 
-    // Atualiza barra de progresso (só durante emissão)
     if (s.running) {
-        progressWrap.classList.remove('hidden');
+        progressWrap.style.display = 'block';
         progressBar.style.width = pct + '%';
         progressText.textContent = `${proc} de ${s.total} processados`;
-        progressPct.textContent = pct + '%';
-        icone.className = 'w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center';
-        icone.innerHTML = '<svg class="w-5 h-5 text-orange-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
-        titulo.textContent = 'Emissão em andamento…';
+        progressPct.textContent  = pct + '%';
+        icone.style.background   = '#EAF3FF';
+        icone.innerHTML = '<svg style="width:18px;height:18px;color:#007AFF;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+        titulo.textContent    = 'Emissão em andamento…';
         subtitulo.textContent = `${proc} de ${s.total} processados`;
     } else {
-        progressWrap.classList.add('hidden');
+        progressWrap.style.display = 'none';
         if (errosLen === 0) {
-            icone.className = 'w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center';
-            icone.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-            titulo.textContent = 'Emissão concluída com sucesso!';
+            icone.style.background = '#E8F9EE';
+            icone.innerHTML = '<svg style="width:18px;height:18px;color:#34C759;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+            titulo.textContent    = 'Emissão concluída com sucesso!';
             subtitulo.textContent = `${s.sucesso} NFC-e emitida${s.sucesso !== 1 ? 's' : ''} com sucesso.`;
         } else {
-            icone.className = 'w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center';
-            icone.innerHTML = '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-            titulo.textContent = `Emissão concluída — ${s.sucesso} sucesso${s.sucesso !== 1 ? 's' : ''}, ${errosLen} erro${errosLen !== 1 ? 's' : ''}`;
-            subtitulo.textContent = 'Veja os erros detalhados abaixo';
+            icone.style.background = '#FFEBEA';
+            icone.innerHTML = '<svg style="width:18px;height:18px;color:#FF3B30;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+            titulo.textContent    = `Concluído — ${s.sucesso} sucesso${s.sucesso !== 1 ? 's' : ''}, ${errosLen} erro${errosLen !== 1 ? 's' : ''}`;
+            subtitulo.textContent = 'Veja os detalhes abaixo';
         }
     }
 
-    // Lista de erros detalhados
-    const errosList = document.getElementById('painelLoteErrosList');
+    const errosList  = document.getElementById('painelLoteErrosList');
     const errosItems = document.getElementById('painelLoteErrosItems');
     if (errosLen > 0) {
-        errosList.classList.remove('hidden');
+        errosList.style.display = 'block';
         errosItems.innerHTML = s.erros.map(e =>
-            `<div style="font-size:0.75rem;background:#fef2f2;border-radius:0.5rem;padding:0.5rem 0.75rem;color:#b91c1c;border:1px solid #fecaca;word-break:break-word;"><strong style="display:inline-block;min-width:80px;">Comanda #${e.comanda}:</strong> ${e.erro}</div>`
+            `<div style="font-size:12px;background:#FFEBEA;border-radius:8px;padding:8px 12px;color:#C0392B;border:1px solid rgba(255,59,48,0.2);word-break:break-word;"><strong>Comanda #${e.comanda}:</strong> ${e.erro}</div>`
         ).join('');
     } else {
-        errosList.classList.add('hidden');
+        errosList.style.display = 'none';
         errosItems.innerHTML = '';
     }
 }
 
-// Verifica se há resultado de lote anterior ao carregar a página
 async function checkLoteStatus() {
     try {
         const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
-        const s = await resp.json();
-
-        // Mostra painel persistente se há lote concluído ou em andamento
-        if (s.total > 0) {
-            atualizarPainelLote(s);
-        }
-
-        // Se ainda estiver rodando, inicia polling em segundo plano
+        const s    = await resp.json();
+        if (s.total > 0) atualizarPainelLote(s);
         if (s.running) {
             if (_pollingTimer) clearInterval(_pollingTimer);
             _pollingTimer = setInterval(verificarStatus, 3000);
         }
-
-        // Banner temporário para notificação rápida (lote recém-concluído)
         if (!s.running && s.total > 0 && s.completed_at) {
-            const banner = document.getElementById('bannerLote');
-            const inner = document.getElementById('bannerLoteInner');
-            const icon = document.getElementById('bannerLoteIcon');
-            const tituloBanner = document.getElementById('bannerLoteTitulo');
-            const texto = document.getElementById('bannerLoteTexto');
+            const banner  = document.getElementById('bannerLote');
+            const inner   = document.getElementById('bannerLoteInner');
+            const icon    = document.getElementById('bannerLoteIcon');
+            const titulo  = document.getElementById('bannerLoteTitulo');
+            const texto   = document.getElementById('bannerLoteTexto');
             const errosLen = (s.erros || []).length;
             if (errosLen === 0) {
-                inner.className = 'rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4 bg-green-600 text-white';
-                icon.className = 'w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0';
-                icon.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-                tituloBanner.textContent = 'Lote concluído com sucesso!';
-                texto.textContent = `${s.sucesso} NFC-e emitida${s.sucesso !== 1 ? 's' : ''} com sucesso.`;
+                inner.style.cssText += 'background:#34C759;color:white;';
+                icon.style.background = 'rgba(255,255,255,0.2)';
+                icon.innerHTML = '<svg style="width:16px;height:16px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+                titulo.textContent = 'Lote concluído com sucesso!';
+                texto.textContent  = `${s.sucesso} NFC-e emitida${s.sucesso !== 1 ? 's' : ''}.`;
             } else {
-                inner.className = 'rounded-2xl shadow-xl px-5 py-4 flex items-start gap-4 bg-orange-500 text-white';
-                icon.className = 'w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0';
-                icon.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-                tituloBanner.textContent = `Lote concluído — ${s.sucesso} sucesso${s.sucesso !== 1 ? 's' : ''}, ${errosLen} erro${errosLen !== 1 ? 's' : ''}`;
-                const errosVisiveis = s.erros.slice(0, 3);
-                texto.innerHTML = errosVisiveis.map(e =>
+                inner.style.cssText += 'background:#FF9500;color:white;';
+                icon.style.background = 'rgba(255,255,255,0.2)';
+                icon.innerHTML = '<svg style="width:16px;height:16px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                titulo.textContent = `Lote concluído — ${s.sucesso} sucesso${s.sucesso !== 1 ? 's' : ''}, ${errosLen} erro${errosLen !== 1 ? 's' : ''}`;
+                const visiveis = s.erros.slice(0, 3);
+                texto.innerHTML = visiveis.map(e =>
                     `<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">#${e.comanda}: ${e.erro.substring(0,55)}</span>`
                 ).join('') + (errosLen > 3 ? `<span style="opacity:0.7;">+ ${errosLen - 3} mais…</span>` : '');
             }
-            banner.classList.remove('hidden');
-            setTimeout(() => banner.classList.add('hidden'), 12000);
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 12000);
         }
-    } catch(e) { /* silencia */ }
+    } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', checkLoteStatus);
 
 async function abrirModalLote() {
-    document.getElementById('modalLote').classList.remove('hidden');
-
-    // Reset visual básico ao abrir
+    document.getElementById('modalLote').style.display = 'flex';
     document.getElementById('loteProgressBar').style.width = '0%';
     document.getElementById('loteProgressText').textContent = '0 de 0 processados';
-    document.getElementById('loteProgressPct').textContent = '0%';
+    document.getElementById('loteProgressPct').textContent  = '0%';
     document.getElementById('loteSucesso').textContent = '0';
-    document.getElementById('loteErros').textContent = '0';
-    document.getElementById('loteEmitidasList').classList.add('hidden');
-    document.getElementById('loteEmitidasItems').innerHTML = '';
-    document.getElementById('loteErrosList').classList.add('hidden');
-    document.getElementById('loteErrosItems').innerHTML = '';
-    document.getElementById('loteBtnFechar').classList.add('hidden');
+    document.getElementById('loteErros').textContent   = '0';
+    document.getElementById('loteEmitidasList').style.display = 'none';
+    document.getElementById('loteEmitidasItems').innerHTML    = '';
+    document.getElementById('loteErrosList').style.display    = 'none';
+    document.getElementById('loteErrosItems').innerHTML       = '';
+    document.getElementById('loteBtnFechar').style.display    = 'none';
 
     try {
-        // Se já houver lote em execução (ex.: usuário reabriu modal),
-        // entra direto no acompanhamento de progresso.
         const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
-        const s = await resp.json();
+        const s    = await resp.json();
         if (s.running) {
-            document.getElementById('loteEtapa1').classList.add('hidden');
-            document.getElementById('loteEtapa2').classList.remove('hidden');
-            document.getElementById('loteStatus').textContent = 'Lote em andamento. Acompanhando progresso...';
+            document.getElementById('loteEtapa1').style.display = 'none';
+            document.getElementById('loteEtapa2').style.display = 'flex';
+            document.getElementById('loteStatus').textContent   = 'Lote em andamento. Acompanhando progresso...';
             if (_pollingTimer) clearInterval(_pollingTimer);
             _pollingTimer = setInterval(verificarStatus, 3000);
             verificarStatus();
             return;
         }
-    } catch (e) {
-        // Em caso de erro de status, segue para tela de confirmação
-    }
+    } catch(e) {}
 
-    // Sem lote em andamento: mantém fluxo padrão (confirmação)
-    document.getElementById('loteEtapa1').classList.remove('hidden');
-    document.getElementById('loteEtapa2').classList.add('hidden');
+    document.getElementById('loteEtapa1').style.display = 'block';
+    document.getElementById('loteEtapa2').style.display = 'none';
 }
 
 function fecharModalLote() {
-    document.getElementById('modalLote').classList.add('hidden');
+    document.getElementById('modalLote').style.display = 'none';
     if (_pollingTimer) clearInterval(_pollingTimer);
 }
 
+document.getElementById('modalLote').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalLote();
+});
+
 async function iniciarLote() {
-    document.getElementById('loteEtapa1').classList.add('hidden');
-    document.getElementById('loteEtapa2').classList.remove('hidden');
+    document.getElementById('loteEtapa1').style.display = 'none';
+    document.getElementById('loteEtapa2').style.display = 'flex';
 
     try {
         const resp = await fetch("{% url 'reports:emitir_lote' %}", {
@@ -734,19 +657,16 @@ async function iniciarLote() {
 
         if (!data.ok) {
             const msg = (data.message || '').toLowerCase();
-            // Se já existe lote em andamento, o modal deve anexar no progresso atual
-            // em vez de exibir como concluído.
             if (msg.includes('andamento')) {
                 document.getElementById('loteStatus').textContent = 'Lote já em andamento. Acompanhando progresso...';
-                document.getElementById('loteBtnFechar').classList.add('hidden');
+                document.getElementById('loteBtnFechar').style.display = 'none';
                 if (_pollingTimer) clearInterval(_pollingTimer);
                 _pollingTimer = setInterval(verificarStatus, 3000);
                 verificarStatus();
                 return;
             }
-
             document.getElementById('loteStatus').textContent = data.message;
-            document.getElementById('loteBtnFechar').classList.remove('hidden');
+            document.getElementById('loteBtnFechar').style.display = 'block';
             return;
         }
 
@@ -756,7 +676,7 @@ async function iniciarLote() {
 
     } catch(e) {
         document.getElementById('loteStatus').textContent = 'Erro de conexão.';
-        document.getElementById('loteBtnFechar').classList.remove('hidden');
+        document.getElementById('loteBtnFechar').style.display = 'block';
     }
 }
 
@@ -765,57 +685,53 @@ async function verificarStatus() {
         const resp = await fetch("{% url 'reports:emitir_lote_status' %}");
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const s = await resp.json();
-        _pollingFailCount = 0;  // reset ao ter sucesso
+        _pollingFailCount = 0;
 
         const total = s.total || 1;
-        const proc = s.processados || 0;
-        const pct = Math.round((proc / total) * 100);
+        const proc  = s.processados || 0;
+        const pct   = Math.round((proc / total) * 100);
 
-        // Atualiza modal (etapa2)
-        document.getElementById('loteProgressBar').style.width = pct + '%';
-        document.getElementById('loteProgressText').textContent = `${proc} de ${s.total} processados`;
-        document.getElementById('loteProgressPct').textContent = pct + '%';
-        document.getElementById('loteSucesso').textContent = s.sucesso || 0;
-        document.getElementById('loteErros').textContent = (s.erros || []).length;
+        document.getElementById('loteProgressBar').style.width    = pct + '%';
+        document.getElementById('loteProgressText').textContent   = `${proc} de ${s.total} processados`;
+        document.getElementById('loteProgressPct').textContent    = pct + '%';
+        document.getElementById('loteSucesso').textContent        = s.sucesso || 0;
+        document.getElementById('loteErros').textContent          = (s.erros || []).length;
 
         if (s.emitidas && s.emitidas.length > 0) {
-            document.getElementById('loteEmitidasList').classList.remove('hidden');
-            const okContainer = document.getElementById('loteEmitidasItems');
-            okContainer.innerHTML = s.emitidas.map(e => {
-                const nfceInfo = e.nfce ? (' -> NFC-e #' + e.nfce) : '';
-                return `<div style="font-size:0.7rem;background:#ecfdf5;border-radius:0.5rem;padding:0.4rem 0.75rem;color:#166534;word-break:break-word;overflow-wrap:break-word;"><strong>Comanda #${e.comanda}</strong>${nfceInfo}</div>`;
+            document.getElementById('loteEmitidasList').style.display = 'block';
+            document.getElementById('loteEmitidasItems').innerHTML = s.emitidas.map(e => {
+                const info = e.nfce ? (' → NFC-e #' + e.nfce) : '';
+                return `<div style="font-size:12px;background:#E8F9EE;border-radius:8px;padding:6px 10px;color:#1A7F3C;word-break:break-word;"><strong>Comanda #${e.comanda}</strong>${info}</div>`;
             }).join('');
         } else {
-            document.getElementById('loteEmitidasList').classList.add('hidden');
-            document.getElementById('loteEmitidasItems').innerHTML = '';
+            document.getElementById('loteEmitidasList').style.display = 'none';
+            document.getElementById('loteEmitidasItems').innerHTML    = '';
         }
 
         if (s.erros && s.erros.length > 0) {
-            document.getElementById('loteErrosList').classList.remove('hidden');
-            const container = document.getElementById('loteErrosItems');
-            container.innerHTML = s.erros.map(e =>
-                `<div style="font-size:0.7rem;background:#fef2f2;border-radius:0.5rem;padding:0.4rem 0.75rem;color:#b91c1c;word-break:break-word;overflow-wrap:break-word;"><strong>#${e.comanda}</strong>: ${e.erro.substring(0, 120)}</div>`
+            document.getElementById('loteErrosList').style.display = 'block';
+            document.getElementById('loteErrosItems').innerHTML = s.erros.map(e =>
+                `<div style="font-size:12px;background:#FFEBEA;border-radius:8px;padding:6px 10px;color:#C0392B;word-break:break-word;"><strong>#${e.comanda}</strong>: ${e.erro.substring(0,120)}</div>`
             ).join('');
         } else {
-            document.getElementById('loteErrosList').classList.add('hidden');
-            document.getElementById('loteErrosItems').innerHTML = '';
+            document.getElementById('loteErrosList').style.display = 'none';
+            document.getElementById('loteErrosItems').innerHTML    = '';
         }
 
-        // Atualiza painel persistente na página
         atualizarPainelLote(s);
 
         if (!s.running) {
             clearInterval(_pollingTimer);
             document.getElementById('loteStatus').textContent = 'Emissão concluída ✓';
-            document.getElementById('loteBtnFechar').classList.remove('hidden');
+            document.getElementById('loteBtnFechar').style.display = 'block';
         }
 
     } catch(e) {
         _pollingFailCount++;
         if (_pollingFailCount >= 5) {
             clearInterval(_pollingTimer);
-            document.getElementById('loteStatus').textContent = 'Erro de comunicação com o servidor. Atualize a página para verificar o status.';
-            document.getElementById('loteBtnFechar').classList.remove('hidden');
+            document.getElementById('loteStatus').textContent = 'Erro de comunicação. Atualize a página para verificar o status.';
+            document.getElementById('loteBtnFechar').style.display = 'block';
         }
     }
 }

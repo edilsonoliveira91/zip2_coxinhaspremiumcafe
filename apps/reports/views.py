@@ -35,6 +35,9 @@ class NFCeReportView(BaseReportView):
         data_inicio = self.request.GET.get('data_inicio', '')
         data_fim = self.request.GET.get('data_fim', '')
         numero_comanda = self.request.GET.get('numero_comanda', '').strip()
+        filtrar_por = self.request.GET.get('filtrar_por', 'emissao')
+        if filtrar_por not in ('emissao', 'comanda'):
+            filtrar_por = 'emissao'
 
         today = timezone.localtime().date()
         if not data_inicio:
@@ -46,9 +49,18 @@ class NFCeReportView(BaseReportView):
         queryset = Comanda.objects.filter(
             status='fechada',
             nfce_numero__isnull=False,
-            nfce_emitida_em__date__gte=data_inicio,
-            nfce_emitida_em__date__lte=data_fim,
         )
+
+        if filtrar_por == 'comanda':
+            queryset = queryset.filter(
+                created_at__date__gte=data_inicio,
+                created_at__date__lte=data_fim,
+            )
+        else:
+            queryset = queryset.filter(
+                nfce_emitida_em__date__gte=data_inicio,
+                nfce_emitida_em__date__lte=data_fim,
+            )
 
         if numero_comanda:
             queryset = queryset.filter(numero__icontains=numero_comanda)
@@ -81,6 +93,7 @@ class NFCeReportView(BaseReportView):
             'data_inicio': data_inicio,
             'data_fim': data_fim,
             'numero_comanda': numero_comanda,
+            'filtrar_por': filtrar_por,
         })
 
         return context
@@ -446,6 +459,7 @@ class DownloadXMLZipView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         data_inicio = request.GET.get('data_inicio', '')
         data_fim = request.GET.get('data_fim', '')
+        filtrar_por = request.GET.get('filtrar_por', 'emissao')
 
         today = timezone.localtime().date().strftime('%Y-%m-%d')
         if not data_inicio:
@@ -453,13 +467,22 @@ class DownloadXMLZipView(LoginRequiredMixin, View):
         if not data_fim:
             data_fim = today
 
-        comandas = Comanda.objects.filter(
+        qs_base = Comanda.objects.filter(
             status__in=['fechada', 'cortesia'],
             nfce_numero__isnull=False,
             nfce_xml_path__isnull=False,
-            nfce_emitida_em__date__gte=data_inicio,
-            nfce_emitida_em__date__lte=data_fim,
         ).exclude(nfce_xml_path='')
+
+        if filtrar_por == 'comanda':
+            comandas = qs_base.filter(
+                created_at__date__gte=data_inicio,
+                created_at__date__lte=data_fim,
+            )
+        else:
+            comandas = qs_base.filter(
+                nfce_emitida_em__date__gte=data_inicio,
+                nfce_emitida_em__date__lte=data_fim,
+            )
 
         buffer = io.BytesIO()
         count = 0
