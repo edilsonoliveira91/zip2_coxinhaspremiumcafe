@@ -1329,6 +1329,7 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
             return JsonResponse({'ok': False, 'error': 'Já conciliada.'}, status=400)
 
         agora = timezone.now()
+        hoje = timezone.localtime(agora).date()
 
         # Atualiza a BankTransaction futura para hoje
         BankTransaction.objects.filter(
@@ -1336,7 +1337,7 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
             is_entrada=True,
             valor=transferencia.valor,
             descricao=transferencia.descricao,
-            data__date__gt=agora.date(),
+            data__date__gt=hoje,
         ).update(data=agora)
 
         transferencia.conciliado = True

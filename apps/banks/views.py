@@ -204,6 +204,8 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             except ValueError:
                 pass
 
+        from financials.models import CaixaAdmTransferencia
+
         valor_inicial = bank.valor_inicial or Decimal('0.00')
         hoje = date.today()
 
@@ -212,10 +214,25 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             saidas = qs.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             return entradas - saidas
 
-        settled_txs = bank.transactions.filter(data__date__lte=hoje)
-        a_receber_txs = bank.transactions.filter(data__date__gt=hoje, is_entrada=True).order_by('data')
+        a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
+            banco_destino=bank,
+            conciliado=False,
+        ).select_related('criado_por').order_by('-criado_em')
+
+        # Mesmo que a data prevista de liquidação já tenha chegado, a entrada
+        # só conta no saldo quando o usuário conciliar manualmente — nunca
+        # automaticamente só porque o prazo zerou.
+        pendente_tx_ids = set()
+        for p in a_receber_detalhe:
+            pendente_tx_ids.update(
+                bank.transactions.filter(
+                    is_entrada=True, valor=p.valor, descricao=p.descricao,
+                ).values_list('id', flat=True)
+            )
+
+        settled_txs = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=pendente_tx_ids)
         saldo_atual = valor_inicial + calc_saldo(settled_txs)
-        total_a_receber = a_receber_txs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        total_a_receber = a_receber_detalhe.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
         saldo_anterior = None
         total_periodo = None
@@ -237,12 +254,6 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             transacoes = period_qs.order_by('-data', '-id')
         else:
             transacoes = settled_txs.order_by('-data', '-id')
-
-        from financials.models import CaixaAdmTransferencia
-        a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
-            banco_destino=bank,
-            conciliado=False,
-        ).select_related('criado_por').order_by('-criado_em')
 
         return render(request, self.template_name, {
             'bank': bank,

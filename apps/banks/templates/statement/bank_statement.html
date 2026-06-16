@@ -280,8 +280,10 @@
                     {% for t in a_receber %}
                     {% with dias_restantes=t.data_prevista_liquidacao|timeuntil %}
                     <div id="row-transf-{{ t.pk }}"
-                         style="display:grid;grid-template-columns:1fr 1fr 90px 80px;column-gap:12px;align-items:center;padding:0 18px;min-height:62px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;"
-                         onmouseover="this.style.background='#FFFBF5'" onmouseout="this.style.background='white'">
+                         style="display:grid;grid-template-columns:1fr 1fr 90px 80px;column-gap:12px;align-items:center;padding:0 18px;min-height:62px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;
+                             {% if t.data_prevista_liquidacao <= hoje %}background:#FFF1F0;{% endif %}"
+                         onmouseover="this.style.background='{% if t.data_prevista_liquidacao <= hoje %}#FFE4E1{% else %}#FFFBF5{% endif %}'"
+                         onmouseout="this.style.background='{% if t.data_prevista_liquidacao <= hoje %}#FFF1F0{% else %}white{% endif %}'">
 
                         <!-- Datas -->
                         <div>
@@ -302,12 +304,16 @@
                                 {% if t.bandeira %}<span style="font-size:11px;color:#6E6E73;">{{ t.bandeira }}</span>{% endif %}
                             </div>
                             <div style="font-size:12px;font-weight:600;color:#1D1D1F;">{{ t.data_prevista_liquidacao|date:"d/m/Y" }}</div>
+                            {% if t.data_prevista_liquidacao <= hoje %}
+                            <div style="font-size:11px;color:#FF3B30;font-weight:700;">disponível p/ conciliar</div>
+                            {% else %}
                             <div style="font-size:11px;color:#FF9500;font-weight:600;">em {{ dias_restantes }}</div>
+                            {% endif %}
                         </div>
 
                         <!-- Valor -->
                         <div style="text-align:right;">
-                            <span style="font-size:14px;font-weight:700;color:#FF9500;font-variant-numeric:tabular-nums;">
+                            <span style="font-size:14px;font-weight:700;color:{% if t.data_prevista_liquidacao <= hoje %}#FF3B30{% else %}#FF9500{% endif %};font-variant-numeric:tabular-nums;">
                                 +R$&nbsp;{{ t.valor|floatformat:2 }}
                             </span>
                         </div>
