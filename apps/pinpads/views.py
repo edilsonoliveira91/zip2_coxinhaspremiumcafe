@@ -75,7 +75,10 @@ class PinpadUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def get(self, request, pk):
         pinpad = get_object_or_404(Pinpad, pk=pk)
         form = PinpadForm(instance=pinpad)
-        bandeiras = list(pinpad.bandeiras.values('nome', 'taxa_credito', 'taxa_debito'))
+        bandeiras = [
+            {'nome': b['nome'], 'taxa_credito': str(b['taxa_credito']), 'taxa_debito': str(b['taxa_debito'])}
+            for b in pinpad.bandeiras.values('nome', 'taxa_credito', 'taxa_debito')
+        ]
         return render(request, self.template_name, {'form': form, 'object': pinpad, 'bandeiras': bandeiras})
 
     def post(self, request, pk):
