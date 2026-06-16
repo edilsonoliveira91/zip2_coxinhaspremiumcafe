@@ -322,7 +322,7 @@ class CriarSangriaView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     'valor': sangria.valor_formatado,
                     'observacao': sangria.observacao,
                     'usuario': sangria.usuario.get_full_name() or sangria.usuario.username,
-                    'data': sangria.created_at.strftime('%d/%m/%Y %H:%M')
+                    'data': timezone.localtime(sangria.created_at).strftime('%d/%m/%Y %H:%M')
                 }
             })
             
@@ -379,7 +379,7 @@ class ListarSangriasView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     'valor': sangria.valor_formatado,
                     'observacao': sangria.observacao or '',
                     'usuario': sangria.usuario.get_full_name() or sangria.usuario.username,
-                    'data': sangria.created_at.strftime('%d/%m/%Y %H:%M')
+                    'data': timezone.localtime(sangria.created_at).strftime('%d/%m/%Y %H:%M')
                 })
             
             # Calcular totais
@@ -975,7 +975,7 @@ class EnviarMaloteView(LoginRequiredMixin, View):
             'ok': True,
             'created': created,
             'malote_id': malote.pk,
-            'enviado_em': malote.enviado_em.strftime('%d/%m/%Y %H:%M'),
+            'enviado_em': timezone.localtime(malote.enviado_em).strftime('%d/%m/%Y %H:%M'),
         })
 
 
@@ -1072,7 +1072,7 @@ class RegistrarDespesaMaloteView(LoginRequiredMixin, View):
             'despesa_id': despesa.pk,
             'valor': str(despesa.valor),
             'descricao': despesa.descricao,
-            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+            'registrado_em': timezone.localtime(despesa.registrado_em).strftime('%d/%m/%Y %H:%M'),
         })
 
 
@@ -1117,7 +1117,7 @@ class RegistrarDespesaFechamentoView(LoginRequiredMixin, View):
             'despesa_id': despesa.pk,
             'valor': str(despesa.valor),
             'descricao': despesa.descricao,
-            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+            'registrado_em': timezone.localtime(despesa.registrado_em).strftime('%d/%m/%Y %H:%M'),
         })
 
 
@@ -1173,7 +1173,7 @@ class RegistrarDespesaDiaView(LoginRequiredMixin, View):
             'despesa_id': despesa.pk,
             'valor': str(despesa.valor),
             'descricao': despesa.descricao,
-            'registrado_em': despesa.registrado_em.strftime('%d/%m/%Y %H:%M'),
+            'registrado_em': timezone.localtime(despesa.registrado_em).strftime('%d/%m/%Y %H:%M'),
         })
 
 
@@ -1194,7 +1194,7 @@ class ConcluirMaloteView(LoginRequiredMixin, View):
             malote.save()
         return JsonResponse({
             'ok': True,
-            'concluido_em': malote.concluido_em.strftime('%d/%m/%Y %H:%M'),
+            'concluido_em': timezone.localtime(malote.concluido_em).strftime('%d/%m/%Y %H:%M'),
             'concluido_por': malote.concluido_por.get_full_name() or malote.concluido_por.username,
         })
 
@@ -1348,6 +1348,65 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
         return JsonResponse({'ok': True})
 
 
+class CancelarFechamentoView(LoginRequiredMixin, View):
+    """
+    POST: cancela um FechamentoCaixaDiario pendente (sem transferência conciliada).
+    O card some do grid e aparece na listagem de transferências como "Cancelado".
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from django.shortcuts import get_object_or_404
+
+        fechamento = get_object_or_404(FechamentoCaixaDiario, pk=pk)
+
+        if fechamento.cancelada:
+            return JsonResponse({'ok': False, 'error': 'Já cancelado.'}, status=400)
+
+        agora = timezone.now()
+        fechamento.cancelada = True
+        fechamento.cancelada_em = agora
+        fechamento.cancelada_por = request.user
+        fechamento.save(update_fields=['cancelada', 'cancelada_em', 'cancelada_por'])
+
+        return JsonResponse({'ok': True})
+
+
+class CancelarTransferenciaView(LoginRequiredMixin, View):
+    """
+    POST: cancela uma CaixaAdmTransferencia pendente (não conciliada).
+    Remove a BankTransaction correspondente e mantém o registro visível na listagem.
+    """
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from banks.models import BankTransaction
+        from django.shortcuts import get_object_or_404
+
+        transferencia = get_object_or_404(CaixaAdmTransferencia, pk=pk)
+
+        if transferencia.cancelada:
+            return JsonResponse({'ok': False, 'error': 'Já cancelada.'}, status=400)
+        if transferencia.conciliado:
+            return JsonResponse({'ok': False, 'error': 'Transferência já conciliada, não pode ser cancelada.'}, status=400)
+
+        # Remove a BankTransaction pendente associada
+        BankTransaction.objects.filter(
+            bank=transferencia.banco_destino,
+            is_entrada=True,
+            valor=transferencia.valor,
+            descricao=transferencia.descricao,
+        ).delete()
+
+        agora = timezone.now()
+        transferencia.cancelada = True
+        transferencia.cancelada_em = agora
+        transferencia.cancelada_por = request.user
+        transferencia.save(update_fields=['cancelada', 'cancelada_em', 'cancelada_por'])
+
+        return JsonResponse({'ok': True})
+
+
 class AtualizarFechamentoCaixaView(LoginRequiredMixin, View):
     """
     POST: atualiza os valores de um FechamentoCaixaDiario e registra um
@@ -1455,16 +1514,17 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
         total_dinheiro = fechamentos.aggregate(
             total=Sum('total_dinheiro')
         )['total'] or Decimal('0.00')
-        total_transferencias = CaixaAdmTransferencia.objects.aggregate(
-            total=Sum('valor')
-        )['total'] or Decimal('0.00')
+        total_transferencias = CaixaAdmTransferencia.objects.filter(
+            cancelada=False
+        ).aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
 
         from banks.models import Bank
         from pinpads.models import Pinpad
 
-        # Monta lookup de transferências por (data_caixa, metodo)
+        # Monta lookup de transferências por (data_caixa, metodo) — apenas não canceladas
         transf_rows = (
             CaixaAdmTransferencia.objects
+            .filter(cancelada=False)
             .values('data_caixa', 'metodo_pagamento')
             .annotate(total=Sum('valor'))
         )
@@ -1501,6 +1561,9 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
         context['bandeiras_pinpad'] = list(pinpad_ativo.bandeiras.values('nome')) if pinpad_ativo else []
         context['metodos_pagamento'] = CaixaAdmTransferencia.METODO_CHOICES
         context['transferencias_recentes'] = CaixaAdmTransferencia.objects.select_related(
-            'banco_destino', 'criado_por'
-        )[:10]
+            'banco_destino', 'criado_por', 'cancelada_por'
+        ).order_by('cancelada', '-criado_em')[:30]
+        context['fechamentos_cancelados'] = FechamentoCaixaDiario.objects.filter(
+            cancelada=True
+        ).select_related('cancelada_por').order_by('-cancelada_em')[:30]
         return context

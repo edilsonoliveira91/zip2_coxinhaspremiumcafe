@@ -50,7 +50,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
         {% for f in fechamentos %}
-        {% if f.total_restante > 0 or f.total_transferido == 0 %}
+        {% if not f.cancelada and f.total_restante > 0 or not f.cancelada and f.total_transferido == 0 %}
         <div class="bg-white rounded-3xl border border-gray-200 hover:shadow-lg transition-shadow flex flex-col overflow-hidden">
 
           <!-- Cabeçalho do card -->
@@ -150,7 +150,7 @@
             </div>
             {% endif %}
 
-            <div class="pt-2" style="display:flex; gap:8px; margin-bottom:4px;">
+            <div class="pt-2" style="display:flex; gap:6px; margin-bottom:4px;">
               <button
                 onclick="abrirModalEditar({{ f.id }}, '{{ f.data|date:'d/m/Y' }}', '{{ f.valor_inicial|floatformat:2 }}', '{{ f.total_dinheiro|floatformat:2 }}', '{{ f.total_debito|floatformat:2 }}', '{{ f.total_credito|floatformat:2 }}', '{{ f.total_pix|floatformat:2 }}', '{{ f.total_sangrias|floatformat:2 }}')"
                 style="flex:1; text-align:center; background:#f3f4f6; border:1px solid #d1d5db; border-radius:10px; padding:9px 0; font-size:12px; font-weight:700; color:#374151; cursor:pointer;">
@@ -160,6 +160,12 @@
                 onclick="abrirModalTransferenciaCard('{{ f.data|date:'d/m/Y' }}', '{{ f.total_final|floatformat:2 }}')"
                 style="flex:1; text-align:center; background:#007AFF; color:#fff; border:none; border-radius:10px; padding:9px 0; font-size:12px; font-weight:700; cursor:pointer;">
                 &#8599; Transferir
+              </button>
+              <button
+                onclick="cancelarFechamento({{ f.id }}, this)"
+                style="flex:1; text-align:center; background:#FF3B30; color:#fff; border:none; border-radius:10px; padding:9px 0; font-size:12px; font-weight:700; cursor:pointer;"
+                onmouseover="this.style.background='#CC2F26'" onmouseout="this.style.background='#FF3B30'">
+                ✕ Cancelar
               </button>
             </div>
 
@@ -177,12 +183,15 @@
       </div><!-- /grid -->
 
       <!-- TRANSFERÊNCIAS PARA BANCOS -->
-      {% if transferencias_recentes %}
+      {% if transferencias_recentes or fechamentos_cancelados %}
       <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <div style="display:flex; align-items:center; gap:10px;">
             <h2 class="text-base font-semibold text-gray-800">Transferências para Bancos</h2>
             <span style="background:#dbeafe; color:#1d4ed8; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:700;">{{ transferencias_recentes|length }}</span>
+            {% if fechamentos_cancelados %}
+            <span style="background:#fee2e2; color:#dc2626; border-radius:9999px; padding:2px 10px; font-size:12px; font-weight:700;">{{ fechamentos_cancelados|length }} cancelado{{ fechamentos_cancelados|length|pluralize }}</span>
+            {% endif %}
           </div>
           {% if total_transferencias %}
           <span style="font-size:13px; font-weight:700; color:#dc2626;">&#8599; Total transferido: R$ {{ total_transferencias|floatformat:2 }}</span>
@@ -192,6 +201,7 @@
           <table style="width:100%; border-collapse:collapse;">
             <thead>
               <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Status</th>
                 <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Usuário</th>
                 <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Data</th>
                 <th style="padding:10px 16px; text-align:center; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Caixa</th>
@@ -204,14 +214,33 @@
             </thead>
             <tbody>
               {% for t in transferencias_recentes %}
-              <tr style="border-bottom:1px solid #f3f4f6;">
+              <tr id="row-transf-{{ t.pk }}" style="border-bottom:1px solid #f3f4f6;{% if t.cancelada %}opacity:0.55;{% endif %}">
+                <td style="padding:12px 16px; text-align:center;">
+                  {% if t.cancelada %}
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;background:#f3f4f6;color:#6b7280;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Cancelada
+                  </span>
+                  {% elif t.conciliado %}
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;background:#d1fae5;color:#065f46;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Conciliada
+                  </span>
+                  {% else %}
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Pendente
+                  </span>
+                  {% endif %}
+                </td>
                 <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151; font-weight:500;">{{ t.criado_por.get_full_name|default:t.criado_por.username|default:"—" }}</td>
                 <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280;">{{ t.criado_em|date:"d/m/Y H:i" }}</td>
                 <td style="padding:12px 16px; text-align:center; font-size:13px; font-weight:600; color:#374151;">{{ t.data_caixa|date:"d/m/Y"|default:"—" }}</td>
-                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:600; color:#1d4ed8;">{{ t.banco_destino.nome|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:600; color:{% if t.cancelada %}#9ca3af{% else %}#1d4ed8{% endif %};">{{ t.banco_destino.nome|default:"—" }}</td>
                 <td style="padding:12px 16px; text-align:center;">
                   <span style="display:inline-block; padding:3px 10px; border-radius:9999px; font-size:12px; font-weight:700;
-                    {% if t.metodo_pagamento == 'dinheiro' %}background:#dcfce7; color:#166534;
+                    {% if t.cancelada %}background:#f3f4f6; color:#9ca3af;
+                    {% elif t.metodo_pagamento == 'dinheiro' %}background:#dcfce7; color:#166534;
                     {% elif t.metodo_pagamento == 'credito' %}background:#dbeafe; color:#1d4ed8;
                     {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe; color:#5b21b6;
                     {% elif t.metodo_pagamento == 'pix' %}background:#fef9c3; color:#854d0e;
@@ -219,18 +248,49 @@
                     {{ t.get_metodo_pagamento_display|default:"—" }}
                   </span>
                 </td>
-                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#374151;">{{ t.bandeira|default:"—" }}</td>
-                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#dc2626;">- R$ {{ t.valor|floatformat:2 }}</td>
-                <td style="padding:12px 16px; text-align:center;">
-                  <button onclick="excluirTransferencia({{ t.pk }}, this)"
-                          style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#fee2e2;border:none;cursor:pointer;color:#dc2626;"
-                          title="Excluir transferência"
-                          onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
-                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                  </button>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:{% if t.cancelada %}#9ca3af{% else %}#374151{% endif %};">{{ t.bandeira|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:{% if t.cancelada %}#9ca3af{% else %}#dc2626{% endif %}; {% if t.cancelada %}text-decoration:line-through;{% endif %}">
+                  - R$ {{ t.valor|floatformat:2 }}
                 </td>
+                <td style="padding:12px 16px; text-align:center;">
+                  {% if not t.cancelada and not t.conciliado %}
+                  <button onclick="cancelarTransferencia({{ t.pk }}, this)"
+                          style="display:inline-flex;align-items:center;justify-content:center;gap:4px;height:30px;padding:0 10px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;cursor:pointer;color:#ea580c;font-size:11px;font-weight:700;font-family:inherit;"
+                          title="Cancelar transferência"
+                          onmouseover="this.style.background='#ffedd5'" onmouseout="this.style.background='#fff7ed'">
+                    <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Cancelar
+                  </button>
+                  {% elif t.cancelada %}
+                  <span style="font-size:11px;color:#9ca3af;" title="Cancelada por {{ t.cancelada_por.get_full_name|default:t.cancelada_por.username|default:'—' }} em {{ t.cancelada_em|date:'d/m/Y H:i' }}">
+                    {{ t.cancelada_em|date:"d/m H:i" }}
+                  </span>
+                  {% else %}
+                  <span style="font-size:11px;color:#9ca3af;">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              {% for f in fechamentos_cancelados %}
+              <tr style="border-bottom:1px solid #f3f4f6; opacity:0.6;">
+                <td style="padding:12px 16px; text-align:center;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Cancelado
+                  </span>
+                </td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#6b7280; font-weight:500;">{{ f.cancelada_por.get_full_name|default:f.cancelada_por.username|default:"—" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#9ca3af;">{{ f.cancelada_em|date:"d/m/Y H:i" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; font-weight:600; color:#9ca3af;">{{ f.data|date:"d/m/Y" }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#9ca3af;">—</td>
+                <td style="padding:12px 16px; text-align:center;">
+                  <span style="display:inline-block; padding:3px 10px; border-radius:9999px; font-size:12px; font-weight:700; background:#f3f4f6; color:#9ca3af;">Cancelado</span>
+                </td>
+                <td style="padding:12px 16px; text-align:center; font-size:13px; color:#9ca3af;">—</td>
+                <td style="padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#9ca3af; text-decoration:line-through;">R$ {{ f.total_final|floatformat:2 }}</td>
+                <td style="padding:12px 16px; text-align:center; font-size:11px; color:#9ca3af;">—</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -535,6 +595,58 @@
 <script>
   const URL_TRANSFERIR_BANCO = "{% url 'financials:transferir_caixaadm_banco' %}";
   const URL_ATUALIZAR_FECHAMENTO = "{% url 'financials:atualizar_fechamento_caixa' %}";
+  const CSRF_TOKEN = '{{ csrf_token }}';
+
+  async function cancelarFechamento(pk, btn) {
+    if (!confirm('Cancelar este fechamento? Ele será removido do grid e aparecerá na listagem como "Cancelado".')) return;
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      const resp = await fetch(`/financials/api/fechamento/${pk}/cancelar/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        const card = btn.closest('.bg-white.rounded-3xl');
+        if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .3s'; }
+        setTimeout(() => location.reload(), 400);
+      } else {
+        alert(data.error || 'Erro ao cancelar.');
+        btn.disabled = false;
+        btn.textContent = '✕ Cancelar';
+      }
+    } catch (e) {
+      alert('Erro de conexão.');
+      btn.disabled = false;
+      btn.textContent = '✕ Cancelar';
+    }
+  }
+
+  async function cancelarTransferencia(pk, btn) {
+    if (!confirm('Cancelar esta transferência? Ela ficará visível na listagem como "Cancelada" e a entrada no banco será removida.')) return;
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      const resp = await fetch(`/financials/api/transferencia/${pk}/cancelar/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        const row = document.getElementById('row-transf-' + pk);
+        if (row) { row.style.opacity = '0'; setTimeout(() => location.reload(), 400); }
+      } else {
+        alert(data.error || 'Erro ao cancelar.');
+        btn.disabled = false;
+        btn.textContent = 'Cancelar';
+      }
+    } catch (e) {
+      alert('Erro de conexão.');
+      btn.disabled = false;
+      btn.textContent = 'Cancelar';
+    }
+  }
 
   // ── Editar ───────────────────────────────────────────────────────────────
   function abrirModalEditar(fechId, dataStr, troco, dinheiro, debito, credito, pix, sangrias) {

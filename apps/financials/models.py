@@ -76,6 +76,15 @@ class FechamentoCaixaDiario(TimeStampedModel):
     total_final     = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Final em Caixa")
     total_comandas  = models.PositiveIntegerField(default=0, verbose_name="Qtd Comandas")
     observacao      = models.TextField(blank=True, verbose_name="Observacao")
+    cancelada       = models.BooleanField(default=False, verbose_name="Cancelado")
+    cancelada_em    = models.DateTimeField(null=True, blank=True, verbose_name="Cancelado em")
+    cancelada_por   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='fechamentos_cancelados',
+        verbose_name="Cancelado por",
+    )
 
     class Meta:
         verbose_name = "Fechamento de Caixa Diario"
@@ -180,6 +189,15 @@ class CaixaAdmTransferencia(models.Model):
         null=True, blank=True,
         related_name='transferencias_conciliadas',
         verbose_name="Conciliado por",
+    )
+    cancelada = models.BooleanField(default=False, verbose_name="Cancelada")
+    cancelada_em = models.DateTimeField(null=True, blank=True, verbose_name="Cancelada em")
+    cancelada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='transferencias_canceladas',
+        verbose_name="Cancelada por",
     )
     descricao = models.CharField(max_length=200, verbose_name="Descrição", blank=True)
     observacao = models.TextField(blank=True, verbose_name="Observação")

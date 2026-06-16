@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum, Q
 from django.utils import timezone
-from datetime import datetime, date
+from datetime import datetime
 from decimal import Decimal
 
 from .models import Bank, BankTransaction, UserBankAccess
@@ -68,7 +68,7 @@ class BankListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         from django.db.models import Sum, Q
-        hoje = date.today()
+        hoje = timezone.localdate()
         return _accessible_banks(self.request.user).annotate(
             _entradas=Sum(
                 'transactions__valor',
@@ -207,7 +207,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         from financials.models import CaixaAdmTransferencia
 
         valor_inicial = bank.valor_inicial or Decimal('0.00')
-        hoje = date.today()
+        hoje = timezone.localdate()
 
         def calc_saldo(qs):
             entradas = qs.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
@@ -217,7 +217,8 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank,
             conciliado=False,
-        ).select_related('criado_por').order_by('-criado_em')
+            cancelada=False,
+        ).select_related('criado_por').order_by('data_prevista_liquidacao', 'criado_em')
 
         # Mesmo que a data prevista de liquidação já tenha chegado, a entrada
         # só conta no saldo quando o usuário conciliar manualmente — nunca
