@@ -29,7 +29,7 @@
           <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
             <div style="background:linear-gradient(135deg,#007AFF 0%,#0055d4 100%); border-radius:16px; padding:14px 22px; text-align:center; min-width:180px;">
               <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.75); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px;">Total Disponível</div>
-              <div style="font-size:26px; font-weight:800; color:#fff; letter-spacing:-.5px;">R$ {{ total_geral|floatformat:2 }}</div>
+              <div style="font-size:26px; font-weight:800; color:#fff; letter-spacing:-.5px;">R$ {{ total_disponivel|floatformat:2 }}</div>
               {% if total_transferencias %}
               <div style="font-size:11px; color:rgba(255,200,100,0.9); margin-top:2px;">&#8599; transferido: R$ {{ total_transferencias|floatformat:2 }}</div>
               {% endif %}

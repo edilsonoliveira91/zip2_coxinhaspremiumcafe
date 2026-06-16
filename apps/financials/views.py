@@ -1495,6 +1495,7 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
         context['total_geral'] = total_geral
         context['total_dinheiro'] = total_dinheiro
         context['total_transferencias'] = total_transferencias
+        context['total_disponivel'] = max(total_geral - total_transferencias, Decimal('0.00'))
         context['banks'] = Bank.objects.order_by('nome')
         context['bandeiras_pinpad'] = list(pinpad_ativo.bandeiras.values('nome')) if pinpad_ativo else []
         context['metodos_pagamento'] = CaixaAdmTransferencia.METODO_CHOICES

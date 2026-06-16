@@ -241,6 +241,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         from financials.models import CaixaAdmTransferencia
         a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank,
+            conciliado=False,
         ).select_related('criado_por').order_by('-criado_em')
 
         return render(request, self.template_name, {
