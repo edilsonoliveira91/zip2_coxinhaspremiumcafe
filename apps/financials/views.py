@@ -1289,6 +1289,8 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
             is_entrada=True,
             data=data_tx,
             observacao=observacao,
+            metodo_pagamento=metodo,
+            bandeira=bandeira,
             criado_por=request.user,
         )
 
@@ -1329,15 +1331,14 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
             return JsonResponse({'ok': False, 'error': 'Já conciliada.'}, status=400)
 
         agora = timezone.now()
-        hoje = timezone.localtime(agora).date()
 
-        # Atualiza a BankTransaction futura para hoje
+        # Atualiza a BankTransaction para o momento exato da conciliação
+        # (cobre liquidações no prazo, hoje e em atraso)
         BankTransaction.objects.filter(
             bank=transferencia.banco_destino,
             is_entrada=True,
             valor=transferencia.valor,
             descricao=transferencia.descricao,
-            data__date__gt=hoje,
         ).update(data=agora)
 
         transferencia.conciliado = True

@@ -79,40 +79,77 @@
                 {% if data_inicio %}<div style="font-size:12px;color:#8E8E93;margin-top:3px;">até {{ data_inicio }}</div>{% endif %}
             </div>
             <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">No período</div>
-                <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:{% if total_periodo >= 0 %}#34C759{% else %}#FF3B30{% endif %};">
+                <div style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">No período</div>
+                <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:{% if total_periodo >= 0 %}#34C759{% else %}#FF3B30{% endif %};">
                     {% if total_periodo >= 0 %}+{% endif %}R$&nbsp;{{ total_periodo|floatformat:2 }}
                 </div>
                 {% if data_inicio and data_fim %}<div style="font-size:12px;color:#8E8E93;margin-top:3px;">{{ data_inicio }} → {{ data_fim }}</div>{% endif %}
+                <!-- Breakdown taxa do período -->
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F0F0F5;display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;">
+                        <span style="color:#8E8E93;">Bruto entradas</span>
+                        <span style="color:#1D1D1F;font-weight:600;">R$&nbsp;{{ bruto_periodo|floatformat:2 }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;">
+                        <span style="color:#FF3B30;">− Taxas bandeira</span>
+                        <span style="color:#FF3B30;font-weight:600;">R$&nbsp;{{ taxa_periodo|floatformat:2 }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding-top:3px;border-top:1px solid #F0F0F5;">
+                        <span style="color:#34C759;font-weight:600;">Líquido</span>
+                        <span style="color:#34C759;font-weight:700;">R$&nbsp;{{ liquido_periodo|floatformat:2 }}</span>
+                    </div>
+                </div>
             </div>
             <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:16px;padding:18px 20px;box-shadow:0 4px 16px rgba(0,122,255,0.25);">
                 <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Saldo disponível</div>
-                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">R$&nbsp;{{ saldo_atual|floatformat:2 }}</div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Total em conta hoje</div>
+                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">R$&nbsp;{{ liquido_geral|floatformat:2 }}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Líquido acumulado (após taxas)</div>
             </div>
         </div>
         {% else %}
         <div style="display:grid;grid-template-columns:1fr{% if a_receber %} 1fr{% endif %};gap:14px;margin-bottom:20px;">
-            <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(0,122,255,0.22);display:flex;align-items:center;justify-content:space-between;">
-                <div>
+            <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(0,122,255,0.22);display:flex;align-items:flex-start;justify-content:space-between;">
+                <div style="flex:1;">
                     <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Saldo disponível</div>
-                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ saldo_atual|floatformat:2 }}</div>
-                    <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Dinheiro em conta hoje</div>
+                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ liquido_geral|floatformat:2 }}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Líquido acumulado (após taxas)</div>
+                    <!-- Breakdown taxa -->
+                    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.2);display:flex;gap:20px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.4px;">Bruto</div>
+                            <div style="font-size:14px;font-weight:700;color:white;">R$&nbsp;{{ bruto_geral|floatformat:2 }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.4px;">Total de taxa</div>
+                            <div style="font-size:14px;font-weight:700;color:#FFD60A;">− R$&nbsp;{{ total_taxa|floatformat:2 }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;">
                     <svg style="width:26px;height:26px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                     </svg>
                 </div>
             </div>
             {% if a_receber %}
-            <div style="background:linear-gradient(145deg,#FF9500,#FFCC00);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(255,149,0,0.22);display:flex;align-items:center;justify-content:space-between;">
-                <div>
+            <div style="background:linear-gradient(145deg,#FF9500,#FFCC00);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(255,149,0,0.22);display:flex;align-items:flex-start;justify-content:space-between;">
+                <div style="flex:1;">
                     <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">A Receber</div>
-                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ total_a_receber|floatformat:2 }}</div>
+                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ liquido_a_receber|floatformat:2 }}</div>
                     <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:4px;">{{ a_receber|length }} lançamento{{ a_receber|length|pluralize }} pendente{{ a_receber|length|pluralize }}</div>
+                    <!-- Breakdown taxa -->
+                    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.25);display:flex;gap:20px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.4px;">Bruto</div>
+                            <div style="font-size:14px;font-weight:700;color:white;">R$&nbsp;{{ total_a_receber|floatformat:2 }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.4px;">Total de taxa</div>
+                            <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.55);">− R$&nbsp;{{ taxa_a_receber|floatformat:2 }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <div style="width:52px;height:52px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;">
                     <svg style="width:26px;height:26px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -122,39 +159,45 @@
         </div>
         {% endif %}
 
+        <!-- ── FILTRO LARGURA TOTAL ── -->
+        <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:7px;width:200px;">
+                <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">De</label>
+                <input type="date" name="data_inicio" value="{{ data_inicio }}"
+                       style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
+                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;width:200px;">
+                <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">Até</label>
+                <input type="date" name="data_fim" value="{{ data_fim }}"
+                       style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
+                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+            </div>
+            <button type="submit"
+                    style="min-height:36px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
+                Filtrar
+            </button>
+            <a href="{% url 'banks:bank_statement' bank.pk %}?data_inicio=&data_fim="
+               style="min-height:36px;padding:0 14px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
+                Ver tudo
+            </a>
+            <a href="{% url 'banks:bank_statement_pdf' bank.pk %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}"
+               style="min-height:36px;padding:0 14px;background:#FF9500;color:white;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
+               title="Baixar PDF do período">
+                <svg style="width:14px;height:14px;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3M3 7V4a1 1 0 011-1h3m10 0h3a1 1 0 011 1v3"/>
+                </svg>
+                PDF
+            </a>
+        </form>
+
         <!-- ── LAYOUT DUAS COLUNAS ── -->
         <div style="display:grid;grid-template-columns:1fr{% if a_receber %} 1fr{% endif %};gap:14px;align-items:start;">
 
             <!-- ═══════════════ COLUNA ESQUERDA — EXTRATO ═══════════════ -->
             <div>
-                <!-- Filtros -->
-                <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:170px;">
-                        <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">De</label>
-                        <input type="date" name="data_inicio" value="{{ data_inicio }}"
-                               style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
-                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
-                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
-                    </div>
-                    <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:170px;">
-                        <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">Até</label>
-                        <input type="date" name="data_fim" value="{{ data_fim }}"
-                               style="flex:1;min-height:36px;padding:0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;"
-                               onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
-                               onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
-                    </div>
-                    <button type="submit"
-                            style="min-height:36px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
-                        Filtrar
-                    </button>
-                    {% if filtrado %}
-                    <a href="{% url 'banks:bank_statement' bank.pk %}"
-                       style="min-height:36px;padding:0 14px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
-                        Limpar
-                    </a>
-                    {% endif %}
-                </form>
-
                 <!-- Listagem de transações -->
                 <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
 
@@ -177,6 +220,11 @@
                         <div>
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <span style="font-size:13px;font-weight:500;color:#1D1D1F;">{{ tx.descricao }}</span>
+                                {% for anx in tx.anexos.all %}
+                                <a href="{{ anx.arquivo.url }}" target="_blank" title="Anexo {{ forloop.counter }}"
+                                   style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:#EAF3FF;color:#007AFF;flex-shrink:0;text-decoration:none;font-size:10px;font-weight:700;"
+                                   onclick="event.stopPropagation()">{{ forloop.counter }}</a>
+                                {% empty %}
                                 {% if tx.comprovante %}
                                 <a href="{{ tx.comprovante.url }}" target="_blank" title="Ver comprovante"
                                    style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:#EAF3FF;color:#007AFF;flex-shrink:0;text-decoration:none;"
@@ -186,6 +234,7 @@
                                     </svg>
                                 </a>
                                 {% endif %}
+                                {% endfor %}
                             </div>
                             {% if tx.observacao %}<div style="font-size:11px;color:#8E8E93;margin-top:1px;">{{ tx.observacao }}</div>{% endif %}
                             {% if tx.banco_destino %}
@@ -258,14 +307,6 @@
             {% if a_receber %}
             <div id="sec-a-receber" style="position:sticky;top:76px;">
 
-                <!-- Mesmo espaçador de altura do filtro da esquerda -->
-                <div style="height:52px;display:flex;align-items:center;padding:0 4px;margin-bottom:16px;">
-                    <div style="font-size:13px;font-weight:600;color:#8E8E93;">
-                        {{ a_receber|length }} lançamento{{ a_receber|length|pluralize }} · Total
-                        <span style="color:#FF9500;font-weight:700;">R$&nbsp;{{ total_a_receber|floatformat:2 }}</span>
-                    </div>
-                </div>
-
                 <!-- Lista estilo extrato -->
                 <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
 
@@ -278,12 +319,12 @@
                     </div>
 
                     {% for t in a_receber %}
-                    {% with dias_restantes=t.data_prevista_liquidacao|timeuntil %}
+                    {% with dias_restantes=t.data_liquidacao_dinamica|timeuntil %}
                     <div id="row-transf-{{ t.pk }}"
                          style="display:grid;grid-template-columns:1fr 1fr 90px 80px;column-gap:12px;align-items:center;padding:0 18px;min-height:62px;border-bottom:{% if not forloop.last %}1px solid #F5F5F7{% else %}none{% endif %};transition:background 0.1s;
-                             {% if t.data_prevista_liquidacao <= hoje %}background:#FFF1F0;{% endif %}"
-                         onmouseover="this.style.background='{% if t.data_prevista_liquidacao <= hoje %}#FFE4E1{% else %}#FFFBF5{% endif %}'"
-                         onmouseout="this.style.background='{% if t.data_prevista_liquidacao <= hoje %}#FFF1F0{% else %}white{% endif %}'">
+                             {% if t.data_liquidacao_dinamica <= hoje %}background:#FFF1F0;{% endif %}"
+                         onmouseover="this.style.background='{% if t.data_liquidacao_dinamica <= hoje %}#FFE4E1{% else %}#FFFBF5{% endif %}'"
+                         onmouseout="this.style.background='{% if t.data_liquidacao_dinamica <= hoje %}#FFF1F0{% else %}white{% endif %}'">
 
                         <!-- Datas -->
                         <div>
@@ -303,8 +344,8 @@
                                 </span>
                                 {% if t.bandeira %}<span style="font-size:11px;color:#6E6E73;">{{ t.bandeira }}</span>{% endif %}
                             </div>
-                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;">{{ t.data_prevista_liquidacao|date:"d/m/Y" }}</div>
-                            {% if t.data_prevista_liquidacao <= hoje %}
+                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;">{{ t.data_liquidacao_dinamica|date:"d/m/Y" }}</div>
+                            {% if t.data_liquidacao_dinamica <= hoje %}
                             <div style="font-size:11px;color:#FF3B30;font-weight:700;">disponível p/ conciliar</div>
                             {% else %}
                             <div style="font-size:11px;color:#FF9500;font-weight:600;">em {{ dias_restantes }}</div>
@@ -313,7 +354,7 @@
 
                         <!-- Valor -->
                         <div style="text-align:right;">
-                            <span style="font-size:14px;font-weight:700;color:{% if t.data_prevista_liquidacao <= hoje %}#FF3B30{% else %}#FF9500{% endif %};font-variant-numeric:tabular-nums;">
+                            <span style="font-size:14px;font-weight:700;color:{% if t.data_liquidacao_dinamica <= hoje %}#FF3B30{% else %}#FF9500{% endif %};font-variant-numeric:tabular-nums;">
                                 +R$&nbsp;{{ t.valor|floatformat:2 }}
                             </span>
                         </div>
@@ -356,6 +397,46 @@
         </div>
         <form method="post" action="{% url 'banks:bank_adicionar' bank.pk %}">
             {% csrf_token %}
+
+            <!-- Método de pagamento -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Método de Pagamento</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+                    {% for val, label in metodos_pagamento %}
+                    <label style="cursor:pointer;">
+                        <input type="radio" name="metodo_pagamento" value="{{ val }}" id="add-metodo-{{ val }}"
+                               onchange="onAddMetodoChange(this.value)"
+                               style="display:none;">
+                        <div class="add-metodo-chip" data-val="{{ val }}"
+                             style="text-align:center;padding:10px 4px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-weight:600;color:#8E8E93;background:#fff;transition:all .15s;user-select:none;">
+                            {{ label }}
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Bandeira (visível apenas para crédito/débito) -->
+            <div id="add-bandeira-wrapper" style="display:none;margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#6E6E73;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Bandeira</label>
+                {% if bandeiras_pinpad %}
+                <select id="add-bandeira" name="bandeira"
+                        style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;color:#1D1D1F;outline:none;appearance:none;background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><path fill=%22%238E8E93%22 d=%22M4 6l4 4 4-4%22/></svg>') no-repeat right 14px center / 16px;cursor:pointer;font-family:inherit;"
+                        onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                        onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                    <option value="">Selecione a bandeira...</option>
+                    {% for b in bandeiras_pinpad %}
+                    <option value="{{ b.nome }}">{{ b.nome }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="text" id="add-bandeira" name="bandeira" placeholder="Ex: Visa, Mastercard…"
+                       style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;color:#1D1D1F;outline:none;font-family:inherit;"
+                       onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                       onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                {% endif %}
+            </div>
+
             {% include 'statement/_form_fields.html' with label_valor="Valor do depósito" placeholder_desc="Ex: Depósito inicial, Recebimento..." %}
             <div style="display:flex;gap:10px;margin-top:20px;">
                 <button type="button" onclick="fecharModal('modalAdicionar')"
@@ -400,21 +481,25 @@
                        onfocus="this.style.borderColor='#FF3B30';this.style.boxShadow='0 0 0 3px rgba(255,59,48,0.12)'"
                        onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
             </div>
-            <!-- Comprovante -->
+            <!-- Comprovantes (múltiplos) -->
             <div style="margin-bottom:14px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Comprovante <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional</span></label>
-                <label id="labelComprovantePagar" for="inputComprovantePagar"
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                    Comprovantes <span style="font-size:11px;font-weight:400;color:#8E8E93;">opcional · múltiplos arquivos</span>
+                </label>
+                <label for="inputComprovantePagar"
                        style="display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border:1.5px dashed #D1D1D6;border-radius:12px;cursor:pointer;transition:border-color 0.15s,background 0.15s;background:#FAFAFA;"
                        onmouseover="this.style.borderColor='#FF3B30';this.style.background='#FFF5F5'"
                        onmouseout="this.style.borderColor='#D1D1D6';this.style.background='#FAFAFA'">
                     <svg style="width:18px;height:18px;color:#8E8E93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                     </svg>
-                    <span id="textoComprovantePagar" style="font-size:14px;color:#8E8E93;">Foto ou documento (PDF, imagem...)</span>
+                    <span id="textoComprovantePagar" style="font-size:14px;color:#8E8E93;">Clique para selecionar arquivos (PDF, imagem...)</span>
                 </label>
-                <input id="inputComprovantePagar" type="file" name="comprovante" accept="image/*,.pdf,.doc,.docx"
-                       style="display:none;"
-                       onchange="atualizarNomeArquivo('inputComprovantePagar','textoComprovantePagar')">
+                <input id="inputComprovantePagar" type="file" name="comprovantes" accept="image/*,.pdf,.doc,.docx"
+                       multiple style="display:none;"
+                       onchange="onComprovantesChange(this)">
+                <!-- Lista de arquivos selecionados -->
+                <div id="listaComprovantes" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
             </div>
             <!-- Observação -->
             <div style="margin-bottom:20px;">
@@ -548,27 +633,120 @@
 </div>
 
 <script>
-function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+function abrirModal(id) {
+    document.getElementById(id).style.display = 'flex';
+    if (id === 'modalAdicionar') _resetAddModal();
+}
 function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function onAddMetodoChange(val) {
+    document.querySelectorAll('.add-metodo-chip').forEach(c => {
+        const active = c.dataset.val === val;
+        c.style.borderColor = active ? '#007AFF' : '#D1D1D6';
+        c.style.color       = active ? '#007AFF' : '#8E8E93';
+        c.style.background  = active ? '#EFF6FF' : '#fff';
+        c.style.fontWeight  = active ? '700' : '600';
+    });
+    document.getElementById('add-bandeira-wrapper').style.display =
+        (val === 'credito' || val === 'debito') ? 'block' : 'none';
+}
+
+function _resetAddModal() {
+    document.querySelectorAll('#modalAdicionar input[name="metodo_pagamento"]').forEach(r => r.checked = false);
+    document.querySelectorAll('.add-metodo-chip').forEach(c => {
+        c.style.borderColor = '#D1D1D6'; c.style.color = '#8E8E93';
+        c.style.background  = '#fff';    c.style.fontWeight = '600';
+    });
+    document.getElementById('add-bandeira-wrapper').style.display = 'none';
+    const b = document.getElementById('add-bandeira');
+    if (b) b.value = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.add-metodo-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+            const val   = chip.dataset.val;
+            const radio = document.getElementById('add-metodo-' + val);
+            if (radio) { radio.checked = true; onAddMetodoChange(val); }
+        });
+    });
+});
 document.querySelectorAll('[id^="modal"]').forEach(m => {
     m.addEventListener('click', function(e) { if (e.target === this) fecharModal(this.id); });
 });
 
-function atualizarNomeArquivo(inputId, textoId) {
-    const input = document.getElementById(inputId);
-    const texto = document.getElementById(textoId);
-    if (input.files && input.files[0]) {
-        const nome = input.files[0].name;
-        const tamanho = (input.files[0].size / 1024).toFixed(0);
-        texto.textContent = nome + ' (' + tamanho + ' KB)';
-        texto.style.color = '#1D1D1F';
-        texto.style.fontWeight = '500';
-    } else {
-        texto.textContent = 'Foto ou documento (PDF, imagem...)';
-        texto.style.color = '#8E8E93';
-        texto.style.fontWeight = '400';
-    }
+// Mantém um array de File para suportar remoção individual
+let _comprovantesFiles = [];
+
+function onComprovantesChange(input) {
+    // Acumula novos arquivos (sem duplicar pelo nome)
+    Array.from(input.files).forEach(f => {
+        if (!_comprovantesFiles.find(x => x.name === f.name && x.size === f.size)) {
+            _comprovantesFiles.push(f);
+        }
+    });
+    _renderComprovantes();
+    // Limpa o input para permitir re-seleção do mesmo arquivo
+    input.value = '';
 }
+
+function _renderComprovantes() {
+    const lista = document.getElementById('listaComprovantes');
+    const texto = document.getElementById('textoComprovantePagar');
+    lista.innerHTML = '';
+    if (_comprovantesFiles.length === 0) {
+        texto.textContent = 'Clique para selecionar arquivos (PDF, imagem...)';
+        texto.style.color = '#8E8E93';
+        return;
+    }
+    texto.textContent = _comprovantesFiles.length + ' arquivo(s) selecionado(s)';
+    texto.style.color = '#1D1D1F';
+    _comprovantesFiles.forEach((f, i) => {
+        const kb = (f.size / 1024).toFixed(0);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:#F5F5F7;border-radius:10px;font-size:13px;';
+        row.innerHTML = `
+            <svg style="width:14px;height:14px;color:#8E8E93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span style="flex:1;color:#1D1D1F;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span>
+            <span style="color:#8E8E93;flex-shrink:0;">${kb} KB</span>
+            <button type="button" onclick="_removerComprovante(${i})"
+                    style="width:22px;height:22px;border-radius:6px;background:#FFE5E5;color:#FF3B30;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;">×</button>
+        `;
+        lista.appendChild(row);
+    });
+}
+
+function _removerComprovante(i) {
+    _comprovantesFiles.splice(i, 1);
+    _renderComprovantes();
+}
+
+// Antes de submeter o form de pagar, injeta os arquivos via DataTransfer
+document.addEventListener('DOMContentLoaded', function() {
+    const formPagar = document.querySelector('form[action*="pagar"]');
+    if (formPagar) {
+        formPagar.addEventListener('submit', function() {
+            const input = document.getElementById('inputComprovantePagar');
+            if (_comprovantesFiles.length > 0) {
+                const dt = new DataTransfer();
+                _comprovantesFiles.forEach(f => dt.items.add(f));
+                input.files = dt.files;
+            }
+        });
+    }
+    // Reset ao fechar o modal de pagar
+    const modalPagar = document.getElementById('modalPagar');
+    if (modalPagar) {
+        modalPagar.addEventListener('click', function(e) {
+            if (e.target === this) {
+                _comprovantesFiles = [];
+                _renderComprovantes();
+            }
+        });
+    }
+});
 
 function abrirEditarTx(pk, descricao, valor, data, observacao) {
     document.getElementById('formEditarTx').action = "{% url 'banks:tx_edit' bank.pk 0 %}".replace('/0/', '/' + pk + '/');

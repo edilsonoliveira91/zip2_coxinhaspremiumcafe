@@ -49,6 +49,8 @@ class BankTransaction(models.Model):
         related_name='transactions_recebidas',
         verbose_name="Banco Destino",
     )
+    metodo_pagamento = models.CharField(max_length=10, blank=True, default='', verbose_name="Método")
+    bandeira = models.CharField(max_length=100, blank=True, default='', verbose_name="Bandeira")
     comprovante = models.FileField(
         upload_to='bank_comprovantes/',
         null=True, blank=True,
@@ -70,6 +72,20 @@ class BankTransaction(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - R$ {self.valor} ({self.bank.nome})"
+
+
+class BankTransactionAnexo(models.Model):
+    transaction = models.ForeignKey(
+        BankTransaction, on_delete=models.CASCADE, related_name='anexos'
+    )
+    arquivo = models.FileField(upload_to='bank_comprovantes/', verbose_name="Arquivo")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['criado_em']
+
+    def __str__(self):
+        return f"Anexo #{self.pk} — {self.transaction}"
 
 
 class UserBankAccess(models.Model):

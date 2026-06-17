@@ -7,10 +7,10 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum, Q
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
-from .models import Bank, BankTransaction, UserBankAccess
+from .models import Bank, BankTransaction, BankTransactionAnexo, UserBankAccess
 from .forms import BankForm, BankEditForm
 
 
@@ -186,8 +186,14 @@ class BankStatementView(LoginRequiredMixin, BaseView):
 
         outros_bancos = _accessible_banks(request.user).exclude(pk=pk)
 
-        data_inicio_str = request.GET.get('data_inicio', '')
-        data_fim_str = request.GET.get('data_fim', '')
+        from financials.models import CaixaAdmTransferencia
+
+        hoje = timezone.localdate()
+        hoje_str = hoje.strftime('%Y-%m-%d')
+
+        # Padrão: filtra pela data atual; usuário pode limpar os campos para ver tudo
+        data_inicio_str = request.GET.get('data_inicio', hoje_str)
+        data_fim_str    = request.GET.get('data_fim',    hoje_str)
 
         data_inicio = None
         data_fim = None
@@ -204,25 +210,38 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             except ValueError:
                 pass
 
-        from financials.models import CaixaAdmTransferencia
-
         valor_inicial = bank.valor_inicial or Decimal('0.00')
-        hoje = timezone.localdate()
 
         def calc_saldo(qs):
             entradas = qs.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             saidas = qs.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             return entradas - saidas
 
-        a_receber_detalhe = CaixaAdmTransferencia.objects.filter(
+        a_receber_qs = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank,
             conciliado=False,
             cancelada=False,
-        ).select_related('criado_por').order_by('data_prevista_liquidacao', 'criado_em')
+        ).select_related('criado_por')
 
-        # Mesmo que a data prevista de liquidação já tenha chegado, a entrada
-        # só conta no saldo quando o usuário conciliar manualmente — nunca
-        # automaticamente só porque o prazo zerou.
+        total_a_receber = a_receber_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+
+        # Calcula data de liquidação dinamicamente pelo pinpad ativo
+        from pinpads.models import Pinpad
+        pinpad = Pinpad.objects.filter(is_active=True).first()
+        dias_map = {
+            'credito':  pinpad.dias_credito if pinpad else 30,
+            'debito':   pinpad.dias_debito  if pinpad else 1,
+            'pix':      pinpad.dias_pix     if pinpad else 1,
+            'dinheiro': 0,
+        }
+        a_receber_detalhe = list(a_receber_qs)
+        for t in a_receber_detalhe:
+            base = t.data_caixa or hoje
+            t.data_liquidacao_dinamica = base + timedelta(days=dias_map.get(t.metodo_pagamento, 0))
+        a_receber_detalhe.sort(key=lambda t: (t.data_liquidacao_dinamica, t.criado_em))
+
+        # Mesmo que o prazo já tenha chegado, a entrada só conta no saldo
+        # quando o usuário conciliar manualmente.
         pendente_tx_ids = set()
         for p in a_receber_detalhe:
             pendente_tx_ids.update(
@@ -233,28 +252,78 @@ class BankStatementView(LoginRequiredMixin, BaseView):
 
         settled_txs = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=pendente_tx_ids)
         saldo_atual = valor_inicial + calc_saldo(settled_txs)
-        total_a_receber = a_receber_detalhe.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
         saldo_anterior = None
         total_periodo = None
-        filtrado = bool(data_inicio or data_fim)
 
+        # Sempre aplica o filtro de datas na listagem (padrão: hoje)
+        period_qs = settled_txs
+        if data_inicio:
+            period_qs = period_qs.filter(data__date__gte=data_inicio)
+        if data_fim:
+            period_qs = period_qs.filter(data__date__lte=data_fim)
+        transacoes = period_qs.prefetch_related('anexos').order_by('-data', '-id')
+
+        # 3 cards só aparecem quando o range abrange mais de um dia
+        filtrado = bool(data_inicio and data_fim and data_inicio != data_fim)
         if filtrado:
-            before_qs = settled_txs
-            period_qs = settled_txs
-
-            if data_inicio:
-                before_qs = before_qs.filter(data__date__lt=data_inicio)
-                period_qs = period_qs.filter(data__date__gte=data_inicio)
-
-            if data_fim:
-                period_qs = period_qs.filter(data__date__lte=data_fim)
-
+            before_qs = settled_txs.filter(data__date__lt=data_inicio)
             saldo_anterior = valor_inicial + calc_saldo(before_qs)
             total_periodo = calc_saldo(period_qs)
-            transacoes = period_qs.order_by('-data', '-id')
+
+        # Cálculo de taxas via CaixaAdmTransferencia (fonte confiável de metodo+bandeira)
+        from pinpads.models import BandeiraPinpad
+
+        def _build_rates(pinpad_obj):
+            rates = {}
+            if pinpad_obj:
+                for b in BandeiraPinpad.objects.filter(pinpad=pinpad_obj):
+                    rates[b.nome.lower()] = {
+                        'credito': b.taxa_credito,
+                        'debito':  b.taxa_debito,
+                    }
+            return rates
+
+        def _calc_taxa(transferencias_qs, rates_map):
+            total = Decimal('0')
+            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira'):
+                chave = t['bandeira'].lower() if t['bandeira'] else ''
+                r = rates_map.get(chave, {})
+                pct = Decimal('0')
+                if t['metodo_pagamento'] == 'credito':
+                    pct = r.get('credito', Decimal('0'))
+                elif t['metodo_pagamento'] == 'debito':
+                    pct = r.get('debito', Decimal('0'))
+                total += t['valor'] * pct / Decimal('100')
+            return total
+
+        bandeiras_rates = _build_rates(pinpad)
+
+        # Totais sobre TODAS as transferências já conciliadas do banco
+        all_conciliadas = CaixaAdmTransferencia.objects.filter(
+            banco_destino=bank, conciliado=True, cancelada=False
+        )
+        bruto_geral   = all_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        total_taxa    = _calc_taxa(all_conciliadas, bandeiras_rates)
+        liquido_geral = bruto_geral - total_taxa
+
+        # Para o card "No período" (filtrado multi-dia): fees do período
+        if filtrado and data_inicio and data_fim:
+            periodo_conciliadas = all_conciliadas.filter(
+                conciliado_em__date__gte=data_inicio,
+                conciliado_em__date__lte=data_fim,
+            )
+            bruto_periodo  = periodo_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            taxa_periodo   = _calc_taxa(periodo_conciliadas, bandeiras_rates)
+            liquido_periodo = bruto_periodo - taxa_periodo
         else:
-            transacoes = settled_txs.order_by('-data', '-id')
+            bruto_periodo  = bruto_geral
+            taxa_periodo   = total_taxa
+            liquido_periodo = liquido_geral
+
+        # A Receber: bruto/taxa/líquido das transferências pendentes
+        taxa_a_receber = _calc_taxa(a_receber_qs, bandeiras_rates)
+        liquido_a_receber = total_a_receber - taxa_a_receber
 
         return render(request, self.template_name, {
             'bank': bank,
@@ -268,12 +337,29 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             'data_fim': data_fim_str,
             'a_receber': a_receber_detalhe,
             'total_a_receber': total_a_receber,
+            'taxa_a_receber': taxa_a_receber,
+            'liquido_a_receber': liquido_a_receber,
             'hoje': hoje,
+            'bruto_geral': bruto_geral,
+            'total_taxa': total_taxa,
+            'liquido_geral': liquido_geral,
+            'bruto_periodo': bruto_periodo,
+            'taxa_periodo': taxa_periodo,
+            'liquido_periodo': liquido_periodo,
             'can_add_tx':      _check_bank(request.user, bank, 'add_tx'),
             'can_pay_tx':      _check_bank(request.user, bank, 'pay_tx'),
             'can_transfer_tx': _check_bank(request.user, bank, 'transfer_tx'),
             'can_change':      _check_bank(request.user, bank, 'change'),
             'can_del_tx':      _check_bank(request.user, bank, 'del_tx'),
+            'bandeiras_pinpad': list(
+                BandeiraPinpad.objects.filter(pinpad=pinpad).values('nome', 'taxa_credito', 'taxa_debito')
+            ) if pinpad else [],
+            'metodos_pagamento': [
+                ('dinheiro', 'Dinheiro'),
+                ('pix',      'PIX'),
+                ('debito',   'Débito'),
+                ('credito',  'Crédito'),
+            ],
         })
 
 
@@ -294,9 +380,13 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
             messages.error(request, 'Informe um valor válido.')
             return redirect('banks:bank_statement', pk=pk)
 
+        metodo  = request.POST.get('metodo_pagamento', '').strip()
+        bandeira = request.POST.get('bandeira', '').strip()
+
         BankTransaction.objects.create(
             bank=bank, tipo='deposito', descricao=descricao,
             valor=valor, is_entrada=True, observacao=observacao,
+            metodo_pagamento=metodo, bandeira=bandeira,
             criado_por=request.user,
         )
         messages.success(request, f'Depósito de R$ {valor:.2f} adicionado.')
@@ -311,7 +401,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
 
         descricao = request.POST.get('descricao', '').strip() or 'Pagamento'
         observacao = request.POST.get('observacao', '').strip()
-        comprovante = request.FILES.get('comprovante')
+        arquivos = request.FILES.getlist('comprovantes')
         try:
             valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
@@ -321,12 +411,17 @@ class BankPagarView(LoginRequiredMixin, BaseView):
             messages.error(request, 'Informe um valor válido.')
             return redirect('banks:bank_statement', pk=pk)
 
-        BankTransaction.objects.create(
+        # Primeiro arquivo vai para o campo legado; os demais vão para BankTransactionAnexo
+        primeiro = arquivos[0] if arquivos else None
+        tx = BankTransaction.objects.create(
             bank=bank, tipo='pagamento', descricao=descricao,
             valor=valor, is_entrada=False, observacao=observacao,
-            comprovante=comprovante,
+            comprovante=primeiro,
             criado_por=request.user,
         )
+        for arq in arquivos:
+            BankTransactionAnexo.objects.create(transaction=tx, arquivo=arq)
+
         messages.success(request, f'Pagamento de R$ {valor:.2f} registrado.')
         return redirect('banks:bank_statement', pk=pk)
 
@@ -420,3 +515,458 @@ class BankTransactionDeleteView(LoginRequiredMixin, BaseView):
         tx.delete()
         messages.success(request, 'Lançamento removido.')
         return redirect('banks:bank_statement', pk=bank_pk)
+
+
+class BankStatementPDFView(LoginRequiredMixin, BaseView):
+    def get(self, request, pk):
+        import io
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+        from django.http import HttpResponse
+        from decimal import Decimal
+
+        bank = get_object_or_404(Bank, pk=pk)
+        if not _check_bank(request.user, bank, 'view'):
+            raise PermissionDenied
+
+        hoje = timezone.localdate()
+        hoje_str = hoje.strftime('%Y-%m-%d')
+
+        data_inicio_str = request.GET.get('data_inicio', hoje_str)
+        data_fim_str    = request.GET.get('data_fim',    hoje_str)
+
+        data_inicio = None
+        data_fim = None
+        if data_inicio_str:
+            try:
+                data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        if data_fim_str:
+            try:
+                data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+
+        from financials.models import CaixaAdmTransferencia
+
+        valor_inicial = bank.valor_inicial or Decimal('0.00')
+
+        def calc_saldo(qs):
+            entradas = qs.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            saidas   = qs.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            return entradas - saidas
+
+        pendente_ids = set()
+        for p in CaixaAdmTransferencia.objects.filter(banco_destino=bank, conciliado=False, cancelada=False):
+            pendente_ids.update(
+                bank.transactions.filter(is_entrada=True, valor=p.valor, descricao=p.descricao)
+                .values_list('id', flat=True)
+            )
+
+        settled_txs = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=pendente_ids)
+        saldo_atual = valor_inicial + calc_saldo(settled_txs)
+
+        period_qs = settled_txs
+        if data_inicio:
+            period_qs = period_qs.filter(data__date__gte=data_inicio)
+        if data_fim:
+            period_qs = period_qs.filter(data__date__lte=data_fim)
+        transacoes = list(period_qs.order_by('-data', '-id'))
+
+        # ── Cálculo de taxas das bandeiras ───────────────────────────────────
+        from pinpads.models import Pinpad, BandeiraPinpad
+
+        pinpad = Pinpad.objects.filter(is_active=True).first()
+        bandeiras_rates = {}
+        if pinpad:
+            for b in BandeiraPinpad.objects.filter(pinpad=pinpad):
+                bandeiras_rates[b.nome.lower()] = {
+                    'credito': b.taxa_credito,
+                    'debito':  b.taxa_debito,
+                }
+
+        def _calc_taxa_pdf(transferencias_qs):
+            total = Decimal('0')
+            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira'):
+                chave = t['bandeira'].lower() if t['bandeira'] else ''
+                r = bandeiras_rates.get(chave, {})
+                pct = Decimal('0')
+                if t['metodo_pagamento'] == 'credito':
+                    pct = r.get('credito', Decimal('0'))
+                elif t['metodo_pagamento'] == 'debito':
+                    pct = r.get('debito', Decimal('0'))
+                total += t['valor'] * pct / Decimal('100')
+            return total
+
+        all_conciliadas = CaixaAdmTransferencia.objects.filter(
+            banco_destino=bank, conciliado=True, cancelada=False
+        )
+        bruto_geral   = all_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        total_taxa    = _calc_taxa_pdf(all_conciliadas)
+        liquido_geral = bruto_geral - total_taxa
+
+        # Fees específicas do período (para o rodapé)
+        filtrado_pdf = bool(data_inicio and data_fim and data_inicio != data_fim)
+        if filtrado_pdf:
+            periodo_conciliadas = all_conciliadas.filter(
+                conciliado_em__date__gte=data_inicio,
+                conciliado_em__date__lte=data_fim,
+            )
+        else:
+            periodo_conciliadas = all_conciliadas
+        bruto_periodo_pdf  = periodo_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        taxa_periodo_pdf   = _calc_taxa_pdf(periodo_conciliadas)
+        liquido_periodo_pdf = bruto_periodo_pdf - taxa_periodo_pdf
+
+        # Breakdown crédito / débito (acumulado, todas as conciliadas)
+
+        # Breakdown de taxas por bandeira (crédito e débito separados)
+        credito_por_bandeira = {}
+        debito_por_bandeira  = {}
+        for _t in all_conciliadas.values('valor', 'metodo_pagamento', 'bandeira'):
+            _chave = _t['bandeira'].lower() if _t['bandeira'] else ''
+            _nome  = _t['bandeira'].strip() if _t['bandeira'] else 'Sem bandeira'
+            _r     = bandeiras_rates.get(_chave, {})
+            if _t['metodo_pagamento'] == 'credito':
+                _pct = _r.get('credito', Decimal('0'))
+                if _pct:
+                    _taxa = _t['valor'] * _pct / Decimal('100')
+                    credito_por_bandeira[_nome] = credito_por_bandeira.get(_nome, Decimal('0')) + _taxa
+            elif _t['metodo_pagamento'] == 'debito':
+                _pct = _r.get('debito', Decimal('0'))
+                if _pct:
+                    _taxa = _t['valor'] * _pct / Decimal('100')
+                    debito_por_bandeira[_nome] = debito_por_bandeira.get(_nome, Decimal('0')) + _taxa
+
+
+
+        # ── Monta o PDF (estilo Apple) ───────────────────────────────────────
+        buffer = io.BytesIO()
+        page_w, page_h = A4
+        margin = 18 * mm
+        doc = SimpleDocTemplate(
+            buffer, pagesize=A4,
+            leftMargin=margin, rightMargin=margin,
+            topMargin=16*mm, bottomMargin=16*mm,
+        )
+        content_w = page_w - 2 * margin
+
+        # ── Paleta ───────────────────────────────────────────────────────────
+        azul    = colors.HexColor('#007AFF')
+        azul2   = colors.HexColor('#5AC8FA')
+        cinza   = colors.HexColor('#8E8E93')
+        escuro  = colors.HexColor('#1D1D1F')
+        claro   = colors.HexColor('#F5F5F7')
+        borda   = colors.HexColor('#E5E5EA')
+        verde   = colors.HexColor('#34C759')
+        verm    = colors.HexColor('#FF3B30')
+        laranja = colors.HexColor('#FF9500')
+        amarelo = colors.HexColor('#FFD60A')
+        branco  = colors.white
+        fundo2  = colors.HexColor('#FAFAFA')
+
+        # ── Helpers ──────────────────────────────────────────────────────────
+        fmt = lambda v: f'R$ {v:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        def ps(name, size=9, bold=False, color=escuro, align=TA_LEFT, leading=None):
+            return ParagraphStyle(
+                name,
+                fontSize=size,
+                fontName='Helvetica-Bold' if bold else 'Helvetica',
+                textColor=color,
+                alignment=align,
+                leading=leading or (size * 1.35),
+            )
+
+        label_di = data_inicio.strftime('%d/%m/%Y') if data_inicio else hoje.strftime('%d/%m/%Y')
+        label_df = data_fim.strftime('%d/%m/%Y')    if data_fim    else hoje.strftime('%d/%m/%Y')
+        periodo_txt = f'{label_di} → {label_df}' if label_di != label_df else label_di
+        gerado_em = timezone.localtime(timezone.now()).strftime('%d/%m/%Y às %H:%M')
+
+        story = []
+
+        # ── HEADER ───────────────────────────────────────────────────────────
+        conta_info = ''
+        if bank.numero_conta:
+            conta_info = f'Conta {bank.numero_conta}'
+            if bank.agencia:
+                conta_info += f'  ·  Ag. {bank.agencia}'
+
+        header_table = Table(
+            [[
+                Paragraph(bank.nome, ps('hn', 20, bold=True, color=escuro)),
+                Paragraph(f'Gerado em {gerado_em}', ps('hg', 8, color=cinza, align=TA_RIGHT)),
+            ],[
+                Paragraph(conta_info, ps('hc', 9, color=cinza)),
+                Paragraph(f'Período: {periodo_txt}', ps('hp', 9, color=azul, align=TA_RIGHT, bold=True)),
+            ]],
+            colWidths=[content_w * 0.6, content_w * 0.4],
+        )
+        header_table.setStyle(TableStyle([
+            ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING',    (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('LEFTPADDING',   (0,0), (-1,-1), 0),
+            ('RIGHTPADDING',  (0,0), (-1,-1), 0),
+        ]))
+        story += [header_table, Spacer(1, 3*mm)]
+
+        # Linha divisória
+        from reportlab.platypus import HRFlowable
+        story += [
+            HRFlowable(width='100%', thickness=1, color=borda, spaceAfter=4*mm),
+        ]
+
+
+
+        # ── CARDS DE MÉTRICAS ────────────────────────────────────────────────
+        entradas_p = sum(tx.valor for tx in transacoes if tx.is_entrada)
+        saidas_p   = sum(tx.valor for tx in transacoes if not tx.is_entrada)
+
+        azul_light = colors.HexColor('#A8D8FF')
+        azul_bg2   = colors.HexColor('#EAF3FF')
+        azul_bd2   = colors.HexColor('#BDD8FF')
+        dark_card  = colors.HexColor('#1C1C1E')
+
+        gap    = 4 * mm
+        card_w = (content_w - 3 * gap) / 4
+
+        # Flowable customizado: roundRect desenhado direto no canvas (sem clipping)
+        from reportlab.platypus import Flowable as _Flowable
+
+        class RoundCard(_Flowable):
+            def __init__(self, width, rows, border_color, radius=8):
+                super().__init__()
+                self._w  = width
+                self._rows = rows
+                self._bc = border_color
+                self._r  = radius
+                self._h  = sum(tp + round(sz * 1.4) + bp for _, sz, _, _, tp, bp in rows)
+
+            def wrap(self, aw, ah):
+                return self._w, self._h
+
+            def draw(self):
+                c = self.canv
+                w, h, r = self._w, self._h, self._r
+                c.saveState()
+                c.setFillColor(colors.white)
+                c.setStrokeColor(self._bc)
+                c.setLineWidth(0.8)
+                c.roundRect(0, 0, w, h, r, stroke=1, fill=1)
+                y = h
+                pad = 10
+                for (text, size, bold, color, tp, bp) in self._rows:
+                    y -= tp + round(size * 1.4)
+                    c.setFillColor(color)
+                    c.setFont('Helvetica-Bold' if bold else 'Helvetica', size)
+                    c.drawString(pad, y, text)
+                    y -= bp
+                c.restoreState()
+
+        # Bordas claras por tema
+        bd_azul  = colors.HexColor('#C8E2FF')
+        bd_verde = colors.HexColor('#C2F0D0')
+        bd_verm  = colors.HexColor('#FFD0CE')
+        bd_cinza = colors.HexColor('#D1D1D6')
+
+        card_saldo = RoundCard(card_w, [
+            ('SALDO DISPONIVEL',    6, True,  azul,   10, 2),
+            (fmt(liquido_geral),   14, True,  escuro,  2, 2),
+            ('Liquido apos taxas',  6, False, cinza,   2, 10),
+        ], border_color=bd_azul)
+
+        card_entradas = RoundCard(card_w, [
+            ('ENTRADAS DO PERIODO', 6, True,  verde,  10, 2),
+            (fmt(entradas_p),      14, True,  escuro,  2, 2),
+            (periodo_txt,           6, False, cinza,   2, 10),
+        ], border_color=bd_verde)
+
+        card_saidas = RoundCard(card_w, [
+            ('SAIDAS DO PERIODO',  6, True,  verm,   10, 2),
+            (fmt(saidas_p),        14, True,  escuro,  2, 2),
+            (periodo_txt,           6, False, cinza,   2, 10),
+        ], border_color=bd_verm)
+
+        card_taxas = RoundCard(card_w, [
+            ('TAXAS BANDEIRA',         6, True,  escuro,  10, 2),
+            (fmt(taxa_periodo_pdf),   14, True,  escuro,   2, 2),
+            ('Descontado no periodo',  6, False, cinza,    2, 10),
+        ], border_color=bd_cinza)
+
+        cards_row = Table(
+            [[card_saldo, '', card_entradas, '', card_saidas, '', card_taxas]],
+            colWidths=[card_w, gap, card_w, gap, card_w, gap, card_w],
+        )
+        cards_row.setStyle(TableStyle([
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story += [cards_row, Spacer(1, 3*mm)]
+
+
+        # Cards credito / debito por bandeira
+        from reportlab.platypus import Flowable as _Flowable2
+
+        class KVCard(_Flowable2):
+            def __init__(self, width, title, title_color, border_color, rows, radius=8):
+                super().__init__()
+                self._w      = width
+                self._title  = title
+                self._tc     = title_color
+                self._bc     = border_color
+                self._rows   = rows
+                self._r      = radius
+                self._h      = 12 + 6 + 4 + len(rows) * 17 + 10
+
+            def wrap(self, aw, ah):
+                return self._w, self._h
+
+            def draw(self):
+                c = self.canv
+                w, h, r = self._w, self._h, self._r
+                pad = 10
+                c.saveState()
+                c.setFillColor(colors.white)
+                c.setStrokeColor(self._bc)
+                c.setLineWidth(0.8)
+                c.roundRect(0, 0, w, h, r, stroke=1, fill=1)
+                y = h - 10
+                y -= 9
+                c.setFillColor(self._tc)
+                c.setFont('Helvetica-Bold', 7)
+                c.drawString(pad, y, self._title)
+                y -= 4
+                c.setStrokeColor(self._bc)
+                c.setLineWidth(0.5)
+                c.line(pad, y, w - pad, y)
+                y -= 4
+                for (label, value, lc, vc) in self._rows:
+                    y -= 10
+                    c.setFillColor(lc)
+                    c.setFont('Helvetica', 7)
+                    c.drawString(pad, y, label)
+                    c.setFillColor(vc)
+                    c.setFont('Helvetica-Bold', 9)
+                    c.drawRightString(w - pad, y, value)
+                    y -= 7
+                c.restoreState()
+
+
+        # Taxas por bandeira
+        detail_gap = 4 * mm
+        detail_w   = (content_w - detail_gap) / 2
+
+        rows_credito = [
+            (nome, fmt(taxa), cinza, escuro)
+            for nome, taxa in sorted(credito_por_bandeira.items())
+        ] or [('Sem lancamentos', '---', cinza, cinza)]
+
+        rows_debito = [
+            (nome, fmt(taxa), cinza, escuro)
+            for nome, taxa in sorted(debito_por_bandeira.items())
+        ] or [('Sem lancamentos', '---', cinza, cinza)]
+
+        kv_credito = KVCard(
+            detail_w,
+            title='CREDITO  -  taxa por bandeira',
+            title_color=azul,
+            border_color=bd_azul,
+            rows=rows_credito,
+        )
+
+        kv_debito = KVCard(
+            detail_w,
+            title='DEBITO  -  taxa por bandeira',
+            title_color=verde,
+            border_color=bd_verde,
+            rows=rows_debito,
+        )
+
+        detail_row = Table(
+            [[kv_credito, '', kv_debito]],
+            colWidths=[detail_w, detail_gap, detail_w],
+        )
+        detail_row.setStyle(TableStyle([
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story += [detail_row, Spacer(1, 5*mm)]
+
+
+
+
+
+        # ── MOVIMENTAÇÕES DO PERÍODO ─────────────────────────────────────────
+        story += [
+            Paragraph('MOVIMENTAÇÕES DO PERÍODO', ps('sec', 8, bold=True, color=cinza)),
+            Spacer(1, 2*mm),
+        ]
+
+        th    = ps('th',  8, bold=True, color=cinza, align=TA_CENTER)
+        td    = ps('td',  8, color=escuro)
+        td_c  = ps('tdc', 8, color=escuro, align=TA_CENTER)
+
+        tipo_labels = {'deposito': 'Depósito', 'pagamento': 'Pagamento', 'transferencia': 'Transf.'}
+
+        rows = [[
+            Paragraph('Data / Hora', th),
+            Paragraph('Descrição',   th),
+            Paragraph('Tipo',        th),
+            Paragraph('Valor',       ps('thv', 8, bold=True, color=cinza, align=TA_RIGHT)),
+        ]]
+
+        for tx in transacoes:
+            data_local = timezone.localtime(tx.data)
+            sinal  = '+' if tx.is_entrada else '\u2212'
+            cor_v  = verde if tx.is_entrada else verm
+            rows.append([
+                Paragraph(data_local.strftime('%d/%m/%Y\n%H:%M'),
+                          ps(f'td_dt{tx.pk}', 8, color=escuro, leading=11)),
+                Paragraph(tx.descricao or '\u2014', td),
+                Paragraph(tipo_labels.get(tx.tipo, tx.tipo), td_c),
+                Paragraph(f'{sinal}{fmt(tx.valor)}',
+                          ps(f'tv{tx.pk}', 8, bold=True, color=cor_v, align=TA_RIGHT)),
+            ])
+
+        if not transacoes:
+            rows.append([
+                Paragraph('Nenhuma transação no período selecionado.',
+                          ps('emp', 9, color=cinza)),
+                '', '', '',
+            ])
+
+        col_w = [32*mm, content_w - 32*mm - 28*mm - 30*mm, 28*mm, 30*mm]
+        tx_table = Table(rows, colWidths=col_w, repeatRows=1)
+        tx_table.setStyle(TableStyle([
+            ('BACKGROUND',    (0, 0), (-1,  0), claro),
+            ('LINEBELOW',     (0, 0), (-1,  0), 0.8, borda),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [branco, colors.HexColor('#FAFAFA')]),
+            ('LINEBELOW',     (0, 1), (-1, -2), 0.3, borda),
+            ('TOPPADDING',    (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 8),
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX',           (0, 0), (-1, -1), 0.5, borda),
+        ]))
+        story += [tx_table, Spacer(1, 5*mm)]
+
+        doc.build(story)
+        buffer.seek(0)
+
+        nome_arquivo = f'extrato_{bank.nome.lower().replace(" ", "_")}_{label_di.replace("/", "-")}_{label_df.replace("/", "-")}.pdf'
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+        return response

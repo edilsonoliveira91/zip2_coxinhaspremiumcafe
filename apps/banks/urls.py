@@ -9,6 +9,7 @@ urlpatterns = [
     path('<int:pk>/editar/', views.BankUpdateView.as_view(), name='bank_edit'),
     path('<int:pk>/excluir/', views.BankDeleteView.as_view(), name='bank_delete'),
     path('<int:pk>/extrato/', views.BankStatementView.as_view(), name='bank_statement'),
+    path('<int:pk>/extrato/pdf/', views.BankStatementPDFView.as_view(), name='bank_statement_pdf'),
     path('<int:pk>/adicionar/', views.BankAdicionarView.as_view(), name='bank_adicionar'),
     path('<int:pk>/pagar/', views.BankPagarView.as_view(), name='bank_pagar'),
     path('<int:pk>/transferir/', views.BankTransferirView.as_view(), name='bank_transferir'),
