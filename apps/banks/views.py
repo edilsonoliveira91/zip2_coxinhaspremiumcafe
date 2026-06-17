@@ -303,9 +303,11 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         all_conciliadas = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank, conciliado=True, cancelada=False
         )
-        bruto_geral   = all_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
         total_taxa    = _calc_taxa(all_conciliadas, bandeiras_rates)
-        liquido_geral = bruto_geral - total_taxa
+        # saldo_atual já inclui pagamentos feitos no banco (is_entrada=False)
+        # bruto_geral = saldo real antes de descontar taxas de bandeira
+        bruto_geral   = saldo_atual
+        liquido_geral = saldo_atual - total_taxa
 
         # Para o card "No período" (filtrado multi-dia): fees do período
         if filtrado and data_inicio and data_fim:
