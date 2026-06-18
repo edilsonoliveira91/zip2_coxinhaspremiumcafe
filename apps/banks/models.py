@@ -51,6 +51,10 @@ class BankTransaction(models.Model):
     )
     metodo_pagamento = models.CharField(max_length=10, blank=True, default='', verbose_name="Método")
     bandeira = models.CharField(max_length=100, blank=True, default='', verbose_name="Bandeira")
+    taxa_tx = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        verbose_name="Taxa aplicada (R$)",
+    )
     comprovante = models.FileField(
         upload_to='bank_comprovantes/',
         null=True, blank=True,

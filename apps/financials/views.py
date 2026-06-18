@@ -1364,14 +1364,34 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
 
         valor_original = transferencia.valor
 
+        # Calcula taxa a partir da taxa travada; fallback para taxa atual da bandeira
+        def _taxa_pct(transf):
+            pct = transf.taxa_aplicada or Decimal('0')
+            if not pct and transf.metodo_pagamento in ('credito', 'debito'):
+                try:
+                    from pinpads.models import Pinpad, BandeiraPinpad
+                    pinpad = Pinpad.objects.filter(is_active=True).first()
+                    if pinpad and transf.bandeira:
+                        b = BandeiraPinpad.objects.filter(
+                            pinpad=pinpad, nome__iexact=transf.bandeira,
+                        ).first()
+                        if b:
+                            pct = b.taxa_credito if transf.metodo_pagamento == 'credito' else b.taxa_debito
+                except Exception:
+                    pass
+            return pct or Decimal('0')
+
+        taxa_pct = _taxa_pct(transferencia)
+
         if valor_parcial is not None and valor_parcial != valor_original:
             if valor_parcial <= 0 or valor_parcial >= valor_original:
                 return JsonResponse({'ok': False, 'error': 'Valor parcial inválido.'}, status=400)
 
             resto = valor_original - valor_parcial
+            taxa_parcial = (valor_parcial * taxa_pct / Decimal('100')).quantize(Decimal('0.01'))
 
             # 1. Ajusta a BankTransaction existente para o valor parcial
-            update_fields_bt = dict(data=agora, valor=valor_parcial)
+            update_fields_bt = dict(data=agora, valor=valor_parcial, taxa_tx=taxa_parcial)
             if observacao_nova:
                 update_fields_bt['observacao'] = observacao_nova
             BankTransaction.objects.filter(
@@ -1421,7 +1441,8 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
 
         else:
             # Conciliação total
-            update_fields_bt = dict(data=agora)
+            taxa_total = (valor_original * taxa_pct / Decimal('100')).quantize(Decimal('0.01'))
+            update_fields_bt = dict(data=agora, taxa_tx=taxa_total)
             if observacao_nova:
                 update_fields_bt['observacao'] = observacao_nova
             BankTransaction.objects.filter(

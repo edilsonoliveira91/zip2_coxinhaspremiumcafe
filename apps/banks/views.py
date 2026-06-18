@@ -310,15 +310,18 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         bandeiras_rates = _build_rates(pinpad)
 
         # Anotar cada transação com taxa individual e valor líquido
+        # Usa taxa_tx gravada no DB (set na conciliação); fallback dinâmico para registros antigos
         transacoes = list(transacoes)
         for tx in transacoes:
-            tx.taxa_tx = Decimal('0')
-            if tx.is_entrada and tx.metodo_pagamento in ('credito', 'debito'):
+            stored_taxa = tx.taxa_tx or Decimal('0')
+            if stored_taxa > 0:
+                pass  # usa o valor gravado
+            elif tx.is_entrada and tx.metodo_pagamento in ('credito', 'debito'):
                 chave = (tx.bandeira or '').lower()
                 r = bandeiras_rates.get(chave, {})
                 pct = r.get(tx.metodo_pagamento, Decimal('0'))
-                if pct:
-                    tx.taxa_tx = (tx.valor * pct / Decimal('100')).quantize(Decimal('0.01'))
+                stored_taxa = (tx.valor * pct / Decimal('100')).quantize(Decimal('0.01')) if pct else Decimal('0')
+            tx.taxa_tx = stored_taxa
             tx.valor_liquido = tx.valor - tx.taxa_tx
 
         # Totais sobre TODAS as transferências já conciliadas do banco

@@ -311,10 +311,6 @@
                             <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:#34C759;">
                                 +R$&nbsp;{{ tx.valor_liquido|floatformat:2 }}
                             </span>
-                            <div style="font-size:10px;color:#8E8E93;margin-top:2px;line-height:1.4;">
-                                Bruto R$&nbsp;{{ tx.valor|floatformat:2 }}<br>
-                                Taxa −R$&nbsp;{{ tx.taxa_tx|floatformat:2 }}
-                            </div>
                             {% else %}
                             <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:{% if tx.is_entrada %}#34C759{% else %}#FF3B30{% endif %};">
                                 {% if tx.is_entrada %}+{% else %}−{% endif %}R$&nbsp;{{ tx.valor|floatformat:2 }}
