@@ -376,7 +376,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💵 Dinheiro</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-dinheiro" name="total_dinheiro" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-dinheiro" name="total_dinheiro" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -386,7 +387,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💳 Débito</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-debito" name="total_debito" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-debito" name="total_debito" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -396,7 +398,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💳 Crédito</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-credito" name="total_credito" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-credito" name="total_credito" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -406,7 +409,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">📱 PIX</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-pix" name="total_pix" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-pix" name="total_pix" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -416,7 +420,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💰 Troco Inicial</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-troco" name="valor_inicial" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-troco" name="valor_inicial" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -426,7 +431,8 @@
           <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px;">💸 Sangrias</label>
           <div style="position:relative;">
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:#8E8E93; pointer-events:none;">R$</span>
-            <input type="number" id="editar-sangrias" name="total_sangrias" step="0.01" min="0" placeholder="0,00"
+            <input type="text" inputmode="decimal" id="editar-sangrias" name="total_sangrias" placeholder="0,00"
+              class="moeda-brl" oninput="mascaraMoeda(this)"
               style="width:100%; box-sizing:border-box; min-height:40px; padding:0 10px 0 34px; border:1.5px solid #D1D1D6; border-radius:10px; font-size:14px; color:#1D1D1F; outline:none;"
               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
           </div>
@@ -513,7 +519,8 @@
         <label style="display:block; font-size:12px; font-weight:600; color:#6E6E73; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Valor *</label>
         <div style="position:relative;">
           <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; font-weight:500; color:#8E8E93; pointer-events:none;">R$</span>
-          <input type="number" id="transf-valor" name="valor" step="0.01" min="0.01" required placeholder="0,00"
+          <input type="text" inputmode="decimal" id="transf-valor" name="valor" required placeholder="0,00"
+            class="moeda-brl" oninput="mascaraMoeda(this)"
             style="width:100%; box-sizing:border-box; min-height:44px; padding:0 14px 0 42px; border:1.5px solid #D1D1D6; border-radius:12px; font-size:15px; color:#1D1D1F; outline:none;"
             onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
             onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
@@ -652,12 +659,13 @@
   function abrirModalEditar(fechId, dataStr, troco, dinheiro, debito, credito, pix, sangrias) {
     document.getElementById('editar-fechamento-id').value = fechId;
     document.getElementById('editar-subtitulo').textContent = 'Caixa de ' + dataStr;
-    document.getElementById('editar-troco').value    = troco.replace(',', '.');
-    document.getElementById('editar-dinheiro').value = dinheiro.replace(',', '.');
-    document.getElementById('editar-debito').value   = debito.replace(',', '.');
-    document.getElementById('editar-credito').value  = credito.replace(',', '.');
-    document.getElementById('editar-pix').value      = pix.replace(',', '.');
-    document.getElementById('editar-sangrias').value = sangrias.replace(',', '.');
+    var _fmtVal = function(v) { return formatarMoeda(parseFloat(v.replace(',', '.')) || 0); };
+    document.getElementById('editar-troco').value    = _fmtVal(troco);
+    document.getElementById('editar-dinheiro').value = _fmtVal(dinheiro);
+    document.getElementById('editar-debito').value   = _fmtVal(debito);
+    document.getElementById('editar-credito').value  = _fmtVal(credito);
+    document.getElementById('editar-pix').value      = _fmtVal(pix);
+    document.getElementById('editar-sangrias').value = _fmtVal(sangrias);
     document.getElementById('editar-observacao').value = '';
     document.getElementById('editar-erro').style.display = 'none';
     atualizarTotalPreview();
@@ -686,7 +694,7 @@
   });
 
   function _parseVal(id) {
-    return parseFloat(document.getElementById(id).value) || 0;
+    return parseFloat(desmascarar(document.getElementById(id).value)) || 0;
   }
 
   function atualizarTotalPreview() {
@@ -716,6 +724,9 @@
     try {
       const form = document.getElementById('form-editar');
       const fd = new FormData(form);
+      ['total_dinheiro','total_debito','total_credito','total_pix','valor_inicial','total_sangrias'].forEach(function(n) {
+        fd.set(n, desmascarar(fd.get(n) || ''));
+      });
       const resp = await fetch(URL_ATUALIZAR_FECHAMENTO, {
         method: 'POST',
         headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
@@ -744,7 +755,7 @@
   function abrirTransfMetodo(dataStr, metodo, valorStr) {
     _resetTransfModal();
     document.getElementById('transf-data-caixa').value = dataStr;
-    document.getElementById('transf-valor').value = valorStr.replace(',', '.');
+    document.getElementById('transf-valor').value = formatarMoeda(parseFloat(valorStr.replace(',', '.')) || 0);
     // pré-seleciona o método
     var radio = document.getElementById('metodo-' + metodo);
     if (radio) { radio.checked = true; onMetodoChange(metodo); }
@@ -797,7 +808,7 @@
   function abrirModalTransferenciaCard(dataStr, valorStr) {
     _resetTransfModal();
     document.getElementById('transf-data-caixa').value = dataStr;
-    document.getElementById('transf-valor').value = valorStr.replace(',', '.');
+    document.getElementById('transf-valor').value = formatarMoeda(parseFloat(valorStr.replace(',', '.')) || 0);
     document.getElementById('modal-transferencia').style.display = 'flex';
   }
 
@@ -813,7 +824,7 @@
     const erroEl = document.getElementById('transf-erro');
     erroEl.style.display = 'none';
     const bancoId = document.getElementById('transf-banco').value;
-    const valor   = document.getElementById('transf-valor').value.trim();
+    const valor   = desmascarar(document.getElementById('transf-valor').value.trim());
     const metodo  = document.querySelector('input[name="metodo_pagamento"]:checked');
 
     if (!bancoId) { erroEl.textContent = 'Selecione um banco destino.'; erroEl.style.display = 'block'; return; }
@@ -827,6 +838,7 @@
     try {
       const form = document.getElementById('form-transferencia');
       const fd = new FormData(form);
+      fd.set('valor', valor);
       const resp = await fetch(URL_TRANSFERIR_BANCO, {
         method: 'POST',
         headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },

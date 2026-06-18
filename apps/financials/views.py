@@ -1046,7 +1046,7 @@ class RegistrarDespesaMaloteView(LoginRequiredMixin, View):
     def post(self, request):
         from django.shortcuts import get_object_or_404
         malote_id = request.POST.get('malote_id')
-        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1086,7 +1086,7 @@ class RegistrarDespesaFechamentoView(LoginRequiredMixin, View):
     def post(self, request, pk):
         from django.shortcuts import get_object_or_404
         fechamento = get_object_or_404(FechamentoCaixaDiario, pk=pk)
-        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1131,7 +1131,7 @@ class RegistrarDespesaDiaView(LoginRequiredMixin, View):
     def post(self, request):
         from datetime import datetime as dt_cls
         data_iso = request.POST.get('data_iso', '').strip()
-        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1212,7 +1212,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         from django.shortcuts import get_object_or_404
 
         banco_id  = request.POST.get('banco_id', '').strip()
-        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
         metodo    = request.POST.get('metodo_pagamento', 'dinheiro').strip()
         bandeira  = request.POST.get('bandeira', '').strip()
         observacao = request.POST.get('observacao', '').strip()
@@ -1255,6 +1255,20 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
 
         pinpad = Pinpad.objects.filter(is_active=True).first()
         data_base = data_caixa or date_type.today()
+
+        # Busca a taxa vigente no momento da criação e grava no registro
+        taxa_aplicada = Decimal('0')
+        if pinpad and metodo in ('credito', 'debito'):
+            from pinpads.models import BandeiraPinpad
+            bandeira_obj = BandeiraPinpad.objects.filter(
+                pinpad=pinpad,
+                nome__iexact=bandeira,
+            ).first() if bandeira else None
+            if bandeira_obj:
+                if metodo == 'credito':
+                    taxa_aplicada = bandeira_obj.taxa_credito or Decimal('0')
+                else:
+                    taxa_aplicada = bandeira_obj.taxa_debito or Decimal('0')
 
         if pinpad:
             dias_map = {
@@ -1299,6 +1313,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
             valor=valor,
             metodo_pagamento=metodo,
             bandeira=bandeira,
+            taxa_aplicada=taxa_aplicada,
             data_caixa=data_caixa,
             data_prevista_liquidacao=data_prevista_liquidacao,
             descricao=descricao,
@@ -1315,15 +1330,18 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
 
 class ConciliarTransferenciaView(LoginRequiredMixin, View):
     """
-    POST: marca uma CaixaAdmTransferencia como conciliada e antecipa a
-    BankTransaction correspondente para a data de hoje.
+    POST: marca uma CaixaAdmTransferencia como conciliada.
+    Aceita valor_parcial no body JSON para conciliação parcial — nesse caso
+    divide o registro: parte conciliada agora, resto fica pendente.
     """
     login_url = reverse_lazy('accounts:login')
 
     def post(self, request, pk):
+        import json
         from banks.models import BankTransaction
         from django.utils import timezone
         from django.shortcuts import get_object_or_404
+        from decimal import Decimal, InvalidOperation
 
         transferencia = get_object_or_404(CaixaAdmTransferencia, pk=pk)
 
@@ -1332,19 +1350,93 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
 
         agora = timezone.now()
 
-        # Atualiza a BankTransaction para o momento exato da conciliação
-        # (cobre liquidações no prazo, hoje e em atraso)
-        BankTransaction.objects.filter(
-            bank=transferencia.banco_destino,
-            is_entrada=True,
-            valor=transferencia.valor,
-            descricao=transferencia.descricao,
-        ).update(data=agora)
+        # Lê valor_parcial e observacao do body (opcionais)
+        valor_parcial = None
+        observacao_nova = ''
+        try:
+            body = json.loads(request.body or '{}')
+            raw = body.get('valor_parcial')
+            if raw is not None:
+                valor_parcial = Decimal(str(raw)).quantize(Decimal('0.01'))
+            observacao_nova = str(body.get('observacao', '')).strip()
+        except (json.JSONDecodeError, InvalidOperation):
+            pass
 
-        transferencia.conciliado = True
-        transferencia.conciliado_em = agora
-        transferencia.conciliado_por = request.user
-        transferencia.save(update_fields=['conciliado', 'conciliado_em', 'conciliado_por'])
+        valor_original = transferencia.valor
+
+        if valor_parcial is not None and valor_parcial != valor_original:
+            if valor_parcial <= 0 or valor_parcial >= valor_original:
+                return JsonResponse({'ok': False, 'error': 'Valor parcial inválido.'}, status=400)
+
+            resto = valor_original - valor_parcial
+
+            # 1. Ajusta a BankTransaction existente para o valor parcial
+            update_fields_bt = dict(data=agora, valor=valor_parcial)
+            if observacao_nova:
+                update_fields_bt['observacao'] = observacao_nova
+            BankTransaction.objects.filter(
+                bank=transferencia.banco_destino,
+                is_entrada=True,
+                valor=valor_original,
+                descricao=transferencia.descricao,
+            ).update(**update_fields_bt)
+
+            # 2. Cria nova BankTransaction pendente para o restante
+            BankTransaction.objects.create(
+                bank=transferencia.banco_destino,
+                tipo='deposito',
+                descricao=transferencia.descricao,
+                valor=resto,
+                is_entrada=True,
+                data=agora,
+                metodo_pagamento=transferencia.metodo_pagamento,
+                bandeira=transferencia.bandeira,
+                criado_por=request.user,
+            )
+
+            # 3. Concilia a transferência original com o valor parcial
+            transferencia.valor = valor_parcial
+            transferencia.conciliado = True
+            transferencia.conciliado_em = agora
+            transferencia.conciliado_por = request.user
+            if observacao_nova:
+                transferencia.observacao = observacao_nova
+            transferencia.save(update_fields=[
+                'valor', 'conciliado', 'conciliado_em', 'conciliado_por', 'observacao'
+            ])
+
+            # 4. Cria nova CaixaAdmTransferencia pendente para o restante
+            CaixaAdmTransferencia.objects.create(
+                banco_destino=transferencia.banco_destino,
+                valor=resto,
+                metodo_pagamento=transferencia.metodo_pagamento,
+                bandeira=transferencia.bandeira,
+                taxa_aplicada=transferencia.taxa_aplicada,
+                data_caixa=transferencia.data_caixa,
+                data_prevista_liquidacao=transferencia.data_prevista_liquidacao,
+                descricao=transferencia.descricao,
+                observacao=transferencia.observacao,
+                criado_por=request.user,
+            )
+
+        else:
+            # Conciliação total
+            update_fields_bt = dict(data=agora)
+            if observacao_nova:
+                update_fields_bt['observacao'] = observacao_nova
+            BankTransaction.objects.filter(
+                bank=transferencia.banco_destino,
+                is_entrada=True,
+                valor=valor_original,
+                descricao=transferencia.descricao,
+            ).update(**update_fields_bt)
+
+            transferencia.conciliado = True
+            transferencia.conciliado_em = agora
+            transferencia.conciliado_por = request.user
+            if observacao_nova:
+                transferencia.observacao = observacao_nova
+            transferencia.save(update_fields=['conciliado', 'conciliado_em', 'conciliado_por', 'observacao'])
 
         return JsonResponse({'ok': True})
 
@@ -1425,7 +1517,7 @@ class AtualizarFechamentoCaixaView(LoginRequiredMixin, View):
             return JsonResponse({'ok': False, 'error': 'Fechamento não informado.'}, status=400)
 
         def _dec(key):
-            raw = request.POST.get(key, '0').replace(',', '.').strip()
+            raw = request.POST.get(key, '0').replace('.', '').replace(',', '.').strip()
             try:
                 v = Decimal(raw)
                 return v if v >= 0 else Decimal('0.00')

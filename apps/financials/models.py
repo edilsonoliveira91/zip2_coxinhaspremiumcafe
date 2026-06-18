@@ -179,6 +179,10 @@ class CaixaAdmTransferencia(models.Model):
         max_length=10, choices=METODO_CHOICES, default='dinheiro', verbose_name="Método"
     )
     bandeira = models.CharField(max_length=100, blank=True, verbose_name="Bandeira")
+    taxa_aplicada = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal('0'),
+        verbose_name="Taxa aplicada (%)",
+    )
     data_caixa = models.DateField(null=True, blank=True, verbose_name="Data do Caixa")
     data_prevista_liquidacao = models.DateField(null=True, blank=True, verbose_name="Data prevista de liquidação")
     conciliado = models.BooleanField(default=False, verbose_name="Conciliado")
