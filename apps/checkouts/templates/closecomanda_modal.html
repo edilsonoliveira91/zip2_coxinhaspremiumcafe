@@ -3,308 +3,328 @@
 .no-spin::-webkit-inner-spin-button,.no-spin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .no-spin{-moz-appearance:textfield}
 .modal-fechado { display: none !important; }
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.95) translateY(20px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes appleModalIn {
+  from { opacity:0; transform:scale(0.96) translateY(16px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
 }
-.modal-entrance { animation: modalFadeIn 0.3s ease-out; }
-.glass-overlay  { background: rgba(15,23,42,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.custom-shadow  { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.1); }
-.custom-input   { background: linear-gradient(145deg,#ffffff,#f8fafc); border: 2px solid #e5e7eb; }
-.custom-input:focus { background:#ffffff; border-color:#1f2937; box-shadow:0 0 0 3px rgba(31,41,55,0.1); outline:none; }
+@keyframes spin { to { transform:rotate(360deg); } }
+#modal-checkout-v2 * { font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif; box-sizing:border-box; }
+.ck-step-input {
+  width:100%;height:52px;border-radius:12px;border:1.5px solid #D1D1D6;
+  font-size:22px;font-weight:800;color:#1D1D1F;padding:0 16px;
+  outline:none;transition:border-color .15s,box-shadow .15s;background:white;
+}
+.ck-step-input:focus { border-color:#007AFF; box-shadow:0 0 0 3px rgba(0,122,255,0.15); }
+.ck-btn-back {
+  display:inline-flex;align-items:center;gap:6px;padding:8px 12px;
+  border-radius:10px;border:none;background:transparent;color:#8E8E93;
+  font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;
+}
+.ck-btn-back:hover { background:#F5F5F7; color:#1D1D1F; }
+.ck-method-btn {
+  padding:16px 8px;border-radius:16px;border:1.5px solid #E5E5EA;
+  background:white;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.ck-method-btn:hover { border-color:#007AFF; box-shadow:0 4px 16px rgba(0,122,255,0.12); transform:translateY(-1px); }
+.ck-method-btn:active { transform:translateY(0); }
 </style>
 
 <!-- MODAL FECHAR COMANDA -->
 <div id="modal-checkout-v2"
-     class="modal-fechado fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
+     class="modal-fechado"
+     style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;">
 
-  <div class="bg-white rounded-3xl w-full max-w-md custom-shadow relative modal-entrance" style="max-height:90vh;overflow-y:auto;overflow-x:hidden;">
+  <div style="background:white;border-radius:20px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid rgba(0,0,0,0.06);max-height:90vh;overflow-y:auto;overflow-x:hidden;position:relative;animation:appleModalIn 0.25s ease-out;">
 
     <!-- LOADING OVERLAY -->
     <div id="loading-overlay"
-         class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div class="w-12 h-12 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>
+         class="hidden"
+         style="position:absolute;inset:0;background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);z-index:20;border-radius:20px;">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
     </div>
 
     <div id="checkout-content">
 
     <!-- HEADER -->
-    <div class="px-6 py-4 relative overflow-hidden"
-         style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 50%, #0a1628 100%); color: white;">
-      <div class="flex items-center justify-between relative z-10">
+    <div style="padding:20px 20px 16px 20px;border-bottom:1px solid #F2F2F7;background:white;position:sticky;top:0;z-index:10;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
-          <p class="text-sm font-black uppercase tracking-wider" style="color:white;">Fechar Comanda #{{ comanda.numero }}</p>
+          <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 2px;">Fechar Comanda</p>
+          <h2 style="font-size:20px;font-weight:800;color:#1D1D1F;margin:0;">#{{ comanda.numero }}</h2>
         </div>
-        <button onclick="fecharModalCheckout()" class="p-2 rounded-xl transition-all"
-                style="color:#93c5fd;background:rgba(255,255,255,0.12);"
-                onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.color='white';"
-                onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.color='#93c5fd';">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="fecharModalCheckout()"
+                style="width:32px;height:32px;border-radius:50%;border:none;background:#F5F5F7;color:#8E8E93;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+                onmouseover="this.style.background='#EBEBEB'"
+                onmouseout="this.style.background='#F5F5F7'">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <div class="mt-3 grid grid-cols-2 gap-3 relative z-10">
-        <div>
-          <p class="text-xs" style="color:#93c5fd;">Total</p>
-          <p class="text-2xl font-black" style="color:white;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:#F5F5F7;border-radius:12px;padding:12px 14px;">
+          <p style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 3px;">Total</p>
+          <p style="font-size:20px;font-weight:800;color:#1D1D1F;margin:0;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
         </div>
-        <div>
-          <p class="text-xs" style="color:#93c5fd;">Restante</p>
-          <p class="text-2xl font-black" id="hdr-restante" style="color:#fde68a;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
+        <div style="background:#F5F5F7;border-radius:12px;padding:12px 14px;">
+          <p style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 3px;">Restante</p>
+          <p id="hdr-restante" style="font-size:20px;font-weight:800;color:#FF9500;margin:0;">R$ {{ comanda.total_amount|floatformat:2 }}</p>
         </div>
       </div>
     </div>
 
     <!-- ═══ STEP 1 – Escolha do método ═══ -->
-    <div id="step-1" style="padding:20px 20px 32px 20px;">
+    <div id="step-1" style="padding:20px 20px 28px 20px;">
 
       <!-- Lista de pagamentos adicionados -->
-      <div id="payments-list" class="mb-4 space-y-2 hidden"></div>
+      <div id="payments-list" class="hidden" style="margin-bottom:16px;gap:8px;"></div>
 
       <!-- Botão Finalizar (aparece quando restante = 0) -->
       <button id="btn-finalizar" onclick="finalizarPagamento()"
-              class="hidden w-full py-3 mb-3 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg"
-              style="background:linear-gradient(135deg,#16a34a,#15803d);"
-              onmouseover="this.style.background='linear-gradient(135deg,#15803d,#166534)';"
-              onmouseout="this.style.background='linear-gradient(135deg,#16a34a,#15803d)';">
-        ✓ Finalizar Pagamento
+              class="hidden"
+              style="width:100%;height:48px;border-radius:12px;border:none;background:#34C759;color:white;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:0.2px;">
+        Finalizar Pagamento
       </button>
 
-      <!-- Botão Salvar Parcial (aparece quando há pagamento > 0 e ainda resta saldo) -->
+      <!-- Botão Salvar Parcial -->
       <button id="btn-salvar-parcial" onclick="registrarPagamentoParcial()"
-              class="hidden w-full py-3 mb-4 rounded-2xl font-bold text-sm uppercase tracking-wide text-white shadow-lg"
-              style="background:linear-gradient(135deg,#2563eb,#1d4ed8);"
-              onmouseover="this.style.background='linear-gradient(135deg,#1d4ed8,#1e40af)';"
-              onmouseout="this.style.background='linear-gradient(135deg,#2563eb,#1d4ed8)';">
+              class="hidden"
+              style="width:100%;height:48px;border-radius:12px;border:none;background:#007AFF;color:white;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;letter-spacing:0.2px;">
         Salvar Pagamento Parcial
       </button>
 
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">
+      <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.8px;text-align:center;margin:0 0 14px;">
         <span id="lbl-metodo">Escolha o método</span>
       </p>
 
-      <!-- Grid de métodos diretos (pagam o restante todo) -->
-      <div class="grid grid-cols-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <button onclick="escolherMetodo('dinheiro')"
-                class="group py-4 px-3 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center">
-            <div class="w-10 h-10 rounded-full bg-green-200 group-hover:bg-green-300 flex items-center justify-center mb-2 transition-colors">
-              <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <span class="text-xs font-bold text-green-800">Dinheiro</span>
+      <!-- Grid de métodos diretos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+        <button onclick="escolherMetodo('dinheiro')" class="ck-method-btn">
+          <div style="width:44px;height:44px;border-radius:50%;background:#E8F9EE;display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" fill="none" stroke="#34C759" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
           </div>
+          <span style="font-size:13px;font-weight:600;color:#1D1D1F;">Dinheiro</span>
         </button>
 
-        <button onclick="escolherMetodo('pix')"
-                class="group py-4 px-3 rounded-2xl border-2 border-teal-200 hover:border-teal-400 bg-gradient-to-br from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center">
-            <div class="w-10 h-10 rounded-full bg-teal-200 group-hover:bg-teal-300 flex items-center justify-center mb-2 transition-colors">
-              <svg class="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-              </svg>
-            </div>
-            <span class="text-xs font-bold text-teal-800">PIX</span>
+        <button onclick="escolherMetodo('pix')" class="ck-method-btn">
+          <div style="width:44px;height:44px;border-radius:50%;background:#E5F5FA;display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" fill="none" stroke="#00C7BE" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
           </div>
+          <span style="font-size:13px;font-weight:600;color:#1D1D1F;">PIX</span>
         </button>
 
-        <button onclick="escolherMetodo('cartao_credito')"
-                class="group py-4 px-3 rounded-2xl border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center">
-            <div class="w-10 h-10 rounded-full bg-blue-200 group-hover:bg-blue-300 flex items-center justify-center mb-2 transition-colors">
-              <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-              </svg>
-            </div>
-            <span class="text-xs font-bold text-blue-800">Crédito</span>
+        <button onclick="escolherMetodo('cartao_credito')" class="ck-method-btn">
+          <div style="width:44px;height:44px;border-radius:50%;background:#EAF0FF;display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" fill="none" stroke="#007AFF" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
           </div>
+          <span style="font-size:13px;font-weight:600;color:#1D1D1F;">Crédito</span>
         </button>
 
-        <button onclick="escolherMetodo('cartao_debito')"
-                class="group py-4 px-3 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 hover:shadow-lg transition-all transform hover:scale-[1.02]">
-          <div class="flex flex-col items-center">
-            <div class="w-10 h-10 rounded-full bg-purple-200 group-hover:bg-purple-300 flex items-center justify-center mb-2 transition-colors">
-              <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-              </svg>
-            </div>
-            <span class="text-xs font-bold text-purple-800">Débito</span>
+        <button onclick="escolherMetodo('cartao_debito')" class="ck-method-btn">
+          <div style="width:44px;height:44px;border-radius:50%;background:#F3EBFF;display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" fill="none" stroke="#BF5AF2" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
           </div>
+          <span style="font-size:13px;font-weight:600;color:#1D1D1F;">Débito</span>
         </button>
 
-        <!-- PARCIAL – paga valor personalizado em qualquer método -->
+        <!-- PARCIAL -->
         <button onclick="abrirStepParcial()"
-                class="col-span-2 w-full group h-16 px-4 rounded-xl border-2 transition-all transform hover:scale-[1.01] hover:shadow-lg"
-                style="border-color:#f59e0b;background:linear-gradient(135deg,#fffbeb,#fef3c7);"
-                onmouseover="this.style.background='linear-gradient(135deg,#fef3c7,#fde68a)';"
-                onmouseout="this.style.background='linear-gradient(135deg,#fffbeb,#fef3c7)';">
-          <div class="flex items-center justify-center gap-3">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center transition-colors" style="background:#fde68a;">
-              <svg class="w-4 h-4" style="color:#92400e;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-              </svg>
-            </div>
-            <span class="text-sm font-black tracking-wide" style="color:#92400e;">PAGAMENTO PARCIAL</span>
+                style="grid-column:span 2;width:100%;height:52px;border-radius:14px;border:1.5px solid #FF9500;background:#FFFBF0;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:background .15s;"
+                onmouseover="this.style.background='#FFF3D4'"
+                onmouseout="this.style.background='#FFFBF0'">
+          <div style="width:32px;height:32px;border-radius:50%;background:#FFE5B4;display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" fill="none" stroke="#FF9500" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
           </div>
+          <span style="font-size:14px;font-weight:700;color:#CC7700;letter-spacing:0.3px;">Pagamento Parcial</span>
         </button>
+
       </div>
     </div>
 
-    <!-- ═══ STEP 2d – Dinheiro (paga o restante todo) ═══ -->
-    <div id="step-2-dinheiro" class="hidden" style="padding:20px 20px 32px 20px;">
-      <div class="flex items-center justify-between mb-4">
-        <button onclick="voltarStep1()"
-                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <!-- ═══ STEP 2d – Dinheiro ═══ -->
+    <div id="step-2-dinheiro" class="hidden" style="padding:20px 20px 28px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <button onclick="voltarStep1()" class="ck-btn-back">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
           Voltar
         </button>
-        <span class="text-xs font-bold text-green-700 bg-green-100 px-3 py-1.5 rounded-full border border-green-200 uppercase tracking-wide">Dinheiro</span>
+        <span style="font-size:12px;font-weight:700;color:#34C759;background:#E8F9EE;padding:6px 14px;border-radius:20px;border:1px solid #B3EDCA;text-transform:uppercase;letter-spacing:0.5px;">Dinheiro</span>
       </div>
 
-      <div class="mb-1">
-        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor recebido em dinheiro</label>
-        <p class="text-xs text-gray-400 mb-2">Restante: <span id="dinheiro-restante-label" class="font-bold text-gray-700"></span></p>
-        <input type="number" id="valor-recebido" oninput="calcularTroco()"
-               min="0" step="0.01" placeholder="0,00"
-               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
-        <p id="erro-valor" class="text-sm text-red-600 font-semibold mt-2 hidden">
-          Valor não pode ser zero.
-        </p>
-      </div>
+      <label style="display:block;font-size:13px;font-weight:600;color:#8E8E93;margin-bottom:6px;">Valor recebido</label>
+      <p style="font-size:12px;color:#8E8E93;margin:0 0 8px;">Restante: <span id="dinheiro-restante-label" style="font-weight:700;color:#1D1D1F;"></span></p>
+      <input type="number" id="valor-recebido" oninput="calcularTroco()"
+             min="0" step="0.01" placeholder="0,00"
+             class="no-spin ck-step-input" style="margin-bottom:6px;">
+      <p id="erro-valor" class="hidden" style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">Valor não pode ser zero.</p>
 
-      <div class="flex gap-2 my-3" id="atalhos-valores"></div>
+      <div id="atalhos-valores" style="display:flex;gap:8px;margin:12px 0;"></div>
 
-      <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-3 mb-4">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-bold text-gray-600 uppercase tracking-wide">Troco</span>
-          <span id="display-troco" class="text-xl font-black text-gray-400">R$ 0,00</span>
-        </div>
+      <div style="background:#F5F5F7;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Troco</span>
+        <span id="display-troco" style="font-size:20px;font-weight:800;color:#8E8E93;">R$ 0,00</span>
       </div>
 
       <button onclick="adicionarPagamentoDinheiro()" id="btn-add-dinheiro" disabled
-              class="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-wide transition-all"
-              style="background:#e5e7eb;color:#9ca3af;cursor:not-allowed;">
+              style="width:100%;height:48px;border-radius:12px;border:none;background:#E5E5EA;color:#C7C7CC;font-size:15px;font-weight:700;cursor:not-allowed;transition:background .15s,color .15s;">
         Confirmar Pagamento
       </button>
     </div>
 
-    <!-- ═══ STEP 2o – PIX / Crédito / Débito (paga o restante todo) ═══ -->
-    <div id="step-2-outros" class="hidden" style="padding:20px 20px 32px 20px;">
-      <div class="flex items-center justify-between mb-4">
-        <button onclick="voltarStep1()"
-                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <!-- ═══ STEP 2o – PIX / Crédito / Débito ═══ -->
+    <div id="step-2-outros" class="hidden" style="padding:20px 20px 28px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <button onclick="voltarStep1()" class="ck-btn-back">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
           Voltar
         </button>
-        <span id="metodo-label" class="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 uppercase tracking-wide"></span>
+        <span id="metodo-label" style="font-size:12px;font-weight:700;color:#1D1D1F;background:#F5F5F7;padding:6px 14px;border-radius:20px;border:1px solid #E5E5EA;text-transform:uppercase;letter-spacing:0.5px;"></span>
       </div>
 
-      <div class="mb-4">
-        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor a pagar</label>
-        <p class="text-xs text-gray-400 mb-2">Restante: <span id="outros-restante-label" class="font-bold text-gray-700"></span></p>
-        <input type="number" id="valor-outros" oninput="validarOutros()"
-               min="0.01" step="0.01" placeholder="0,00"
-               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
-        <p id="erro-outros" class="text-sm text-red-600 font-semibold mt-2 hidden">
-          Valor não pode exceder o restante.
-        </p>
-      </div>
+      <label style="display:block;font-size:13px;font-weight:600;color:#8E8E93;margin-bottom:6px;">Valor a pagar</label>
+      <p style="font-size:12px;color:#8E8E93;margin:0 0 8px;">Restante: <span id="outros-restante-label" style="font-weight:700;color:#1D1D1F;"></span></p>
+      <input type="number" id="valor-outros" oninput="validarOutros()"
+             min="0.01" step="0.01" placeholder="0,00"
+             class="no-spin ck-step-input" style="margin-bottom:6px;">
+      <p id="erro-outros" class="hidden" style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 16px;">Valor não pode exceder o restante.</p>
 
       <button onclick="adicionarPagamentoOutros()" id="btn-add-outros" disabled
-              class="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-wide transition-all"
-              style="background:#e5e7eb;color:#9ca3af;cursor:not-allowed;">
+              style="width:100%;height:48px;border-radius:12px;border:none;background:#E5E5EA;color:#C7C7CC;font-size:15px;font-weight:700;cursor:not-allowed;margin-top:16px;transition:background .15s,color .15s;">
         Confirmar Pagamento
       </button>
     </div>
 
     <!-- ═══ STEP 2p – PARCIAL: valor + escolha do método ═══ -->
-    <div id="step-2-parcial" class="hidden" style="padding:20px 20px 32px 20px;">
-      <div class="flex items-center justify-between mb-4">
-        <button onclick="voltarStep1()"
-                class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-semibold hover:bg-gray-50 px-3 py-2 rounded-lg transition-all">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div id="step-2-parcial" class="hidden" style="padding:20px 20px 28px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <button onclick="voltarStep1()" class="ck-btn-back">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
           Voltar
         </button>
-        <span class="text-xs font-bold px-3 py-1.5 rounded-full border uppercase tracking-wide"
-              style="background:#fef3c7;border-color:#f59e0b;color:#92400e;">◆ PARCIAL</span>
+        <span style="font-size:12px;font-weight:700;color:#CC7700;background:#FFFBF0;padding:6px 14px;border-radius:20px;border:1px solid #FF9500;text-transform:uppercase;letter-spacing:0.5px;">Parcial</span>
       </div>
 
-      <!-- Valor parcial -->
-      <div class="mb-4">
-        <label class="text-sm font-bold text-gray-600 mb-1 block">Valor parcial a pagar</label>
-        <p class="text-xs text-gray-400 mb-2">Restante: <span id="parcial-restante-label" class="font-bold text-gray-700"></span></p>
-        <input type="number" id="valor-parcial" oninput="validarParcial()"
-               min="0.01" step="0.01" placeholder="0,00"
-               class="no-spin w-full px-4 py-3 text-2xl font-black rounded-xl transition-all custom-input">
-        <p id="erro-parcial" class="text-sm text-red-600 font-semibold mt-2 hidden">
-          Valor deve ser maior que zero e não exceder o restante.
-        </p>
-      </div>
+      <label style="display:block;font-size:13px;font-weight:600;color:#8E8E93;margin-bottom:6px;">Valor parcial a pagar</label>
+      <p style="font-size:12px;color:#8E8E93;margin:0 0 8px;">Restante: <span id="parcial-restante-label" style="font-weight:700;color:#1D1D1F;"></span></p>
+      <input type="number" id="valor-parcial" oninput="validarParcial()"
+             min="0.01" step="0.01" placeholder="0,00"
+             class="no-spin ck-step-input" style="margin-bottom:6px;">
+      <p id="erro-parcial" class="hidden" style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">Valor deve ser maior que zero e não exceder o restante.</p>
 
-      <!-- Escolha do método para este valor parcial -->
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">Escolha o método para este valor</p>
+      <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.8px;text-align:center;margin:20px 0 12px;">Escolha o método para este valor</p>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button onclick="confirmarParcial('dinheiro')"
-                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-green-200 hover:border-green-400 bg-green-50 hover:bg-green-100 transition-all">
-          <div class="flex flex-col items-center gap-1">
-            <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="confirmarParcial('dinheiro')" class="parcial-metodo-btn ck-method-btn" style="gap:6px;padding:12px 8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#E8F9EE;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" fill="none" stroke="#34C759" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <span class="text-xs font-bold text-green-800">Dinheiro</span>
           </div>
+          <span style="font-size:12px;font-weight:600;color:#1D1D1F;">Dinheiro</span>
         </button>
 
-        <button onclick="confirmarParcial('pix')"
-                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-teal-200 hover:border-teal-400 bg-teal-50 hover:bg-teal-100 transition-all">
-          <div class="flex flex-col items-center gap-1">
-            <svg class="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="confirmarParcial('pix')" class="parcial-metodo-btn ck-method-btn" style="gap:6px;padding:12px 8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#E5F5FA;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" fill="none" stroke="#00C7BE" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
-            <span class="text-xs font-bold text-teal-800">PIX</span>
           </div>
+          <span style="font-size:12px;font-weight:600;color:#1D1D1F;">PIX</span>
         </button>
 
-        <button onclick="confirmarParcial('cartao_credito')"
-                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 transition-all">
-          <div class="flex flex-col items-center gap-1">
-            <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="confirmarParcial('cartao_credito')" class="parcial-metodo-btn ck-method-btn" style="gap:6px;padding:12px 8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#EAF0FF;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" fill="none" stroke="#007AFF" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
-            <span class="text-xs font-bold text-blue-800">Crédito</span>
           </div>
+          <span style="font-size:12px;font-weight:600;color:#1D1D1F;">Crédito</span>
         </button>
 
-        <button onclick="confirmarParcial('cartao_debito')"
-                class="parcial-metodo-btn group py-3 px-2 rounded-xl border-2 border-purple-200 hover:border-purple-400 bg-purple-50 hover:bg-purple-100 transition-all">
-          <div class="flex flex-col items-center gap-1">
-            <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="confirmarParcial('cartao_debito')" class="parcial-metodo-btn ck-method-btn" style="gap:6px;padding:12px 8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#F3EBFF;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" fill="none" stroke="#BF5AF2" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
-            <span class="text-xs font-bold text-purple-800">Débito</span>
           </div>
+          <span style="font-size:12px;font-weight:600;color:#1D1D1F;">Débito</span>
         </button>
-
       </div>
     </div>
 
+    <!-- ═══ STEP CPF – CPF/CNPJ no cupom ═══ -->
+    <div id="step-cpf" class="hidden" style="padding:28px 24px 32px 24px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#E8F9EE;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
+          <svg width="26" height="26" fill="none" stroke="#34C759" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h4 style="font-size:17px;font-weight:800;color:#1D1D1F;margin:0 0 6px;">CPF/CNPJ no cupom fiscal?</h4>
+        <p style="font-size:13px;color:#8E8E93;margin:0;">Opcional — informe o documento se o cliente solicitar</p>
+      </div>
+
+      <!-- Toggle CPF / CNPJ -->
+      <div style="display:flex;border-radius:12px;overflow:hidden;border:1.5px solid #E5E5EA;margin-bottom:16px;background:#F5F5F7;">
+        <button id="btn-tipo-cpf-caixa" onclick="trocarTipoDocCaixa('cpf')"
+          style="flex:1;height:44px;border:none;background:#007AFF;color:white;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;margin:2px;transition:background .15s;">CPF</button>
+        <button id="btn-tipo-cnpj-caixa" onclick="trocarTipoDocCaixa('cnpj')"
+          style="flex:1;height:44px;border:none;background:transparent;color:#8E8E93;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;margin:2px;transition:background .15s;">CNPJ</button>
+      </div>
+
+      <input type="text" id="cpf-checkout-input" placeholder="000.000.000-00"
+        inputmode="numeric"
+        class="ck-step-input"
+        style="text-align:center;font-size:20px;letter-spacing:0.08em;margin-bottom:20px;"
+        oninput="mascararDocCaixa(this)"
+        onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)';"
+        onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none';">
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="pularCpfCheckout()"
+          style="flex:1;height:48px;border-radius:12px;border:1.5px solid #D1D1D6;background:white;color:#8E8E93;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='#F5F5F7'"
+          onmouseout="this.style.background='white'">
+          Pular
+        </button>
+        <button onclick="confirmarCpfCheckout()"
+          style="flex:1;height:48px;border-radius:12px;border:none;background:#34C759;color:white;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .15s;"
+          onmouseover="this.style.opacity='0.88'"
+          onmouseout="this.style.opacity='1'">
+          Confirmar
+        </button>
+      </div>
     </div>
 
+    </div><!-- fim checkout-content -->
+
     <!-- ═══ STEP 3 – Sucesso ═══ -->
-    <div id="step-3" class="hidden w-full max-w-sm mx-auto my-10 bg-white rounded-3xl border border-gray-100 shadow-2xl p-8 text-center">
-      <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
-        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <div id="step-3" class="hidden" style="padding:48px 32px;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:50%;background:#E8F9EE;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <svg width="36" height="36" fill="none" stroke="#34C759" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
         </svg>
       </div>
-      <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide">PAGAMENTO REALIZADO COM SUCESSO</h3>
+      <h3 style="font-size:18px;font-weight:800;color:#1D1D1F;margin:0 0 6px;">Pagamento Realizado</h3>
+      <p style="font-size:14px;color:#8E8E93;margin:0;">Comanda #{{ comanda.numero }} fechada com sucesso</p>
     </div>
 
   </div><!-- fim do card -->
@@ -374,12 +394,14 @@
     }, 2000);
   }
 
+  var _tipoDocCaixa = 'cpf';
+
   function mostrarStep(step) {
-    ['step-1','step-2-dinheiro','step-2-outros','step-2-parcial','step-3'].forEach(function(id){
+    ['step-1','step-2-dinheiro','step-2-outros','step-2-parcial','step-cpf','step-3'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
-    var m = {1:'step-1','2d':'step-2-dinheiro','2o':'step-2-outros','2p':'step-2-parcial',3:'step-3'};
+    var m = {1:'step-1','2d':'step-2-dinheiro','2o':'step-2-outros','2p':'step-2-parcial','cpf':'step-cpf',3:'step-3'};
     var el = document.getElementById(m[step]);
     if (el) el.classList.remove('hidden');
   }
@@ -395,7 +417,7 @@
     var hdr = document.getElementById('hdr-restante');
     if (hdr) {
       hdr.textContent = 'R$ ' + fmtBR(state.restante);
-      hdr.style.color = state.restante <= 0.009 ? '#86efac' : '#fde68a';
+      hdr.style.color = state.restante <= 0.009 ? '#34C759' : '#FF9500';
     }
     var lbl = document.getElementById('lbl-metodo');
     if (lbl) lbl.textContent = state.restante <= 0.009 ? 'Pagamento completo ✓' : 'Escolha o método';
@@ -417,12 +439,12 @@
     if (state.payments.length === 0) { container.classList.add('hidden'); container.innerHTML=''; return; }
     container.classList.remove('hidden');
     container.innerHTML = state.payments.map(function(p, i){
-      return '<div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">'
-        + '<span class="text-sm font-bold text-gray-700">' + p.label + '</span>'
-        + '<div class="flex items-center gap-2">'
-        + '<span class="text-sm font-black text-gray-800">R$ ' + fmtBR(p.amount) + '</span>'
-        + '<button type="button" onclick="removerPagamento('+i+')" class="text-red-400 hover:text-red-600 transition-colors">'
-        + '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>'
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:#F5F5F7;border-radius:12px;padding:12px 14px;">'
+        + '<span style="font-size:14px;font-weight:600;color:#1D1D1F;">' + p.label + '</span>'
+        + '<div style="display:flex;align-items:center;gap:10px;">'
+        + '<span style="font-size:14px;font-weight:800;color:#1D1D1F;">R$ ' + fmtBR(p.amount) + '</span>'
+        + '<button type="button" onclick="removerPagamento('+i+')" style="width:28px;height:28px;border-radius:50%;border:none;background:#FFE5E5;color:#FF3B30;cursor:pointer;display:flex;align-items:center;justify-content:center;">'
+        + '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>'
         + '</button></div></div>';
     }).join('');
   }
@@ -537,18 +559,18 @@
     if (trocoEl) {
       var t = Math.max(0, recebido - state.restante);
       trocoEl.textContent = 'R$ ' + fmtBR(t);
-      trocoEl.style.color = t > 0 ? '#16a34a' : '#9ca3af';
+      trocoEl.style.color = t > 0 ? '#34C759' : '#8E8E93';
     }
     if (btnEl) {
       if (!invalid) {
         btnEl.disabled = false;
-        btnEl.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+        btnEl.style.background = '#34C759';
         btnEl.style.color = '#ffffff';
         btnEl.style.cursor = 'pointer';
       } else {
         btnEl.disabled = true;
-        btnEl.style.background = '#e5e7eb';
-        btnEl.style.color = '#9ca3af';
+        btnEl.style.background = '#E5E5EA';
+        btnEl.style.color = '#C7C7CC';
         btnEl.style.cursor = 'not-allowed';
       }
     }
@@ -565,13 +587,13 @@
     if (btnEl) {
       if (!invalid) {
         btnEl.disabled = false;
-        btnEl.style.background = 'linear-gradient(135deg,#2563eb,#1d4ed8)';
+        btnEl.style.background = '#007AFF';
         btnEl.style.color = '#ffffff';
         btnEl.style.cursor = 'pointer';
       } else {
         btnEl.disabled = true;
-        btnEl.style.background = '#e5e7eb';
-        btnEl.style.color = '#9ca3af';
+        btnEl.style.background = '#E5E5EA';
+        btnEl.style.color = '#C7C7CC';
         btnEl.style.cursor = 'not-allowed';
       }
     }
@@ -636,8 +658,8 @@
     }
   };
 
-  window.finalizarPagamento = async function() {
-    if (state.restante > 0.009) return;
+  // Chamado após o step CPF — faz a requisição real de finalização
+  async function _doFinalizarPagamento(cpfCnpj) {
     var btnFin = document.getElementById('btn-finalizar');
     if (btnFin) { btnFin.disabled = true; btnFin.style.opacity = '0.5'; btnFin.style.pointerEvents = 'none'; }
     setLoading(true);
@@ -646,6 +668,7 @@
     var payload = {
       payments: state.payments.map(function(p){return {method:p.method,amount:p.amount};}),
       change_amount: parseFloat(troco.toFixed(2)),
+      cpf_cnpj: cpfCnpj || '',
     };
     try {
       var resp = await fetch(FINALIZE_URL, {
@@ -657,6 +680,7 @@
       if (!ct.includes('application/json')) {
         setLoading(false);
         alert('Erro: resposta inesperada (' + resp.status + '). Verifique permissões.');
+        if (btnFin) { btnFin.disabled = false; btnFin.style.opacity = ''; btnFin.style.pointerEvents = ''; }
         return;
       }
       var result = await resp.json();
@@ -676,6 +700,66 @@
       if (btnFin) { btnFin.disabled = false; btnFin.style.opacity = ''; btnFin.style.pointerEvents = ''; }
       alert('Erro de conexão: ' + e.message);
     }
+  }
+
+  // Botão "Finalizar Pagamento" → agora abre o step CPF antes de finalizar
+  window.finalizarPagamento = function() {
+    if (state.restante > 0.009) return;
+    _tipoDocCaixa = 'cpf';
+    var inp = document.getElementById('cpf-checkout-input');
+    if (inp) { inp.value = ''; inp.placeholder = '000.000.000-00'; }
+    var bCpf = document.getElementById('btn-tipo-cpf-caixa');
+    var bCnpj = document.getElementById('btn-tipo-cnpj-caixa');
+    if (bCpf)  { bCpf.style.background  = '#007AFF'; bCpf.style.color  = 'white'; }
+    if (bCnpj) { bCnpj.style.background = 'transparent'; bCnpj.style.color = '#8E8E93'; }
+    mostrarStep('cpf');
+  };
+
+  // Alterna CPF ↔ CNPJ no step CPF
+  window.trocarTipoDocCaixa = function(tipo) {
+    _tipoDocCaixa = tipo;
+    var inp = document.getElementById('cpf-checkout-input');
+    var bCpf = document.getElementById('btn-tipo-cpf-caixa');
+    var bCnpj = document.getElementById('btn-tipo-cnpj-caixa');
+    if (inp) { inp.value = ''; inp.placeholder = tipo === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'; }
+    if (tipo === 'cpf') {
+      if (bCpf)  { bCpf.style.background  = '#007AFF'; bCpf.style.color  = 'white'; }
+      if (bCnpj) { bCnpj.style.background = 'transparent'; bCnpj.style.color = '#8E8E93'; }
+    } else {
+      if (bCnpj) { bCnpj.style.background = '#007AFF'; bCnpj.style.color = 'white'; }
+      if (bCpf)  { bCpf.style.background  = 'transparent'; bCpf.style.color  = '#8E8E93'; }
+    }
+    if (inp) inp.focus();
+  };
+
+  // Máscara automática CPF/CNPJ
+  window.mascararDocCaixa = function(input) {
+    var v = input.value.replace(/\D/g, '');
+    if (_tipoDocCaixa === 'cpf') {
+      v = v.slice(0, 11);
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+      v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+    } else {
+      v = v.slice(0, 14);
+      v = v.replace(/(\d{2})(\d)/, '$1.$2');
+      v = v.replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      v = v.replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4');
+      v = v.replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+    }
+    input.value = v;
+  };
+
+  // Pular CPF → finaliza sem documento
+  window.pularCpfCheckout = function() {
+    _doFinalizarPagamento('');
+  };
+
+  // Confirmar CPF → finaliza com documento
+  window.confirmarCpfCheckout = function() {
+    var inp = document.getElementById('cpf-checkout-input');
+    var doc = inp ? inp.value.trim() : '';
+    _doFinalizarPagamento(doc);
   };
 
   /* ─── atalhos de valor (dinheiro) ─── */
@@ -689,7 +773,7 @@
     unique.forEach(function(v){
       var b = document.createElement('button');
       b.type='button';
-      b.className='flex-1 py-2 text-sm font-bold rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all';
+      b.style.cssText='flex:1;padding:8px 4px;font-size:13px;font-weight:600;border-radius:10px;border:1.5px solid #E5E5EA;background:#F5F5F7;color:#1D1D1F;cursor:pointer;';
       b.textContent='R$ '+fmtBR(v);
       b.onclick=function(){
         var inp=document.getElementById('valor-recebido');

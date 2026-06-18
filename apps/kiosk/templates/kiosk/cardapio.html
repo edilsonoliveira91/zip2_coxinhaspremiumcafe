@@ -488,15 +488,82 @@
   <p style="color:#ea8828;font-size:72px;font-weight:900;margin:0;" id="tela-mesa-numero"></p>
 </div>
 
-<!-- Modal Confirmação Fechamento -->
-<div id="modal-fechamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:24px;padding:32px 28px;width:90%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
-    <p style="font-size:40px;margin:0 0 12px;">🧾</p>
-    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 8px;">Fechar a conta?</h3>
-    <p style="font-size:14px;color:#9a8070;margin:0 0 24px;">Você será direcionado ao caixa para efetuar o pagamento.</p>
+<!-- ── MODAL PAGAMENTO (passo 1/3) ───────────────────────────── -->
+<div id="modal-pagamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:28px 24px;width:90%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,0.45);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <p style="font-size:36px;margin:0 0 8px;">💳</p>
+      <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 4px;">Como vai pagar?</h3>
+      <p style="font-size:13px;color:#9a8070;margin:0;">Escolha a forma de pagamento desejada</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <button onclick="selecionarPagamento('dinheiro')" style="display:flex;align-items:center;gap:16px;width:100%;height:64px;padding:0 20px;border-radius:16px;border:2px solid #f0e8e0;background:white;cursor:pointer;font-size:18px;font-weight:700;color:#1a0a00;text-align:left;">
+        <span style="font-size:28px;width:38px;text-align:center;flex-shrink:0;">💵</span> Dinheiro
+      </button>
+      <button onclick="selecionarPagamento('pix')" style="display:flex;align-items:center;gap:16px;width:100%;height:64px;padding:0 20px;border-radius:16px;border:2px solid #f0e8e0;background:white;cursor:pointer;font-size:18px;font-weight:700;color:#1a0a00;text-align:left;">
+        <span style="font-size:28px;width:38px;text-align:center;flex-shrink:0;">📱</span> PIX
+      </button>
+      <button onclick="selecionarPagamento('cartao_debito')" style="display:flex;align-items:center;gap:16px;width:100%;height:64px;padding:0 20px;border-radius:16px;border:2px solid #f0e8e0;background:white;cursor:pointer;font-size:18px;font-weight:700;color:#1a0a00;text-align:left;">
+        <span style="font-size:28px;width:38px;text-align:center;flex-shrink:0;">💳</span> Cartão de Débito
+      </button>
+      <button onclick="selecionarPagamento('cartao_credito')" style="display:flex;align-items:center;gap:16px;width:100%;height:64px;padding:0 20px;border-radius:16px;border:2px solid #f0e8e0;background:white;cursor:pointer;font-size:18px;font-weight:700;color:#1a0a00;text-align:left;">
+        <span style="font-size:28px;width:38px;text-align:center;flex-shrink:0;">💳</span> Cartão de Crédito
+      </button>
+      <button onclick="selecionarPagamento('voucher')" style="display:flex;align-items:center;gap:16px;width:100%;height:64px;padding:0 20px;border-radius:16px;border:2px solid #f0e8e0;background:white;cursor:pointer;font-size:18px;font-weight:700;color:#1a0a00;text-align:left;">
+        <span style="font-size:28px;width:38px;text-align:center;flex-shrink:0;">🎫</span> Voucher
+      </button>
+    </div>
+    <button onclick="cancelarFechamento()" style="width:100%;height:48px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
+<!-- ── MODAL CPF/CNPJ (passo 2/3) ────────────────────────────── -->
+<div id="modal-cpf-cnpj" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:310;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:32px 28px;width:90%;max-width:460px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+    <p style="font-size:40px;margin:0 0 12px;">📄</p>
+    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 8px;">CPF ou CNPJ no cupom?</h3>
+    <p style="font-size:14px;color:#9a8070;margin:0 0 20px;">Deseja incluir um documento no cupom fiscal?</p>
+    <div style="display:flex;gap:0;margin-bottom:16px;border-radius:14px;overflow:hidden;border:2px solid #f0e8e0;">
+      <button id="btn-tipo-cpf" onclick="selecionarTipoDoc('cpf')"
+        style="flex:1;height:48px;border:none;background:#ea8828;color:white;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.15s;">CPF</button>
+      <button id="btn-tipo-cnpj" onclick="selecionarTipoDoc('cnpj')"
+        style="flex:1;height:48px;border:none;background:#f0e8e0;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.15s;">CNPJ</button>
+    </div>
+    <input type="text" id="input-cpf-cnpj" placeholder="000.000.000-00"
+      inputmode="numeric"
+      style="width:100%;height:56px;border-radius:14px;border:2px solid #f0e8e0;font-size:20px;font-weight:700;text-align:center;color:#1a0a00;outline:none;margin-bottom:20px;font-family:inherit;letter-spacing:0.05em;"
+      oninput="mascararDocumento(this)"
+      onfocus="this.style.borderColor='#ea8828'"
+      onblur="this.style.borderColor='#f0e8e0'">
     <div style="display:flex;gap:12px;">
-      <button onclick="cancelarFechamento()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Não, voltar</button>
-      <button onclick="executarFechamento()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#b91c1c,#7f1d1d);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(185,28,28,0.4);">Sim, fechar</button>
+      <button onclick="pularCpfCnpj()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Não, obrigado</button>
+      <button onclick="confirmarComCpfCnpj()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#ea8828,#d4600a);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(234,136,40,0.4);">Próximo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL CONFIRMAÇÃO FINAL (passo 3/3) ───────────────────── -->
+<div id="modal-fechamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:320;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:28px 24px;width:90%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+    <p style="font-size:36px;margin:0 0 12px;">🧾</p>
+    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 16px;">Confirmar fechamento</h3>
+    <div style="background:#f5f0eb;border-radius:16px;padding:16px;margin-bottom:20px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e8ddd5;">
+        <span style="font-size:13px;color:#9a8070;font-weight:600;">Total da conta</span>
+        <span id="conf-total" style="font-size:20px;font-weight:800;color:#d4600a;">R$ 0,00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e8ddd5;">
+        <span style="font-size:13px;color:#9a8070;font-weight:600;">Pagamento</span>
+        <span id="conf-pagamento" style="font-size:15px;font-weight:700;color:#1a0a00;">—</span>
+      </div>
+      <div id="conf-doc-row" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:#9a8070;font-weight:600;">Doc. Fiscal</span>
+        <span id="conf-doc" style="font-size:14px;font-weight:700;color:#1a0a00;font-family:monospace;letter-spacing:0.04em;">—</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button onclick="cancelarFechamento()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="executarFechamentoFinal()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#b91c1c,#7f1d1d);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(185,28,28,0.4);">✓ Confirmar</button>
     </div>
   </div>
 </div>
@@ -1032,21 +1099,132 @@ function fecharVerConta() {
   document.getElementById('overlay-conta').classList.remove('open');
 }
 
-// ── Fechar Conta ───────────────────────────────────────────
+// ── Fechar Conta — fluxo 3 etapas ──────────────────────────
+const _PAGAMENTO_INFO = {
+  dinheiro:       { label: 'Dinheiro',         emoji: '💵' },
+  pix:            { label: 'PIX',              emoji: '📱' },
+  cartao_debito:  { label: 'Cartão de Débito', emoji: '💳' },
+  cartao_credito: { label: 'Cartão de Crédito',emoji: '💳' },
+  voucher:        { label: 'Voucher',           emoji: '🎫' },
+};
+
+let _pagamentoSelecionado = { metodo: '', label: '', emoji: '' };
+let _cpfCnpjFinal = '';
+let _totalContaAtual = 'R$ 0,00';
+let _tipoDocAtual = 'cpf';
+
+// Etapa 0: botão "Fechar conta" no drawer → abre modal de pagamento
 function confirmarFechamento() {
-  const modal = document.getElementById('modal-fechamento');
-  modal.style.display = 'flex';
-}
-
-function cancelarFechamento() {
-  document.getElementById('modal-fechamento').style.display = 'none';
-}
-
-async function executarFechamento() {
-  document.getElementById('modal-fechamento').style.display = 'none';
+  const totalEl = document.getElementById('conta-total');
+  _totalContaAtual = totalEl ? totalEl.textContent : 'R$ 0,00';
   fecharVerConta();
-  // Sinaliza para o dashboard que a mesa está aguardando caixa
-  try { await fetch(URL_FECHAR, { method: 'POST', headers: { 'X-CSRFToken': CSRF } }); } catch(e) {}
+  _pagamentoSelecionado = { metodo: '', label: '', emoji: '' };
+  _cpfCnpjFinal = '';
+  document.getElementById('modal-pagamento').style.display = 'flex';
+}
+
+// Fecha todos os modais e cancela o fluxo
+function cancelarFechamento() {
+  document.getElementById('modal-pagamento').style.display = 'none';
+  document.getElementById('modal-cpf-cnpj').style.display = 'none';
+  document.getElementById('modal-fechamento').style.display = 'none';
+}
+
+// Etapa 1: escolha de pagamento → abre modal CPF/CNPJ
+function selecionarPagamento(metodo) {
+  var info = _PAGAMENTO_INFO[metodo] || { label: metodo, emoji: '' };
+  _pagamentoSelecionado = { metodo: metodo, label: info.label, emoji: info.emoji };
+  document.getElementById('modal-pagamento').style.display = 'none';
+  // Reseta o modal CPF/CNPJ para estado inicial (CPF selecionado)
+  _tipoDocAtual = 'cpf';
+  var inp = document.getElementById('input-cpf-cnpj');
+  if (inp) { inp.value = ''; inp.placeholder = '000.000.000-00'; }
+  var bCpf = document.getElementById('btn-tipo-cpf');
+  var bCnpj = document.getElementById('btn-tipo-cnpj');
+  if (bCpf)  { bCpf.style.background  = '#ea8828'; bCpf.style.color  = 'white'; }
+  if (bCnpj) { bCnpj.style.background = '#f0e8e0'; bCnpj.style.color = '#9a8070'; }
+  document.getElementById('modal-cpf-cnpj').style.display = 'flex';
+}
+
+// Troca CPF ↔ CNPJ no modal
+function selecionarTipoDoc(tipo) {
+  _tipoDocAtual = tipo;
+  var inp  = document.getElementById('input-cpf-cnpj');
+  var bCpf = document.getElementById('btn-tipo-cpf');
+  var bCnpj= document.getElementById('btn-tipo-cnpj');
+  if (inp) { inp.value = ''; }
+  if (tipo === 'cpf') {
+    if (inp)  inp.placeholder = '000.000.000-00';
+    if (bCpf)  { bCpf.style.background  = '#ea8828'; bCpf.style.color  = 'white'; }
+    if (bCnpj) { bCnpj.style.background = '#f0e8e0'; bCnpj.style.color = '#9a8070'; }
+  } else {
+    if (inp)  inp.placeholder = '00.000.000/0000-00';
+    if (bCnpj) { bCnpj.style.background = '#ea8828'; bCnpj.style.color = 'white'; }
+    if (bCpf)  { bCpf.style.background  = '#f0e8e0'; bCpf.style.color  = '#9a8070'; }
+  }
+  if (inp) inp.focus();
+}
+
+// Máscara automática CPF / CNPJ
+function mascararDocumento(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (_tipoDocAtual === 'cpf') {
+    v = v.slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+  } else {
+    v = v.slice(0, 14);
+    v = v.replace(/(\d{2})(\d)/, '$1.$2');
+    v = v.replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4');
+    v = v.replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+  }
+  input.value = v;
+}
+
+// Etapa 2a: pula CPF/CNPJ → vai para confirmação
+function pularCpfCnpj() {
+  _cpfCnpjFinal = '';
+  document.getElementById('modal-cpf-cnpj').style.display = 'none';
+  _abrirConfirmacaoFinal();
+}
+
+// Etapa 2b: confirma CPF/CNPJ → vai para confirmação
+function confirmarComCpfCnpj() {
+  _cpfCnpjFinal = document.getElementById('input-cpf-cnpj').value.trim();
+  document.getElementById('modal-cpf-cnpj').style.display = 'none';
+  _abrirConfirmacaoFinal();
+}
+
+// Etapa 3: exibe resumo (total + pagamento + doc) para confirmação final
+function _abrirConfirmacaoFinal() {
+  document.getElementById('conf-total').textContent = _totalContaAtual;
+  document.getElementById('conf-pagamento').textContent = _pagamentoSelecionado.emoji + ' ' + _pagamentoSelecionado.label;
+  const docRow = document.getElementById('conf-doc-row');
+  const docEl  = document.getElementById('conf-doc');
+  if (_cpfCnpjFinal) {
+    docEl.textContent = _cpfCnpjFinal;
+    docRow.style.display = 'flex';
+  } else {
+    docRow.style.display = 'none';
+  }
+  document.getElementById('modal-fechamento').style.display = 'flex';
+}
+
+// Etapa 4: envia para o backend e mostra tela de conta fechada
+async function executarFechamentoFinal() {
+  document.getElementById('modal-fechamento').style.display = 'none';
+  try {
+    await fetch(URL_FECHAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        cpf_cnpj: _cpfCnpjFinal || '',
+        forma_pagamento: _pagamentoSelecionado.metodo || '',
+      }),
+    });
+  } catch(e) {}
   const tela = document.getElementById('tela-conta-fechada');
   document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
   tela.style.display = 'flex';

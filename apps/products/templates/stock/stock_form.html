@@ -4,297 +4,196 @@
 {% block title %}Registrar Entrada de Estoque{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div class="h-full overflow-y-auto" style="background:#F5F5F7;">
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <!-- Breadcrumb -->
-        <nav class="flex mb-6" aria-label="Breadcrumb">
-            <ol class="inline-flex items-center space-x-1 md:space-x-3">
-                <li>
-                    <a href="{% url 'products:stock_list' %}" class="text-gray-500 hover:text-orange-600 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
-                    </a>
-                </li>
-                <li>
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-gray-500 ml-1 md:ml-2 text-sm font-medium">Nova Entrada de Estoque</span>
-                    </div>
-                </li>
-            </ol>
-        </nav>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            <!-- Sidebar -->
-            <div class="lg:col-span-3 space-y-6">
-
-                <!-- Info -->
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-lg font-semibold text-gray-900">Nova Entrada</h2>
-                    </div>
-                    <div class="space-y-3">
-                        <p class="text-sm text-gray-600">Registre a chegada de produtos no estoque informando o produto, quantidade e custo unitário.</p>
-                        <div class="flex items-center space-x-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span class="text-sm text-blue-700 font-medium">Campos com * são obrigatórios</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ações Rápidas -->
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-8 h-8 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
-                    </div>
-                    <div class="space-y-3">
-                        <a href="{% url 'products:stock_list' %}" class="w-full group bg-gradient-to-r from-slate-500 to-gray-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                            </svg>
-                            <span>Ver Estoque</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Content -->
-            <div class="lg:col-span-9">
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
-
-                    <!-- Header -->
-                    <div class="p-6 border-b border-gray-100">
-                        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-                            <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mr-3">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                </svg>
-                            </div>
-                            Registrar Entrada de Estoque
-                        </h2>
-                    </div>
-
-                    <!-- Formulário -->
-                    <form method="POST">
-                        {% csrf_token %}
-
-                        <div class="p-6">
-                            <div class="space-y-8">
-
-                                <!-- Dados da Entrada -->
-                                <div class="space-y-4">
-                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
-                                        <svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                        </svg>
-                                        Dados da Entrada
-                                    </h3>
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                                        <!-- Data -->
-                                        <div class="space-y-2">
-                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                                <svg class="w-4 h-4 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                </svg>
-                                                Data de Entrada <span class="text-red-500">*</span>
-                                            </label>
-                                            {{ form.date }}
-                                            {% if form.date.errors %}
-                                                <p class="text-red-500 text-sm flex items-center">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ form.date.errors.0 }}
-                                                </p>
-                                            {% else %}
-                                                <p class="text-xs text-gray-500">Por padrão, a data de hoje</p>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Produto -->
-                                        <div class="space-y-2">
-                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                                <svg class="w-4 h-4 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                                </svg>
-                                                Produto <span class="text-red-500">*</span>
-                                            </label>
-                                            {{ form.product }}
-                                            {% if form.product.errors %}
-                                                <p class="text-red-500 text-sm flex items-center">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ form.product.errors.0 }}
-                                                </p>
-                                            {% else %}
-                                                <p class="text-xs text-gray-500">Apenas produtos ativos no sistema</p>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Sabor / Variação -->
-                                        <div class="space-y-2 md:col-span-2">
-                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                                <svg class="w-4 h-4 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h6m-6 5h10"></path>
-                                                </svg>
-                                                Sabor / Variação
-                                            </label>
-                                            {{ form.opcional_obrigatorio }}
-                                            {% if form.opcional_obrigatorio.errors %}
-                                                <p class="text-red-500 text-sm flex items-center">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ form.opcional_obrigatorio.errors.0 }}
-                                                </p>
-                                            {% else %}
-                                                <p class="text-xs text-gray-500">Opcional para controlar estoque por sabor (ex: Laranja, Uva).</p>
-                                            {% endif %}
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                <!-- Quantidades e Valores -->
-                                <div class="space-y-4">
-                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
-                                        <svg class="w-5 h-5 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Quantidade e Valor
-                                    </h3>
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                                        <!-- Quantidade -->
-                                        <div class="space-y-2">
-                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
-                                                </svg>
-                                                Quantidade <span class="text-red-500">*</span>
-                                            </label>
-                                            {{ form.quantity }}
-                                            {% if form.quantity.errors %}
-                                                <p class="text-red-500 text-sm flex items-center">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ form.quantity.errors.0 }}
-                                                </p>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Valor Unitário -->
-                                        <div class="space-y-2">
-                                            <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                                <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                </svg>
-                                                Valor Unitário (R$) <span class="text-red-500">*</span>
-                                            </label>
-                                            {{ form.unit_cost }}
-                                            {% if form.unit_cost.errors %}
-                                                <p class="text-red-500 text-sm flex items-center">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ form.unit_cost.errors.0 }}
-                                                </p>
-                                            {% else %}
-                                                <p class="text-xs text-gray-500">Custo pago por unidade nesta entrada</p>
-                                            {% endif %}
-                                        </div>
-
-
-                                    </div>
-                                </div>
-
-                                <!-- Observações -->
-                                <div class="space-y-4">
-                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center border-b border-gray-200 pb-2">
-                                        <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                                        </svg>
-                                        Observações
-                                        <span class="ml-2 text-sm font-normal text-gray-400">(opcional)</span>
-                                    </h3>
-
-                                    <div class="space-y-2">
-                                        <label class="block text-sm font-medium text-gray-700 flex items-center">
-                                            <svg class="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                            Observações
-                                        </label>
-                                        {{ form.notes }}
-                                        {% if form.notes.errors %}
-                                            <p class="text-red-500 text-sm">{{ form.notes.errors.0 }}</p>
-                                        {% else %}
-                                            <p class="text-xs text-gray-500">Ex: fornecedor, nota fiscal, lote...</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- Botões de Ação -->
-                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-4">
-                            <a href="{% url 'products:stock_list' %}"
-                               class="bg-gradient-to-r from-slate-500 to-gray-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-slate-600 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-md">
-                                Cancelar
-                            </a>
-                            <button type="submit"
-                                    class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 shadow-md">
-                                ✅ Registrar Entrada
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+      <div style="padding:20px 24px;display:flex;align-items:center;gap:14px;">
+        <a href="{% url 'products:stock_list' %}"
+           style="width:36px;height:36px;border-radius:50%;background:#F5F5F7;display:flex;align-items:center;justify-content:center;color:#8E8E93;text-decoration:none;flex-shrink:0;transition:background .15s;"
+           onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 1px;">Estoque</p>
+          <h1 style="font-size:20px;font-weight:800;color:#1D1D1F;margin:0;">Nova Entrada</h1>
         </div>
+      </div>
     </div>
+
+    <!-- Conteúdo -->
+    <div style="padding:24px;max-width:680px;margin:0 auto;">
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+
+          <!-- Seção: Dados da Entrada -->
+          <div style="padding:20px 24px;border-bottom:1px solid #F2F2F7;">
+            <h2 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 18px;">Dados da Entrada</h2>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+              <!-- Data -->
+              <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                  Data de Entrada <span style="color:#FF3B30;">*</span>
+                </label>
+                {{ form.date }}
+                {% if form.date.errors %}
+                  <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.date.errors.0 }}</p>
+                {% else %}
+                  <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Por padrão, a data de hoje</p>
+                {% endif %}
+              </div>
+
+              <!-- Produto -->
+              <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                  Produto <span style="color:#FF3B30;">*</span>
+                </label>
+                {{ form.product }}
+                {% if form.product.errors %}
+                  <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.product.errors.0 }}</p>
+                {% else %}
+                  <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Apenas produtos ativos no sistema</p>
+                {% endif %}
+              </div>
+
+              <!-- Sabor / Variação (col-span 2) -->
+              <div style="grid-column:span 2;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                  Sabor / Variação
+                </label>
+                {{ form.opcional_obrigatorio }}
+                {% if form.opcional_obrigatorio.errors %}
+                  <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.opcional_obrigatorio.errors.0 }}</p>
+                {% else %}
+                  <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Opcional — para controlar por sabor (ex: Laranja, Uva)</p>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Seção: Quantidade e Valor -->
+          <div style="padding:20px 24px;border-bottom:1px solid #F2F2F7;">
+            <h2 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 18px;">Quantidade e Valor</h2>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+              <!-- Quantidade -->
+              <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                  Quantidade <span style="color:#FF3B30;">*</span>
+                </label>
+                {{ form.quantity }}
+                {% if form.quantity.errors %}
+                  <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.quantity.errors.0 }}</p>
+                {% endif %}
+              </div>
+
+              <!-- Valor Unitário -->
+              <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                  Valor Unitário (R$) <span style="color:#FF3B30;">*</span>
+                </label>
+                {{ form.unit_cost }}
+                {% if form.unit_cost.errors %}
+                  <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.unit_cost.errors.0 }}</p>
+                {% else %}
+                  <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Custo pago por unidade nesta entrada</p>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Seção: Observações -->
+          <div style="padding:20px 24px;">
+            <h2 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 18px;">Observações <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#C7C7CC;">(opcional)</span></h2>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+              <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.notes.errors.0 }}</p>
+            {% else %}
+              <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Ex: fornecedor, nota fiscal, lote...</p>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <!-- Botões -->
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+          <a href="{% url 'products:stock_list' %}"
+             style="height:44px;padding:0 20px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;font-weight:600;color:#6E6E73;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+             onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">
+            Cancelar
+          </a>
+          <button type="submit"
+                  style="height:44px;padding:0 24px;border:none;border-radius:10px;font-size:14px;font-weight:700;color:white;background:#34C759;cursor:pointer;transition:opacity .15s;"
+                  onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            Registrar Entrada
+          </button>
+        </div>
+
+      </form>
+
+    </div><!-- fim conteúdo -->
+  </div>
 </div>
+
+<style>
+/* Apple HIG form fields */
+#id_date, #id_product, #id_opcional_obrigatorio, #id_quantity, #id_unit_cost, #id_notes {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid #D1D1D6;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1D1D1F;
+  background: white;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+#id_date:focus, #id_product:focus, #id_opcional_obrigatorio:focus,
+#id_quantity:focus, #id_unit_cost:focus, #id_notes:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+#id_notes {
+  min-height: 88px;
+  resize: vertical;
+}
+select#id_product, select#id_opcional_obrigatorio {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+</style>
 
 <script>
     const costInput = document.querySelector('[name="unit_cost"]');
-
     const productSelect = document.querySelector('[name="product"]');
     const opcionalSelect = document.querySelector('[name="opcional_obrigatorio"]');
 
     async function carregarOpcionaisPorProduto(productId, selectedValue = '') {
         if (!opcionalSelect) return;
-
         opcionalSelect.innerHTML = '<option value="">Sem sabor/variação</option>';
-
         if (!productId) return;
-
         try {
             const response = await fetch(`/products/estoque/opcionais/${productId}/`);
             if (!response.ok) return;
-
             const data = await response.json();
             (data.results || []).forEach(item => {
                 const opt = document.createElement('option');
@@ -302,10 +201,7 @@
                 opt.textContent = `${item.name} (+R$ ${Number(item.price).toFixed(2)})`;
                 opcionalSelect.appendChild(opt);
             });
-
-            if (selectedValue) {
-                opcionalSelect.value = String(selectedValue);
-            }
+            if (selectedValue) opcionalSelect.value = String(selectedValue);
         } catch (e) {
             console.error('Erro ao carregar variações do produto', e);
         }
@@ -313,35 +209,31 @@
 
     if (productSelect) {
         const selectedOnLoad = opcionalSelect ? opcionalSelect.value : '';
-        productSelect.addEventListener('change', () => {
-            carregarOpcionaisPorProduto(productSelect.value, '');
-        });
+        productSelect.addEventListener('change', () => carregarOpcionaisPorProduto(productSelect.value, ''));
         carregarOpcionaisPorProduto(productSelect.value, selectedOnLoad);
     }
-
-    
 
     function formatBRL(value) {
         const digits = value.replace(/\D/g, '');
         if (!digits) return '';
         const padded = digits.padStart(3, '0');
         const cents = padded.slice(-2);
-        const reais = (padded.slice(0, -2).replace(/^0+/, '') || '0')
-            .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        const reais = (padded.slice(0, -2).replace(/^0+/, '') || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         return reais + ',' + cents;
     }
 
-    costInput.addEventListener('input', function () {
-        const pos = this.selectionStart;
-        const before = this.value.length;
-        this.value = formatBRL(this.value);
-        const after = this.value.length;
-        this.setSelectionRange(pos + (after - before), pos + (after - before));
-    });
-
-    costInput.closest('form').addEventListener('submit', function () {
-        const raw = costInput.value.replace(/\./g, '').replace(',', '.');
-        costInput.value = raw || '0';
-    });
+    if (costInput) {
+        costInput.addEventListener('input', function () {
+            const pos = this.selectionStart;
+            const before = this.value.length;
+            this.value = formatBRL(this.value);
+            const after = this.value.length;
+            this.setSelectionRange(pos + (after - before), pos + (after - before));
+        });
+        costInput.closest('form').addEventListener('submit', function () {
+            const raw = costInput.value.replace(/\./g, '').replace(',', '.');
+            costInput.value = raw || '0';
+        });
+    }
 </script>
 {% endblock %}

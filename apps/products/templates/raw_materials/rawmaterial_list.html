@@ -4,359 +4,299 @@
 {% block title %}Matérias Primas{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-  <div class="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-10">
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div class="h-full overflow-y-auto" style="background:#F5F5F7;">
 
-    <!-- ── Cabeçalho ── -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6">
-
-      <div>
-        <!-- Breadcrumb -->
-        <div class="flex items-center gap-1.5 text-sm text-gray-400 mb-2">
-          <a href="{% url 'products:product_list' %}" class="hover:text-orange-500 transition-colors">Produtos</a>
-          <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-          </svg>
-          <span class="text-gray-600 font-medium">Matérias Primas</span>
-        </div>
-        <!-- Título -->
-        <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
-            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-            </svg>
-          </div>
-          Matérias Primas
-        </h1>
-        <p class="text-gray-500 mt-2">Gerencie os insumos e matérias primas do estoque</p>
-      </div>
-
-      <!-- Cards de estatísticas + botão -->
-      <div class="flex flex-wrap items-center gap-4">
-        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 shadow-lg">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-              <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+      <div style="padding:20px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="22" height="22" fill="none" stroke="#FF9500" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
               </svg>
             </div>
             <div>
-              <p class="text-2xl font-bold text-gray-900">{{ total }}</p>
-              <p class="text-sm text-gray-500">Cadastradas</p>
+              <h1 style="font-size:24px;font-weight:800;color:#1D1D1F;margin:0 0 2px;">Matérias Primas</h1>
+              <p style="font-size:13px;color:#8E8E93;margin:0;">Gerencie os insumos e matérias primas do estoque</p>
             </div>
           </div>
-        </div>
-
-        <a href="{% url 'products:rawmaterial_create' %}"
-           class="group bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md flex items-center gap-3 whitespace-nowrap">
-          <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-          </svg>
-          Nova Matéria Prima
-        </a>
-      </div>
-    </div>
-
-    <!-- ── Layout principal ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Sidebar -->
-      <div class="lg:col-span-3 space-y-6">
-
-        <!-- Busca e filtros -->
-        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-          <div class="flex items-center space-x-3 mb-6">
-            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"/>
-              </svg>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="background:white;border:1px solid #E5E5EA;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:20px;font-weight:800;color:#FF9500;">{{ total }}</span>
+              <span style="font-size:12px;color:#8E8E93;font-weight:500;">cadastrada{{ total|pluralize:"s" }}</span>
             </div>
-            <h2 class="text-lg font-semibold text-gray-900">Buscar</h2>
-          </div>
-
-          <form method="get" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Nome do insumo</label>
-              <input type="text" name="search" value="{{ search }}"
-                     placeholder="Ex: farinha, frango..."
-                     class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white transition-all">
-            </div>
-            <button type="submit"
-                    class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-orange-600 hover:to-amber-600 transition-all">
-              Buscar
-            </button>
-            {% if search %}
-            <a href="{% url 'products:rawmaterial_list' %}"
-               class="block w-full bg-gray-100 text-gray-600 py-3 px-4 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors text-center">
-              ✕ Limpar busca
-            </a>
-            {% endif %}
-          </form>
-        </div>
-
-        <!-- Ações rápidas -->
-        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-          <div class="flex items-center space-x-3 mb-6">
-            <div class="w-8 h-8 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
-            <h2 class="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
-          </div>
-
-          <div class="space-y-3">
             <a href="{% url 'products:rawmaterial_create' %}"
-               class="w-full group bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 rounded-2xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-3 text-sm">
-              <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+               style="height:44px;padding:0 18px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:opacity .15s;"
+               onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
               </svg>
               Nova Matéria Prima
             </a>
-            <a href="{% url 'products:product_list' %}"
-               class="w-full group bg-gradient-to-r from-slate-600 to-gray-700 text-white px-4 py-3 rounded-2xl font-semibold hover:from-slate-700 hover:to-gray-800 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-3 text-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-              </svg>
-              Voltar a Produtos
-            </a>
           </div>
         </div>
 
-      </div>
-
-      <!-- Área principal -->
-      <div class="lg:col-span-9">
-        <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
-
-          <!-- Cabeçalho da tabela -->
-          <div class="p-6 border-b border-gray-100">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-xl font-semibold text-gray-900">Lista de Insumos</h2>
-                {% if search %}
-                <p class="text-sm text-gray-500 mt-1">
-                  Resultados para: "<span class="font-medium text-gray-700">{{ search }}</span>"
-                </p>
-                {% else %}
-                <p class="text-sm text-gray-500 mt-1">{{ total }} matéria{{ total|pluralize:"s" }} prima{{ total|pluralize:"s" }} cadastrada{{ total|pluralize:"s" }}</p>
-                {% endif %}
-              </div>
-              <a href="{% url 'products:rawmaterial_create' %}"
-                 class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl text-sm font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Novo
-              </a>
-            </div>
+        <!-- Busca inline -->
+        <form method="get" style="display:flex;align-items:center;gap:8px;max-width:480px;">
+          <div style="position:relative;flex:1;">
+            <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8E8E93;" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" name="search" value="{{ search }}" placeholder="Buscar insumo..."
+                   style="width:100%;height:40px;padding:0 12px 0 36px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;font-family:inherit;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;"
+                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)';"
+                   onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none';">
           </div>
-
-          <!-- Tabela -->
-          {% if materials %}
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="bg-gray-50 border-b border-gray-100">
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome</th>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Unidade</th>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Cadastrado</th>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Operador</th>
-                  <th class="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Ações</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-50">
-                {% for mat in materials %}
-                <tr class="hover:bg-orange-50/40 transition-colors duration-150">
-
-                  <!-- Nome -->
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-9 h-9 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                        </svg>
-                      </div>
-                      <span class="font-semibold text-gray-800">{{ mat.name }}</span>
-                    </div>
-                  </td>
-
-                  <!-- Unidade -->
-                  <td class="px-6 py-4">
-                    {% if mat.unit_measure == 'kg' %}
-                      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">⚖️ kg</span>
-                    {% elif mat.unit_measure == 'litros' %}
-                      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">💧 L</span>
-                    {% elif mat.unit_measure == 'unidade' %}
-                      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">📦 un</span>
-                    {% elif mat.unit_measure == 'pacote' %}
-                      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">🛍️ pct</span>
-                    {% else %}
-                      <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200">{{ mat.get_unit_measure_display }}</span>
-                    {% endif %}
-                  </td>
-
-                  <!-- Data -->
-                  <td class="px-6 py-4 hidden sm:table-cell">
-                    <span class="text-sm text-gray-500">{{ mat.created_at|date:"d/m/Y" }}</span>
-                  </td>
-
-                  <!-- Operador -->
-                  <td class="px-6 py-4 hidden lg:table-cell">
-                    {% if mat.created_by %}
-                    <div class="flex items-center gap-2">
-                      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {{ mat.created_by.get_full_name|default:mat.created_by.username|slice:":1"|upper }}
-                      </div>
-                      <span class="text-sm text-gray-600 truncate max-w-[110px]">{{ mat.created_by.get_full_name|default:mat.created_by.username }}</span>
-                    </div>
-                    {% else %}
-                      <span class="text-gray-300 text-sm">—</span>
-                    {% endif %}
-                  </td>
-
-                  <!-- Ações -->
-                  <td class="px-6 py-4">
-                    <div class="flex items-center justify-end gap-2">
-                      <a href="{% url 'products:rawmaterial_update' mat.pk %}"
-                         class="inline-flex items-center gap-1.5 px-3 py-2 text-white rounded-xl text-xs font-semibold transition-all transform hover:scale-105" style="background: linear-gradient(to right, #10b981, #14b8a6);">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Editar
-                      </a>
-                      <button type="button"
-                              data-url="{% url 'products:rawmaterial_delete' mat.pk %}"
-                              data-name="{{ mat.name|escapejs }}"
-                              onclick="abrirModalExcluir(this.dataset.url, this.dataset.name)"
-                              class="inline-flex items-center gap-1.5 px-3 py-2 text-white rounded-xl text-xs font-semibold transition-all transform hover:scale-105" style="background: linear-gradient(to right, #ef4444, #ec4899);">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Paginação -->
-          {% if is_paginated %}
-          <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p class="text-sm text-gray-500">
-              Mostrando <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
-              de <span class="font-semibold text-gray-700">{{ paginator.count }}</span> registros
-            </p>
-            <div class="flex items-center gap-2">
-              {% if page_obj.has_previous %}
-              <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
-                 class="px-4 py-2 border border-gray-200 bg-white rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                ← Anterior
-              </a>
-              {% endif %}
-              <span class="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-sm font-bold">
-                {{ page_obj.number }} / {{ paginator.num_pages }}
-              </span>
-              {% if page_obj.has_next %}
-              <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
-                 class="px-4 py-2 border border-gray-200 bg-white rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                Próximo →
-              </a>
-              {% endif %}
-            </div>
-          </div>
+          <button type="submit"
+                  style="height:40px;padding:0 16px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;"
+                  onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Buscar</button>
+          {% if search %}
+          <a href="{% url 'products:rawmaterial_list' %}"
+             style="height:40px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-weight:600;color:#8E8E93;text-decoration:none;display:inline-flex;align-items:center;background:white;white-space:nowrap;transition:background .15s;"
+             onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">Limpar</a>
           {% endif %}
+        </form>
+      </div>
+    </div>
 
-          {% else %}
-          <!-- Estado vazio -->
-          <div class="py-20 flex flex-col items-center gap-6 text-center px-6">
-            <div class="w-24 h-24 bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl flex items-center justify-center shadow-inner">
-              <svg class="w-12 h-12 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-2xl font-semibold text-gray-800">
-                {% if search %}Nenhum resultado para "{{ search }}"{% else %}Nenhuma matéria prima cadastrada{% endif %}
-              </h3>
-              <p class="text-gray-400 mt-2">
-                {% if search %}Tente buscar por outro nome.{% else %}Adicione o primeiro insumo ao estoque.{% endif %}
-              </p>
-            </div>
-            {% if not search %}
-            <a href="{% url 'products:rawmaterial_create' %}"
-               class="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105 shadow-lg">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-              </svg>
-              Cadastrar primeiro insumo
-            </a>
+    <!-- Conteúdo -->
+    <div style="padding:24px;">
+
+      <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+
+        <!-- Card header -->
+        <div style="padding:14px 20px;border-bottom:1px solid #F2F2F7;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <h2 style="font-size:15px;font-weight:700;color:#1D1D1F;margin:0;">Lista de Insumos</h2>
+            {% if search %}
+            <p style="font-size:12px;color:#8E8E93;margin:2px 0 0;">Resultados para: "<span style="color:#1D1D1F;font-weight:600;">{{ search }}</span>"</p>
             {% endif %}
           </div>
-          {% endif %}
-
+          <a href="{% url 'products:rawmaterial_create' %}"
+             style="height:36px;padding:0 14px;background:#F5F5F7;color:#007AFF;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:background .15s;"
+             onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Novo
+          </a>
         </div>
+
+        {% if materials %}
+        <!-- Tabela -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#F5F5F7;">
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Nome</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:120px;">Unidade</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:130px;">Custo/Un</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Cadastrado</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Operador</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:140px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mat in materials %}
+              <tr style="border-top:1px solid #F2F2F7;transition:background .1s;"
+                  onmouseover="this.style.background='#F9F9FB'" onmouseout="this.style.background='white'">
+
+                <!-- Nome -->
+                <td style="padding:14px 16px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="18" height="18" fill="none" stroke="#FF9500" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                      </svg>
+                    </div>
+                    <span style="font-size:14px;font-weight:600;color:#1D1D1F;">{{ mat.name }}</span>
+                  </div>
+                </td>
+
+                <!-- Unidade -->
+                <td style="padding:14px 16px;">
+                  {% if mat.unit_measure == 'kg' %}
+                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;background:#FFF3E0;color:#CC7700;font-size:12px;font-weight:700;border:1px solid #FFD580;">kg</span>
+                  {% elif mat.unit_measure == 'litros' %}
+                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;background:#EAF0FF;color:#007AFF;font-size:12px;font-weight:700;border:1px solid #A8C8FF;">L</span>
+                  {% elif mat.unit_measure == 'unidade' %}
+                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;background:#E8F9EE;color:#34C759;font-size:12px;font-weight:700;border:1px solid #A2E8B8;">un</span>
+                  {% elif mat.unit_measure == 'pacote' %}
+                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;background:#F3EBFF;color:#BF5AF2;font-size:12px;font-weight:700;border:1px solid #D9ABFF;">pct</span>
+                  {% else %}
+                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;background:#F5F5F7;color:#6E6E73;font-size:12px;font-weight:700;">{{ mat.get_unit_measure_display }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Custo -->
+                <td style="padding:14px 16px;text-align:right;">
+                  {% if mat.unit_cost %}
+                  <span style="font-size:13px;font-weight:700;color:#1D1D1F;">R$ {{ mat.unit_cost|floatformat:4 }}</span>
+                  <span style="font-size:11px;color:#8E8E93;">/{{ mat.unit_short }}</span>
+                  {% else %}
+                  <span style="font-size:13px;color:#C7C7CC;">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Data -->
+                <td style="padding:14px 16px;">
+                  <span style="font-size:13px;color:#8E8E93;">{{ mat.created_at|date:"d/m/Y" }}</span>
+                </td>
+
+                <!-- Operador -->
+                <td style="padding:14px 16px;">
+                  {% if mat.created_by %}
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#EAF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <span style="font-size:11px;font-weight:700;color:#007AFF;">{{ mat.created_by.get_full_name|default:mat.created_by.username|slice:":1"|upper }}</span>
+                    </div>
+                    <span style="font-size:13px;color:#6E6E73;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">{{ mat.created_by.get_full_name|default:mat.created_by.username }}</span>
+                  </div>
+                  {% else %}
+                  <span style="font-size:13px;color:#C7C7CC;">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Ações -->
+                <td style="padding:14px 16px;text-align:right;">
+                  <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                    <a href="{% url 'products:rawmaterial_update' mat.pk %}"
+                       style="display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;background:#EAF0FF;color:#007AFF;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;transition:background .15s;"
+                       onmouseover="this.style.background='#D0E4FF'" onmouseout="this.style.background='#EAF0FF'">
+                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                      Editar
+                    </a>
+                    <button type="button"
+                            data-url="{% url 'products:rawmaterial_delete' mat.pk %}"
+                            data-name="{{ mat.name|escapejs }}"
+                            onclick="abrirModalExcluir(this.dataset.url, this.dataset.name)"
+                            style="display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;background:#FFE5E5;color:#FF3B30;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;"
+                            onmouseover="this.style.background='#FFCCCC'" onmouseout="this.style.background='#FFE5E5'">
+                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if is_paginated %}
+        <div style="padding:14px 20px;border-top:1px solid #F2F2F7;background:#F9F9FB;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:#8E8E93;">
+            Mostrando <strong style="color:#1D1D1F;">{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong>
+            de <strong style="color:#1D1D1F;">{{ paginator.count }}</strong> registros
+          </span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+               style="height:36px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:8px;font-size:13px;font-weight:600;color:#1D1D1F;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+               onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">Anterior</a>
+            {% endif %}
+            <span style="height:36px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:700;color:#8E8E93;display:inline-flex;align-items:center;background:#F5F5F7;">
+              {{ page_obj.number }} / {{ paginator.num_pages }}
+            </span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
+               style="height:36px;padding:0 14px;border:none;border-radius:8px;font-size:13px;font-weight:600;color:white;text-decoration:none;display:inline-flex;align-items:center;background:#007AFF;transition:opacity .15s;"
+               onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Próximo</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Estado vazio -->
+        <div style="padding:64px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+          <div style="width:64px;height:64px;border-radius:18px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;">
+            <svg width="32" height="32" fill="none" stroke="#FFB340" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            </svg>
+          </div>
+          <div>
+            <p style="font-size:17px;font-weight:700;color:#1D1D1F;margin:0 0 4px;">
+              {% if search %}Nenhum resultado para "{{ search }}"{% else %}Nenhuma matéria prima cadastrada{% endif %}
+            </p>
+            <p style="font-size:14px;color:#8E8E93;margin:0;">
+              {% if search %}Tente buscar por outro nome.{% else %}Adicione o primeiro insumo ao estoque.{% endif %}
+            </p>
+          </div>
+          {% if not search %}
+          <a href="{% url 'products:rawmaterial_create' %}"
+             style="height:44px;padding:0 24px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:7px;margin-top:4px;transition:opacity .15s;"
+             onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Cadastrar primeiro insumo
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+
       </div>
-      <!-- /col-span-9 -->
-
-    </div>
-    <!-- /grid -->
-
+    </div><!-- fim conteúdo -->
   </div>
 </div>
 
-<!-- ── Modal de exclusão ── -->
-<div id="modal-excluir" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.55);">
-  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+<!-- Modal de exclusão Apple HIG -->
+<div id="modal-excluir"
+     style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div style="background:white;border-radius:20px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid rgba(0,0,0,0.06);overflow:hidden;animation:appleModalIn 0.22s ease-out;">
 
     <!-- Header -->
-    <div class="bg-gradient-to-r from-red-500 to-pink-500 px-6 py-5 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </div>
-        <h3 class="font-bold text-white text-lg">Confirmar Exclusão</h3>
+    <div style="padding:24px 24px 0 24px;display:flex;align-items:flex-start;justify-content:space-between;">
+      <div style="width:52px;height:52px;border-radius:50%;background:#FFE5E5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="24" height="24" fill="none" stroke="#FF3B30" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
       </div>
-      <button onclick="fecharModalExcluir()" class="text-white/70 hover:text-white transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      <button onclick="fecharModalExcluir()"
+              style="width:30px;height:30px;border-radius:50%;border:none;background:#F5F5F7;color:#8E8E93;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"
+              onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
     </div>
 
     <!-- Body -->
-    <div class="px-6 py-6 space-y-4">
-      <p class="text-gray-600">Tem certeza que deseja excluir esta matéria prima? Esta ação <strong class="text-gray-900">não pode ser desfeita</strong>.</p>
-      <div class="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-        <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-        </svg>
-        <span class="font-semibold text-red-700 text-sm" id="modal-excluir-nome"></span>
+    <div style="padding:16px 24px 24px 24px;">
+      <h3 style="font-size:18px;font-weight:800;color:#1D1D1F;margin:12px 0 6px;">Excluir matéria prima?</h3>
+      <p style="font-size:14px;color:#8E8E93;margin:0 0 16px;">Esta ação <strong style="color:#1D1D1F;">não pode ser desfeita</strong>.</p>
+      <div style="background:#F5F5F7;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="15" height="15" fill="none" stroke="#FF9500" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+          </svg>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:#1D1D1F;" id="modal-excluir-nome"></span>
       </div>
     </div>
 
     <!-- Footer -->
-    <div class="px-6 pb-6 flex gap-3">
+    <div style="padding:0 24px 24px 24px;display:flex;gap:10px;">
       <button onclick="fecharModalExcluir()"
-              class="flex-1 py-3 border-2 border-gray-200 text-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 transition-colors">
+              style="flex:1;height:44px;border:1.5px solid #D1D1D6;border-radius:10px;background:white;color:#6E6E73;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;"
+              onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">
         Cancelar
       </button>
-      <form id="form-excluir" method="post" action="" class="flex-1">
+      <form id="form-excluir" method="post" action="" style="flex:1;">
         {% csrf_token %}
         <button type="submit"
-                class="w-full py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl text-sm font-bold hover:from-red-600 hover:to-pink-600 transition-all transform hover:scale-105 shadow-md">
-          Sim, excluir
+                style="width:100%;height:44px;border:none;border-radius:10px;background:#FF3B30;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;"
+                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          Excluir
         </button>
       </form>
     </div>
@@ -364,19 +304,23 @@
   </div>
 </div>
 
+<style>
+@keyframes appleModalIn {
+  from { opacity:0; transform:scale(0.96) translateY(14px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+</style>
+
 <script>
 function abrirModalExcluir(url, nome) {
   document.getElementById('modal-excluir-nome').textContent = nome;
   document.getElementById('form-excluir').action = url;
   const modal = document.getElementById('modal-excluir');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 function fecharModalExcluir() {
-  const modal = document.getElementById('modal-excluir');
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
+  document.getElementById('modal-excluir').style.display = 'none';
   document.body.style.overflow = '';
 }
 document.getElementById('modal-excluir').addEventListener('click', function(e) {

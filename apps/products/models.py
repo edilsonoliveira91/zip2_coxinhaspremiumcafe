@@ -497,6 +497,13 @@ class RawMaterial(TimeStampedModel):
         ('pacote',  'Pacote (pct)'),
     ]
 
+    UNIT_SHORT = {
+        'kg': 'kg',
+        'litros': 'L',
+        'unidade': 'un',
+        'pacote': 'pct',
+    }
+
     name = models.CharField(
         max_length=150,
         unique=True,
@@ -508,6 +515,14 @@ class RawMaterial(TimeStampedModel):
         default='kg',
         verbose_name='Unidade de Medida'
     )
+    unit_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Custo por Unidade (R$)',
+        help_text='Custo médio por kg / L / un / pct'
+    )
 
     class Meta:
         verbose_name = 'Matéria Prima'
@@ -516,3 +531,43 @@ class RawMaterial(TimeStampedModel):
 
     def __str__(self):
         return f'{self.name} ({self.get_unit_measure_display()})'
+
+    @property
+    def unit_short(self):
+        return self.UNIT_SHORT.get(self.unit_measure, self.unit_measure)
+
+
+class ProductIngredient(models.Model):
+    """Ingrediente de um produto — liga Product → RawMaterial com quantidade"""
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='ingredients',
+        verbose_name='Produto'
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.CASCADE,
+        related_name='product_usages',
+        verbose_name='Matéria Prima'
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        validators=[MinValueValidator(Decimal('0.0001'))],
+        verbose_name='Quantidade'
+    )
+
+    class Meta:
+        verbose_name = 'Ingrediente do Produto'
+        verbose_name_plural = 'Ingredientes do Produto'
+        unique_together = ['product', 'raw_material']
+        ordering = ['raw_material__name']
+
+    def __str__(self):
+        return f'{self.product.name} — {self.quantity} {self.raw_material.unit_short} de {self.raw_material.name}'
+
+    @property
+    def ingredient_cost(self):
+        return self.quantity * self.raw_material.unit_cost

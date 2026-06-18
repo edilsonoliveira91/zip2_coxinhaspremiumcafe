@@ -34,6 +34,11 @@ urlpatterns = [
     path('materia-prima/<int:pk>/editar/', views.RawMaterialUpdateView.as_view(), name='rawmaterial_update'),
     path('materia-prima/<int:pk>/excluir/', views.RawMaterialDeleteView.as_view(), name='rawmaterial_delete'),
 
+    # Receita / Ingredientes do produto
+    path('product/<int:product_pk>/ingredientes/', views.ProductIngredientListView.as_view(), name='product_ingredients'),
+    path('product/<int:product_pk>/ingredientes/<int:ingredient_pk>/delete/', views.ProductIngredientDeleteView.as_view(), name='product_ingredient_delete'),
+    path('raw-materials/search/', views.RawMaterialSearchView.as_view(), name='rawmaterial_search'),
+
     # PDF
     path('lista-produtos.pdf', views.ProdutoListaPDFView.as_view(), name='produto_lista_pdf'),
 

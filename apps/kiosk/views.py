@@ -292,13 +292,32 @@ def status_mesa(request, numero):
 def fechar_mesa(request, numero):
     """Marca a comanda da mesa como aguardando_caixa (cliente indo pagar)."""
     numero = _normalizar_numero(numero)
+
+    cpf_cnpj = ''
+    forma_pagamento = ''
+    try:
+        body = json.loads(request.body)
+        cpf_cnpj = str(body.get('cpf_cnpj', '')).strip()
+        forma_pagamento = str(body.get('forma_pagamento', '')).strip()
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        pass
+
+    FORMAS_VALIDAS = {'dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'voucher'}
+
     with transaction.atomic():
         comanda = Comanda.objects.select_for_update().filter(numero=numero, status='em_uso').first()
         if not comanda:
             # Já foi fechada (double-tap) — responde ok para não bloquear o kiosk
             return JsonResponse({'ok': True})
         comanda.status = 'aguardando_caixa'
-        comanda.save(update_fields=['status'])
+        update_fields = ['status']
+        if cpf_cnpj:
+            comanda.nfce_cpf_cliente = cpf_cnpj
+            update_fields.append('nfce_cpf_cliente')
+        if forma_pagamento in FORMAS_VALIDAS:
+            comanda.forma_pagamento_kiosk = forma_pagamento
+            update_fields.append('forma_pagamento_kiosk')
+        comanda.save(update_fields=update_fields)
     return JsonResponse({'ok': True})
 
 

@@ -101,18 +101,48 @@
                 </div>
             </div>
             <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:16px;padding:18px 20px;box-shadow:0 4px 16px rgba(0,122,255,0.25);">
-                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Saldo disponível</div>
-                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">R$&nbsp;{{ liquido_geral|floatformat:2 }}</div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Líquido acumulado (após taxas)</div>
+                {% if tipo_filtro %}
+                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                    {{ tipo_filtro|capfirst }}s — saldo filtrado
+                </div>
+                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">
+                    {% if saldo_filtrado >= 0 %}+{% else %}−{% endif %}R$&nbsp;{{ saldo_filtrado|floatformat:2 }}
+                </div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Soma dos lançamentos filtrados</div>
+                {% else %}
+                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Saldo do período</div>
+                <div style="font-size:24px;font-weight:700;color:white;letter-spacing:-0.5px;">R$&nbsp;{{ liquido_periodo|floatformat:2 }}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px;">Líquido do período (após taxas)</div>
+                <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.2);display:flex;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.4px;">Bruto</div>
+                        <div style="font-size:13px;font-weight:700;color:white;">R$&nbsp;{{ bruto_periodo|floatformat:2 }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.4px;">Taxas</div>
+                        <div style="font-size:13px;font-weight:700;color:#FFD60A;">−R$&nbsp;{{ taxa_periodo|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% else %}
         <div style="display:grid;grid-template-columns:1fr{% if a_receber %} 1fr{% endif %};gap:14px;margin-bottom:20px;">
             <div style="background:linear-gradient(145deg,#007AFF,#5AC8FA);border-radius:18px;padding:22px 26px;box-shadow:0 6px 20px rgba(0,122,255,0.22);display:flex;align-items:flex-start;justify-content:space-between;">
                 <div style="flex:1;">
+                    {% if tipo_filtro %}
+                    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">
+                        {{ tipo_filtro|capfirst }}s — saldo filtrado
+                    </div>
+                    <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">
+                        {% if saldo_filtrado >= 0 %}+{% else %}−{% endif %}R$&nbsp;{{ saldo_filtrado|floatformat:2 }}
+                    </div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Soma dos lançamentos filtrados</div>
+                    {% else %}
                     <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Saldo disponível</div>
                     <div style="font-size:34px;font-weight:700;color:white;letter-spacing:-1px;">R$&nbsp;{{ liquido_geral|floatformat:2 }}</div>
                     <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Líquido acumulado (após taxas)</div>
+                    {% endif %}
                     <!-- Breakdown taxa -->
                     <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.2);display:flex;gap:20px;flex-wrap:wrap;">
                         <div>
@@ -160,7 +190,26 @@
         {% endif %}
 
         <!-- ── FILTRO LARGURA TOTAL ── -->
-        <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <form method="get" style="background:white;border-radius:14px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <!-- Select tipo -->
+            <div style="display:flex;align-items:center;gap:7px;">
+                <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">Tipo</label>
+                <div style="position:relative;display:inline-flex;align-items:center;">
+                    <select name="tipo"
+                            style="-webkit-appearance:none;appearance:none;min-height:36px;padding:0 32px 0 10px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;background:white;cursor:pointer;"
+                            onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                            onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+                        <option value="">Todos</option>
+                        {% for val, label in tipos_lancamento %}
+                        <option value="{{ val }}" {% if tipo_filtro == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg style="position:absolute;right:9px;width:14px;height:14px;color:#8E8E93;pointer-events:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+            </div>
             <div style="display:flex;align-items:center;gap:7px;width:200px;">
                 <label style="font-size:13px;font-weight:600;color:#1D1D1F;white-space:nowrap;">De</label>
                 <input type="date" name="data_inicio" value="{{ data_inicio }}"
@@ -179,7 +228,7 @@
                     style="min-height:36px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
                 Filtrar
             </button>
-            <a href="{% url 'banks:bank_statement' bank.pk %}?data_inicio=&data_fim="
+            <a href="{% url 'banks:bank_statement' bank.pk %}"
                style="min-height:36px;padding:0 14px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
                 Ver tudo
             </a>
@@ -191,6 +240,7 @@
                 </svg>
                 PDF
             </a>
+            </div><!-- fecha div filtros -->
         </form>
 
         <!-- ── LAYOUT DUAS COLUNAS ── -->
@@ -257,9 +307,19 @@
                             {% endif %}
                         </div>
                         <div style="text-align:right;">
+                            {% if tx.taxa_tx %}
+                            <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:#34C759;">
+                                +R$&nbsp;{{ tx.valor_liquido|floatformat:2 }}
+                            </span>
+                            <div style="font-size:10px;color:#8E8E93;margin-top:2px;line-height:1.4;">
+                                Bruto R$&nbsp;{{ tx.valor|floatformat:2 }}<br>
+                                Taxa −R$&nbsp;{{ tx.taxa_tx|floatformat:2 }}
+                            </div>
+                            {% else %}
                             <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:{% if tx.is_entrada %}#34C759{% else %}#FF3B30{% endif %};">
                                 {% if tx.is_entrada %}+{% else %}−{% endif %}R$&nbsp;{{ tx.valor|floatformat:2 }}
                             </span>
+                            {% endif %}
                         </div>
                         {% if can_change or can_del_tx %}
                         <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
@@ -361,7 +421,7 @@
 
                         <!-- Conciliar -->
                         <div style="text-align:center;">
-                            <button onclick="conciliar({{ t.pk }}, this)"
+                            <button onclick="abrirModalConciliar({{ t.pk }}, '{{ t.valor|floatformat:2 }}')"
                                     style="min-height:32px;padding:0 10px;background:#34C759;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;"
                                     onmouseover="this.style.background='#2AA34A'" onmouseout="this.style.background='#34C759'">
                                 Conciliar
@@ -467,7 +527,8 @@
                 <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Valor do pagamento</label>
                 <div style="position:relative;">
                     <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:500;color:#8E8E93;pointer-events:none;">R$</span>
-                    <input type="number" name="valor" step="0.01" min="0.01" required placeholder="0,00"
+                    <input type="text" inputmode="decimal" name="valor" required placeholder="0,00"
+                           class="moeda-brl" oninput="mascaraMoeda(this)"
                            style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px 0 40px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;"
                            onfocus="this.style.borderColor='#FF3B30';this.style.boxShadow='0 0 0 3px rgba(255,59,48,0.12)'"
                            onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
@@ -580,7 +641,8 @@
                 </div>
                 <div>
                     <label style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Valor (R$)</label>
-                    <input id="editTxValor" type="number" name="valor" step="0.01" min="0.01" required
+                    <input id="editTxValor" type="text" inputmode="decimal" name="valor" required
+                           class="moeda-brl" oninput="mascaraMoeda(this)"
                            style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;"
                            onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
                            onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
@@ -749,6 +811,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function abrirEditarTx(pk, descricao, valor, data, observacao) {
+    valor = formatarMoeda(parseFloat(valor));
     document.getElementById('formEditarTx').action = "{% url 'banks:tx_edit' bank.pk 0 %}".replace('/0/', '/' + pk + '/');
     document.getElementById('editTxDescricao').value = descricao;
     document.getElementById('editTxValor').value = valor;
@@ -763,27 +826,149 @@ function abrirExcluirTx(pk, descricao) {
     abrirModal('modalExcluirTx');
 }
 
-async function conciliar(pk, btn) {
-    if (!confirm('Confirmar conciliação? O valor entrará no extrato hoje.')) return;
+let _conciliarPk = null;
+let _conciliarValorTotal = null;
+
+function abrirModalConciliar(pk, valorStr) {
+    _conciliarPk = pk;
+    // converte "1.234,56" ou "1234.56" para float
+    _conciliarValorTotal = parseFloat(valorStr.replace(',', '.'));
+    const fmt = v => 'R$ ' + formatarMoeda(v);
+    document.getElementById('mconciliar-total').textContent = fmt(_conciliarValorTotal);
+    const inp = document.getElementById('mconciliar-valor');
+    inp.value = formatarMoeda(_conciliarValorTotal);
+    document.getElementById('mconciliar-resto-linha').style.display = 'none';
+    document.getElementById('mconciliar-obs').value = '';
+    document.getElementById('modalConciliar').style.display = 'flex';
+    setTimeout(() => inp.focus(), 80);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('modalConciliar').addEventListener('click', function(e) {
+        if (e.target === this) fecharModalConciliar();
+    });
+
+    // listener separado para o cálculo do restante
+    window._atualizarResto = function() {
+        const inp = document.getElementById('mconciliar-valor');
+        const v = parseFloat(desmascarar(inp.value)) || 0;
+        const resto = _conciliarValorTotal - v;
+        const linha = document.getElementById('mconciliar-resto-linha');
+        if (v > 0 && v < _conciliarValorTotal) {
+            document.getElementById('mconciliar-resto').textContent = 'R$ ' + formatarMoeda(resto);
+            linha.style.display = 'flex';
+        } else {
+            linha.style.display = 'none';
+        }
+    };
+});
+
+function fecharModalConciliar() {
+    document.getElementById('modalConciliar').style.display = 'none';
+    _conciliarPk = null;
+}
+
+async function confirmarConciliacao() {
+    const inp = document.getElementById('mconciliar-valor');
+    const valorParcial = parseFloat(desmascarar(inp.value));
+
+    if (isNaN(valorParcial) || valorParcial <= 0) {
+        inp.style.borderColor = '#FF3B30';
+        return;
+    }
+    if (valorParcial > _conciliarValorTotal) {
+        inp.style.borderColor = '#FF3B30';
+        return;
+    }
+
+    const btn = document.getElementById('mconciliar-btn');
     btn.disabled = true;
     btn.textContent = '...';
+
     try {
-        const resp = await fetch(`/financials/api/transferencia/${pk}/conciliar/`, {
+        const obs = document.getElementById('mconciliar-obs').value.trim();
+        const payload = {};
+        if (valorParcial < _conciliarValorTotal) payload.valor_parcial = valorParcial;
+        if (obs) payload.observacao = obs;
+        const body = JSON.stringify(payload);
+
+        const resp = await fetch(`/financials/api/transferencia/${_conciliarPk}/conciliar/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: body,
         });
         const data = await resp.json();
         if (data.ok) {
-            const card = document.getElementById('row-transf-' + pk);
-            if (card) { card.style.opacity = '0'; setTimeout(() => { location.reload(); }, 450); }
+            fecharModalConciliar();
+            const row = document.getElementById('row-transf-' + _conciliarPk);
+            if (row) { row.style.opacity = '0'; setTimeout(() => location.reload(), 400); }
+            else location.reload();
         } else {
             alert(data.error || 'Erro ao conciliar.');
-            btn.disabled = false; btn.textContent = 'Conciliar';
+            btn.disabled = false; btn.textContent = 'Confirmar';
         }
     } catch (e) {
         alert('Erro de conexão.');
-        btn.disabled = false; btn.textContent = 'Conciliar';
+        btn.disabled = false; btn.textContent = 'Confirmar';
     }
 }
 </script>
+
+<!-- ===== MODAL CONCILIAR ===== -->
+<div id="modalConciliar" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:28px 24px;max-width:360px;width:calc(100% - 48px);box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+
+        <!-- Cabeçalho -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <div style="width:40px;height:40px;background:#E8F9EE;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg style="width:20px;height:20px;color:#34C759;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-size:17px;font-weight:700;color:#1D1D1F;">Conciliar transferência</div>
+                <div style="font-size:13px;color:#8E8E93;margin-top:1px;">Total disponível: <span id="mconciliar-total" style="font-weight:700;color:#1D1D1F;"></span></div>
+            </div>
+        </div>
+
+        <!-- Campo valor -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:13px;font-weight:600;color:#1D1D1F;display:block;margin-bottom:6px;">Valor a conciliar</label>
+            <input id="mconciliar-valor" type="text" inputmode="decimal"
+                   class="moeda-brl" oninput="mascaraMoeda(this);_atualizarResto()"
+                   style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:16px;font-weight:600;font-family:inherit;color:#1D1D1F;outline:none;"
+                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                   onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
+            <div style="font-size:12px;color:#8E8E93;margin-top:5px;">Deixe o valor total para conciliar tudo, ou informe um valor menor para conciliação parcial.</div>
+        </div>
+
+        <!-- Linha de restante (aparece só em parcial) -->
+        <div id="mconciliar-resto-linha" style="display:none;align-items:center;justify-content:space-between;background:#FFF8E7;border:1px solid #FFE4A0;border-radius:10px;padding:10px 14px;margin-bottom:16px;">
+            <span style="font-size:13px;color:#856404;font-weight:500;">Restante ficará pendente</span>
+            <span id="mconciliar-resto" style="font-size:14px;font-weight:700;color:#856404;"></span>
+        </div>
+
+        <!-- Observação -->
+        <div style="margin-bottom:20px;">
+            <label style="font-size:13px;font-weight:600;color:#1D1D1F;display:block;margin-bottom:6px;">Observação <span style="font-weight:400;color:#8E8E93;">(opcional)</span></label>
+            <textarea id="mconciliar-obs" rows="2" placeholder="Ex: conciliado parcialmente — aguardando saldo restante"
+                      style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:13px;font-family:inherit;color:#1D1D1F;outline:none;resize:none;line-height:1.5;"
+                      onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
+                      onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'"></textarea>
+        </div>
+
+        <!-- Botões -->
+        <div style="display:flex;gap:10px;">
+            <button onclick="fecharModalConciliar()"
+                    style="flex:1;min-height:44px;border:1.5px solid #E5E5EA;border-radius:12px;background:white;color:#6E6E73;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+                Cancelar
+            </button>
+            <button id="mconciliar-btn" onclick="confirmarConciliacao()"
+                    style="flex:1;min-height:44px;border:none;border-radius:12px;background:#34C759;color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
+                Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

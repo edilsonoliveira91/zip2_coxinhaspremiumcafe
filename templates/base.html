@@ -53,6 +53,40 @@
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     {% block extra_js %}{% endblock %}
 
+    <!-- Máscara monetária BRL global -->
+    <script>
+    function mascaraMoeda(el) {
+        let v = el.value.replace(/\D/g, '');
+        if (!v) { el.value = ''; return; }
+        v = parseInt(v, 10).toString();
+        while (v.length < 3) v = '0' + v;
+        const cents = v.slice(-2);
+        let reais = v.slice(0, -2).replace(/^0+/, '') || '0';
+        reais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        el.value = reais + ',' + cents;
+    }
+    function desmascarar(v) {
+        if (!v) return '0';
+        return v.replace(/\./g, '').replace(',', '.');
+    }
+    function formatarMoeda(numero) {
+        if (!numero && numero !== 0) return '';
+        const n = parseFloat(numero);
+        if (isNaN(n)) return '';
+        const s = n.toFixed(2);
+        const [intPart, dec] = s.split('.');
+        const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return intFmt + ',' + dec;
+    }
+    // Converte todos .moeda-brl antes de qualquer submit de form
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        form.querySelectorAll('.moeda-brl').forEach(function(inp) {
+            inp.value = desmascarar(inp.value);
+        });
+    }, true);
+    </script>
+
     <script>
         function toggleFullScreen() {
             if (!document.fullscreenElement) {

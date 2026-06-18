@@ -197,9 +197,13 @@ class CheckoutFinalizeView(LoginRequiredMixin, UserPassesTestMixin, View):
                     return JsonResponse({'success': False, 'message': 'Valor recebido é insuficiente!'}, status=400)
                 payments = [{'method': payment_method, 'amount': comanda.total_amount}]
 
+            cpf_cnpj = str(data.get('cpf_cnpj', '')).strip()
+
             # Fechar a comanda em transação atômica
             with transaction.atomic():
                 comanda.status = 'fechada'
+                if cpf_cnpj:
+                    comanda.nfce_cpf_cliente = cpf_cnpj
                 comanda.save()
                 comanda.pedidos.filter(status__in=['preparando', 'pronta', 'aguardando']).update(
                     status='entregue',

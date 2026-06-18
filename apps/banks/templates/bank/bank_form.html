@@ -120,12 +120,13 @@
                             <p style="font-size:12px;color:#8E8E93;margin:0 0 8px;">Será registrado como um lançamento de "Saldo Inicial" no extrato do banco.</p>
                             <div style="position:relative;">
                                 <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:500;color:#8E8E93;pointer-events:none;user-select:none;">R$</span>
-                                <input type="number"
+                                <input type="text" inputmode="decimal"
+                                       id="id_valor_inicial"
                                        name="valor_inicial"
-                                       value="{{ form.valor_inicial.value|default_if_none:'' }}"
+                                       value="{% if form.valor_inicial.value %}{{ form.valor_inicial.value|floatformat:2 }}{% endif %}"
                                        placeholder="0,00"
-                                       step="0.01"
-                                       min="0"
+                                       class="moeda-brl"
+                                       oninput="mascaraMoeda(this)"
                                        style="width:100%;box-sizing:border-box;min-height:44px;padding:0 14px 0 40px;border:1.5px solid #D1D1D6;border-radius:12px;font-size:15px;font-family:inherit;color:#1D1D1F;outline:none;transition:border-color 0.15s,box-shadow 0.15s;background:white;"
                                        onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)'"
                                        onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">

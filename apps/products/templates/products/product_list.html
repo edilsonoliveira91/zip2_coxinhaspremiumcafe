@@ -1,481 +1,408 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Produtos - Cafeteria Premium{% endblock %}
+{% block title %}Produtos{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+<div class="h-full overflow-y-auto" style="background:#F5F5F7;">
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        <!-- Header com título e ações -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
-            <!-- Título -->
-            <div class="mb-6 lg:mb-0">
-                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-                    <div class="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
-                    </div>
-                    Produtos
-                </h1>
-                <p class="text-gray-600 mt-2">Gerencie os produtos da cafeteria</p>
-            </div>
-
-            <!-- Estatísticas rápidas -->
-            <div class="flex flex-wrap gap-4">
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 shadow-lg">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-bold text-gray-900">{{ total_products }}</p>
-                            <p class="text-sm text-gray-600">Total</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 shadow-lg">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-bold text-gray-900">{{ menu_products }}</p>
-                            <p class="text-sm text-gray-600">No Cardápio</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- ── Header ── -->
+<div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+  <div style="padding:18px 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+      <div>
+        <h1 style="font-size:26px;font-weight:800;color:#1D1D1F;margin:0 0 2px;">Produtos</h1>
+        <p style="font-size:13px;color:#8E8E93;margin:0;">Gerencie os produtos da cafeteria</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <!-- Stats -->
+        <div style="background:white;border:1px solid #E5E5EA;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:16px;">
+          <div style="text-align:center;">
+            <div style="font-size:20px;font-weight:800;color:#007AFF;">{{ total_products }}</div>
+            <div style="font-size:11px;color:#8E8E93;font-weight:500;">Total</div>
+          </div>
+          <div style="width:1px;height:28px;background:#E5E5EA;"></div>
+          <div style="text-align:center;">
+            <div style="font-size:20px;font-weight:800;color:#34C759;">{{ menu_products }}</div>
+            <div style="font-size:11px;color:#8E8E93;font-weight:500;">No Cardápio</div>
+          </div>
         </div>
-
-        <!-- Container principal -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- Sidebar com filtros e ações -->
-            <div class="lg:col-span-3 space-y-6">
-                
-                <!-- Ações Rápidas -->
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-8 h-8 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-lg font-semibold text-gray-900">Ações Rápidas</h2>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <a href="{% url 'products:product_create' %}" class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            <span>Novo Produto</span>
-                        </a>
-                        
-                        <a href="#" class="w-full group bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            <span>Ver Combos</span>
-                        </a>
-                        
-                        <a href="#" class="w-full group bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            <span>Novo Combo</span>
-                        </a>
-
-                        <a href="{% url 'products:produto_lista_pdf' %}" class="w-full group bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:translate-y-0.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span>Lista de Produtos</span>
-                        </a>
-
-                        <a href="{% url 'products:produto_nfce_csv' %}" class="w-full group bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-2xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-3">
-                            <svg class="w-5 h-5 group-hover:translate-y-0.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span>Exportar NFC-e (CSV)</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Filtros -->
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl p-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
-                    </div>
-                    
-                    <form method="get" class="space-y-4">
-                        <!-- Pesquisa -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Pesquisar</label>
-                            {{ search_form.search }}
-                        </div>
-
-                        <!-- Categoria -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
-                            {{ search_form.category }}
-                        </div>
-
-                        <!-- Status do Produto -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Status do Produto</label>
-                            {{ search_form.only_active }}
-                        </div>
-
-                        <!-- Status no Cardápio -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Status no Cardápio</label>
-                            {{ search_form.show_in_menu }}
-                        </div>
-
-                        <!-- Botões -->
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-orange-600 hover:to-pink-600 transition-all">
-                                Filtrar
-                            </button>
-                            <a href="{% url 'products:product_list' %}" class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-xl text-sm font-semibold hover:bg-gray-300 transition-colors text-center">
-                                Limpar
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Área principal dos produtos -->
-            <div class="lg:col-span-9">
-                <div class="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl overflow-hidden">
-                    
-                    <!-- Header da lista -->
-                    <div class="p-6 border-b border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-xl font-semibold text-gray-900">Lista de Produtos</h2>
-                                {% if search_query %}
-                                    <p class="text-sm text-gray-500 mt-1">
-                                        Resultados para: "<span class="font-medium">{{ search_query }}</span>"
-                                    </p>
-                                {% endif %}
-
-                                <p class="text-xs text-gray-400 mt-2 mb-3 uppercase tracking-wide">Listagem de produtos por categoria</p>
-                                <div class="flex flex-wrap items-center gap-2.5 max-w-3xl">
-                                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.only_active %}only_active={{ request.GET.only_active }}&{% endif %}{% if request.GET.show_in_menu %}show_in_menu={{ request.GET.show_in_menu }}&{% endif %}"
-                                       class="rounded-xl border px-3 py-2 text-center text-xs font-semibold transition-all {% if not request.GET.category %}bg-orange-500 text-white border-orange-500 shadow-sm{% else %}bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:text-orange-600{% endif %}">
-                                        Todas
-                                    </a>
-                                    {% for cat_slug, cat_label in categories %}
-                                        <a href="?category={{ cat_slug }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}"
-                                           class="rounded-xl border px-3 py-2 text-center text-xs font-semibold transition-all {% if request.GET.category == cat_slug %}bg-orange-500 text-white border-orange-500 shadow-sm{% else %}bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:text-orange-600{% endif %}">
-                                            {{ cat_label }}
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            
-                            <!-- View Toggle -->
-                            <div class="flex items-center space-x-2 bg-gray-100 rounded-xl p-1">
-                                <button class="px-3 py-2 bg-white rounded-lg shadow-sm text-gray-700 text-sm font-medium">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                                    </svg>
-                                </button>
-                                <button class="px-3 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Grid de produtos -->
-                    <div class="p-6">
-                        {% if products %}
-                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {% for product in products %}
-                                    <div class="group relative bg-white border-2 border-gray-100 rounded-2xl p-6 hover:border-orange-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                        
-                                        <!-- Status badge -->
-                                        <div class="absolute top-4 right-4 flex items-center space-x-2">
-                                            {% if not product.is_active %}
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 border border-red-200">DESATIVADO</span>
-                                            {% endif %}
-                                            {% if product.show_in_menu %}
-                                                <div class="w-2 h-3 bg-green-400 rounded-full" title="No cardápio"></div>
-                                            {% else %}
-                                                <div class="w-3 h-3 bg-gray-400 rounded-full" title="Fora do cardápio"></div>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Imagem do produto -->
-                                        <div class="flex items-center justify-center mb-4">
-                                            {% if product.image %}
-                                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-20 h-20 object-cover rounded-2xl shadow-md">
-                                            {% else %}
-                                                <div class="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center shadow-md">
-                                                    <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                                    </svg>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Informações do produto -->
-                                        <div class="text-center mb-4">
-                                            <h3 class="font-semibold text-gray-900 text-lg mb-1">{{ product.name }}</h3>
-                                            
-                                            <!-- Categoria -->
-                                            <span class="inline-block px-3 py-1 bg-{{ product.category }}-100 text-{{ product.category }}-700 rounded-full text-xs font-medium mb-2">
-                                                {{ product.get_category_display }}
-                                            </span>
-
-                                            {% if product.description %}
-                                                <p class="text-sm text-gray-600 line-clamp-2">{{ product.description }}</p>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Preço -->
-                                        <div class="text-center mb-4">
-                                            <span class="text-2xl font-bold text-orange-600">R$ {{ product.price|floatformat:2 }}</span>
-                                        </div>
-
-                                        <!-- Status no cardápio -->
-                                        <div class="flex justify-center mb-6">
-                                            {% if product.show_in_menu %}
-                                                <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                                    <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    <span>No Cardápio</span>
-                                                </span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                                                    <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
-                                                    </svg>
-                                                    <span>Fora do Cardápio</span>
-                                                </span>
-                                            {% endif %}
-                                        </div>
-
-                                        <!-- Ações -->
-                                        <div class="flex space-x-2">
-                                            <a href="{% url 'products:product_detail' product.pk %}" class="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all transform hover:scale-105 text-center">
-                                                Ver
-                                            </a>
-                                            <a href="{% url 'products:product_update' product.pk %}" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-105 text-center">
-                                                Editar
-                                            </a>
-                                            <button type="button" onclick="deleteProduct({{ product.pk }}, '{{ product.name|escapejs }}')" class="px-3 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition-all transform hover:scale-105">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-
-                                <!-- Card para adicionar novo produto -->
-                                <a href="{% url 'products:product_create' %}" class="group border-2 border-dashed border-gray-300 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-orange-300 hover:bg-orange-50 transition-all duration-300 cursor-pointer min-h-[400px]">
-                                    <div class="w-16 h-16 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                    </div>
-                                    <h3 class="font-semibold text-gray-900 mb-2">Novo Produto</h3>
-                                    <p class="text-gray-500 text-sm text-center">Clique para cadastrar um novo produto</p>
-                                </a>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-16">
-                                <div class="w-24 h-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                                    <svg class="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                    </svg>
-                                </div>
-                                <h3 class="text-2xl font-semibold text-gray-900 mb-3">Nenhum produto encontrado</h3>
-                                {% if search_query %}
-                                    <p class="text-gray-500 mb-8">Não encontramos produtos com os filtros aplicados.</p>
-                                    <a href="{% url 'products:product_list' %}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all transform hover:scale-105">
-                                        Ver todos os produtos
-                                    </a>
-                                {% else %}
-                                    <p class="text-gray-500 mb-8">Comece adicionando seu primeiro produto.</p>
-                                    <a href="{% url 'products:product_create' %}" 
-                                      style="
-                                          display: inline-flex !important;
-                                          align-items: center !important;
-                                          justify-content: center !important;
-                                          padding: 1rem 2rem !important;
-                                          background: linear-gradient(to right, #f97316, #ec4899) !important;
-                                          color: white !important;
-                                          border-radius: 0.75rem !important;
-                                          font-size: 1.125rem !important;
-                                          font-weight: 600 !important;
-                                          text-decoration: none !important;
-                                          transition: all 0.3s ease !important;
-                                          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-                                      "
-                                      onmouseover="this.style.background='linear-gradient(to right, #ea580c, #db2777)'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 15px -3px rgba(0, 0, 0, 0.1)'"
-                                      onmouseout="this.style.background='linear-gradient(to right, #f97316, #ec4899)'; this.style.transform='scale(1)'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.1)'">
-                                        <svg style="width: 1.5rem; height: 1.5rem; margin-right: 0.75rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                        Adicionar Primeiro Produto
-                                    </a>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Paginação -->
-                    {% if is_paginated %}
-                        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-                            <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-500">
-                                    Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }} produtos
-                                </div>
-                                
-                                <div class="flex space-x-2">
-                                    {% if page_obj.has_previous %}
-                                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}" 
-                                           class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                            Anterior
-                                        </a>
-                                    {% endif %}
-
-                                    {% for num in page_obj.paginator.page_range %}
-                                        {% if page_obj.number == num %}
-                                            <span class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg text-sm font-medium">
-                                                {{ num }}
-                                            </span>
-                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                            <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}" 
-                                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                                {{ num }}
-                                            </a>
-                                        {% endif %}
-                                    {% endfor %}
-
-                                    {% if page_obj.has_next %}
-                                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}" 
-                                           class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                            Próxima
-                                        </a>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        <!-- Novo Produto -->
+        <a href="{% url 'products:product_create' %}"
+           style="height:44px;padding:0 18px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:opacity .15s;"
+           onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Novo Produto
+        </a>
+      </div>
     </div>
+
+    <!-- Filtros inline -->
+    <form method="get" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;">
+      <!-- Pesquisa -->
+      <div style="flex:2;min-width:160px;position:relative;">
+        <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8E8E93;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        {{ search_form.search }}
+      </div>
+      <!-- Categoria -->
+      <div style="flex:1;min-width:130px;">{{ search_form.category }}</div>
+      <!-- Status Produto -->
+      <div style="flex:1;min-width:130px;">{{ search_form.only_active }}</div>
+      <!-- Status Cardápio -->
+      <div style="flex:1;min-width:130px;">{{ search_form.show_in_menu }}</div>
+      <!-- Botões -->
+      <button type="submit"
+              style="height:40px;padding:0 16px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;"
+              onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Filtrar</button>
+      <a href="{% url 'products:product_list' %}"
+         style="height:40px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:13px;font-weight:600;color:#8E8E93;text-decoration:none;display:inline-flex;align-items:center;background:white;white-space:nowrap;transition:background .15s;"
+         onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">Limpar</a>
+    </form>
+  </div>
 </div>
 
-<!-- Custom CSS -->
+<!-- ── Conteúdo ── -->
+<div style="padding:20px 24px 32px;">
+
+  <!-- Barra de ações rápidas + pills de categoria -->
+  <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+
+    <!-- Category pills -->
+    <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">
+      <span style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;">Categoria</span>
+      <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.only_active %}only_active={{ request.GET.only_active }}&{% endif %}{% if request.GET.show_in_menu %}show_in_menu={{ request.GET.show_in_menu }}&{% endif %}"
+         style="height:30px;padding:0 12px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;transition:all .15s;{% if not request.GET.category %}background:#007AFF;color:white;border:1px solid #007AFF;{% else %}background:#F5F5F7;color:#6E6E73;border:1px solid #E5E5EA;{% endif %}">
+        Todas
+      </a>
+      {% for cat_slug, cat_label in categories %}
+      <a href="?category={{ cat_slug }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}"
+         style="height:30px;padding:0 12px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;transition:all .15s;{% if request.GET.category == cat_slug %}background:#007AFF;color:white;border:1px solid #007AFF;{% else %}background:#F5F5F7;color:#6E6E73;border:1px solid #E5E5EA;{% endif %}">
+        {{ cat_label }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Exportar / PDF -->
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <a href="{% url 'products:produto_lista_pdf' %}"
+         style="height:34px;padding:0 14px;background:#F5F5F7;color:#1D1D1F;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:background .15s;"
+         onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        PDF
+      </a>
+      <a href="{% url 'products:produto_nfce_csv' %}"
+         style="height:34px;padding:0 14px;background:#F5F5F7;color:#1D1D1F;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:background .15s;"
+         onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        CSV NFC-e
+      </a>
+    </div>
+  </div>
+
+  {% if search_query %}
+  <p style="font-size:13px;color:#8E8E93;margin:0 0 14px;">
+    Resultados para: "<span style="color:#1D1D1F;font-weight:600;">{{ search_query }}</span>"
+  </p>
+  {% endif %}
+
+  <!-- Grid de produtos -->
+  {% if products %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+
+    {% for product in products %}
+    <div style="background:white;border-radius:16px;border:1.5px solid #E5E5EA;padding:20px 16px;display:flex;flex-direction:column;align-items:center;position:relative;transition:border-color .15s,box-shadow .15s,transform .1s;cursor:default;"
+         onmouseover="this.style.borderColor='#007AFF';this.style.boxShadow='0 4px 20px rgba(0,122,255,0.10)';this.style.transform='translateY(-2px)';"
+         onmouseout="this.style.borderColor='#E5E5EA';this.style.boxShadow='none';this.style.transform='translateY(0)';">
+
+      <!-- Badges de status (topo direito) -->
+      <div style="position:absolute;top:12px;right:12px;display:flex;gap:5px;align-items:center;">
+        {% if not product.is_active %}
+        <span style="font-size:9px;font-weight:700;color:#FF3B30;background:#FFE5E5;border:1px solid #FFAEAE;border-radius:20px;padding:2px 7px;text-transform:uppercase;letter-spacing:0.5px;">Desativado</span>
+        {% endif %}
+        {% if product.show_in_menu %}
+        <div style="width:8px;height:8px;border-radius:50%;background:#34C759;" title="No cardápio"></div>
+        {% else %}
+        <div style="width:8px;height:8px;border-radius:50%;background:#C7C7CC;" title="Fora do cardápio"></div>
+        {% endif %}
+      </div>
+
+      <!-- Imagem -->
+      <div style="margin-bottom:14px;">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+             style="width:72px;height:72px;object-fit:cover;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.10);">
+        {% else %}
+        <div style="width:72px;height:72px;border-radius:14px;background:#F5F5F7;display:flex;align-items:center;justify-content:center;">
+          <svg width="32" height="32" fill="none" stroke="#C7C7CC" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Nome -->
+      <h3 style="font-size:14px;font-weight:700;color:#1D1D1F;text-align:center;margin:0 0 6px;line-height:1.3;">{{ product.name }}</h3>
+
+      <!-- Categoria -->
+      {% if product.category == 'bebidas' %}
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#FFF3E0;color:#CC7700;font-size:11px;font-weight:600;margin-bottom:8px;">{{ product.get_category_display }}</span>
+      {% elif product.category == 'salgados' %}
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#FFF3E0;color:#CC7700;font-size:11px;font-weight:600;margin-bottom:8px;">{{ product.get_category_display }}</span>
+      {% elif product.category == 'doces' %}
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#FFE5F5;color:#C11070;font-size:11px;font-weight:600;margin-bottom:8px;">{{ product.get_category_display }}</span>
+      {% elif product.category == 'lanches' %}
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#E8F9EE;color:#25A244;font-size:11px;font-weight:600;margin-bottom:8px;">{{ product.get_category_display }}</span>
+      {% else %}
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#EAF0FF;color:#007AFF;font-size:11px;font-weight:600;margin-bottom:8px;">{{ product.get_category_display }}</span>
+      {% endif %}
+
+      <!-- Descrição -->
+      {% if product.description %}
+      <p style="font-size:12px;color:#8E8E93;text-align:center;margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;">{{ product.description }}</p>
+      {% endif %}
+
+      <!-- Preço -->
+      <div style="font-size:22px;font-weight:800;color:#1D1D1F;margin:4px 0 10px;letter-spacing:-0.5px;">
+        R$ {{ product.price|floatformat:2 }}
+      </div>
+
+      <!-- Status cardápio -->
+      <div style="margin-bottom:14px;">
+        {% if product.show_in_menu %}
+        <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#E8F9EE;color:#25A244;font-size:11px;font-weight:600;">
+          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          No Cardápio
+        </span>
+        {% else %}
+        <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#F5F5F7;color:#8E8E93;font-size:11px;font-weight:600;">
+          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          Fora do Cardápio
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Ações -->
+      <div style="display:flex;gap:6px;width:100%;margin-top:auto;">
+        <a href="{% url 'products:product_detail' product.pk %}"
+           style="flex:1;height:36px;border-radius:8px;background:#EAF0FF;color:#007AFF;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:background .15s;"
+           onmouseover="this.style.background='#D0E4FF'" onmouseout="this.style.background='#EAF0FF'">Ver</a>
+        <a href="{% url 'products:product_update' product.pk %}"
+           style="flex:1;height:36px;border-radius:8px;background:#E8F9EE;color:#25A244;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:background .15s;"
+           onmouseover="this.style.background='#C8F0D8'" onmouseout="this.style.background='#E8F9EE'">Editar</a>
+        <button type="button"
+                onclick="deleteProduct({{ product.pk }}, '{{ product.name|escapejs }}')"
+                style="width:36px;height:36px;border:none;border-radius:8px;background:#FFE5E5;color:#FF3B30;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;"
+                onmouseover="this.style.background='#FFCCCC'" onmouseout="this.style.background='#FFE5E5'">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+    {% endfor %}
+
+    <!-- Card de adicionar novo produto -->
+    <a href="{% url 'products:product_create' %}"
+       style="background:white;border-radius:16px;border:1.5px dashed #D1D1D6;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-decoration:none;transition:border-color .15s,background .15s;"
+       onmouseover="this.style.borderColor='#007AFF';this.style.background='#F0F7FF';"
+       onmouseout="this.style.borderColor='#D1D1D6';this.style.background='white';">
+      <div style="width:52px;height:52px;border-radius:14px;background:#EAF0FF;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" fill="none" stroke="#007AFF" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+      </div>
+      <div style="text-align:center;">
+        <p style="font-size:14px;font-weight:700;color:#1D1D1F;margin:0 0 4px;">Novo Produto</p>
+        <p style="font-size:12px;color:#8E8E93;margin:0;">Clique para cadastrar</p>
+      </div>
+    </a>
+
+  </div>
+
+  {% else %}
+  <!-- Estado vazio -->
+  <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:64px 24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;flex-direction:column;align-items:center;gap:16px;">
+    <div style="width:64px;height:64px;border-radius:18px;background:#F5F5F7;display:flex;align-items:center;justify-content:center;">
+      <svg width="32" height="32" fill="none" stroke="#C7C7CC" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+    </div>
+    <div>
+      <p style="font-size:18px;font-weight:700;color:#1D1D1F;margin:0 0 6px;">Nenhum produto encontrado</p>
+      <p style="font-size:14px;color:#8E8E93;margin:0;">
+        {% if search_query %}Não encontramos produtos com os filtros aplicados.{% else %}Comece adicionando o primeiro produto.{% endif %}
+      </p>
+    </div>
+    {% if search_query %}
+    <a href="{% url 'products:product_list' %}"
+       style="height:44px;padding:0 24px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;transition:opacity .15s;"
+       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Ver todos os produtos</a>
+    {% else %}
+    <a href="{% url 'products:product_create' %}"
+       style="height:44px;padding:0 24px;background:#007AFF;color:white;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:opacity .15s;"
+       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+      </svg>
+      Adicionar Primeiro Produto
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Paginação -->
+  {% if is_paginated %}
+  <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px;color:#8E8E93;">
+      Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} produtos
+    </span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}"
+         style="height:36px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:8px;font-size:13px;font-weight:600;color:#1D1D1F;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+         onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">Anterior</a>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span style="height:36px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:700;color:white;background:#007AFF;display:inline-flex;align-items:center;">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}"
+           style="height:36px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:8px;font-size:13px;font-weight:600;color:#1D1D1F;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+           onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.only_active %}&only_active={{ request.GET.only_active }}{% endif %}{% if request.GET.show_in_menu %}&show_in_menu={{ request.GET.show_in_menu }}{% endif %}"
+         style="height:36px;padding:0 14px;border:none;border-radius:8px;font-size:13px;font-weight:600;color:white;text-decoration:none;display:inline-flex;align-items:center;background:#007AFF;transition:opacity .15s;"
+         onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Próxima</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- fim conteúdo -->
+</div>
+</div>
+
+<!-- ── Modal de exclusão Apple HIG ── -->
+<div id="modal-delete"
+     style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div style="background:white;border-radius:20px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid rgba(0,0,0,0.06);overflow:hidden;animation:appleModalIn 0.22s ease-out;">
+
+    <div style="padding:24px 24px 0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+        <div style="width:52px;height:52px;border-radius:50%;background:#FFE5E5;display:flex;align-items:center;justify-content:center;">
+          <svg width="24" height="24" fill="none" stroke="#FF3B30" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </div>
+        <button onclick="fecharModalDelete()"
+                style="width:30px;height:30px;border-radius:50%;border:none;background:#F5F5F7;color:#8E8E93;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <h3 style="font-size:18px;font-weight:800;color:#1D1D1F;margin:0 0 6px;">Excluir produto?</h3>
+      <p style="font-size:14px;color:#8E8E93;margin:0 0 14px;">Esta ação <strong style="color:#1D1D1F;">não pode ser desfeita</strong>.</p>
+      <div style="background:#F5F5F7;border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#EAF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="15" height="15" fill="none" stroke="#007AFF" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:#1D1D1F;" id="modal-delete-nome"></span>
+      </div>
+    </div>
+
+    <div style="padding:0 24px 24px;display:flex;gap:10px;">
+      <button onclick="fecharModalDelete()"
+              style="flex:1;height:44px;border:1.5px solid #D1D1D6;border-radius:10px;background:white;color:#6E6E73;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;"
+              onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">
+        Cancelar
+      </button>
+      <form id="form-delete" method="POST" action="" style="flex:1;">
+        {% csrf_token %}
+        <button type="submit"
+                style="width:100%;height:44px;border:none;border-radius:10px;background:#FF3B30;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;"
+                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          Excluir
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
 <style>
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    /* Cores específicas para categorias */
-    .bg-bebidas-100 { background-color: #fef3c7; }
-    .text-bebidas-700 { color: #b45309; }
-    .bg-salgados-100 { background-color: #fde68a; }
-    .text-salgados-700 { color: #a16207; }
-    .bg-doces-100 { background-color: #fce7f3; }
-    .text-doces-700 { color: #be185d; }
-    .bg-lanches-100 { background-color: #dcfce7; }
-    .text-lanches-700 { color: #166534; }
-    .bg-outros-100 { background-color: #e0e7ff; }
-    .text-outros-700 { color: #3730a3; }
+@keyframes appleModalIn {
+  from { opacity:0; transform:scale(0.96) translateY(14px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+/* Estiliza os campos do search_form */
+#id_search, #id_category, #id_only_active, #id_show_in_menu {
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid #D1D1D6;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1D1D1F;
+  background: white;
+  outline: none;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+#id_search { padding-left: 34px; }
+#id_search:focus, #id_category:focus, #id_only_active:focus, #id_show_in_menu:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+}
+select#id_category, select#id_only_active, select#id_show_in_menu {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
 </style>
 
 <script>
-// Adicionar token CSRF na página
-document.addEventListener('DOMContentLoaded', function() {
-    // Criar um meta tag com CSRF token se não existir
-    if (!document.querySelector('meta[name="csrf-token"]')) {
-        const meta = document.createElement('meta');
-        meta.name = 'csrf-token';
-        meta.content = '{{ csrf_token }}';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-    }
-});
-
 function deleteProduct(productId, productName) {
-    const confirmMessage = `Tem certeza que deseja excluir o produto "${productName}"?\n\nEsta ação não pode ser desfeita.`;
-    
-    if (confirm(confirmMessage)) {
-        // Obter CSRF token
-        let csrfToken = '';
-        const metaToken = document.querySelector('meta[name="csrf-token"]');
-        if (metaToken) {
-            csrfToken = metaToken.getAttribute('content');
-        } else {
-            // Fallback: tentar obter de cookie
-            csrfToken = getCookie('csrftoken');
-        }
-        
-        // Criar um formulário invisível para fazer POST
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/products/product/${productId}/delete/`;  // URL CORRIGIDA!
-        form.style.display = 'none';
-        
-        // Adicionar CSRF token
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-        
-        // Adicionar ao DOM e submeter
-        document.body.appendChild(form);
-        form.submit();
-        
-        // Mostrar loading (opcional)
-        console.log('Deletando produto...');
-    }
+  document.getElementById('modal-delete-nome').textContent = productName;
+  document.getElementById('form-delete').action = '/products/product/' + productId + '/delete/';
+  const modal = document.getElementById('modal-delete');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
-
-// Função auxiliar para obter cookie
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+function fecharModalDelete() {
+  document.getElementById('modal-delete').style.display = 'none';
+  document.body.style.overflow = '';
 }
+document.getElementById('modal-delete').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalDelete();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') fecharModalDelete();
+});
 </script>
 
 {% endblock %}

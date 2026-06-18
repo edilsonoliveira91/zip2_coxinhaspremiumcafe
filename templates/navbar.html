@@ -234,12 +234,14 @@
                                     <span>Sangria</span>
                                 </a>
                                 {% endif %}
+                                {% if request.user.is_caixa or request.user.is_superuser %}
                                 <a href="#" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
                                     <span>Valor Inicial</span>
                                 </a>
+                                {% endif %}
                                 {% if perms.financials.view_financial or request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
                                 <a href="{% url 'financials:fechamento_diario' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,6 +264,7 @@
                     {% endif %}
 
                     <!-- Dropdown Financeiro -->
+                    {% if perms.financials.view_financial or user_has_bank_access or request.user.is_superuser %}
                     <div class="relative" x-data="{ dropdownOpen: false }">
                         <button @click="dropdownOpen = !dropdownOpen"
                                 @click.away="dropdownOpen = false"
@@ -283,16 +286,18 @@
                             class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
 
                             <div class="py-2">
+                                {% if perms.financials.view_financial or request.user.is_superuser %}
                                 <a href="{% url 'financials:conferencia_caixa' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <span>Conferencia Caixa</span>
                                 </a>
+                                {% endif %}
                                 {% if user_has_bank_access %}
                                 <a href="{% url 'banks:bank_list' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8 a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                                     </svg>
                                     <span>Bancos</span>
                                 </a>
@@ -301,6 +306,7 @@
 
                         </div>
                     </div>
+                    {% endif %}
             </div>
 
             <!-- Menu do Usuário Desktop (extrema direita) -->

@@ -6,7 +6,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.views import View
 from django.http import JsonResponse
 from django.db import transaction
-from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio
+from .models import Product, Combo, ComboItem, RawMaterial, OpcionalObrigatorio, ProductIngredient
 from .forms import ProductForm, ComboForm, ComboItemFormSet, ProductSearchForm, ComboSearchForm, RawMaterialForm
 from .models import StockEntry
 from .forms import StockEntryForm
@@ -102,13 +102,15 @@ class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     model = Product
     form_class = ProductForm
     template_name = 'products/product_form.html'
-    success_url = reverse_lazy('products:product_list')
     login_url = reverse_lazy('accounts:login')
     permission_required = 'products.add_product'
-    
+
+    def get_success_url(self):
+        return reverse_lazy('products:product_update', kwargs={'pk': self.object.pk})
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['can_edit_nfce'] = True  # criação sempre permite NFC-e (campos obrigatórios)
+        kwargs['can_edit_nfce'] = True
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -119,15 +121,32 @@ class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
-        
+
         response = super().form_valid(form)
-        
+
+        # Processa ingredientes pendentes enviados no hidden input
+        pending_raw = self.request.POST.get('pending_ingredients', '[]')
+        try:
+            from decimal import Decimal as _Dec
+            pending = json.loads(pending_raw)
+            for item in pending:
+                rm_id = item.get('raw_material_id')
+                qty = item.get('quantity')
+                if rm_id and qty:
+                    ProductIngredient.objects.get_or_create(
+                        product=self.object,
+                        raw_material_id=rm_id,
+                        defaults={'quantity': _Dec(str(qty))},
+                    )
+        except Exception:
+            pass
+
         messages.success(
-            self.request, 
+            self.request,
             f'Produto "{form.instance.name}" criado com sucesso!'
         )
         return response
-    
+
     def form_invalid(self, form):
         messages.error(
             self.request,
@@ -1264,4 +1283,98 @@ class ProdutosAtivosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-from django.http import JsonResponse
+# ==================== VIEWS DE INGREDIENTES DO PRODUTO (Receita) ====================
+
+class ProductIngredientListView(LoginRequiredMixin, View):
+    """API: lista ingredientes de um produto e retorna custo total da receita."""
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, product_pk):
+        product = get_object_or_404(Product, pk=product_pk)
+        ingredients = (
+            ProductIngredient.objects
+            .filter(product=product)
+            .select_related('raw_material')
+            .order_by('raw_material__name')
+        )
+        total_cost = sum(i.ingredient_cost for i in ingredients)
+        return JsonResponse({
+            'ingredients': [
+                {
+                    'id': i.id,
+                    'raw_material_id': i.raw_material_id,
+                    'raw_material_name': i.raw_material.name,
+                    'unit': i.raw_material.unit_short,
+                    'unit_cost': str(i.raw_material.unit_cost),
+                    'quantity': str(i.quantity),
+                    'subtotal': str(i.ingredient_cost),
+                }
+                for i in ingredients
+            ],
+            'total_cost': str(total_cost),
+        })
+
+    def post(self, request, product_pk):
+        product = get_object_or_404(Product, pk=product_pk)
+        try:
+            data = json.loads(request.body)
+            raw_material_id = data.get('raw_material_id')
+            quantity_raw = data.get('quantity', '')
+
+            if not raw_material_id:
+                return JsonResponse({'success': False, 'message': 'Selecione a matéria prima.'})
+            raw_material = get_object_or_404(RawMaterial, pk=raw_material_id)
+
+            try:
+                quantity = _Decimal(str(quantity_raw).replace(',', '.'))
+            except Exception:
+                return JsonResponse({'success': False, 'message': 'Quantidade inválida.'})
+
+            if quantity <= 0:
+                return JsonResponse({'success': False, 'message': 'A quantidade deve ser maior que zero.'})
+
+            ingredient, created = ProductIngredient.objects.get_or_create(
+                product=product,
+                raw_material=raw_material,
+                defaults={'quantity': quantity},
+            )
+            if not created:
+                ingredient.quantity = quantity
+                ingredient.save(update_fields=['quantity'])
+
+            return JsonResponse({'success': True, 'message': f'"{raw_material.name}" adicionado à receita.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+class ProductIngredientDeleteView(LoginRequiredMixin, View):
+    """API: remove ingrediente da receita de um produto."""
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, product_pk, ingredient_pk):
+        ingredient = get_object_or_404(ProductIngredient, pk=ingredient_pk, product_id=product_pk)
+        ingredient.delete()
+        return JsonResponse({'success': True})
+
+
+class RawMaterialSearchView(LoginRequiredMixin, View):
+    """API: lista todas as matérias primas para o seletor de receita."""
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+        qs = RawMaterial.objects.all().order_by('name')
+        if q:
+            qs = qs.filter(name__icontains=q)
+        qs = qs[:50]
+        return JsonResponse({
+            'results': [
+                {
+                    'id': m.id,
+                    'name': m.name,
+                    'unit': m.unit_short,
+                    'unit_cost': str(m.unit_cost),
+                }
+                for m in qs
+            ]
+        })

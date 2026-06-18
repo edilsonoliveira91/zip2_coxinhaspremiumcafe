@@ -262,7 +262,19 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             period_qs = period_qs.filter(data__date__gte=data_inicio)
         if data_fim:
             period_qs = period_qs.filter(data__date__lte=data_fim)
-        transacoes = period_qs.prefetch_related('anexos').order_by('-data', '-id')
+
+        # Filtro por tipo de lançamento
+        tipo_filtro = request.GET.get('tipo', '').strip()
+        if tipo_filtro in ('deposito', 'pagamento', 'transferencia'):
+            period_qs_tipo = period_qs.filter(tipo=tipo_filtro)
+        else:
+            tipo_filtro = ''
+            period_qs_tipo = period_qs
+
+        transacoes = period_qs_tipo.prefetch_related('anexos').order_by('-data', '-id')
+
+        # Saldo da filtragem de tipo (para atualizar o card Saldo Disponível)
+        saldo_filtrado = calc_saldo(period_qs_tipo)
 
         # 3 cards só aparecem quando o range abrange mais de um dia
         filtrado = bool(data_inicio and data_fim and data_inicio != data_fim)
@@ -286,18 +298,28 @@ class BankStatementView(LoginRequiredMixin, BaseView):
 
         def _calc_taxa(transferencias_qs, rates_map):
             total = Decimal('0')
-            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira'):
-                chave = t['bandeira'].lower() if t['bandeira'] else ''
-                r = rates_map.get(chave, {})
-                pct = Decimal('0')
-                if t['metodo_pagamento'] == 'credito':
-                    pct = r.get('credito', Decimal('0'))
-                elif t['metodo_pagamento'] == 'debito':
-                    pct = r.get('debito', Decimal('0'))
+            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira', 'taxa_aplicada'):
+                pct = t.get('taxa_aplicada') or Decimal('0')
+                if not pct and t['metodo_pagamento'] in ('credito', 'debito'):
+                    chave = t['bandeira'].lower() if t['bandeira'] else ''
+                    r = rates_map.get(chave, {})
+                    pct = r.get(t['metodo_pagamento'], Decimal('0'))
                 total += t['valor'] * pct / Decimal('100')
             return total
 
         bandeiras_rates = _build_rates(pinpad)
+
+        # Anotar cada transação com taxa individual e valor líquido
+        transacoes = list(transacoes)
+        for tx in transacoes:
+            tx.taxa_tx = Decimal('0')
+            if tx.is_entrada and tx.metodo_pagamento in ('credito', 'debito'):
+                chave = (tx.bandeira or '').lower()
+                r = bandeiras_rates.get(chave, {})
+                pct = r.get(tx.metodo_pagamento, Decimal('0'))
+                if pct:
+                    tx.taxa_tx = (tx.valor * pct / Decimal('100')).quantize(Decimal('0.01'))
+            tx.valor_liquido = tx.valor - tx.taxa_tx
 
         # Totais sobre TODAS as transferências já conciliadas do banco
         all_conciliadas = CaixaAdmTransferencia.objects.filter(
@@ -309,18 +331,19 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         bruto_geral   = saldo_atual
         liquido_geral = saldo_atual - total_taxa
 
-        # Para o card "No período" (filtrado multi-dia): fees do período
+        # Para o card "Saldo do período" (filtrado multi-dia)
         if filtrado and data_inicio and data_fim:
             periodo_conciliadas = all_conciliadas.filter(
                 conciliado_em__date__gte=data_inicio,
                 conciliado_em__date__lte=data_fim,
             )
-            bruto_periodo  = periodo_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
-            taxa_periodo   = _calc_taxa(periodo_conciliadas, bandeiras_rates)
+            taxa_periodo    = _calc_taxa(periodo_conciliadas, bandeiras_rates)
+            # bruto_periodo = saldo líquido das transações do período (entradas - saídas)
+            bruto_periodo   = calc_saldo(period_qs)
             liquido_periodo = bruto_periodo - taxa_periodo
         else:
-            bruto_periodo  = bruto_geral
-            taxa_periodo   = total_taxa
+            bruto_periodo   = bruto_geral
+            taxa_periodo    = total_taxa
             liquido_periodo = liquido_geral
 
         # A Receber: bruto/taxa/líquido das transferências pendentes
@@ -337,6 +360,13 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             'filtrado': filtrado,
             'data_inicio': data_inicio_str,
             'data_fim': data_fim_str,
+            'tipo_filtro': tipo_filtro,
+            'saldo_filtrado': saldo_filtrado,
+            'tipos_lancamento': [
+                ('deposito',      'Depósito'),
+                ('pagamento',     'Pagamento'),
+                ('transferencia', 'Transferência'),
+            ],
             'a_receber': a_receber_detalhe,
             'total_a_receber': total_a_receber,
             'taxa_a_receber': taxa_a_receber,
@@ -374,7 +404,7 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
         descricao = request.POST.get('descricao', '').strip() or 'Depósito'
         observacao = request.POST.get('observacao', '').strip()
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -405,7 +435,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
         observacao = request.POST.get('observacao', '').strip()
         arquivos = request.FILES.getlist('comprovantes')
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -438,7 +468,7 @@ class BankTransferirView(LoginRequiredMixin, BaseView):
         descricao = request.POST.get('descricao', '').strip() or 'Transferência'
         observacao = request.POST.get('observacao', '').strip()
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -482,7 +512,7 @@ class BankTransactionEditView(LoginRequiredMixin, BaseView):
         data_str = request.POST.get('data', '').strip()
 
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
         except Exception:
             valor = tx.valor
 
@@ -594,14 +624,12 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
 
         def _calc_taxa_pdf(transferencias_qs):
             total = Decimal('0')
-            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira'):
-                chave = t['bandeira'].lower() if t['bandeira'] else ''
-                r = bandeiras_rates.get(chave, {})
-                pct = Decimal('0')
-                if t['metodo_pagamento'] == 'credito':
-                    pct = r.get('credito', Decimal('0'))
-                elif t['metodo_pagamento'] == 'debito':
-                    pct = r.get('debito', Decimal('0'))
+            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira', 'taxa_aplicada'):
+                pct = t.get('taxa_aplicada') or Decimal('0')
+                if not pct and t['metodo_pagamento'] in ('credito', 'debito'):
+                    chave = t['bandeira'].lower() if t['bandeira'] else ''
+                    r = bandeiras_rates.get(chave, {})
+                    pct = r.get(t['metodo_pagamento'], Decimal('0'))
                 total += t['valor'] * pct / Decimal('100')
             return total
 
@@ -612,7 +640,7 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         total_taxa    = _calc_taxa_pdf(all_conciliadas)
         liquido_geral = bruto_geral - total_taxa
 
-        # Fees específicas do período (para o rodapé)
+        # Fees específicas do período
         filtrado_pdf = bool(data_inicio and data_fim and data_inicio != data_fim)
         if filtrado_pdf:
             periodo_conciliadas = all_conciliadas.filter(
@@ -621,9 +649,14 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             )
         else:
             periodo_conciliadas = all_conciliadas
-        bruto_periodo_pdf  = periodo_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
-        taxa_periodo_pdf   = _calc_taxa_pdf(periodo_conciliadas)
+        taxa_periodo_pdf    = _calc_taxa_pdf(periodo_conciliadas)
+        bruto_periodo_pdf   = calc_saldo(period_qs)
         liquido_periodo_pdf = bruto_periodo_pdf - taxa_periodo_pdf
+
+        saldo_anterior_pdf = None
+        if filtrado_pdf and data_inicio:
+            before_qs = settled_txs.filter(data__date__lt=data_inicio)
+            saldo_anterior_pdf = valor_inicial + calc_saldo(before_qs)
 
         # Breakdown crédito / débito (acumulado, todas as conciliadas)
 
@@ -777,41 +810,78 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         bd_verm  = colors.HexColor('#FFD0CE')
         bd_cinza = colors.HexColor('#D1D1D6')
 
-        card_saldo = RoundCard(card_w, [
-            ('SALDO DISPONIVEL',    6, True,  azul,   10, 2),
-            (fmt(liquido_geral),   14, True,  escuro,  2, 2),
-            ('Liquido apos taxas',  6, False, cinza,   2, 10),
-        ], border_color=bd_azul)
-
-        card_entradas = RoundCard(card_w, [
-            ('ENTRADAS DO PERIODO', 6, True,  verde,  10, 2),
-            (fmt(entradas_p),      14, True,  escuro,  2, 2),
-            (periodo_txt,           6, False, cinza,   2, 10),
-        ], border_color=bd_verde)
-
-        card_saidas = RoundCard(card_w, [
-            ('SAIDAS DO PERIODO',  6, True,  verm,   10, 2),
-            (fmt(saidas_p),        14, True,  escuro,  2, 2),
-            (periodo_txt,           6, False, cinza,   2, 10),
-        ], border_color=bd_verm)
-
-        card_taxas = RoundCard(card_w, [
-            ('TAXAS BANDEIRA',         6, True,  escuro,  10, 2),
-            (fmt(taxa_periodo_pdf),   14, True,  escuro,   2, 2),
-            ('Descontado no periodo',  6, False, cinza,    2, 10),
-        ], border_color=bd_cinza)
-
-        cards_row = Table(
-            [[card_saldo, '', card_entradas, '', card_saidas, '', card_taxas]],
-            colWidths=[card_w, gap, card_w, gap, card_w, gap, card_w],
-        )
-        cards_row.setStyle(TableStyle([
+        ts_cards = TableStyle([
             ('LEFTPADDING',   (0, 0), (-1, -1), 0),
             ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
             ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
             ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
-        ]))
+        ])
+
+        if filtrado_pdf and saldo_anterior_pdf is not None:
+            # ── 3 cards: Anterior | No Período | Saldo Atual ─────────────────
+            card_w3 = (content_w - 2 * gap) / 3
+
+            label_di_curto = data_inicio.strftime('%d/%m/%y') if data_inicio else ''
+            label_df_curto = data_fim.strftime('%d/%m/%y')    if data_fim    else ''
+
+            c_anterior = RoundCard(card_w3, [
+                ('SALDO ANTERIOR',       6, True,  cinza,  10, 2),
+                (fmt(saldo_anterior_pdf),14, True,  escuro,  2, 2),
+                (f'Ate {label_di_curto}', 6, False, cinza,   2, 10),
+            ], border_color=bd_cinza)
+
+            c_periodo = RoundCard(card_w3, [
+                ('NO PERIODO',                        6, True,  azul,   10, 2),
+                (fmt(bruto_periodo_pdf),             13, True,  escuro,  2, 2),
+                (f'Entradas: {fmt(entradas_p)}',      6, False, verde,   3, 1),
+                (f'Saidas:   {fmt(saidas_p)}',        6, False, verm,    1, 1),
+                (f'Taxas:   -{fmt(taxa_periodo_pdf)}', 6, False, laranja, 1, 1),
+                (f'Liquido:  {fmt(liquido_periodo_pdf)}', 6, True, verde, 2, 8),
+            ], border_color=bd_azul)
+
+            c_atual = RoundCard(card_w3, [
+                ('SALDO ATUAL',         6, True,  verde,  10, 2),
+                (fmt(saldo_atual),     14, True,  escuro,  2, 2),
+                ('Saldo total do banco', 6, False, cinza,   2, 10),
+            ], border_color=bd_verde)
+
+            cards_row = Table(
+                [[c_anterior, '', c_periodo, '', c_atual]],
+                colWidths=[card_w3, gap, card_w3, gap, card_w3],
+            )
+        else:
+            # ── 4 cards: Saldo | Entradas | Saídas | Taxas ───────────────────
+            card_saldo = RoundCard(card_w, [
+                ('SALDO DISPONIVEL',   6, True,  azul,   10, 2),
+                (fmt(liquido_geral),  14, True,  escuro,  2, 2),
+                ('Liquido apos taxas', 6, False, cinza,   2, 10),
+            ], border_color=bd_azul)
+
+            card_entradas = RoundCard(card_w, [
+                ('ENTRADAS DO PERIODO', 6, True,  verde,  10, 2),
+                (fmt(entradas_p),      14, True,  escuro,  2, 2),
+                (periodo_txt,           6, False, cinza,   2, 10),
+            ], border_color=bd_verde)
+
+            card_saidas = RoundCard(card_w, [
+                ('SAIDAS DO PERIODO',  6, True,  verm,   10, 2),
+                (fmt(saidas_p),        14, True,  escuro,  2, 2),
+                (periodo_txt,           6, False, cinza,   2, 10),
+            ], border_color=bd_verm)
+
+            card_taxas = RoundCard(card_w, [
+                ('TAXAS BANDEIRA',        6, True,  escuro,  10, 2),
+                (fmt(taxa_periodo_pdf),  14, True,  escuro,   2, 2),
+                ('Descontado no periodo', 6, False, cinza,    2, 10),
+            ], border_color=bd_cinza)
+
+            cards_row = Table(
+                [[card_saldo, '', card_entradas, '', card_saidas, '', card_taxas]],
+                colWidths=[card_w, gap, card_w, gap, card_w, gap, card_w],
+            )
+
+        cards_row.setStyle(ts_cards)
         story += [cards_row, Spacer(1, 3*mm)]
 
 

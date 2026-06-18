@@ -4,130 +4,153 @@
 {% block title %}{% if object %}Editar Matéria Prima{% else %}Nova Matéria Prima{% endif %}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div class="h-full overflow-y-auto" style="background:#F5F5F7;">
 
-    <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
-      <a href="{% url 'products:rawmaterial_list' %}" class="hover:text-orange-600 transition-colors flex items-center gap-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-        </svg>
-        Matérias Primas
-      </a>
-      <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-      </svg>
-      <span>{% if object %}Editar{% else %}Nova{% endif %}</span>
-    </nav>
-
-    {% include 'components/messages.html' %}
-
-    <!-- Card principal -->
-    <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-
-      <!-- Header do card -->
-      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 px-8 py-6">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-xl font-bold text-white">
-              {% if object %}Editar Matéria Prima{% else %}Nova Matéria Prima{% endif %}
-            </h1>
-            <p class="text-yellow-100 text-sm mt-0.5">
-              {% if object %}Altere os dados do insumo abaixo{% else %}Preencha os dados para cadastrar um novo insumo{% endif %}
-            </p>
-          </div>
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+      <div style="padding:20px 24px;display:flex;align-items:center;gap:14px;">
+        <a href="{% url 'products:rawmaterial_list' %}"
+           style="width:36px;height:36px;border-radius:50%;background:#F5F5F7;display:flex;align-items:center;justify-content:center;color:#8E8E93;text-decoration:none;flex-shrink:0;transition:background .15s;"
+           onmouseover="this.style.background='#E5E5EA'" onmouseout="this.style.background='#F5F5F7'">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 1px;">Matérias Primas</p>
+          <h1 style="font-size:20px;font-weight:800;color:#1D1D1F;margin:0;">
+            {% if object %}Editar Matéria Prima{% else %}Nova Matéria Prima{% endif %}
+          </h1>
         </div>
       </div>
+    </div>
 
-      <!-- Formulário -->
-      <form method="post" class="p-8 space-y-6">
+    <!-- Conteúdo -->
+    <div style="padding:24px;max-width:560px;margin:0 auto;">
+
+      {% include 'components/messages.html' %}
+
+      <form method="post">
         {% csrf_token %}
 
-        <!-- Nome -->
-        <div>
-          <label for="{{ form.name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-            Nome da Matéria Prima <span class="text-red-500">*</span>
-          </label>
-          {{ form.name }}
-          {% if form.name.errors %}
-          <p class="mt-1.5 text-sm text-red-600 flex items-center gap-1">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            {{ form.name.errors|join:', ' }}
-          </p>
-          {% endif %}
-          <p class="mt-1 text-xs text-gray-400">Ex: Farinha de Trigo, Açúcar Refinado, Óleo de Soja</p>
-        </div>
+        <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
 
-        <!-- Unidade de Medida -->
-        <div>
-          <label for="{{ form.unit_measure.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-            Unidade de Medida <span class="text-red-500">*</span>
-          </label>
-          {{ form.unit_measure }}
-          {% if form.unit_measure.errors %}
-          <p class="mt-1.5 text-sm text-red-600 flex items-center gap-1">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            {{ form.unit_measure.errors|join:', ' }}
-          </p>
-          {% endif %}
+          <!-- Seção: Dados -->
+          <div style="padding:20px 24px;border-bottom:1px solid #F2F2F7;">
+            <h2 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 18px;">Dados do Insumo</h2>
+
+            <!-- Nome -->
+            <div style="margin-bottom:18px;">
+              <label for="{{ form.name.id_for_label }}" style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                Nome da Matéria Prima <span style="color:#FF3B30;">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+              <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.name.errors|join:', ' }}</p>
+              {% else %}
+              <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Ex: Farinha de Trigo, Açúcar Refinado, Óleo de Soja</p>
+              {% endif %}
+            </div>
+
+            <!-- Unidade de Medida -->
+            <div>
+              <label for="{{ form.unit_measure.id_for_label }}" style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                Unidade de Medida <span style="color:#FF3B30;">*</span>
+              </label>
+              {{ form.unit_measure }}
+              {% if form.unit_measure.errors %}
+              <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.unit_measure.errors|join:', ' }}</p>
+              {% endif %}
+            </div>
+
+            <!-- Custo por Unidade -->
+            <div style="margin-top:18px;">
+              <label for="{{ form.unit_cost.id_for_label }}" style="display:block;font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">
+                Custo por Unidade (R$)
+              </label>
+              {{ form.unit_cost }}
+              {% if form.unit_cost.errors %}
+              <p style="font-size:12px;color:#FF3B30;font-weight:600;margin:4px 0 0;">{{ form.unit_cost.errors|join:', ' }}</p>
+              {% else %}
+              <p style="font-size:11px;color:#8E8E93;margin:4px 0 0;">Custo médio por <strong>{{ object.unit_short|default:"unidade" }}</strong> — usado no cálculo de custo dos produtos</p>
+              {% endif %}
+            </div>
+          </div>
 
           <!-- Dica das unidades -->
-          <div style="background:#fafafa;border:1px solid #e5e7eb;border-radius:12px;padding:12px 16px;margin-top:10px;">
-            <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Exemplos de uso</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="background:#fef9c3;color:#854d0e;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">kg</span>
-                <span style="font-size:12px;color:#6b7280;">0.800 = 800 gramas</span>
+          <div style="padding:16px 24px;background:#F9F9FB;border-bottom:1px solid #F2F2F7;">
+            <p style="font-size:11px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 10px;">Exemplos de uso</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#FFF3E0;color:#CC7700;font-size:11px;font-weight:700;border:1px solid #FFD580;">kg</span>
+                <span style="font-size:12px;color:#8E8E93;">0.800 = 800 gramas</span>
               </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="background:#e0f2fe;color:#0369a1;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">L</span>
-                <span style="font-size:12px;color:#6b7280;">0.250 = 250 ml</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#EAF0FF;color:#007AFF;font-size:11px;font-weight:700;border:1px solid #A8C8FF;">L</span>
+                <span style="font-size:12px;color:#8E8E93;">0.250 = 250 ml</span>
               </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="background:#f0fdf4;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">un</span>
-                <span style="font-size:12px;color:#6b7280;">2 = 2 unidades</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#E8F9EE;color:#34C759;font-size:11px;font-weight:700;border:1px solid #A2E8B8;">un</span>
+                <span style="font-size:12px;color:#8E8E93;">2 = 2 unidades</span>
               </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="background:#fdf4ff;color:#7e22ce;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">pct</span>
-                <span style="font-size:12px;color:#6b7280;">1 = 1 pacote</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:#F3EBFF;color:#BF5AF2;font-size:11px;font-weight:700;border:1px solid #D9ABFF;">pct</span>
+                <span style="font-size:12px;color:#8E8E93;">1 = 1 pacote</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Botões -->
-        <div class="flex gap-3 pt-2">
-          <button type="submit"
-                  class="flex-1 py-3 px-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-md flex items-center justify-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            {% if object %}Salvar Alterações{% else %}Cadastrar{% endif %}
-          </button>
-          <a href="{% url 'products:rawmaterial_list' %}"
-             class="flex-1 py-3 px-6 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-center flex items-center justify-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            Cancelar
-          </a>
-        </div>
+          <!-- Botões -->
+          <div style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;">
+            <a href="{% url 'products:rawmaterial_list' %}"
+               style="height:44px;padding:0 20px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;font-weight:600;color:#6E6E73;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+               onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">
+              Cancelar
+            </a>
+            <button type="submit"
+                    style="height:44px;padding:0 24px;border:none;border-radius:10px;font-size:14px;font-weight:700;color:white;background:#007AFF;cursor:pointer;font-family:inherit;transition:opacity .15s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              {% if object %}Salvar Alterações{% else %}Cadastrar{% endif %}
+            </button>
+          </div>
 
+        </div>
       </form>
-    </div>
 
+    </div><!-- fim conteúdo -->
   </div>
 </div>
+
+<style>
+/* Apple HIG form fields */
+#id_name, #id_unit_measure, #id_unit_cost {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid #D1D1D6;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1D1D1F;
+  background: white;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+#id_name:focus, #id_unit_measure:focus, #id_unit_cost:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+select#id_unit_measure {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+</style>
 {% endblock %}

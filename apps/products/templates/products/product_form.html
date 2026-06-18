@@ -172,8 +172,9 @@
                     </div>
 
                     <!-- Formulário -->
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="product-main-form">
                         {% csrf_token %}
+                        <input type="hidden" name="pending_ingredients" id="pending_ingredients_input" value="[]">
                         
                         <div class="p-8">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -419,6 +420,109 @@
                                     </div>
                                 </div>
                                 {% endif %}
+
+                                <!-- ── RECEITA DO PRODUTO ── -->
+                                <div class="md:col-span-2">
+
+                                    <!-- Botão para revelar o card -->
+                                    <div id="btn-revelar-receita" style="display:flex;align-items:center;gap:12px;padding:16px 20px;background:white;border-radius:14px;border:1.5px dashed #A8D8FF;cursor:pointer;transition:all .2s;"
+                                         onclick="abrirReceita()"
+                                         onmouseover="this.style.background='#EAF4FF';this.style.borderStyle='solid';"
+                                         onmouseout="this.style.background='white';this.style.borderStyle='dashed';">
+                                        <div style="width:40px;height:40px;border-radius:12px;background:#EAF4FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <svg width="20" height="20" fill="none" stroke="#007AFF" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                            </svg>
+                                        </div>
+                                        <div style="flex:1;">
+                                            <p style="font-size:14px;font-weight:700;color:#007AFF;margin:0 0 2px;">Criar um Produto</p>
+                                            <p style="font-size:12px;color:#8E8E93;margin:0;">Clique para adicionar as matérias primas e montar a receita deste produto</p>
+                                        </div>
+                                        <svg width="18" height="18" fill="none" stroke="#007AFF" stroke-width="2.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Card de receita (oculto por padrão) -->
+                                    <div id="card-receita" style="display:none;border-radius:16px;border:1px solid #D1ECFF;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+
+                                        <!-- Cabeçalho -->
+                                        <div style="background:linear-gradient(135deg,#EAF4FF 0%,#D6EEFF 100%);border-bottom:1px solid #A8D8FF;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                                            <div style="display:flex;align-items:center;gap:14px;">
+                                                <div style="background:#007AFF;border-radius:12px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,122,255,0.30);">
+                                                    <svg style="width:20px;height:20px;" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p style="font-size:14px;font-weight:700;color:#1D1D1F;margin:0 0 2px;">Receita do Produto</p>
+                                                    <p style="font-size:12px;color:#6E6E73;margin:0;">Matérias primas usadas na produção — o sistema calcula o custo automaticamente</p>
+                                                </div>
+                                            </div>
+                                            <!-- Badge de custo + botão fechar -->
+                                            <div style="display:flex;align-items:center;gap:10px;">
+                                                <div id="receita-custo-badge" style="display:flex;align-items:center;gap:8px;background:white;border:1px solid #A8D8FF;border-radius:12px;padding:10px 16px;">
+                                                    <svg width="16" height="16" fill="none" stroke="#007AFF" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                                    </svg>
+                                                    <div>
+                                                        <div style="font-size:11px;color:#8E8E93;font-weight:500;">Custo</div>
+                                                        <div id="receita-custo-total" style="font-size:16px;font-weight:800;color:#007AFF;">R$ 0,00</div>
+                                                    </div>
+                                                    <div style="width:1px;height:24px;background:#E5E5EA;margin:0 2px;"></div>
+                                                    <div>
+                                                        <div style="font-size:11px;color:#8E8E93;font-weight:500;">Margem</div>
+                                                        <div id="receita-margem" style="font-size:16px;font-weight:800;color:#34C759;">— %</div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" onclick="fecharReceita()"
+                                                        style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,0.08);color:#6E6E73;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"
+                                                        title="Ocultar receita"
+                                                        onmouseover="this.style.background='rgba(0,0,0,0.15)'" onmouseout="this.style.background='rgba(0,0,0,0.08)'">
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Corpo -->
+                                        <div style="background:white;padding:20px 24px 24px;">
+
+                                            <!-- Lista de ingredientes -->
+                                            <div id="lista-ingredientes" style="margin-bottom:16px;"></div>
+
+                                            <!-- Formulário para adicionar ingrediente -->
+                                            <div style="background:#F5F8FF;border:1.5px solid #D1ECFF;border-radius:12px;padding:16px 18px;">
+                                                <p style="font-size:11px;font-weight:700;color:#007AFF;text-transform:uppercase;letter-spacing:.07em;margin:0 0 12px;">Adicionar Ingrediente</p>
+                                                <div style="display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:end;">
+                                                    <div>
+                                                        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">Matéria Prima</label>
+                                                        <select id="ing-materia" style="width:100%;height:40px;padding:0 32px 0 12px;border:1.5px solid #D1D1D6;border-radius:9px;font-size:13px;color:#1D1D1F;outline:none;box-sizing:border-box;background:white url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E&quot;) no-repeat right 10px center;appearance:none;-webkit-appearance:none;font-family:inherit;"
+                                                               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+                                                            <option value="">Selecione a matéria prima...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">Qtd <span id="ing-unidade-hint" style="font-weight:400;color:#8E8E93;"></span></label>
+                                                        <input type="number" id="ing-quantidade" placeholder="0.000" step="0.001" min="0.001"
+                                                               style="width:100%;height:40px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:white;font-family:inherit;"
+                                                               onfocus="this.style.borderColor='#007AFF'" onblur="this.style.borderColor='#D1D1D6'">
+                                                    </div>
+                                                    <div>
+                                                        <button type="button" onclick="adicionarIngrediente()"
+                                                                style="height:40px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;"
+                                                                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                                                            + Adicionar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <p id="ing-erro" style="display:none;font-size:12px;color:#FF3B30;font-weight:600;margin:8px 0 0;"></p>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <!-- Descrição (span completo) -->
                                 <div class="md:col-span-2 space-y-2">
@@ -984,6 +1088,302 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarOpcionais();
 });
 {% endif %}
+
+// ===== RECEITA DO PRODUTO (INGREDIENTES) =====
+(function() {
+const IS_EDITING = {% if product %}true{% else %}false{% endif %};
+{% if product %}
+const URL_INGREDIENTES = "{% url 'products:product_ingredients' product.pk %}";
+const URL_ING_DEL_BASE = '/products/product/{{ product.pk }}/ingredientes/';
+{% endif %}
+const URL_MAT_SEARCH = "{% url 'products:rawmaterial_search' %}";
+
+let materiasCache = [];
+let pendingList = []; // usado no modo criação
+let tempIdCounter = 0;
+
+function getPrecoProduto() {
+    const priceInput = document.getElementById('id_price');
+    return priceInput ? parseFloat(priceInput.value.replace(',', '.') || 0) : 0;
+}
+
+function fmtBRL(v) {
+    return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:4});
+}
+function fmtPct(v) {
+    return parseFloat(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' %';
+}
+
+function atualizarBadge(total) {
+    const totalEl = document.getElementById('receita-custo-total');
+    const margemEl = document.getElementById('receita-margem');
+    if (!totalEl) return;
+    totalEl.textContent = fmtBRL(total);
+    const preco = getPrecoProduto();
+    if (preco > 0 && total > 0) {
+        const margem = ((preco - total) / preco) * 100;
+        margemEl.textContent = fmtPct(margem);
+        margemEl.style.color = margem >= 0 ? '#34C759' : '#FF3B30';
+    } else {
+        margemEl.textContent = '— %';
+        margemEl.style.color = '#8E8E93';
+    }
+}
+
+function buildIngRow(i, deleteCallback) {
+    const subtotal = parseFloat(i.subtotal || 0);
+    return `
+    <tr style="border-top:1px solid #E5E5EA;">
+        <td style="padding:10px 14px;">
+            <div style="display:flex;align-items:center;gap:9px;">
+                <div style="width:30px;height:30px;border-radius:8px;background:#EAF4FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="14" height="14" fill="none" stroke="#007AFF" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                </div>
+                <span style="font-size:13px;font-weight:600;color:#1D1D1F;">${i.raw_material_name}</span>
+            </div>
+        </td>
+        <td style="padding:10px 14px;text-align:right;">
+            <span style="font-size:13px;font-weight:600;color:#1D1D1F;">${parseFloat(i.quantity).toLocaleString('pt-BR', {minimumFractionDigits:0,maximumFractionDigits:4})}</span>
+            <span style="font-size:11px;color:#8E8E93;"> ${i.unit}</span>
+        </td>
+        <td style="padding:10px 14px;text-align:right;">
+            <span style="font-size:12px;color:#8E8E93;">${fmtBRL(i.unit_cost)}/${i.unit}</span>
+        </td>
+        <td style="padding:10px 14px;text-align:right;">
+            <span style="font-size:13px;font-weight:700;color:#007AFF;">${fmtBRL(subtotal)}</span>
+        </td>
+        <td style="padding:10px 8px;text-align:center;">
+            <button type="button" onclick="${deleteCallback}"
+                    style="width:28px;height:28px;border:none;border-radius:8px;background:#FFE5E5;color:#FF3B30;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .15s;"
+                    onmouseover="this.style.background='#FFCCCC'" onmouseout="this.style.background='#FFE5E5'">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </td>
+    </tr>`;
+}
+
+function buildTable(lista, totalCost) {
+    if (!lista.length) {
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:12px;background:#F5F8FF;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+                <svg width="22" height="22" fill="none" stroke="#A8D8FF" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <p style="font-size:13px;font-weight:600;color:#6b7280;margin:0 0 3px;">Nenhum ingrediente na receita</p>
+            <p style="font-size:12px;color:#9ca3af;margin:0;">Adicione as matérias primas usadas para calcular o custo.</p>
+        </div>`;
+    }
+    const total = parseFloat(totalCost || 0);
+    return `<div style="background:#F5F5F7;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#EAEAEA;">
+                    <th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Ingrediente</th>
+                    <th style="padding:8px 14px;text-align:right;font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Quantidade</th>
+                    <th style="padding:8px 14px;text-align:right;font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:120px;">Custo/Un</th>
+                    <th style="padding:8px 14px;text-align:right;font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Subtotal</th>
+                    <th style="padding:8px 14px;width:44px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lista.rows}
+                <tr style="border-top:2px solid #D1ECFF;background:#EAF4FF;">
+                    <td colspan="3" style="padding:10px 14px;font-size:13px;font-weight:700;color:#007AFF;text-align:right;">Custo Total da Receita:</td>
+                    <td style="padding:10px 14px;text-align:right;font-size:15px;font-weight:800;color:#007AFF;">${fmtBRL(total)}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>`;
+}
+
+// ── MODO EDIÇÃO (produto já salvo) ──────────────────────────────
+{% if product %}
+function renderIngredientesEdit(lista, totalCost) {
+    const container = document.getElementById('lista-ingredientes');
+    if (!container) return;
+    atualizarBadge(parseFloat(totalCost || 0));
+    if (!lista.length) { container.innerHTML = buildTable({length:0}, 0); return; }
+    const rows = lista.map(i => buildIngRow(i, `deletarIngrediente(${i.id})`)).join('');
+    container.innerHTML = buildTable({length:lista.length, rows}, totalCost);
+}
+
+async function carregarIngredientes() {
+    const resp = await fetch(URL_INGREDIENTES);
+    const data = await resp.json();
+    renderIngredientesEdit(data.ingredients || [], data.total_cost || '0');
+}
+
+window.deletarIngrediente = async function(id) {
+    const url = URL_ING_DEL_BASE + id + '/delete/';
+    const resp = await fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'} });
+    const data = await resp.json();
+    if (data.success) carregarIngredientes();
+};
+
+window.adicionarIngrediente = async function() {
+    const sel = document.getElementById('ing-materia');
+    const qtdEl = document.getElementById('ing-quantidade');
+    const erroEl = document.getElementById('ing-erro');
+    erroEl.style.display = 'none';
+    const raw_material_id = sel.value;
+    const quantity = qtdEl.value.replace(',', '.');
+    if (!raw_material_id) { erroEl.textContent='Selecione a matéria prima.'; erroEl.style.display='block'; return; }
+    if (!quantity || parseFloat(quantity) <= 0) { erroEl.textContent='Informe a quantidade.'; erroEl.style.display='block'; return; }
+    try {
+        const resp = await fetch(URL_INGREDIENTES, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+            body: JSON.stringify({raw_material_id, quantity})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            sel.value=''; qtdEl.value='';
+            document.getElementById('ing-unidade-hint').textContent='';
+            carregarIngredientes();
+        } else {
+            erroEl.textContent = data.message || 'Erro ao adicionar.';
+            erroEl.style.display = 'block';
+        }
+    } catch(e) { erroEl.textContent='Erro de comunicação.'; erroEl.style.display='block'; }
+};
+{% endif %}
+
+// ── MODO CRIAÇÃO (produto ainda não salvo) ──────────────────────
+{% if not product %}
+function calcTotalPending() {
+    return pendingList.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+}
+
+function syncHiddenInput() {
+    const hidden = document.getElementById('pending_ingredients_input');
+    if (hidden) hidden.value = JSON.stringify(pendingList.map(i => ({
+        raw_material_id: i.raw_material_id,
+        quantity: i.quantity,
+    })));
+}
+
+function renderIngredientesCreate() {
+    const container = document.getElementById('lista-ingredientes');
+    if (!container) return;
+    const total = calcTotalPending();
+    atualizarBadge(total);
+    if (!pendingList.length) { container.innerHTML = buildTable({length:0}, 0); return; }
+    const rows = pendingList.map(i => buildIngRow(i, `deletarIngredienteLocal(${i._tempId})`)).join('');
+    container.innerHTML = buildTable({length:pendingList.length, rows}, total);
+}
+
+window.deletarIngredienteLocal = function(tempId) {
+    pendingList = pendingList.filter(i => i._tempId !== tempId);
+    syncHiddenInput();
+    renderIngredientesCreate();
+};
+
+window.adicionarIngrediente = function() {
+    const sel = document.getElementById('ing-materia');
+    const qtdEl = document.getElementById('ing-quantidade');
+    const erroEl = document.getElementById('ing-erro');
+    erroEl.style.display = 'none';
+
+    const raw_material_id = parseInt(sel.value);
+    const quantity = parseFloat(qtdEl.value.replace(',', '.'));
+
+    if (!raw_material_id) { erroEl.textContent='Selecione a matéria prima.'; erroEl.style.display='block'; return; }
+    if (!quantity || quantity <= 0) { erroEl.textContent='Informe uma quantidade válida.'; erroEl.style.display='block'; return; }
+
+    const opt = sel.options[sel.selectedIndex];
+    const unit = opt.dataset.unit || '';
+    const unit_cost = parseFloat(opt.dataset.cost || 0);
+    const subtotal = quantity * unit_cost;
+
+    // substitui se já existe
+    const idx = pendingList.findIndex(i => i.raw_material_id === raw_material_id);
+    if (idx >= 0) {
+        pendingList[idx].quantity = quantity;
+        pendingList[idx].subtotal = subtotal;
+    } else {
+        pendingList.push({
+            _tempId: ++tempIdCounter,
+            raw_material_id,
+            raw_material_name: opt.text.replace(` (${unit})`, ''),
+            unit,
+            unit_cost,
+            quantity,
+            subtotal,
+        });
+    }
+
+    syncHiddenInput();
+    renderIngredientesCreate();
+    sel.value=''; qtdEl.value='';
+    document.getElementById('ing-unidade-hint').textContent='';
+};
+
+// atualiza a margem ao mudar o preço
+const priceFieldForIng = document.getElementById('id_price');
+if (priceFieldForIng) {
+    priceFieldForIng.addEventListener('input', () => atualizarBadge(calcTotalPending()));
+}
+{% endif %}
+
+// ── COMPARTILHADO: carrega o select de matérias primas ──────────
+async function carregarMateriasPrimas() {
+    const resp = await fetch(URL_MAT_SEARCH);
+    const data = await resp.json();
+    materiasCache = data.results || [];
+    const sel = document.getElementById('ing-materia');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione a matéria prima...</option>' +
+        materiasCache.map(m => `<option value="${m.id}" data-unit="${m.unit}" data-cost="${m.unit_cost}">${m.name} (${m.unit})</option>`).join('');
+    sel.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        document.getElementById('ing-unidade-hint').textContent = opt.dataset.unit ? `(${opt.dataset.unit})` : '';
+    });
+}
+
+// Controle de visibilidade do card de receita
+window.abrirReceita = function() {
+    document.getElementById('btn-revelar-receita').style.display = 'none';
+    const card = document.getElementById('card-receita');
+    card.style.display = 'block';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(8px)';
+    requestAnimationFrame(() => {
+        card.style.transition = 'opacity .25s, transform .25s';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+    });
+};
+
+window.fecharReceita = function() {
+    const card = document.getElementById('card-receita');
+    card.style.transition = 'opacity .2s, transform .2s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+        card.style.display = 'none';
+        document.getElementById('btn-revelar-receita').style.display = 'flex';
+    }, 200);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarMateriasPrimas();
+    {% if product %}
+    carregarIngredientes().then(() => {
+        // Auto-expande o card se já houver ingredientes no modo edição
+        const lista = document.getElementById('lista-ingredientes');
+        if (lista && lista.children.length > 0) abrirReceita();
+    });
+    {% else %}
+    renderIngredientesCreate();
+    {% endif %}
+});
+})();
 
 // Preview de imagem simplificado
 document.addEventListener('DOMContentLoaded', function() {

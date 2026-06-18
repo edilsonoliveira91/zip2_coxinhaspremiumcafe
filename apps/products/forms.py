@@ -541,7 +541,7 @@ class StockEntryForm(forms.ModelForm):
 class RawMaterialForm(forms.ModelForm):
     class Meta:
         model = RawMaterial
-        fields = ['name', 'unit_measure']
+        fields = ['name', 'unit_measure', 'unit_cost']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
@@ -551,10 +551,17 @@ class RawMaterialForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white',
                 'style': 'height: 48px !important;',
             }),
+            'unit_cost': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
+                'step': '0.0001',
+                'min': '0',
+                'placeholder': '0,0000',
+            }),
         }
         labels = {
             'name': 'Nome da Matéria Prima',
             'unit_measure': 'Unidade de Medida',
+            'unit_cost': 'Custo por Unidade (R$)',
         }
         error_messages = {
             'name': {'unique': 'Já existe uma matéria prima com este nome.'}

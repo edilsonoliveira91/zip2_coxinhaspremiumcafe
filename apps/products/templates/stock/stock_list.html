@@ -4,307 +4,301 @@
 {% block title %}Estoque de Produtos{% endblock %}
 
 {% block content %}
-<div class="flex-1 overflow-hidden">
-    <div class="h-full overflow-y-auto">
+<div class="flex-1 overflow-hidden" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;">
+  <div class="h-full overflow-y-auto" style="background:#F5F5F7;">
 
-        <!-- Header -->
-        <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-            <div class="px-6 py-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Estoque</h1>
-                        <p class="mt-1 text-sm text-gray-600">Controle de entradas e saldo por produto e sabor/variação</p>
-                    </div>
-                    <!-- Estatísticas rápidas -->
-                    <div class="hidden md:flex items-center space-x-6 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-gray-200">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-emerald-600">{{ totals|length }}</div>
-                            <div class="text-xs text-gray-500">Produtos</div>
-                        </div>
-                        <div class="w-px h-8 bg-gray-300"></div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-blue-600">{{ entries|length }}</div>
-                            <div class="text-xs text-gray-500">Entradas</div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10;">
+      <div style="padding:20px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h1 style="font-size:28px;font-weight:800;color:#1D1D1F;margin:0 0 2px;">Estoque</h1>
+            <p style="font-size:13px;color:#8E8E93;margin:0;">Controle de entradas e saldo por produto e sabor/variação</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="background:white;border:1px solid #E5E5EA;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:16px;">
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:800;color:#34C759;">{{ totals|length }}</div>
+                <div style="font-size:11px;color:#8E8E93;font-weight:500;">Produtos</div>
+              </div>
+              <div style="width:1px;height:32px;background:#E5E5EA;"></div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:800;color:#007AFF;">{{ entries|length }}</div>
+                <div style="font-size:11px;color:#8E8E93;font-weight:500;">Entradas</div>
+              </div>
             </div>
+          </div>
         </div>
-
-        <!-- Conteúdo Principal -->
-        <div class="flex-1 p-6 space-y-6">
-
-            <!-- Filtros -->
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 p-6">
-                <div class="flex items-end gap-4">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar produto</label>
-                        <div class="relative">
-                            <svg class="absolute inset-y-0 left-3 my-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            <input type="text" id="searchInput" placeholder="Nome do produto..."
-                                   value="{{ q }}"
-                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data início</label>
-                        <input type="date" id="dateStart" name="date_from" value="{{ date_from }}"
-                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data fim</label>
-                        <input type="date" id="dateEnd" name="date_to" value="{{ date_to }}"
-                               class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    </div>
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button onclick="applyFilters()"
-                                class="px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            <span>Buscar</span>
-                        </button>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <button onclick="clearFilters()"
-                                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                            <span>Limpar</span>
-                        </button>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                        <a href="{% url 'products:stock_create' %}"
-                           class="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-medium flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                            <span>Nova Entrada</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Saldo por produto -->
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Saldo atual por produto e sabor</h2>
-                </div>
-                <div class="w-full">
-                    <div class="overflow-x-auto">
-                        <table class="w-full table-fixed divide-y divide-gray-200">
-                            <thead class="bg-gray-50/50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                                    <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sabor / Variação</th>
-                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Entradas</th>
-                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saídas</th>
-                                    <th class="w-28 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
-                                    <th class="w-40 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Investido</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for t in totals %}
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-4 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                                </svg>
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-bold text-gray-900">{{ t.product__name }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="w-36 px-4 py-4">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                            {{ t.product__category }}
-                                        </span>
-                                    </td>
-                                    <td class="w-40 px-4 py-4">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                            {{ t.variant_name }}
-                                        </span>
-                                    </td>
-                                    <td class="w-28 px-4 py-4 text-center">
-                                        <span class="inline-flex items-center justify-center w-10 h-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">
-                                            {{ t.total_qty }}
-                                        </span>
-                                    </td>
-                                    <td class="w-28 px-4 py-4 text-center">
-                                        <span class="inline-flex items-center justify-center w-10 h-8 rounded-full bg-red-100 text-red-600 text-sm font-bold">
-                                            {{ t.saidas_qty }}
-                                        </span>
-                                    </td>
-                                    <td class="w-28 px-4 py-4 text-center">
-                                        {% if t.saldo_qty <= 0 %}
-                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-red-100 text-red-700 text-sm font-bold">
-                                            {{ t.saldo_qty }}
-                                        </span>
-                                        {% elif t.saldo_qty <= 5 %}
-                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-yellow-100 text-yellow-700 text-sm font-bold">
-                                            {{ t.saldo_qty }}
-                                        </span>
-                                        {% else %}
-                                        <span class="inline-flex items-center justify-center px-3 h-8 rounded-full bg-green-100 text-green-700 text-sm font-bold">
-                                            {{ t.saldo_qty }}
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="w-40 px-4 py-4 text-right">
-                                        <div class="text-base font-bold text-emerald-600">R$ {{ t.total_invested|floatformat:2 }}</div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center">
-                                        <div class="flex flex-col items-center">
-                                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                            </svg>
-                                            <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma entrada registrada</h3>
-                                            <p class="text-gray-500">Registre a primeira entrada de estoque.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Histórico de entradas -->
-            <div class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Histórico de Entradas</h2>
-                </div>
-                <div class="w-full">
-                    <div class="overflow-x-auto">
-                        <table class="w-full table-fixed divide-y divide-gray-200">
-                            <thead class="bg-gray-50/50">
-                                <tr>
-                                    <th class="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                                    <th class="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sabor / Variação</th>
-                                    <th class="w-24 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd.</th>
-                                    <th class="w-32 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vlr. Unit.</th>
-                                    <th class="w-32 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
-                                    <th class="w-24 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="stockTableBody">
-                                {% for entry in entries %}
-                                <tr class="hover:bg-gray-50 transition-colors stock-row"
-                                    data-search="{{ entry.product.name|lower }} {{ entry.opcional_obrigatorio.name|default:''|lower }}"
-                                    data-date="{{ entry.date|date:'Y-m-d' }}">
-                                    <td class="w-36 px-4 py-4">
-                                        <div class="text-sm text-gray-900">{{ entry.date|date:"d/m/Y" }}</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                                </svg>
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-semibold text-gray-900">{{ entry.product.name }}</div>
-                                                <div class="text-xs text-gray-400">{{ entry.product.get_category_display }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="w-40 px-4 py-4">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                            {{ entry.opcional_obrigatorio.name|default:'Sem sabor/variação' }}
-                                        </span>
-                                    </td>
-                                    <td class="w-24 px-4 py-4 text-center">
-                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-bold">
-                                            {{ entry.quantity }}
-                                        </span>
-                                    </td>
-                                    <td class="w-32 px-4 py-4 text-right">
-                                        <div class="text-sm text-gray-700">R$ {{ entry.unit_cost|floatformat:2 }}</div>
-                                    </td>
-                                    <td class="w-32 px-4 py-4 text-right">
-                                        <div class="text-base font-bold text-emerald-600">R$ {{ entry.total_cost|floatformat:2 }}</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="text-sm text-gray-500 truncate">{{ entry.notes|default:"—" }}</div>
-                                    </td>
-                                    <td class="w-24 px-4 py-4">
-                                        <div class="flex items-center justify-center">
-                                            <a href="{% url 'products:stock_delete' entry.pk %}"
-                                               class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                               title="Remover entrada">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center">
-                                        <div class="flex flex-col items-center">
-                                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                            </svg>
-                                            <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma entrada encontrada</h3>
-                                            <p class="text-gray-500">{% if q %}Sem resultados para "{{ q }}".{% else %}Registre a primeira entrada de estoque.{% endif %}</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Paginação -->
-                {% if is_paginated %}
-                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50/50">
-                    <div class="flex items-center justify-between">
-                        <div class="text-sm text-gray-700">
-                            Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ paginator.count }} entradas
-                        </div>
-                        <div class="flex space-x-2">
-                            {% if page_obj.has_previous %}
-                            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
-                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Anterior</a>
-                            {% endif %}
-                            {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
-                               class="px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600">Próximo</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-        </div>
+      </div>
     </div>
+
+    <!-- Conteúdo -->
+    <div style="padding:24px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Filtros -->
+      <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;">
+
+          <!-- Buscar produto -->
+          <div style="flex:2;min-width:180px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Buscar produto</label>
+            <div style="position:relative;">
+              <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8E8E93;" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input type="text" id="searchInput" placeholder="Nome do produto..." value="{{ q }}"
+                     style="width:100%;height:44px;padding:0 12px 0 38px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+                     onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)';"
+                     onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none';">
+            </div>
+          </div>
+
+          <!-- Data início -->
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Data início</label>
+            <input type="date" id="dateStart" name="date_from" value="{{ date_from }}"
+                   style="width:100%;height:44px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)';"
+                   onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none';">
+          </div>
+
+          <!-- Data fim -->
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Data fim</label>
+            <input type="date" id="dateEnd" name="date_to" value="{{ date_to }}"
+                   style="width:100%;height:44px;padding:0 12px;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;color:#1D1D1F;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+                   onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.15)';"
+                   onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none';">
+          </div>
+
+          <!-- Ações -->
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="applyFilters()"
+                    style="height:44px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .15s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              Buscar
+            </button>
+            <button onclick="clearFilters()"
+                    style="height:44px;padding:0 16px;background:white;color:#6E6E73;border:1.5px solid #D1D1D6;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;"
+                    onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Limpar
+            </button>
+            <a href="{% url 'products:stock_create' %}"
+               style="height:44px;padding:0 18px;background:#34C759;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;transition:opacity .15s;"
+               onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+              </svg>
+              Nova Entrada
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Saldo por produto -->
+      <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <div style="padding:16px 20px;border-bottom:1px solid #F2F2F7;display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:15px;font-weight:700;color:#1D1D1F;margin:0;">Saldo atual por produto e sabor</h2>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#F5F5F7;">
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Produto</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:130px;">Categoria</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:150px;">Sabor / Variação</th>
+                <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:100px;">Entradas</th>
+                <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:100px;">Saídas</th>
+                <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:100px;">Saldo</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:140px;">Total Investido</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in totals %}
+              <tr style="border-top:1px solid #F2F2F7;transition:background .1s;" onmouseover="this.style.background='#F9F9FB'" onmouseout="this.style.background='white'">
+                <td style="padding:14px 16px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:#E8F9EE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="18" height="18" fill="none" stroke="#34C759" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <span style="font-size:14px;font-weight:600;color:#1D1D1F;">{{ t.product__name }}</span>
+                  </div>
+                </td>
+                <td style="padding:14px 16px;">
+                  <span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#EAF0FF;color:#007AFF;font-size:11px;font-weight:600;">{{ t.product__category }}</span>
+                </td>
+                <td style="padding:14px 16px;">
+                  <span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#F5F5F7;color:#6E6E73;font-size:11px;font-weight:600;">{{ t.variant_name }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:center;">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 8px;border-radius:20px;background:#E8F9EE;color:#34C759;font-size:13px;font-weight:700;">{{ t.total_qty }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:center;">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 8px;border-radius:20px;background:#FFE5E5;color:#FF3B30;font-size:13px;font-weight:700;">{{ t.saidas_qty }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:center;">
+                  {% if t.saldo_qty <= 0 %}
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 8px;border-radius:20px;background:#FFE5E5;color:#FF3B30;font-size:13px;font-weight:700;">{{ t.saldo_qty }}</span>
+                  {% elif t.saldo_qty <= 5 %}
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 8px;border-radius:20px;background:#FFF3E0;color:#FF9500;font-size:13px;font-weight:700;">{{ t.saldo_qty }}</span>
+                  {% else %}
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 8px;border-radius:20px;background:#E8F9EE;color:#34C759;font-size:13px;font-weight:700;">{{ t.saldo_qty }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding:14px 16px;text-align:right;">
+                  <span style="font-size:15px;font-weight:700;color:#1D1D1F;">R$ {{ t.total_invested|floatformat:2 }}</span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" style="padding:56px 24px;text-align:center;">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+                    <div style="width:56px;height:56px;border-radius:50%;background:#F5F5F7;display:flex;align-items:center;justify-content:center;">
+                      <svg width="28" height="28" fill="none" stroke="#C7C7CC" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <p style="font-size:15px;font-weight:600;color:#1D1D1F;margin:0;">Nenhuma entrada registrada</p>
+                    <p style="font-size:13px;color:#8E8E93;margin:0;">Registre a primeira entrada de estoque.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Histórico de entradas -->
+      <div style="background:white;border-radius:16px;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <div style="padding:16px 20px;border-bottom:1px solid #F2F2F7;">
+          <h2 style="font-size:15px;font-weight:700;color:#1D1D1F;margin:0;">Histórico de Entradas</h2>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#F5F5F7;">
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Data</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Produto</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:150px;">Sabor / Variação</th>
+                <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:80px;">Qtd.</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Vlr. Unit.</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:110px;">Total</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;">Observações</th>
+                <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;width:80px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody">
+              {% for entry in entries %}
+              <tr class="stock-row"
+                  data-search="{{ entry.product.name|lower }} {{ entry.opcional_obrigatorio.name|default:''|lower }}"
+                  data-date="{{ entry.date|date:'Y-m-d' }}"
+                  style="border-top:1px solid #F2F2F7;transition:background .1s;"
+                  onmouseover="this.style.background='#F9F9FB'" onmouseout="this.style.background='white'">
+                <td style="padding:14px 16px;">
+                  <span style="font-size:13px;color:#6E6E73;font-weight:500;">{{ entry.date|date:"d/m/Y" }}</span>
+                </td>
+                <td style="padding:14px 16px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:8px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="16" height="16" fill="none" stroke="#FF9500" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style="font-size:14px;font-weight:600;color:#1D1D1F;">{{ entry.product.name }}</div>
+                      <div style="font-size:11px;color:#8E8E93;">{{ entry.product.get_category_display }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="padding:14px 16px;">
+                  <span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#F5F5F7;color:#6E6E73;font-size:11px;font-weight:600;">{{ entry.opcional_obrigatorio.name|default:'Sem sabor/variação' }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:center;">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 8px;border-radius:20px;background:#EAF0FF;color:#007AFF;font-size:13px;font-weight:700;">{{ entry.quantity }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:right;">
+                  <span style="font-size:13px;color:#6E6E73;font-weight:500;">R$ {{ entry.unit_cost|floatformat:2 }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:right;">
+                  <span style="font-size:14px;font-weight:700;color:#34C759;">R$ {{ entry.total_cost|floatformat:2 }}</span>
+                </td>
+                <td style="padding:14px 16px;">
+                  <span style="font-size:13px;color:#8E8E93;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ entry.notes|default:"—" }}</span>
+                </td>
+                <td style="padding:14px 16px;text-align:center;">
+                  <a href="{% url 'products:stock_delete' entry.pk %}"
+                     style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#F5F5F7;color:#8E8E93;text-decoration:none;transition:background .15s,color .15s;"
+                     title="Remover entrada"
+                     onmouseover="this.style.background='#FFE5E5';this.style.color='#FF3B30';"
+                     onmouseout="this.style.background='#F5F5F7';this.style.color='#8E8E93';">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" style="padding:56px 24px;text-align:center;">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+                    <div style="width:56px;height:56px;border-radius:50%;background:#F5F5F7;display:flex;align-items:center;justify-content:center;">
+                      <svg width="28" height="28" fill="none" stroke="#C7C7CC" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <p style="font-size:15px;font-weight:600;color:#1D1D1F;margin:0;">Nenhuma entrada encontrada</p>
+                    <p style="font-size:13px;color:#8E8E93;margin:0;">{% if q %}Sem resultados para "{{ q }}".{% else %}Registre a primeira entrada de estoque.{% endif %}</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if is_paginated %}
+        <div style="padding:14px 20px;border-top:1px solid #F2F2F7;background:#F9F9FB;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:#8E8E93;">
+            Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ paginator.count }} entradas
+          </span>
+          <div style="display:flex;gap:8px;">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
+               style="height:36px;padding:0 14px;border:1.5px solid #D1D1D6;border-radius:8px;font-size:13px;font-weight:600;color:#1D1D1F;text-decoration:none;display:inline-flex;align-items:center;background:white;transition:background .15s;"
+               onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='white'">Anterior</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
+               style="height:36px;padding:0 14px;border:none;border-radius:8px;font-size:13px;font-weight:600;color:white;text-decoration:none;display:inline-flex;align-items:center;background:#007AFF;transition:opacity .15s;"
+               onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Próximo</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div><!-- fim conteúdo -->
+  </div>
 </div>
 
 <script>
 function applyFilters() {
-    const q         = document.getElementById('searchInput').value.trim();
-    const dateFrom  = document.getElementById('dateStart').value;
-    const dateTo    = document.getElementById('dateEnd').value;
-    const params = new URLSearchParams();
+    const q        = document.getElementById('searchInput').value.trim();
+    const dateFrom = document.getElementById('dateStart').value;
+    const dateTo   = document.getElementById('dateEnd').value;
+    const params   = new URLSearchParams();
     if (q)        params.set('q', q);
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo)   params.set('date_to', dateTo);
