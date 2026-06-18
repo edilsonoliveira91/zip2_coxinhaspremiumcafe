@@ -421,7 +421,7 @@
 
                         <!-- Conciliar -->
                         <div style="text-align:center;">
-                            <button onclick="abrirModalConciliar({{ t.pk }}, '{{ t.valor|floatformat:2 }}')"
+                            <button onclick="abrirModalConciliar({{ t.pk }}, '{{ t.valor|floatformat:2 }}', {{ t.taxa_aplicada|default:0 }})"
                                     style="min-height:32px;padding:0 10px;background:#34C759;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;"
                                     onmouseover="this.style.background='#2AA34A'" onmouseout="this.style.background='#34C759'">
                                 Conciliar
@@ -828,11 +828,12 @@ function abrirExcluirTx(pk, descricao) {
 
 let _conciliarPk = null;
 let _conciliarValorTotal = null;
+let _conciliarTaxa = 0;
 
-function abrirModalConciliar(pk, valorStr) {
+function abrirModalConciliar(pk, valorStr, taxaPct) {
     _conciliarPk = pk;
-    // converte "1.234,56" ou "1234.56" para float
     _conciliarValorTotal = parseFloat(valorStr.replace(',', '.'));
+    _conciliarTaxa = parseFloat(taxaPct) || 0;
     const fmt = v => 'R$ ' + formatarMoeda(v);
     document.getElementById('mconciliar-total').textContent = fmt(_conciliarValorTotal);
     const inp = document.getElementById('mconciliar-valor');
@@ -840,7 +841,7 @@ function abrirModalConciliar(pk, valorStr) {
     document.getElementById('mconciliar-resto-linha').style.display = 'none';
     document.getElementById('mconciliar-obs').value = '';
     document.getElementById('modalConciliar').style.display = 'flex';
-    setTimeout(() => inp.focus(), 80);
+    setTimeout(() => { inp.focus(); window._atualizarResto(); }, 80);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -848,17 +849,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) fecharModalConciliar();
     });
 
-    // listener separado para o cálculo do restante
+    // listener separado para o cálculo do restante e do líquido
     window._atualizarResto = function() {
-        const inp = document.getElementById('mconciliar-valor');
-        const v = parseFloat(desmascarar(inp.value)) || 0;
+        const v = parseFloat(desmascarar(document.getElementById('mconciliar-valor').value)) || 0;
+        const taxa = v * _conciliarTaxa / 100;
+        const liquido = v - taxa;
         const resto = _conciliarValorTotal - v;
-        const linha = document.getElementById('mconciliar-resto-linha');
+
+        // Bloco taxa + líquido
+        const taxaLinha = document.getElementById('mconciliar-taxa-linha');
+        if (_conciliarTaxa > 0 && v > 0) {
+            document.getElementById('mconciliar-taxa-pct').textContent = _conciliarTaxa.toFixed(2).replace('.', ',') + '%';
+            document.getElementById('mconciliar-taxa-val').textContent = '- R$ ' + formatarMoeda(taxa);
+            document.getElementById('mconciliar-liquido').textContent = 'R$ ' + formatarMoeda(liquido);
+            taxaLinha.style.display = 'block';
+        } else {
+            taxaLinha.style.display = 'none';
+        }
+
+        // Bloco restante (parcial)
+        const restoLinha = document.getElementById('mconciliar-resto-linha');
         if (v > 0 && v < _conciliarValorTotal) {
             document.getElementById('mconciliar-resto').textContent = 'R$ ' + formatarMoeda(resto);
-            linha.style.display = 'flex';
+            restoLinha.style.display = 'flex';
         } else {
-            linha.style.display = 'none';
+            restoLinha.style.display = 'none';
         }
     };
 });
@@ -940,6 +955,18 @@ async function confirmarConciliacao() {
                    onfocus="this.style.borderColor='#007AFF';this.style.boxShadow='0 0 0 3px rgba(0,122,255,0.12)'"
                    onblur="this.style.borderColor='#D1D1D6';this.style.boxShadow='none'">
             <div style="font-size:12px;color:#8E8E93;margin-top:5px;">Deixe o valor total para conciliar tudo, ou informe um valor menor para conciliação parcial.</div>
+        </div>
+
+        <!-- Breakdown taxa + líquido (só aparece se há taxa) -->
+        <div id="mconciliar-taxa-linha" style="display:none;background:#F5F5F7;border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:12px;color:#8E8E93;">Taxa (<span id="mconciliar-taxa-pct"></span>)</span>
+                <span id="mconciliar-taxa-val" style="font-size:12px;font-weight:600;color:#FF3B30;"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:7px;border-top:1px solid #E5E5EA;">
+                <span style="font-size:13px;font-weight:600;color:#1D1D1F;">Valor líquido</span>
+                <span id="mconciliar-liquido" style="font-size:15px;font-weight:700;color:#34C759;"></span>
+            </div>
         </div>
 
         <!-- Linha de restante (aparece só em parcial) -->
