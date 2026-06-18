@@ -404,7 +404,7 @@ class BankAdicionarView(LoginRequiredMixin, BaseView):
         descricao = request.POST.get('descricao', '').strip() or 'Depósito'
         observacao = request.POST.get('observacao', '').strip()
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -435,7 +435,7 @@ class BankPagarView(LoginRequiredMixin, BaseView):
         observacao = request.POST.get('observacao', '').strip()
         arquivos = request.FILES.getlist('comprovantes')
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -468,7 +468,7 @@ class BankTransferirView(LoginRequiredMixin, BaseView):
         descricao = request.POST.get('descricao', '').strip() or 'Transferência'
         observacao = request.POST.get('observacao', '').strip()
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
             valor = Decimal('0')
 
@@ -512,7 +512,7 @@ class BankTransactionEditView(LoginRequiredMixin, BaseView):
         data_str = request.POST.get('data', '').strip()
 
         try:
-            valor = Decimal(request.POST.get('valor', '0').replace('.', '').replace(',', '.'))
+            valor = Decimal(request.POST.get('valor', '0').replace(',', '.'))
         except Exception:
             valor = tx.valor
 

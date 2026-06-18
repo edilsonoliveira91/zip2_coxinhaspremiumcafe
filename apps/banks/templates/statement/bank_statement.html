@@ -421,7 +421,7 @@
 
                         <!-- Conciliar -->
                         <div style="text-align:center;">
-                            <button onclick="abrirModalConciliar({{ t.pk }}, '{{ t.valor|floatformat:2 }}', {{ t.taxa_aplicada|default:0 }})"
+                            <button onclick="abrirModalConciliar({{ t.pk }}, '{{ t.valor|floatformat:2 }}', '{{ t.taxa_aplicada|default:0 }}', '{{ t.metodo_pagamento }}', '{{ t.bandeira|lower }}')"
                                     style="min-height:32px;padding:0 10px;background:#34C759;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;"
                                     onmouseover="this.style.background='#2AA34A'" onmouseout="this.style.background='#34C759'">
                                 Conciliar
@@ -826,14 +826,26 @@ function abrirExcluirTx(pk, descricao) {
     abrirModal('modalExcluirTx');
 }
 
+// Tabela de taxas por bandeira (vinda do backend)
+const BANDEIRAS_RATES = {};
+{% for b in bandeiras_pinpad %}
+BANDEIRAS_RATES['{{ b.nome|lower }}'] = { credito: parseFloat('{{ b.taxa_credito|default:0 }}'.replace(',','.')), debito: parseFloat('{{ b.taxa_debito|default:0 }}'.replace(',','.')) };
+{% endfor %}
+
 let _conciliarPk = null;
 let _conciliarValorTotal = null;
 let _conciliarTaxa = 0;
 
-function abrirModalConciliar(pk, valorStr, taxaPct) {
+function abrirModalConciliar(pk, valorStr, taxaAplicada, metodo, bandeira) {
     _conciliarPk = pk;
     _conciliarValorTotal = parseFloat(valorStr.replace(',', '.'));
-    _conciliarTaxa = parseFloat(taxaPct) || 0;
+    // usa taxa travada; se 0 (registro antigo), busca taxa atual da bandeira
+    let taxa = parseFloat(String(taxaAplicada).replace(',', '.')) || 0;
+    if (!taxa && (metodo === 'credito' || metodo === 'debito') && bandeira) {
+        const r = BANDEIRAS_RATES[bandeira] || {};
+        taxa = parseFloat(r[metodo]) || 0;
+    }
+    _conciliarTaxa = taxa;
     const fmt = v => 'R$ ' + formatarMoeda(v);
     document.getElementById('mconciliar-total').textContent = fmt(_conciliarValorTotal);
     const inp = document.getElementById('mconciliar-valor');

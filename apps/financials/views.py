@@ -1046,7 +1046,7 @@ class RegistrarDespesaMaloteView(LoginRequiredMixin, View):
     def post(self, request):
         from django.shortcuts import get_object_or_404
         malote_id = request.POST.get('malote_id')
-        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1086,7 +1086,7 @@ class RegistrarDespesaFechamentoView(LoginRequiredMixin, View):
     def post(self, request, pk):
         from django.shortcuts import get_object_or_404
         fechamento = get_object_or_404(FechamentoCaixaDiario, pk=pk)
-        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1131,7 +1131,7 @@ class RegistrarDespesaDiaView(LoginRequiredMixin, View):
     def post(self, request):
         from datetime import datetime as dt_cls
         data_iso = request.POST.get('data_iso', '').strip()
-        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
         descricao = request.POST.get('descricao', '').strip()
         comprovante = request.FILES.get('comprovante')
 
@@ -1212,7 +1212,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         from django.shortcuts import get_object_or_404
 
         banco_id  = request.POST.get('banco_id', '').strip()
-        valor_raw = request.POST.get('valor', '').replace('.', '').replace(',', '.').strip()
+        valor_raw = request.POST.get('valor', '').replace(',', '.').strip()
         metodo    = request.POST.get('metodo_pagamento', 'dinheiro').strip()
         bandeira  = request.POST.get('bandeira', '').strip()
         observacao = request.POST.get('observacao', '').strip()
@@ -1517,7 +1517,7 @@ class AtualizarFechamentoCaixaView(LoginRequiredMixin, View):
             return JsonResponse({'ok': False, 'error': 'Fechamento não informado.'}, status=400)
 
         def _dec(key):
-            raw = request.POST.get(key, '0').replace('.', '').replace(',', '.').strip()
+            raw = request.POST.get(key, '0').replace(',', '.').strip()
             try:
                 v = Decimal(raw)
                 return v if v >= 0 else Decimal('0.00')
