@@ -1666,11 +1666,14 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
             f.total_restante    = max(f.total_final - f.total_transferido, Decimal('0'))
 
         pinpad_ativo = Pinpad.objects.filter(is_active=True).prefetch_related('bandeiras').first()
+        total_disponivel = sum(
+            f.total_restante for f in fechamentos_list if not f.cancelada
+        )
         context['fechamentos'] = fechamentos_list
         context['total_geral'] = total_geral
         context['total_dinheiro'] = total_dinheiro
         context['total_transferencias'] = total_transferencias
-        context['total_disponivel'] = max(total_geral - total_transferencias, Decimal('0.00'))
+        context['total_disponivel'] = total_disponivel
         context['banks'] = Bank.objects.order_by('nome')
         context['bandeiras_pinpad'] = list(pinpad_ativo.bandeiras.values('nome')) if pinpad_ativo else []
         context['metodos_pagamento'] = CaixaAdmTransferencia.METODO_CHOICES
