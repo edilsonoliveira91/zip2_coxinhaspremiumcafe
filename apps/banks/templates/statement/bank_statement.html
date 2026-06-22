@@ -369,7 +369,7 @@
                     <!-- Cabeçalho -->
                     <div style="display:grid;grid-template-columns:minmax(0,18%) 1fr minmax(0,17%) minmax(0,17%);align-items:center;padding:0;height:36px;background:#F5F5F7;border-bottom:1px solid rgba(0,0,0,0.07);">
                         <div style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;padding:0 8px;border-right:1px solid #E5E5EA;">Data Caixa</div>
-                        <div style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;padding:0 8px;border-right:1px solid #E5E5EA;text-align:center;">Método · Liq.</div>
+                        <div style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;padding:0 8px;border-right:1px solid #E5E5EA;">Método · Liq.</div>
                         <div style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:right;padding:0 8px;border-right:1px solid #E5E5EA;">Valor</div>
                         <div style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:center;padding:0 8px;">Ação</div>
                     </div>
@@ -389,8 +389,8 @@
                         </div>
 
                         <!-- Método + liquidação -->
-                        <div style="padding:0 8px;border-right:1px solid #F0F0F0;text-align:center;">
-                            <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;flex-wrap:wrap;justify-content:center;">
+                        <div style="padding:0 8px;border-right:1px solid #F0F0F0;">
+                            <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;flex-wrap:wrap;">
                                 <span style="padding:1px 6px;border-radius:9999px;font-size:10px;font-weight:700;
                                     {% if t.metodo_pagamento == 'credito' %}background:#dbeafe;color:#1d4ed8;
                                     {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe;color:#5b21b6;
