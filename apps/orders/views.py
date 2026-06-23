@@ -2298,6 +2298,32 @@ class MarcarPedidoEntregueView(LoginRequiredMixin, View):
         messages.success(request, f"Pedido #{pedido.pedido_seq} entregue com sucesso!")
         return redirect('orders:comanda_detail', numero=pedido.comanda.numero)
 
+
+class MarcarItemEntregueView(LoginRequiredMixin, View):
+    def post(self, request, item_pk):
+        item = get_object_or_404(PedidoItem, pk=item_pk)
+        pedido = item.pedido
+
+        if pedido.status in ('entregue', 'cancelado'):
+            return JsonResponse({'success': False, 'message': 'Pedido já finalizado.'}, status=400)
+
+        item.entregue = True
+        item.save(update_fields=['entregue'])
+
+        # Se todos os itens do pedido estiverem entregues, marca o pedido como entregue
+        todos_entregues = not pedido.items.filter(entregue=False).exists()
+        if todos_entregues:
+            pedido.status = 'entregue'
+            pedido.delivered_at = timezone.now()
+            pedido.save(update_fields=['status', 'delivered_at'])
+
+        return JsonResponse({
+            'success': True,
+            'todos_entregues': todos_entregues,
+            'pedido_id': pedido.pk,
+        })
+
+
 class RemoverItemPedidoView(LoginRequiredMixin, View):
     """
     Remove um item de um pedido já entregue e atualiza os totais.

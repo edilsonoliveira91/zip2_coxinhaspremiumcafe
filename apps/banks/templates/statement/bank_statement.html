@@ -319,7 +319,7 @@
                         </div>
                         {% if can_change or can_del_tx %}
                         <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-                            {% if can_change %}
+                            {% if can_change and request.user.is_superuser %}
                             <button onclick="abrirEditarTx({{ tx.pk }}, '{{ tx.descricao|escapejs }}', '{{ tx.valor }}', '{{ tx.data|date:'Y-m-d\TH:i' }}', '{{ tx.observacao|escapejs }}')"
                                     title="Editar"
                                     style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#F5F5F7;color:#1D1D1F;border:none;cursor:pointer;transition:background 0.15s;"

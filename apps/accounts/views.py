@@ -43,6 +43,8 @@ class CustomLoginView(LoginView):
             return reverse_lazy('accounts:ceo_dashboard')
         elif dashboard == 'manage':
             return reverse_lazy('accounts:manage_dashboard')
+        elif dashboard == 'banks':
+            return reverse_lazy('accounts:manage_banks')
         return reverse_lazy('accounts:dashboard')
 
     def get_redirect_url(self):
@@ -59,6 +61,8 @@ class CustomLoginView(LoginView):
             return redirect(reverse_lazy('accounts:ceo_dashboard'))
         elif dashboard == 'manage':
             return redirect(reverse_lazy('accounts:manage_dashboard'))
+        elif dashboard == 'banks':
+            return redirect(reverse_lazy('accounts:manage_banks'))
         return redirect(reverse_lazy('accounts:dashboard'))
 
 
@@ -140,6 +144,71 @@ class CeoDashboardView(LoginRequiredMixin, TemplateView):
 class ManageDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboards/manage_dashboard.html'
     login_url = reverse_lazy('accounts:login')
+
+
+class ManageBanksDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboards/manage_banks.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from banks.models import Bank
+        from financials.models import CaixaAdmTransferencia
+        from pinpads.models import Pinpad
+        from django.db.models import Sum
+        from datetime import timedelta
+
+        hoje = timezone.localtime().date()
+
+        # Saldo de cada banco (entradas - saídas das BankTransactions)
+        banks = Bank.objects.all().order_by('nome')
+        banks_data = []
+        total_geral_bancos = Decimal('0')
+        for bank in banks:
+            entradas = bank.transactions.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            saidas   = bank.transactions.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            saldo    = entradas - saidas
+            total_geral_bancos += saldo
+            banks_data.append({'banco': bank, 'saldo': saldo})
+
+        # Conciliações vencidas (data_liquidacao_dinamica <= hoje, não conciliadas, não canceladas)
+        pinpad = Pinpad.objects.filter(is_active=True).first()
+        dias_map = {
+            'credito':  pinpad.dias_credito if pinpad else 30,
+            'debito':   pinpad.dias_debito  if pinpad else 1,
+            'pix':      pinpad.dias_pix     if pinpad else 1,
+            'dinheiro': 0,
+        }
+        pendentes_qs = CaixaAdmTransferencia.objects.filter(
+            conciliado=False, cancelada=False
+        ).select_related('banco_destino', 'criado_por').order_by('data_caixa')
+
+        vencidas = []
+        a_vencer = []
+        total_vencido = Decimal('0')
+        total_a_vencer = Decimal('0')
+        for t in pendentes_qs:
+            base = t.data_caixa or hoje
+            t.data_liquidacao_dinamica = base + timedelta(days=dias_map.get(t.metodo_pagamento, 0))
+            if t.data_liquidacao_dinamica <= hoje:
+                vencidas.append(t)
+                total_vencido += t.valor
+            else:
+                a_vencer.append(t)
+                total_a_vencer += t.valor
+
+        context.update({
+            'hoje': hoje,
+            'banks_data': banks_data,
+            'total_geral_bancos': total_geral_bancos,
+            'vencidas': vencidas,
+            'a_vencer': a_vencer,
+            'total_vencido': total_vencido,
+            'total_a_vencer': total_a_vencer,
+            'qtd_vencidas': len(vencidas),
+            'qtd_a_vencer': len(a_vencer),
+        })
+        return context
 
 
 class HomeView(LoginRequiredMixin, TemplateView):

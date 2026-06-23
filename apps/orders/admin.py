@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Comanda, Pedido, PedidoItem, ComandaPartialPayment
+from .models import Comanda, Pedido, PedidoItem, ComandaPartialPayment, ItemRemovidoLog
 
 
 class StatusComandaFilter(admin.SimpleListFilter):
@@ -155,3 +155,13 @@ class ComandaPartialPaymentAdmin(admin.ModelAdmin):
     list_filter = ('payment_method', 'created_at')
     search_fields = ('comanda__numero', 'processed_by__username')
     ordering = ('-created_at',)
+
+
+@admin.register(ItemRemovidoLog)
+class ItemRemovidoLogAdmin(admin.ModelAdmin):
+    list_display = ('product_name', 'quantity', 'unit_price', 'comanda_numero', 'pedido_seq', 'garcom_numero', 'removido_por', 'removido_em')
+    list_filter = ('removido_em', 'removido_por')
+    search_fields = ('product_name', 'comanda_numero', 'removido_por__username')
+    ordering = ('-removido_em',)
+    readonly_fields = ('product_name', 'quantity', 'unit_price', 'observations', 'comanda_numero', 'pedido_seq', 'garcom_numero', 'removido_por', 'removido_em')
+

@@ -488,20 +488,15 @@
   <p style="color:#ea8828;font-size:72px;font-weight:900;margin:0;" id="tela-mesa-numero"></p>
 </div>
 
-<!-- ── MODAL CONFIRMAÇÃO FINAL ───────────────────────────────── -->
-<div id="modal-fechamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:320;align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:24px;padding:28px 24px;width:90%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
-    <p style="font-size:36px;margin:0 0 12px;">🧾</p>
-    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 16px;">Confirmar fechamento</h3>
-    <div style="background:#f5f0eb;border-radius:16px;padding:16px;margin-bottom:20px;text-align:left;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;color:#9a8070;font-weight:600;">Total da conta</span>
-        <span id="conf-total" style="font-size:20px;font-weight:800;color:#d4600a;">R$ 0,00</span>
-      </div>
-    </div>
+<!-- Modal Confirmação Fechamento -->
+<div id="modal-fechamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:32px 28px;width:90%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+    <p style="font-size:40px;margin:0 0 12px;">🧾</p>
+    <h3 style="font-size:20px;font-weight:800;color:#1a0a00;margin:0 0 8px;">Fechar a conta?</h3>
+    <p style="font-size:14px;color:#9a8070;margin:0 0 24px;">Você será direcionado ao caixa para efetuar o pagamento.</p>
     <div style="display:flex;gap:12px;">
-      <button onclick="cancelarFechamento()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="executarFechamentoFinal()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#b91c1c,#7f1d1d);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(185,28,28,0.4);">✓ Confirmar</button>
+      <button onclick="cancelarFechamento()" style="flex:1;height:52px;border-radius:14px;border:2px solid #f0e8e0;background:white;color:#9a8070;font-size:15px;font-weight:700;cursor:pointer;">Não, voltar</button>
+      <button onclick="executarFechamento()" style="flex:1;height:52px;border-radius:14px;border:none;background:linear-gradient(to right,#b91c1c,#7f1d1d);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(185,28,28,0.4);">Sim, fechar</button>
     </div>
   </div>
 </div>
@@ -1038,36 +1033,23 @@ function fecharVerConta() {
 }
 
 // ── Fechar Conta — kiosk: vai direto para confirmação ──────────
-let _totalContaAtual = 'R$ 0,00';
-
 function confirmarFechamento() {
-  const totalEl = document.getElementById('conta-total');
-  _totalContaAtual = totalEl ? totalEl.textContent : 'R$ 0,00';
-  fecharVerConta();
-  document.getElementById('conf-total').textContent = _totalContaAtual;
-  document.getElementById('modal-fechamento').style.display = 'flex';
+  const modal = document.getElementById('modal-fechamento');
+  modal.style.display = 'flex';
 }
 
 function cancelarFechamento() {
   document.getElementById('modal-fechamento').style.display = 'none';
 }
 
-// Envia fechamento para o backend e mostra tela de conta fechada
-async function executarFechamentoFinal() {
+async function executarFechamento() {
   document.getElementById('modal-fechamento').style.display = 'none';
-  try {
-    await fetch(URL_FECHAR, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-      body: JSON.stringify({}),
-    });
-  } catch(e) {}
+  fecharVerConta();
+  try { await fetch(URL_FECHAR, { method: 'POST', headers: { 'X-CSRFToken': CSRF } }); } catch(e) {}
   const tela = document.getElementById('tela-conta-fechada');
   document.getElementById('tela-mesa-numero').textContent = '{{ numero }}';
   tela.style.display = 'flex';
-  setTimeout(() => {
-    window.location.href = "{% url 'kiosk:entrada' %}";
-  }, 5000);
+  setTimeout(() => { window.location.href = "{% url 'kiosk:entrada' %}"; }, 5000);
 }
 
 // ── Polling: detecta fechamento remoto pelo caixa ──────────

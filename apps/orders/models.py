@@ -303,6 +303,8 @@ class PedidoItem(TimeStampedModel):
         help_text="Ex: Sem cebola, extra queijo"
     )
 
+    entregue = models.BooleanField(default=False, verbose_name="Entregue")
+
     class Meta:
         verbose_name = "Item do Pedido"
         verbose_name_plural = "Itens do Pedido"

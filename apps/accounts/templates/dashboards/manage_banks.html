@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestão de Bancos{% endblock %}
+
+{% block content %}
+<style>
+  .apple-dash {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .apple-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6e6e73;
+    margin: 0;
+  }
+  .apple-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #d2d2d7;
+    overflow: hidden;
+  }
+  .apple-metric {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #1d1d1f;
+    line-height: 1;
+    margin: 0;
+  }
+  .apple-text-secondary { color: #6e6e73; }
+  .apple-row { transition: background .15s; border-bottom: 1px solid #f2f2f7; }
+  .apple-row:last-child { border-bottom: none; }
+  .apple-row:hover { background: #f5f5f7; }
+  .grid-kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .grid-half {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .dash-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 12px;
+  }
+  .badge-red {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 20px; background: #fff0f0; color: #FF3B30;
+  }
+  .badge-orange {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 20px; background: #fff8ee; color: #FF9500;
+  }
+  .badge-blue {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 20px; background: #e8f4fd; color: #007AFF;
+  }
+  .metodo-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+  }
+  @media (max-width: 900px) {
+    .grid-kpi { grid-template-columns: repeat(2, 1fr); }
+    .grid-half { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .grid-kpi { grid-template-columns: 1fr; }
+    .apple-metric { font-size: 26px; }
+  }
+</style>
+
+<div class="apple-dash">
+  <div style="max-width:1200px; margin:0 auto;">
+
+    <!-- Header -->
+    <div class="dash-header">
+      <div>
+        <p class="apple-label" style="margin-bottom:6px;">Coxinhas Premium Café</p>
+        <h1 style="font-size:26px; font-weight:700; letter-spacing:-0.5px; color:#1d1d1f; margin:0 0 4px;">Gestão de Bancos</h1>
+        <p class="apple-text-secondary" style="font-size:13px; margin:0;">{{ hoje|date:"d \d\e F \d\e Y" }}</p>
+      </div>
+      <a href="{% url 'banks:bank_list' %}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#007AFF;color:white;border-radius:12px;font-size:13px;font-weight:600;text-decoration:none;">
+        &#8599; Ver Extratos
+      </a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid-kpi">
+      <div class="apple-card" style="padding:22px 24px;">
+        <p class="apple-label" style="margin-bottom:10px;">Total em Bancos</p>
+        <p class="apple-metric" style="color:#34C759;">R$&nbsp;{{ total_geral_bancos|floatformat:2 }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">{{ banks_data|length }} banco{{ banks_data|length|pluralize:"s" }}</p>
+      </div>
+
+      <div class="apple-card" style="padding:22px 24px;">
+        <p class="apple-label" style="margin-bottom:10px;">A Conciliar (vencidas)</p>
+        <p class="apple-metric" style="color:#FF3B30;">R$&nbsp;{{ total_vencido|floatformat:2 }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">{{ qtd_vencidas }} transferência{{ qtd_vencidas|pluralize:"s" }}</p>
+      </div>
+
+      <div class="apple-card" style="padding:22px 24px;">
+        <p class="apple-label" style="margin-bottom:10px;">A Vencer</p>
+        <p class="apple-metric" style="color:#FF9500;">R$&nbsp;{{ total_a_vencer|floatformat:2 }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">{{ qtd_a_vencer }} transferência{{ qtd_a_vencer|pluralize:"s" }}</p>
+      </div>
+
+      <div class="apple-card" style="padding:22px 24px;">
+        <p class="apple-label" style="margin-bottom:10px;">Total Pendente</p>
+        <p class="apple-metric">R$&nbsp;{{ total_vencido|add:total_a_vencer|floatformat:2 }}</p>
+        <p class="apple-text-secondary" style="font-size:12px; margin-top:8px;">{{ qtd_vencidas|add:qtd_a_vencer }} no total</p>
+      </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="grid-half">
+
+      <!-- BLOCO: Bancos -->
+      <div class="apple-card">
+        <div style="padding:18px 20px; border-bottom:1px solid #f2f2f7; display:flex; align-items:center; justify-content:space-between;">
+          <p class="apple-label">Saldo por banco</p>
+          <span class="badge-blue">{{ banks_data|length }} banco{{ banks_data|length|pluralize:"s" }}</span>
+        </div>
+
+        {% if banks_data %}
+        <!-- Cabeçalho -->
+        <div style="display:grid;grid-template-columns:1fr auto;padding:8px 20px;background:#f9f9fb;border-bottom:1px solid #f2f2f7;">
+          <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;">Banco</span>
+          <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:right;">Saldo</span>
+        </div>
+        {% for item in banks_data %}
+        <div class="apple-row" style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:14px 20px;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1d1d1f;">{{ item.banco.nome }}</div>
+            {% if item.banco.numero_conta %}
+            <div style="font-size:11px;color:#8E8E93;margin-top:2px;">Conta {{ item.banco.numero_conta }}</div>
+            {% endif %}
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:15px;font-weight:700;{% if item.saldo >= 0 %}color:#34C759;{% else %}color:#FF3B30;{% endif %}">
+              R$&nbsp;{{ item.saldo|floatformat:2 }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+        <!-- Total -->
+        <div style="padding:14px 20px;background:#f9f9fb;border-top:1px solid #f2f2f7;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;color:#1d1d1f;">Total</span>
+          <span style="font-size:16px;font-weight:800;color:#34C759;">R$&nbsp;{{ total_geral_bancos|floatformat:2 }}</span>
+        </div>
+        {% else %}
+        <div style="padding:40px;text-align:center;color:#8E8E93;font-size:14px;">Nenhum banco cadastrado.</div>
+        {% endif %}
+      </div>
+
+      <!-- BLOCO: Conciliações vencidas -->
+      <div class="apple-card">
+        <div style="padding:18px 20px; border-bottom:1px solid #f2f2f7; display:flex; align-items:center; justify-content:space-between;">
+          <p class="apple-label">Conciliações vencidas</p>
+          {% if qtd_vencidas %}
+          <span class="badge-red">{{ qtd_vencidas }} pendente{{ qtd_vencidas|pluralize:"s" }}</span>
+          {% else %}
+          <span class="badge-blue">Em dia</span>
+          {% endif %}
+        </div>
+
+        {% if vencidas %}
+        <div style="display:grid;grid-template-columns:1fr auto auto;padding:8px 20px;background:#f9f9fb;border-bottom:1px solid #f2f2f7;gap:12px;">
+          <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;">Data / Banco</span>
+          <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:center;">Método</span>
+          <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:right;">Valor</span>
+        </div>
+        <div style="max-height:400px;overflow-y:auto;">
+        {% for t in vencidas %}
+        <div class="apple-row" style="display:grid;grid-template-columns:1fr auto auto;align-items:center;padding:12px 20px;gap:12px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#1d1d1f;">{{ t.data_caixa|date:"d/m/Y"|default:"—" }}</div>
+            <div style="font-size:11px;color:#8E8E93;margin-top:1px;">{{ t.banco_destino.nome }}</div>
+          </div>
+          <div style="text-align:center;">
+            <span class="metodo-badge"
+              style="{% if t.metodo_pagamento == 'credito' %}background:#dbeafe;color:#1d4ed8;
+              {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe;color:#5b21b6;
+              {% elif t.metodo_pagamento == 'pix' %}background:#fef9c3;color:#854d0e;
+              {% else %}background:#dcfce7;color:#166534;{% endif %}">
+              {{ t.get_metodo_pagamento_display }}
+            </span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:13px;font-weight:700;color:#FF3B30;">R$&nbsp;{{ t.valor|floatformat:2 }}</span>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+        <div style="padding:12px 20px;background:#fff0f0;border-top:1px solid #ffe5e5;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;color:#FF3B30;">Total vencido</span>
+          <span style="font-size:16px;font-weight:800;color:#FF3B30;">R$&nbsp;{{ total_vencido|floatformat:2 }}</span>
+        </div>
+        {% else %}
+        <div style="padding:40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">✅</div>
+          <p style="font-size:15px;font-weight:600;color:#1d1d1f;margin:0 0 4px;">Tudo em dia!</p>
+          <p style="font-size:13px;color:#8E8E93;margin:0;">Nenhuma conciliação vencida.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- BLOCO: A Vencer -->
+    {% if a_vencer %}
+    <div class="apple-card" style="margin-top:16px;">
+      <div style="padding:18px 20px; border-bottom:1px solid #f2f2f7; display:flex; align-items:center; justify-content:space-between;">
+        <p class="apple-label">Próximas a vencer</p>
+        <span class="badge-orange">{{ qtd_a_vencer }} transferência{{ qtd_a_vencer|pluralize:"s" }}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;padding:8px 20px;background:#f9f9fb;border-bottom:1px solid #f2f2f7;gap:12px;">
+        <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;">Data Caixa</span>
+        <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;">Banco / Método</span>
+        <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:center;">Vence em</span>
+        <span style="font-size:10px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.3px;text-align:right;">Valor</span>
+      </div>
+      {% for t in a_vencer %}
+      <div class="apple-row" style="display:grid;grid-template-columns:1fr 1fr auto auto;align-items:center;padding:12px 20px;gap:12px;">
+        <div style="font-size:13px;font-weight:600;color:#1d1d1f;">{{ t.data_caixa|date:"d/m/Y"|default:"—" }}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1d1d1f;">{{ t.banco_destino.nome }}</div>
+          <span class="metodo-badge" style="margin-top:3px;
+            {% if t.metodo_pagamento == 'credito' %}background:#dbeafe;color:#1d4ed8;
+            {% elif t.metodo_pagamento == 'debito' %}background:#ede9fe;color:#5b21b6;
+            {% elif t.metodo_pagamento == 'pix' %}background:#fef9c3;color:#854d0e;
+            {% else %}background:#dcfce7;color:#166534;{% endif %}">
+            {{ t.get_metodo_pagamento_display }}{% if t.bandeira %} · {{ t.bandeira }}{% endif %}
+          </span>
+        </div>
+        <div style="text-align:center;">
+          <span style="font-size:12px;font-weight:700;color:#FF9500;">{{ t.data_liquidacao_dinamica|date:"d/m/Y" }}</span>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:13px;font-weight:700;color:#FF9500;">R$&nbsp;{{ t.valor|floatformat:2 }}</span>
+        </div>
+      </div>
+      {% endfor %}
+      <div style="padding:12px 20px;background:#fff8ee;border-top:1px solid #ffebd0;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:700;color:#FF9500;">Total a vencer</span>
+        <span style="font-size:16px;font-weight:800;color:#FF9500;">R$&nbsp;{{ total_a_vencer|floatformat:2 }}</span>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -30,6 +30,7 @@ class User(AbstractUser):
         ('home', 'Dashboard Principal (Comandas)'),
         ('ceo', 'Dashboard CEO'),
         ('manage', 'Dashboard Gerencial'),
+        ('banks', 'Dashboard Gestão de Bancos'),
     ]
     dashboard_home = models.CharField(
         max_length=20,

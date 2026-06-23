@@ -201,9 +201,9 @@
                                 </button>
                                 
                                 {% if pedido.status != 'entregue' and pedido.status != 'cancelado' %}
-                                <form action="{% url 'orders:marcar_entregue' pedido.id %}" method="POST" class="m-0">
+                                <form action="{% url 'orders:marcar_entregue' pedido.id %}" method="POST" class="m-0" id="form-entregar-pedido-{{ pedido.id }}">
                                     {% csrf_token %}
-                                    <button type="submit" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white border border-green-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
+                                    <button type="submit" id="btn-entregar-pedido-{{ pedido.id }}" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white border border-green-600 rounded-lg font-medium text-sm transition uppercase shadow-sm">
                                         Entregar
                                     </button>
                                 </form>
@@ -258,14 +258,25 @@
                             
                             <ul class="flex flex-col gap-2" id="items-list-{{ pedido.id }}">
                                 {% for item in pedido.items.all %}
-                                <li class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium shadow-sm flex flex-col" id="item-row-{{ item.id }}">
+                                <li class="px-3 py-1.5 rounded-lg border text-gray-700 text-sm font-medium shadow-sm flex flex-col {% if item.entregue %}bg-green-50 border-green-200{% else %}bg-white border-gray-200{% endif %}" id="item-row-{{ item.id }}">
                                     <div class="flex items-center justify-between w-full">
-                                        <span>
-                                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full mr-2">x{{ item.quantity }}</span>
+                                        <span class="flex items-center gap-2">
+                                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">x{{ item.quantity }}</span>
                                             {{ item.product.name }}
+                                            {% if item.entregue %}
+                                            <span class="text-green-600 text-xs font-bold">✓ entregue</span>
+                                            {% endif %}
                                         </span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-green-600 font-bold">R$ {{ item.unit_price|floatformat:2 }}</span>
+                                            {% if pedido.status != 'cancelado' and not item.entregue and pedido.status != 'entregue' %}
+                                            <button type="button"
+                                                onclick="entregarItem({{ item.id }}, {{ pedido.id }})"
+                                                title="Marcar como entregue"
+                                                class="px-2 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 hover:bg-green-200 transition-colors">
+                                                Entregar
+                                            </button>
+                                            {% endif %}
                                             {% if pedido.status != 'cancelado' %}
                                             <button type="button"
                                                 onclick="removerItem({{ item.id }}, '{{ item.product.name }}', {{ pedido.id }})"
@@ -669,6 +680,40 @@ async function imprimirComanda() {
 // ── Modal Remover Item ──────────────────────────────────────────────
 let _removerItemId = null;
 let _removerNomeProduto = null;
+
+async function entregarItem(itemId, pedidoId) {
+    const url = "{% url 'orders:marcar_item_entregue' 0 %}".replace('/0/', '/' + itemId + '/');
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+        });
+        const data = await resp.json();
+        if (!data.success) return;
+
+        // Marca item visualmente como entregue
+        const row = document.getElementById('item-row-' + itemId);
+        if (row) {
+            row.classList.remove('bg-white', 'border-gray-200');
+            row.classList.add('bg-green-50', 'border-green-200');
+            const btn = row.querySelector('button[onclick^="entregarItem"]');
+            if (btn) btn.replaceWith(Object.assign(document.createElement('span'), {
+                className: 'text-green-600 text-xs font-bold',
+                textContent: '✓ entregue'
+            }));
+        }
+
+        // Esconde o botão "Entregar" do pedido inteiro ao primeiro item entregue
+        const btnPedido = document.getElementById('btn-entregar-pedido-' + pedidoId);
+        if (btnPedido) btnPedido.closest('form').style.display = 'none';
+
+        // Se todos os itens foram entregues, recarrega para refletir status do pedido
+        if (data.todos_entregues) {
+            window.location.reload();
+        }
+    } catch(e) {}
+}
 
 function removerItem(itemId, nomeProduto, pedidoId) {
     _removerItemId = itemId;
