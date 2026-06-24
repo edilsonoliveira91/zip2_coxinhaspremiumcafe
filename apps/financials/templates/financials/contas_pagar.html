@@ -26,7 +26,7 @@
   }
   .ap-row {
     display: grid;
-    grid-template-columns: 1fr minmax(0,22%) minmax(0,16%) minmax(0,13%) minmax(0,14%) minmax(0,90px);
+    grid-template-columns: 1fr minmax(0,9%) minmax(0,14%) minmax(0,11%) minmax(0,13%) minmax(0,88px);
     align-items: center;
     border-bottom: 1px solid #f2f2f7;
     padding: 0;
@@ -34,16 +34,30 @@
   }
   .ap-row:last-child { border-bottom: none; }
   .ap-row:hover { background: #f5f5f7; }
-  .ap-cell { padding: 12px 14px; font-size: 14px; color: #1d1d1f; }
+  .ap-cell { padding: 8px 12px; font-size: 13px; color: #1d1d1f; }
   .ap-head {
     display: grid;
-    grid-template-columns: 1fr minmax(0,22%) minmax(0,16%) minmax(0,13%) minmax(0,14%) minmax(0,90px);
+    grid-template-columns: 1fr minmax(0,9%) minmax(0,14%) minmax(0,11%) minmax(0,13%) minmax(0,88px);
     background: #f5f5f7; border-bottom: 1px solid #d2d2d7;
   }
   .ap-head-cell {
-    padding: 10px 14px; font-size: 11px; font-weight: 700;
+    padding: 8px 12px; font-size: 10px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase; color: #6e6e73;
   }
+  /* Icon action buttons */
+  .btn-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px; border: none; cursor: pointer;
+    transition: background .15s; flex-shrink: 0;
+  }
+  .btn-icon-gray  { background: #f5f5f7; color: #1d1d1f; }
+  .btn-icon-gray:hover  { background: #e5e5ea; }
+  .btn-icon-blue  { background: #eaf3ff; color: #007AFF; }
+  .btn-icon-blue:hover  { background: #d0eafb; }
+  .btn-icon-green { background: #edfaf3; color: #34C759; }
+  .btn-icon-green:hover { background: #d4f5e1; }
+  .btn-icon-red   { background: #fff0f0; color: #FF3B30; }
+  .btn-icon-red:hover   { background: #ffd6d3; }
   .badge {
     display: inline-flex; align-items: center;
     font-size: 11px; font-weight: 700; padding: 3px 9px;
@@ -97,9 +111,40 @@
   .modal-overlay.open { display: flex; }
   .modal-box {
     background: #fff; border-radius: 20px; padding: 32px;
-    width: 100%; max-width: 520px; box-shadow: 0 24px 64px rgba(0,0,0,.18);
-    max-height: 90vh; overflow-y: auto;
+    width: 100%; max-width: 680px; box-shadow: 0 24px 64px rgba(0,0,0,.18);
+    max-height: 92vh; overflow-y: auto;
   }
+
+  /* Itens da nota */
+  .itens-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .itens-table th {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: #6e6e73; padding: 6px 6px;
+    background: #f5f5f7; border-bottom: 1px solid #e5e5ea; text-align: left;
+  }
+  .itens-table td { padding: 6px 4px; vertical-align: middle; }
+  .itens-table tr:not(:last-child) td { border-bottom: 1px solid #f2f2f7; }
+  .itens-table .fc-sm {
+    width: 100%; padding: 7px 8px; border: 1.5px solid #d2d2d7; border-radius: 8px;
+    font-size: 13px; color: #1d1d1f; background: #fff; box-sizing: border-box;
+    transition: border-color .15s;
+  }
+  .itens-table .fc-sm:focus { outline: none; border-color: #007AFF; }
+  .itens-table select.fc-sm {
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+  }
+  .btn-rem-item {
+    width: 30px; height: 30px; border: none; border-radius: 8px; background: #fff0f0;
+    color: #FF3B30; cursor: pointer; font-size: 16px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-rem-item:hover { background: #ffd6d3; }
+  .total-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+  .total-label { font-size: 13px; font-weight: 600; color: #6e6e73; }
+  .total-value { font-size: 22px; font-weight: 700; color: #1d1d1f; }
+  .sem-materiais { background: #fff8ee; border: 1px solid #ffe0a0; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #c07700; margin-top: 8px; }
   .modal-title { font-size: 20px; font-weight: 700; color: #1d1d1f; margin: 0 0 20px; }
   .form-group { margin-bottom: 16px; }
   .form-label { display: block; font-size: 12px; font-weight: 600; color: #6e6e73; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
@@ -142,8 +187,9 @@
 
   @media (max-width: 800px) {
     .kpi-grid { grid-template-columns: 1fr 1fr; }
-    .ap-row, .ap-head { grid-template-columns: 1fr minmax(0,20%) minmax(0,14%) minmax(0,80px); }
-    .ap-cell:nth-child(3), .ap-head-cell:nth-child(3),
+    .ap-row, .ap-head { grid-template-columns: 1fr minmax(0,18%) minmax(0,80px); }
+    .ap-cell:nth-child(2), .ap-head-cell:nth-child(2),
+    .ap-cell:nth-child(4), .ap-head-cell:nth-child(4),
     .ap-cell:nth-child(5), .ap-head-cell:nth-child(5) { display: none; }
     .row2 { grid-template-columns: 1fr; }
   }
@@ -186,7 +232,7 @@
   <div class="ap-card">
     <div class="ap-head">
       <div class="ap-head-cell">Descrição / Fornecedor</div>
-      <div class="ap-head-cell">Plano de Contas</div>
+      <div class="ap-head-cell" style="text-align:center;">Itens</div>
       <div class="ap-head-cell" style="text-align:right;">Valor</div>
       <div class="ap-head-cell">Vencimento</div>
       <div class="ap-head-cell">Status</div>
@@ -196,8 +242,8 @@
     {% for conta in contas %}
     <div class="ap-row" id="row-{{ conta.pk }}">
       <div class="ap-cell">
-        <div style="font-weight:600;">{{ conta.descricao }}</div>
-        <div style="font-size:12px;color:#6e6e73;margin-top:2px;">{{ conta.fornecedor.nome }}</div>
+        {% if conta.descricao %}<div style="font-weight:600;line-height:1.3;">{{ conta.descricao }}</div>{% endif %}
+        <div style="font-size:12px;color:#6e6e73;margin-top:{% if conta.descricao %}2{% else %}0{% endif %}px;">{{ conta.fornecedor.nome }}</div>
         {% with ndocs=conta.documentos.count %}{% if ndocs %}
         <button class="doc-badge" onclick="abrirDocs({{ conta.pk }})">
           <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
@@ -205,9 +251,7 @@
         </button>
         {% endif %}{% endwith %}
       </div>
-      <div class="ap-cell" style="font-size:13px;color:#6e6e73;">
-        {% if conta.plano_de_conta %}{{ conta.plano_de_conta }}{% else %}—{% endif %}
-      </div>
+      <div class="ap-cell" style="text-align:center;font-size:13px;color:#6e6e73;">{{ conta.itens.count }}</div>
       <div class="ap-cell" style="text-align:right;font-weight:700;">R$ {{ conta.valor|floatformat:2 }}</div>
       <div class="ap-cell" style="font-size:13px;">
         {{ conta.data_vencimento|date:"d/m/Y" }}
@@ -223,12 +267,21 @@
           <span class="badge badge-gray">Cancelada</span>
         {% endif %}
       </div>
-      <div class="ap-cell" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
-        <button class="btn-sm" style="background:#f0f7ff;color:#007AFF;" onclick="abrirDocs({{ conta.pk }})">Docs</button>
+      <div class="ap-cell" style="display:flex;gap:5px;justify-content:flex-end;align-items:center;">
+        <button class="btn-icon btn-icon-gray" title="Visualizar" onclick="abrirDetalhe({{ conta.pk }})">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        </button>
         {% if conta.status == 'pendente' %}
-        <button class="btn-sm btn-green" onclick="marcarPago({{ conta.pk }})">Pagar</button>
+        <button class="btn-icon btn-icon-blue" title="Editar" onclick="abrirEditar({{ conta.pk }})">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button class="btn-icon btn-icon-green" title="Registrar pagamento" onclick="marcarPago({{ conta.pk }})">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </button>
         {% if request.user.is_superuser %}
-        <button class="btn-sm btn-cancel" onclick="cancelarConta({{ conta.pk }})">Cancelar</button>
+        <button class="btn-icon btn-icon-red" title="Cancelar" onclick="cancelarConta({{ conta.pk }})">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
         {% endif %}
         {% endif %}
       </div>
@@ -244,9 +297,10 @@
   <div class="modal-box">
     <p class="modal-title">Nova Conta a Pagar</p>
 
+    <!-- Fornecedor -->
     <div class="form-group">
       <label class="form-label">Fornecedor</label>
-      <select class="form-control" id="sel-fornecedor" onchange="carregarProdutos()">
+      <select class="form-control" id="sel-fornecedor" onchange="carregarMateriais()">
         <option value="">Selecione…</option>
         {% for f in fornecedores %}
         <option value="{{ f.pk }}">{{ f.nome }}</option>
@@ -254,33 +308,43 @@
       </select>
     </div>
 
-    <div class="form-group" id="grupo-produto" style="display:none;">
-      <label class="form-label">Material (opcional)</label>
-      <select class="form-control" id="sel-produto" onchange="preencherPlano()">
-        <option value="">Selecione…</option>
-      </select>
+    <!-- Itens da nota -->
+    <div class="form-group" id="grupo-itens" style="display:none;">
+      <label class="form-label">Itens da Nota</label>
+      <table class="itens-table">
+        <thead>
+          <tr>
+            <th style="width:35%;">Material</th>
+            <th style="width:10%;text-align:right;">Qtd</th>
+            <th style="width:12%;">Un</th>
+            <th style="width:15%;text-align:right;">Vlr Unit</th>
+            <th style="width:15%;text-align:right;">Total</th>
+            <th style="width:28px;"></th>
+          </tr>
+        </thead>
+        <tbody id="itens-body"></tbody>
+      </table>
+      <button type="button" onclick="adicionarItem()"
+              style="margin-top:8px;width:100%;background:none;border:1.5px dashed #d2d2d7;border-radius:8px;padding:8px;font-size:13px;font-weight:600;color:#007AFF;cursor:pointer;transition:border-color .15s,background .12s;"
+              onmouseover="this.style.borderColor='#007AFF';this.style.background='#f0f7ff'"
+              onmouseout="this.style.borderColor='#d2d2d7';this.style.background='none'">
+        + Adicionar Item
+      </button>
+      <div class="total-row">
+        <span class="total-label">Total da Nota</span>
+        <span class="total-value" id="total-nota">R$ 0,00</span>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Plano de Contas</label>
-      <select class="form-control" id="sel-plano">
-        <option value="">Selecione…</option>
-        {% for p in planos %}
-        <option value="{{ p.pk }}">{{ p }}</option>
-        {% endfor %}
-      </select>
+    <div class="sem-materiais" id="sem-materiais" style="display:none;">
+      Nenhum material cadastrado para este fornecedor. Cadastre os materiais primeiro em <strong>Cadastro → Fornecedores</strong>.
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Descrição</label>
-      <input type="text" class="form-control" id="inp-descricao" placeholder="Ex: Compra de ingredientes">
-    </div>
-
+    <!-- Descrição e Vencimento -->
     <div class="row2">
       <div class="form-group">
-        <label class="form-label">Valor (R$)</label>
-        <input type="text" inputmode="decimal" class="form-control moeda-brl" id="inp-valor"
-               placeholder="0,00" oninput="mascaraMoeda(this)" autocomplete="off">
+        <label class="form-label">Descrição</label>
+        <input type="text" class="form-control" id="inp-descricao" placeholder="Ex: NF 1234">
       </div>
       <div class="form-group">
         <label class="form-label">Vencimento</label>
@@ -336,60 +400,276 @@
   </div>
 </div>
 
+<!-- Modal Detalhe -->
+<div class="modal-overlay" id="modalDetalhe">
+  <div class="modal-box" style="max-width:640px;">
+    <p class="modal-title">Detalhes da Conta</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <div class="form-label">Fornecedor</div>
+        <div id="det-fornecedor" style="font-size:14px;font-weight:600;color:#1d1d1f;"></div>
+      </div>
+      <div>
+        <div class="form-label">Status</div>
+        <div id="det-status"></div>
+      </div>
+      <div>
+        <div class="form-label">Descrição</div>
+        <div id="det-descricao" style="font-size:14px;color:#1d1d1f;"></div>
+      </div>
+      <div>
+        <div class="form-label">Vencimento</div>
+        <div id="det-vencimento" style="font-size:14px;color:#1d1d1f;"></div>
+      </div>
+    </div>
+    <div id="det-obs-wrap" style="margin-bottom:16px;display:none;">
+      <div class="form-label">Observação</div>
+      <div id="det-obs" style="font-size:13px;color:#1d1d1f;white-space:pre-wrap;"></div>
+    </div>
+    <div class="form-label" style="margin-bottom:6px;">Itens</div>
+    <table class="itens-table" style="margin-bottom:16px;">
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th style="width:10%;text-align:center;">Qtd</th>
+          <th style="width:10%;text-align:center;">Un</th>
+          <th style="width:16%;text-align:right;">Vl. Unit.</th>
+          <th style="width:16%;text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="det-itens-body"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="4" style="text-align:right;">Total:</td>
+          <td id="det-total" style="text-align:right;"></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div id="det-docs-wrap" style="margin-bottom:16px;display:none;">
+      <div class="form-label" style="margin-bottom:6px;">Documentos</div>
+      <div id="det-docs"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">
+      <button class="tab-btn" onclick="fecharDetalhe()">Fechar</button>
+      <button id="det-btn-pagar" style="display:none;background:#edfaf3;color:#34C759;border:none;border-radius:10px;padding:0 16px;height:36px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:6px;" onclick="marcarPagoDetalhe()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Registrar Pagamento
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar -->
+<div class="modal-overlay" id="modalEditar">
+  <div class="modal-box" style="max-width:440px;">
+    <p class="modal-title">Editar Conta a Pagar</p>
+    <input type="hidden" id="edit-pk">
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-control" id="edit-descricao" placeholder="Ex: NF 1234">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Vencimento <span style="color:#FF3B30;">*</span></label>
+      <input type="date" class="form-control" id="edit-vencimento">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observação</label>
+      <textarea class="form-control" id="edit-obs" rows="3" placeholder="Observações…" style="resize:vertical;min-height:72px;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="tab-btn" onclick="fecharEditar()">Cancelar</button>
+      <button class="btn-primary" id="btn-salvar-edicao" onclick="salvarEdicao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const CSRF = '{{ csrf_token }}';
-const URL_CRIAR = "{% url 'financials:contas_pagar_criar' %}";
-const URL_PRODUTOS = "{% url 'financials:fornecedor_materiais' 0 %}";
+const URL_CRIAR      = "{% url 'financials:contas_pagar_criar' %}";
+const URL_MATERIAIS  = "{% url 'financials:fornecedor_materiais' 0 %}";
 const URL_UPLOAD_DOC = "{% url 'financials:contas_pagar_upload_doc' 0 %}";
 const URL_DEL_DOC    = "{% url 'financials:contas_pagar_excluir_doc' 0 %}";
+const URL_DETALHE    = "{% url 'financials:contas_pagar_detalhe' 0 %}";
+const URL_EDITAR_API = "{% url 'financials:contas_pagar_editar' 0 %}";
 
-// ── Nova Conta ─────────────────────────────────
+const UNIDADES = [
+  ['un','Unidade'],['kg','Kg'],['g','Gramas'],['l','Litros'],['ml','ml'],
+  ['cx','Caixa'],['pc','Pacote'],['fd','Fardo'],['sc','Saco'],
+  ['lt','Lata'],['dz','Dúzia'],['m','Metro'],
+];
 
+let materiaisCarregados = [];
 let arquivosSelecionados = [];
+
+// ── Modal ───────────────────────────────────────
 
 function abrirModal() {
   arquivosSelecionados = [];
+  materiaisCarregados = [];
   renderFileList();
   document.getElementById('sel-fornecedor').value = '';
-  document.getElementById('sel-produto').innerHTML = '<option value="">Selecione…</option>';
-  document.getElementById('grupo-produto').style.display = 'none';
-  document.getElementById('sel-plano').value = '';
+  document.getElementById('itens-body').innerHTML = '';
+  document.getElementById('grupo-itens').style.display = 'none';
+  document.getElementById('sem-materiais').style.display = 'none';
   document.getElementById('inp-descricao').value = '';
-  document.getElementById('inp-valor').value = '';
   document.getElementById('inp-vencimento').value = '';
   document.getElementById('inp-obs').value = '';
+  atualizarTotal();
   document.getElementById('modalNovaConta').classList.add('open');
 }
-function fecharModal() {
-  document.getElementById('modalNovaConta').classList.remove('open');
-}
+function fecharModal() { document.getElementById('modalNovaConta').classList.remove('open'); }
 document.getElementById('modalNovaConta').addEventListener('click', function(e) {
   if (e.target === this) fecharModal();
 });
 
-async function carregarProdutos() {
+// ── Carregar materiais do fornecedor ───────────
+
+async function carregarMateriais() {
   const fId = document.getElementById('sel-fornecedor').value;
-  const grupo = document.getElementById('grupo-produto');
-  const sel = document.getElementById('sel-produto');
-  if (!fId) { grupo.style.display = 'none'; return; }
-  const url = URL_PRODUTOS.replace('/0/', '/' + fId + '/');
+  const grupoItens   = document.getElementById('grupo-itens');
+  const semMateriais = document.getElementById('sem-materiais');
+  document.getElementById('itens-body').innerHTML = '';
+  atualizarTotal();
+  if (!fId) { grupoItens.style.display = 'none'; semMateriais.style.display = 'none'; return; }
+
+  const url = URL_MATERIAIS.replace('/0/', '/' + fId + '/');
   const r = await fetch(url);
   const d = await r.json();
-  sel.innerHTML = '<option value="">Selecione…</option>';
-  d.produtos.forEach(p => {
-    sel.innerHTML += `<option value="${p.id}" data-plano-id="${p.plano_id}" data-plano-nome="${p.plano_nome}">${p.nome}</option>`;
+  materiaisCarregados = d.materiais || [];
+
+  if (!materiaisCarregados.length) {
+    grupoItens.style.display = 'none';
+    semMateriais.style.display = 'block';
+    return;
+  }
+  semMateriais.style.display = 'none';
+  grupoItens.style.display = 'block';
+  adicionarItem(); // já abre com uma linha
+}
+
+// ── Tabela de itens ─────────────────────────────
+
+function buildSelectMaterial(selectedId) {
+  let opts = '<option value="">Selecione…</option>';
+  materiaisCarregados.forEach(m => {
+    opts += `<option value="${m.id}" data-plano-id="${m.plano_id || ''}" data-plano-nome="${m.plano_nome || ''}"
+      ${m.id == selectedId ? 'selected' : ''}>${m.nome}</option>`;
   });
-  grupo.style.display = d.produtos.length ? 'block' : 'none';
+  return opts;
 }
 
-function preencherPlano() {
-  const sel = document.getElementById('sel-produto');
-  const opt = sel.options[sel.selectedIndex];
-  const planoId = opt?.dataset?.planoId;
-  if (planoId) document.getElementById('sel-plano').value = planoId;
+function buildSelectUnidade(selected) {
+  return UNIDADES.map(([v, l]) =>
+    `<option value="${v}" ${v === (selected || 'un') ? 'selected' : ''}>${l}</option>`
+  ).join('');
 }
 
-// ── File upload (nova conta) ───────────────────
+function adicionarItem(fmId, qtd, un, vUnit) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><select class="fc-sm item-material" onchange="recalcItem(this)">${buildSelectMaterial(fmId)}</select></td>
+    <td><input type="text" inputmode="decimal" class="fc-sm item-qtd moeda-brl" style="text-align:right;"
+         value="${qtd || ''}" placeholder="0" oninput="mascaraQtd(this);recalcItem(this)"></td>
+    <td><select class="fc-sm item-un">${buildSelectUnidade(un)}</select></td>
+    <td><input type="text" inputmode="decimal" class="fc-sm item-vunit moeda-brl" style="text-align:right;"
+         value="${vUnit ? formatarMoeda(vUnit) : ''}" placeholder="0,00" oninput="mascaraMoeda(this);recalcItem(this)"></td>
+    <td style="text-align:right;"><span class="item-vtotal" style="font-size:13px;font-weight:700;color:#1d1d1f;">—</span></td>
+    <td><button type="button" class="btn-rem-item" onclick="removerItem(this)">×</button></td>
+  `;
+  document.getElementById('itens-body').appendChild(tr);
+  if (fmId) recalcItem(tr.querySelector('.item-material'));
+}
+
+function removerItem(btn) {
+  btn.closest('tr').remove();
+  atualizarTotal();
+}
+
+function mascaraQtd(el) {
+  let v = el.value.replace(/[^\d,\.]/g, '').replace(',', '.');
+  el.value = v;
+}
+
+function recalcItem(el) {
+  const tr = el.closest('tr');
+  const qtd   = parseFloat(tr.querySelector('.item-qtd').value.replace(',', '.')) || 0;
+  const vunit = parseFloat(desmascarar(tr.querySelector('.item-vunit').value)) || 0;
+  const total = qtd * vunit;
+  tr.querySelector('.item-vtotal').textContent = total > 0 ? 'R$ ' + formatarMoeda(total) : '—';
+  atualizarTotal();
+}
+
+function atualizarTotal() {
+  let soma = 0;
+  document.querySelectorAll('#itens-body tr').forEach(tr => {
+    const qtd   = parseFloat(tr.querySelector('.item-qtd')?.value.replace(',', '.')) || 0;
+    const vunit = parseFloat(desmascarar(tr.querySelector('.item-vunit')?.value || '')) || 0;
+    soma += qtd * vunit;
+  });
+  document.getElementById('total-nota').textContent = 'R$ ' + formatarMoeda(soma);
+}
+
+// ── Salvar ─────────────────────────────────────
+
+async function salvarConta() {
+  const fornecedorId = document.getElementById('sel-fornecedor').value;
+  const descricao    = document.getElementById('inp-descricao').value.trim();
+  const vencimento   = document.getElementById('inp-vencimento').value;
+
+  if (!fornecedorId) { alert('Selecione o fornecedor.'); return; }
+  if (!vencimento)   { alert('Informe o vencimento.'); return; }
+
+  const rows = document.querySelectorAll('#itens-body tr');
+  if (!rows.length) { alert('Adicione ao menos um item.'); return; }
+
+  const itens = [];
+  for (const tr of rows) {
+    const fmId  = tr.querySelector('.item-material').value;
+    const qtd   = parseFloat(tr.querySelector('.item-qtd').value.replace(',', '.'));
+    const un    = tr.querySelector('.item-un').value;
+    const vunit = parseFloat(desmascarar(tr.querySelector('.item-vunit').value));
+    if (!fmId || !qtd || !vunit) { alert('Preencha todos os campos de cada item.'); return; }
+    itens.push({
+      fornecedor_material_id: fmId,
+      quantidade: qtd,
+      unidade_medida: un,
+      valor_unitario: vunit,
+      valor_total: parseFloat((qtd * vunit).toFixed(2)),
+    });
+  }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  try {
+    const r = await fetch(URL_CRIAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        fornecedor_id: fornecedorId,
+        descricao, itens,
+        data_vencimento: vencimento,
+        observacao: document.getElementById('inp-obs').value,
+      }),
+    });
+    const d = await r.json();
+    if (!d.success) { alert('Erro: ' + d.error); return; }
+
+    if (arquivosSelecionados.length) {
+      const fd = new FormData();
+      arquivosSelecionados.forEach(f => fd.append('documentos', f));
+      const urlUp = URL_UPLOAD_DOC.replace('/0/', '/' + d.id + '/');
+      await fetch(urlUp, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
+    }
+
+    fecharModal();
+    window.location.reload();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+// ── File upload ─────────────────────────────────
 
 function onFileSelect(e) {
   Array.from(e.target.files).forEach(f => {
@@ -413,52 +693,6 @@ function renderFileList() {
       <span class="file-item-name">${f.name}</span>
       <button class="file-item-remove" onclick="removeFile(${i})" type="button">×</button>
     </div>`).join('');
-}
-
-async function salvarConta() {
-  const fornecedorId = document.getElementById('sel-fornecedor').value;
-  const planoId = document.getElementById('sel-plano').value;
-  const fpId = document.getElementById('sel-produto').value || null;
-  const descricao = document.getElementById('inp-descricao').value.trim();
-  const valor = desmascarar(document.getElementById('inp-valor').value);
-  const vencimento = document.getElementById('inp-vencimento').value;
-
-  if (!fornecedorId || !descricao || !valor || !vencimento) {
-    alert('Preencha Fornecedor, Descrição, Valor e Vencimento.');
-    return;
-  }
-
-  const btn = document.getElementById('btn-salvar');
-  btn.disabled = true; btn.textContent = 'Salvando…';
-
-  try {
-    const r = await fetch(URL_CRIAR, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-      body: JSON.stringify({
-        fornecedor_id: fornecedorId,
-        plano_id: planoId || null,
-        fornecedor_material_id: fpId,
-        descricao, valor,
-        data_vencimento: vencimento,
-        observacao: document.getElementById('inp-obs').value,
-      }),
-    });
-    const d = await r.json();
-    if (!d.success) { alert('Erro: ' + d.error); return; }
-
-    if (arquivosSelecionados.length) {
-      const fd = new FormData();
-      arquivosSelecionados.forEach(f => fd.append('documentos', f));
-      const urlUp = URL_UPLOAD_DOC.replace('/0/', '/' + d.id + '/');
-      await fetch(urlUp, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
-    }
-
-    fecharModal();
-    window.location.reload();
-  } finally {
-    btn.disabled = false; btn.textContent = 'Salvar';
-  }
 }
 
 // ── Modal Documentos ───────────────────────────
@@ -516,6 +750,133 @@ async function excluirDoc(docPk) {
   const d = await r.json();
   if (d.success) document.getElementById('doc-item-' + docPk)?.remove();
   else alert('Erro: ' + d.error);
+}
+
+// ── Detalhe ────────────────────────────────────
+
+let detalhePk = null;
+
+async function abrirDetalhe(pk) {
+  detalhePk = pk;
+  const url = URL_DETALHE.replace('/0/', '/' + pk + '/');
+  const d = await (await fetch(url)).json();
+  if (!d.success) { alert('Erro ao carregar detalhes.'); return; }
+
+  document.getElementById('det-fornecedor').textContent = d.fornecedor;
+  document.getElementById('det-descricao').textContent = d.descricao || '—';
+  document.getElementById('det-vencimento').textContent = d.data_vencimento;
+
+  const statusEl = document.getElementById('det-status');
+  if (d.status === 'pendente') {
+    statusEl.innerHTML = '<span class="badge badge-orange">Pendente</span>';
+  } else if (d.status === 'pago') {
+    let html = '<span class="badge badge-green">Pago</span>';
+    if (d.data_pagamento) html += `<div style="font-size:11px;color:#6e6e73;margin-top:3px;">em ${d.data_pagamento}${d.pago_por ? ' por ' + d.pago_por : ''}</div>`;
+    statusEl.innerHTML = html;
+  } else {
+    statusEl.innerHTML = '<span class="badge badge-gray">Cancelada</span>';
+  }
+
+  const obsWrap = document.getElementById('det-obs-wrap');
+  if (d.observacao) {
+    obsWrap.style.display = '';
+    document.getElementById('det-obs').textContent = d.observacao;
+  } else {
+    obsWrap.style.display = 'none';
+  }
+
+  const tbody = document.getElementById('det-itens-body');
+  let soma = 0;
+  tbody.innerHTML = d.itens.map(it => {
+    const tot = parseFloat(it.valor_total);
+    soma += tot;
+    return `<tr>
+      <td>${it.material}</td>
+      <td style="text-align:center;">${it.quantidade}</td>
+      <td style="text-align:center;">${it.unidade}</td>
+      <td style="text-align:right;">R$ ${formatarMoeda(parseFloat(it.valor_unitario))}</td>
+      <td style="text-align:right;">R$ ${formatarMoeda(tot)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('det-total').textContent = 'R$ ' + formatarMoeda(soma);
+
+  const docsWrap = document.getElementById('det-docs-wrap');
+  if (d.documentos.length) {
+    docsWrap.style.display = '';
+    document.getElementById('det-docs').innerHTML = d.documentos.map(doc =>
+      `<div style="margin-bottom:6px;"><a href="${doc.url}" target="_blank" style="color:#007AFF;font-size:13px;text-decoration:none;">${doc.nome}</a></div>`
+    ).join('');
+  } else {
+    docsWrap.style.display = 'none';
+  }
+
+  const btnPagar = document.getElementById('det-btn-pagar');
+  btnPagar.style.display = d.status === 'pendente' ? 'inline-flex' : 'none';
+
+  document.getElementById('modalDetalhe').classList.add('open');
+}
+
+function fecharDetalhe() {
+  document.getElementById('modalDetalhe').classList.remove('open');
+  detalhePk = null;
+}
+
+async function marcarPagoDetalhe() {
+  if (!detalhePk) return;
+  const pk = detalhePk;
+  fecharDetalhe();
+  await marcarPago(pk);
+}
+
+document.getElementById('modalDetalhe').addEventListener('click', function(e) {
+  if (e.target === this) fecharDetalhe();
+});
+
+// ── Editar ─────────────────────────────────────
+
+async function abrirEditar(pk) {
+  const url = URL_DETALHE.replace('/0/', '/' + pk + '/');
+  const d = await (await fetch(url)).json();
+  if (!d.success) { alert('Erro ao carregar dados.'); return; }
+  document.getElementById('edit-pk').value = pk;
+  document.getElementById('edit-descricao').value = d.descricao || '';
+  document.getElementById('edit-vencimento').value = d.data_vencimento_iso;
+  document.getElementById('edit-obs').value = d.observacao || '';
+  document.getElementById('modalEditar').classList.add('open');
+}
+
+function fecharEditar() {
+  document.getElementById('modalEditar').classList.remove('open');
+}
+
+document.getElementById('modalEditar').addEventListener('click', function(e) {
+  if (e.target === this) fecharEditar();
+});
+
+async function salvarEdicao() {
+  const pk   = document.getElementById('edit-pk').value;
+  const venc = document.getElementById('edit-vencimento').value;
+  if (!venc) { alert('Informe o vencimento.'); return; }
+  const btn = document.getElementById('btn-salvar-edicao');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  try {
+    const url = URL_EDITAR_API.replace('/0/', '/' + pk + '/');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        descricao:       document.getElementById('edit-descricao').value.trim(),
+        data_vencimento: venc,
+        observacao:      document.getElementById('edit-obs').value,
+      }),
+    });
+    const d = await r.json();
+    if (!d.success) { alert('Erro: ' + d.error); return; }
+    fecharEditar();
+    window.location.reload();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
 }
 
 // ── Pagar / Cancelar ───────────────────────────

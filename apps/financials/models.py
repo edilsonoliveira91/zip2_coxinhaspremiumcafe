@@ -406,6 +406,47 @@ class ContaPagar(models.Model):
         return self.status == 'pendente' and self.data_vencimento < date.today()
 
 
+class ContaPagarItem(models.Model):
+    UNIDADE_CHOICES = [
+        ('un', 'Unidade'),
+        ('kg', 'Kg'),
+        ('g', 'Gramas'),
+        ('l', 'Litros'),
+        ('ml', 'ml'),
+        ('cx', 'Caixa'),
+        ('pc', 'Pacote'),
+        ('fd', 'Fardo'),
+        ('sc', 'Saco'),
+        ('lt', 'Lata'),
+        ('dz', 'Dúzia'),
+        ('m', 'Metro'),
+    ]
+    conta = models.ForeignKey(
+        ContaPagar,
+        on_delete=models.CASCADE,
+        related_name='itens',
+        verbose_name="Conta",
+    )
+    fornecedor_material = models.ForeignKey(
+        FornecedorMaterial,
+        on_delete=models.PROTECT,
+        related_name='itens_conta_pagar',
+        verbose_name="Material",
+    )
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3, verbose_name="Quantidade")
+    unidade_medida = models.CharField(max_length=5, choices=UNIDADE_CHOICES, default='un', verbose_name="Unidade")
+    valor_unitario = models.DecimalField(max_digits=12, decimal_places=4, verbose_name="Valor Unitário")
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Valor Total")
+
+    class Meta:
+        verbose_name = "Item de Conta a Pagar"
+        verbose_name_plural = "Itens de Conta a Pagar"
+        ordering = ['pk']
+
+    def __str__(self):
+        return f"{self.fornecedor_material.material.nome} × {self.quantidade}"
+
+
 class ContaPagarDocumento(models.Model):
     conta = models.ForeignKey(
         ContaPagar,

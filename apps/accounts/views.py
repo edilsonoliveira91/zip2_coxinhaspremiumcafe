@@ -432,6 +432,7 @@ def get_permissions_by_app():
         'despesamalote':               'Despesa do Malote',
         # contas a pagar / cadastros
         'contapagar':                  'Conta a Pagar',
+        'contapagaritem':              'Item de Conta a Pagar',
         'contapagardocumento':         'Documento de Conta a Pagar',
         'planodecontas':               'Plano de Contas',
         'fornecedor':                  'Fornecedor',

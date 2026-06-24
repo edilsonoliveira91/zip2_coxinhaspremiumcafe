@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia, AjusteFechamentoCaixaDiario, PlanoDeContas, Fornecedor, FornecedorMaterial, Material, ContaPagar, ContaPagarDocumento
+from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia, AjusteFechamentoCaixaDiario, PlanoDeContas, Fornecedor, FornecedorMaterial, Material, ContaPagar, ContaPagarDocumento, ContaPagarItem
 from django.views import View
 from config.models import ConfigTrocoInicial, SystemConfig
 from products.models import Product
@@ -1700,8 +1700,8 @@ class ContasPagarListView(LoginRequiredMixin, TemplateView):
 
         status_filter = self.request.GET.get('status', 'pendente')
         qs = ContaPagar.objects.select_related(
-            'fornecedor', 'plano_de_conta', 'fornecedor_material__material', 'pago_por'
-        ).prefetch_related('documentos').order_by('data_vencimento')
+            'fornecedor', 'plano_de_conta', 'pago_por'
+        ).prefetch_related('documentos', 'itens').order_by('data_vencimento')
 
         if status_filter in ('pendente', 'pago', 'cancelado'):
             qs = qs.filter(status=status_filter)
@@ -1728,21 +1728,107 @@ class ContasPagarCreateView(LoginRequiredMixin, View):
         data = json.loads(request.body)
         try:
             fornecedor = Fornecedor.objects.get(pk=data['fornecedor_id'])
-            plano = PlanoDeContas.objects.get(pk=data['plano_id']) if data.get('plano_id') else None
-            fm = FornecedorMaterial.objects.filter(pk=data.get('fornecedor_material_id')).first()
+            itens_data = data.get('itens', [])
+            if not itens_data:
+                return JsonResponse({'success': False, 'error': 'Adicione ao menos um item.'}, status=400)
+
+            total = Decimal('0')
+            itens_validos = []
+            for item in itens_data:
+                fm = FornecedorMaterial.objects.select_related('plano_de_conta').filter(
+                    pk=item.get('fornecedor_material_id')
+                ).first()
+                if not fm:
+                    return JsonResponse({'success': False, 'error': 'Material inválido.'}, status=400)
+                qtd = Decimal(str(item.get('quantidade', 0)))
+                v_unit = Decimal(str(item.get('valor_unitario', 0)))
+                v_total = Decimal(str(item.get('valor_total', 0)))
+                if qtd <= 0 or v_unit <= 0:
+                    return JsonResponse({'success': False, 'error': 'Quantidade e valor unitário devem ser maiores que zero.'}, status=400)
+                total += v_total
+                itens_validos.append({
+                    'fm': fm,
+                    'quantidade': qtd,
+                    'unidade_medida': item.get('unidade_medida', 'un'),
+                    'valor_unitario': v_unit,
+                    'valor_total': v_total,
+                })
+
             conta = ContaPagar.objects.create(
                 fornecedor=fornecedor,
-                fornecedor_material=fm,
-                plano_de_conta=plano,
                 descricao=data['descricao'],
-                valor=Decimal(str(data['valor'])),
+                valor=total,
                 data_vencimento=data['data_vencimento'],
                 observacao=data.get('observacao', ''),
                 criado_por=request.user,
             )
+            for item in itens_validos:
+                ContaPagarItem.objects.create(
+                    conta=conta,
+                    fornecedor_material=item['fm'],
+                    quantidade=item['quantidade'],
+                    unidade_medida=item['unidade_medida'],
+                    valor_unitario=item['valor_unitario'],
+                    valor_total=item['valor_total'],
+                )
             return JsonResponse({'success': True, 'id': conta.pk})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class ContasPagarDetalheView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, pk):
+        conta = ContaPagar.objects.prefetch_related(
+            'itens__fornecedor_material__material',
+            'itens__fornecedor_material__plano_de_conta',
+            'documentos',
+        ).select_related('fornecedor', 'pago_por').filter(pk=pk).first()
+        if not conta:
+            return JsonResponse({'success': False}, status=404)
+        itens = [
+            {
+                'material':       item.fornecedor_material.material.nome,
+                'plano':          str(item.fornecedor_material.plano_de_conta) if item.fornecedor_material.plano_de_conta else '—',
+                'quantidade':     str(item.quantidade.normalize()),
+                'unidade':        item.get_unidade_medida_display(),
+                'valor_unitario': str(item.valor_unitario),
+                'valor_total':    str(item.valor_total),
+            }
+            for item in conta.itens.all()
+        ]
+        docs = [{'id': d.pk, 'nome': d.nome_original, 'url': d.arquivo.url} for d in conta.documentos.all()]
+        return JsonResponse({
+            'success': True,
+            'id': conta.pk,
+            'fornecedor': conta.fornecedor.nome,
+            'descricao': conta.descricao,
+            'valor': str(conta.valor),
+            'data_vencimento': conta.data_vencimento.strftime('%d/%m/%Y'),
+            'data_vencimento_iso': conta.data_vencimento.isoformat(),
+            'status': conta.status,
+            'observacao': conta.observacao,
+            'data_pagamento': conta.data_pagamento.strftime('%d/%m/%Y') if conta.data_pagamento else None,
+            'pago_por': (conta.pago_por.get_full_name() or conta.pago_por.username) if conta.pago_por else None,
+            'itens': itens,
+            'documentos': docs,
+        })
+
+
+class ContasPagarUpdateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        conta = ContaPagar.objects.filter(pk=pk, status='pendente').first()
+        if not conta:
+            return JsonResponse({'success': False, 'error': 'Conta não encontrada ou não editável.'}, status=404)
+        data = json.loads(request.body)
+        conta.descricao      = data.get('descricao', conta.descricao)
+        conta.data_vencimento = data.get('data_vencimento', conta.data_vencimento)
+        conta.observacao     = data.get('observacao', conta.observacao)
+        conta.save(update_fields=['descricao', 'data_vencimento', 'observacao'])
+        return JsonResponse({'success': True})
 
 
 class ContasPagarMarcarPagoView(LoginRequiredMixin, View):
@@ -1827,7 +1913,7 @@ class FornecedorMateriaisAPIView(LoginRequiredMixin, View):
     def get(self, request, fornecedor_pk):
         materiais = FornecedorMaterial.objects.filter(
             fornecedor_id=fornecedor_pk
-        ).select_related('material', 'plano_de_conta')
+        ).select_related('material', 'plano_de_conta').order_by('material__nome')
         data = [
             {
                 'id': fm.pk,
@@ -1837,7 +1923,7 @@ class FornecedorMateriaisAPIView(LoginRequiredMixin, View):
             }
             for fm in materiais
         ]
-        return JsonResponse({'materiais': data})
+        return JsonResponse({'materiais': data, 'produtos': data})
 
 
 # ──────────────────────────────────────────────
