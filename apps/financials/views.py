@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia, AjusteFechamentoCaixaDiario
+from .models import Sangria, FechamentoCaixaDiario, CaixaAdm, DespesaMalote, CaixaAdmTransferencia, AjusteFechamentoCaixaDiario, PlanoDeContas, Fornecedor, FornecedorMaterial, Material, ContaPagar, ContaPagarDocumento
 from django.views import View
 from config.models import ConfigTrocoInicial, SystemConfig
 from products.models import Product
@@ -1684,3 +1684,407 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
             cancelada=True
         ).select_related('cancelada_por').order_by('-cancelada_em')[:30]
         return context
+
+
+# ──────────────────────────────────────────────
+# Contas a Pagar
+# ──────────────────────────────────────────────
+
+class ContasPagarListView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/contas_pagar.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from datetime import date
+
+        status_filter = self.request.GET.get('status', 'pendente')
+        qs = ContaPagar.objects.select_related(
+            'fornecedor', 'plano_de_conta', 'fornecedor_material__material', 'pago_por'
+        ).prefetch_related('documentos').order_by('data_vencimento')
+
+        if status_filter in ('pendente', 'pago', 'cancelado'):
+            qs = qs.filter(status=status_filter)
+
+        hoje = date.today()
+        total_pendente = ContaPagar.objects.filter(status='pendente').aggregate(s=Sum('valor'))['s'] or Decimal('0')
+        total_vencido = ContaPagar.objects.filter(status='pendente', data_vencimento__lt=hoje).aggregate(s=Sum('valor'))['s'] or Decimal('0')
+        total_pago = ContaPagar.objects.filter(status='pago').aggregate(s=Sum('valor'))['s'] or Decimal('0')
+
+        context['contas'] = qs
+        context['status_filter'] = status_filter
+        context['total_pendente'] = total_pendente
+        context['total_vencido'] = total_vencido
+        context['total_pago'] = total_pago
+        context['fornecedores'] = Fornecedor.objects.filter(ativo=True).order_by('nome')
+        context['planos'] = PlanoDeContas.objects.filter(ativo=True).order_by('nome')
+        return context
+
+
+class ContasPagarCreateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        data = json.loads(request.body)
+        try:
+            fornecedor = Fornecedor.objects.get(pk=data['fornecedor_id'])
+            plano = PlanoDeContas.objects.get(pk=data['plano_id']) if data.get('plano_id') else None
+            fm = FornecedorMaterial.objects.filter(pk=data.get('fornecedor_material_id')).first()
+            conta = ContaPagar.objects.create(
+                fornecedor=fornecedor,
+                fornecedor_material=fm,
+                plano_de_conta=plano,
+                descricao=data['descricao'],
+                valor=Decimal(str(data['valor'])),
+                data_vencimento=data['data_vencimento'],
+                observacao=data.get('observacao', ''),
+                criado_por=request.user,
+            )
+            return JsonResponse({'success': True, 'id': conta.pk})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class ContasPagarMarcarPagoView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from datetime import date
+        conta = ContaPagar.objects.filter(pk=pk, status='pendente').first()
+        if not conta:
+            return JsonResponse({'success': False, 'error': 'Conta não encontrada ou já processada.'}, status=404)
+        data = json.loads(request.body) if request.body else {}
+        conta.status = 'pago'
+        conta.data_pagamento = data.get('data_pagamento') or date.today().isoformat()
+        conta.pago_por = request.user
+        conta.save(update_fields=['status', 'data_pagamento', 'pago_por'])
+        return JsonResponse({'success': True})
+
+
+class ContasPagarCancelarView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        conta = ContaPagar.objects.filter(pk=pk, status='pendente').first()
+        if not conta:
+            return JsonResponse({'success': False, 'error': 'Conta não encontrada ou já processada.'}, status=404)
+        conta.status = 'cancelado'
+        conta.save(update_fields=['status'])
+        return JsonResponse({'success': True})
+
+
+class ContaPagarDocumentosListView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, pk):
+        conta = ContaPagar.objects.filter(pk=pk).first()
+        if not conta:
+            return JsonResponse({'documentos': []})
+        docs = [
+            {'id': d.pk, 'nome': d.nome_original, 'url': d.arquivo.url}
+            for d in conta.documentos.all()
+        ]
+        return JsonResponse({'documentos': docs})
+
+
+class ContaPagarUploadDocumentoView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        conta = ContaPagar.objects.filter(pk=pk).first()
+        if not conta:
+            return JsonResponse({'success': False, 'error': 'Conta não encontrada.'}, status=404)
+        arquivos = request.FILES.getlist('documentos')
+        if not arquivos:
+            return JsonResponse({'success': False, 'error': 'Nenhum arquivo enviado.'}, status=400)
+        criados = []
+        for arq in arquivos:
+            doc = ContaPagarDocumento.objects.create(
+                conta=conta,
+                arquivo=arq,
+                nome_original=arq.name,
+                enviado_por=request.user,
+            )
+            criados.append({'id': doc.pk, 'nome': doc.nome_original, 'url': doc.arquivo.url})
+        return JsonResponse({'success': True, 'documentos': criados})
+
+
+class ContaPagarDocumentoDeleteView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, doc_pk):
+        doc = ContaPagarDocumento.objects.filter(pk=doc_pk).first()
+        if not doc:
+            return JsonResponse({'success': False, 'error': 'Documento não encontrado.'}, status=404)
+        doc.arquivo.delete(save=False)
+        doc.delete()
+        return JsonResponse({'success': True})
+
+
+class FornecedorMateriaisAPIView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, fornecedor_pk):
+        materiais = FornecedorMaterial.objects.filter(
+            fornecedor_id=fornecedor_pk
+        ).select_related('material', 'plano_de_conta')
+        data = [
+            {
+                'id': fm.pk,
+                'nome': fm.material.nome,
+                'plano_id': fm.plano_de_conta_id,
+                'plano_nome': str(fm.plano_de_conta) if fm.plano_de_conta else '',
+            }
+            for fm in materiais
+        ]
+        return JsonResponse({'materiais': data})
+
+
+# ──────────────────────────────────────────────
+# Cadastro — Plano de Contas
+# ──────────────────────────────────────────────
+
+class MaterialListView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/cadastro/materiais.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['materiais'] = Material.objects.order_by('nome')
+        return context
+
+
+class MaterialCreateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        data = json.loads(request.body)
+        try:
+            m = Material.objects.create(nome=data['nome'].strip())
+            return JsonResponse({'success': True, 'id': m.pk})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class MaterialUpdateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        data = json.loads(request.body)
+        try:
+            m = Material.objects.get(pk=pk)
+            m.nome = data.get('nome', m.nome).strip()
+            m.ativo = data.get('ativo', m.ativo)
+            m.save()
+            return JsonResponse({'success': True})
+        except Material.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class MaterialDeleteView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        try:
+            m = Material.objects.get(pk=pk)
+            if m.fornecedores.exists():
+                m.ativo = False
+                m.save(update_fields=['ativo'])
+                return JsonResponse({'success': True, 'inativado': True})
+            m.delete()
+            return JsonResponse({'success': True, 'inativado': False})
+        except Material.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)
+
+
+class PlanoDeContasListView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/cadastro/plano_de_contas.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['planos'] = PlanoDeContas.objects.order_by('nome')
+        return context
+
+
+class PlanoDeContasCreateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request):
+        data = json.loads(request.body)
+        try:
+            plano = PlanoDeContas.objects.create(
+                nome=data['nome'].strip(),
+            )
+            return JsonResponse({'success': True, 'id': plano.pk, 'str': str(plano)})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class PlanoDeContasUpdateView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        data = json.loads(request.body)
+        try:
+            plano = PlanoDeContas.objects.get(pk=pk)
+            plano.nome = data.get('nome', plano.nome).strip()
+            plano.ativo = data.get('ativo', plano.ativo)
+            plano.save()
+            return JsonResponse({'success': True})
+        except PlanoDeContas.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class FornecedorListView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/cadastro/fornecedores.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fornecedores'] = Fornecedor.objects.order_by('nome')
+        return context
+
+
+class FornecedorFormPageView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/cadastro/fornecedor_form.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        import json as _json
+        from products.models import Product
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        context['fornecedor'] = Fornecedor.objects.get(pk=pk) if pk else None
+        context['materiais_vinculados'] = (
+            FornecedorMaterial.objects.filter(fornecedor_id=pk)
+            .select_related('material', 'plano_de_conta')
+            .order_by('material__nome')
+        ) if pk else []
+        materiais_qs = Material.objects.filter(ativo=True).order_by('nome').values('id', 'nome')
+        planos_qs = PlanoDeContas.objects.filter(ativo=True).order_by('nome').values('id', 'nome')
+        context['materiais_json'] = _json.dumps(
+            [{'pk': m['id'], 'nome': m['nome']} for m in materiais_qs]
+        )
+        context['planos_json'] = _json.dumps(
+            [{'pk': p['id'], 'nome': p['nome']} for p in planos_qs]
+        )
+        context['materiais'] = Material.objects.filter(ativo=True).order_by('nome')
+        context['planos'] = PlanoDeContas.objects.filter(ativo=True).order_by('nome')
+        return context
+
+
+class FornecedorSalvarView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk=None):
+        data = json.loads(request.body)
+        try:
+            if pk:
+                f = Fornecedor.objects.get(pk=pk)
+                f.nome = data['nome'].strip()
+                f.cnpj = data.get('cnpj', '').strip()
+                f.telefone = data.get('telefone', '').strip()
+                f.email = data.get('email', '').strip()
+                f.observacao = data.get('observacao', '').strip()
+                f.ativo = data.get('ativo', f.ativo)
+                f.save()
+            else:
+                f = Fornecedor.objects.create(
+                    nome=data['nome'].strip(),
+                    cnpj=data.get('cnpj', '').strip(),
+                    telefone=data.get('telefone', '').strip(),
+                    email=data.get('email', '').strip(),
+                    observacao=data.get('observacao', '').strip(),
+                )
+
+            # Sincroniza materiais: remove todos e recria
+            f.materiais.all().delete()
+            for item in data.get('materiais', []):
+                material = Material.objects.filter(pk=item.get('material_id')).first()
+                if not material:
+                    continue
+                plano = PlanoDeContas.objects.filter(pk=item.get('plano_id')).first()
+                FornecedorMaterial.objects.create(
+                    fornecedor=f,
+                    material=material,
+                    plano_de_conta=plano,
+                )
+
+            return JsonResponse({'success': True, 'redirect': '/financials/cadastro/fornecedores/'})
+        except Fornecedor.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Fornecedor não encontrado.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+class FornecedorDeleteView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        try:
+            f = Fornecedor.objects.get(pk=pk)
+            if f.contas_pagar.exists():
+                f.ativo = False
+                f.save(update_fields=['ativo'])
+                return JsonResponse({'success': True, 'inativado': True})
+            f.delete()
+            return JsonResponse({'success': True, 'inativado': False})
+        except Fornecedor.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)
+
+
+class FornecedorMateriaisListAPIView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def get(self, request, pk):
+        vinculos = FornecedorMaterial.objects.filter(
+            fornecedor_id=pk
+        ).select_related('material', 'plano_de_conta').order_by('material__nome')
+        materiais_disponiveis = Material.objects.filter(ativo=True).order_by('nome').values('id', 'nome')
+        planos_disponiveis = PlanoDeContas.objects.filter(ativo=True).order_by('nome').values('id', 'nome')
+        return JsonResponse({
+            'vinculos': [
+                {
+                    'id': v.pk,
+                    'material_id': v.material_id,
+                    'material_nome': v.material.nome,
+                    'plano_id': v.plano_de_conta_id,
+                    'plano_nome': v.plano_de_conta.nome if v.plano_de_conta else '—',
+                }
+                for v in vinculos
+            ],
+            'materiais': list(materiais_disponiveis),
+            'planos': list(planos_disponiveis),
+        })
+
+
+class FornecedorMaterialRemoverView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, vinculo_pk):
+        try:
+            FornecedorMaterial.objects.get(pk=vinculo_pk).delete()
+            return JsonResponse({'success': True})
+        except FornecedorMaterial.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)
+
+
+class PlanoDeContasDeleteView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        try:
+            plano = PlanoDeContas.objects.get(pk=pk)
+            if plano.contas_pagar.exists() or plano.fornecedor_materiais.exists():
+                plano.ativo = False
+                plano.save(update_fields=['ativo'])
+                return JsonResponse({'success': True, 'inativado': True})
+            plano.delete()
+            return JsonResponse({'success': True, 'inativado': False})
+        except PlanoDeContas.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Não encontrado.'}, status=404)

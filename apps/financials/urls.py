@@ -30,4 +30,36 @@ urlpatterns = [
     path('api/fechamento/atualizar/', views.AtualizarFechamentoCaixaView.as_view(), name='atualizar_fechamento_caixa'),
     path('api/fechamento/<int:pk>/despesa/', views.RegistrarDespesaFechamentoView.as_view(), name='registrar_despesa_fechamento'),
     path('api/despesa-dia/', views.RegistrarDespesaDiaView.as_view(), name='registrar_despesa_dia'),
+
+    # Contas a Pagar
+    path('contas-pagar/', views.ContasPagarListView.as_view(), name='contas_pagar'),
+    path('api/contas-pagar/criar/', views.ContasPagarCreateView.as_view(), name='contas_pagar_criar'),
+    path('api/contas-pagar/<int:pk>/pagar/', views.ContasPagarMarcarPagoView.as_view(), name='contas_pagar_pagar'),
+    path('api/contas-pagar/<int:pk>/cancelar/', views.ContasPagarCancelarView.as_view(), name='contas_pagar_cancelar'),
+    path('api/contas-pagar/<int:pk>/documentos/lista/', views.ContaPagarDocumentosListView.as_view(), name='contas_pagar_lista_docs'),
+    path('api/contas-pagar/<int:pk>/documentos/upload/', views.ContaPagarUploadDocumentoView.as_view(), name='contas_pagar_upload_doc'),
+    path('api/contas-pagar/documentos/<int:doc_pk>/excluir/', views.ContaPagarDocumentoDeleteView.as_view(), name='contas_pagar_excluir_doc'),
+    path('api/fornecedor/<int:fornecedor_pk>/materiais/', views.FornecedorMateriaisAPIView.as_view(), name='fornecedor_materiais'),
+
+    # Cadastro — Fornecedores
+    path('cadastro/fornecedores/', views.FornecedorListView.as_view(), name='fornecedores'),
+    path('cadastro/fornecedores/novo/', views.FornecedorFormPageView.as_view(), name='fornecedor_novo'),
+    path('cadastro/fornecedores/<int:pk>/editar/', views.FornecedorFormPageView.as_view(), name='fornecedor_editar'),
+    path('api/fornecedores/salvar/', views.FornecedorSalvarView.as_view(), name='fornecedor_salvar'),
+    path('api/fornecedores/<int:pk>/salvar/', views.FornecedorSalvarView.as_view(), name='fornecedor_salvar_pk'),
+    path('api/fornecedores/<int:pk>/excluir/', views.FornecedorDeleteView.as_view(), name='fornecedor_excluir'),
+    path('api/fornecedores/<int:pk>/materiais/', views.FornecedorMateriaisListAPIView.as_view(), name='fornecedor_materiais_list'),
+    path('api/fornecedor-material/<int:vinculo_pk>/remover/', views.FornecedorMaterialRemoverView.as_view(), name='fornecedor_material_remover'),
+
+    # Cadastro — Materiais
+    path('cadastro/materiais/', views.MaterialListView.as_view(), name='materiais'),
+    path('api/materiais/criar/', views.MaterialCreateView.as_view(), name='material_criar'),
+    path('api/materiais/<int:pk>/editar/', views.MaterialUpdateView.as_view(), name='material_editar'),
+    path('api/materiais/<int:pk>/excluir/', views.MaterialDeleteView.as_view(), name='material_excluir'),
+
+    # Cadastro — Plano de Contas
+    path('cadastro/plano-de-contas/', views.PlanoDeContasListView.as_view(), name='plano_de_contas'),
+    path('api/plano-de-contas/criar/', views.PlanoDeContasCreateView.as_view(), name='plano_de_contas_criar'),
+    path('api/plano-de-contas/<int:pk>/editar/', views.PlanoDeContasUpdateView.as_view(), name='plano_de_contas_editar'),
+    path('api/plano-de-contas/<int:pk>/excluir/', views.PlanoDeContasDeleteView.as_view(), name='plano_de_contas_excluir'),
 ]

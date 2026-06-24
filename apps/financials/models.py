@@ -264,6 +264,175 @@ class DespesaMalote(models.Model):
         return f"Despesa R$ {self.valor} - {self.malote} - {self.descricao[:40]}"
 
 
+class PlanoDeContas(models.Model):
+    nome = models.CharField(max_length=100, verbose_name="Nome")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+
+    class Meta:
+        verbose_name = "Plano de Contas"
+        verbose_name_plural = "Plano de Contas"
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class Fornecedor(models.Model):
+    nome = models.CharField(max_length=150, verbose_name="Nome / Razão Social")
+    cnpj = models.CharField(max_length=18, blank=True, verbose_name="CNPJ")
+    telefone = models.CharField(max_length=20, blank=True, verbose_name="Telefone")
+    email = models.EmailField(blank=True, verbose_name="E-mail")
+    observacao = models.TextField(blank=True, verbose_name="Observação")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Fornecedor"
+        verbose_name_plural = "Fornecedores"
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class Material(models.Model):
+    nome = models.CharField(max_length=150, verbose_name="Nome")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Material"
+        verbose_name_plural = "Materiais"
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class FornecedorMaterial(models.Model):
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.CASCADE,
+        related_name='materiais',
+        verbose_name="Fornecedor",
+    )
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.CASCADE,
+        related_name='fornecedores',
+        verbose_name="Material",
+    )
+    plano_de_conta = models.ForeignKey(
+        PlanoDeContas,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='fornecedor_materiais',
+        verbose_name="Plano de Contas",
+    )
+
+    class Meta:
+        verbose_name = "Material do Fornecedor"
+        verbose_name_plural = "Materiais do Fornecedor"
+        unique_together = [('fornecedor', 'material')]
+
+    def __str__(self):
+        return f"{self.fornecedor.nome} — {self.material.nome}"
+
+
+class ContaPagar(models.Model):
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('pago', 'Pago'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.PROTECT,
+        related_name='contas_pagar',
+        verbose_name="Fornecedor",
+    )
+    fornecedor_material = models.ForeignKey(
+        FornecedorMaterial,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='contas_pagar',
+        verbose_name="Material",
+    )
+    plano_de_conta = models.ForeignKey(
+        PlanoDeContas,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='contas_pagar',
+        verbose_name="Plano de Contas",
+    )
+    descricao = models.CharField(max_length=255, verbose_name="Descrição")
+    valor = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Valor",
+    )
+    data_vencimento = models.DateField(verbose_name="Vencimento")
+    data_pagamento = models.DateField(null=True, blank=True, verbose_name="Data de Pagamento")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
+    observacao = models.TextField(blank=True, verbose_name="Observação")
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='contas_pagar_criadas',
+        verbose_name="Criado por",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    pago_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='contas_pagar_pagas',
+        verbose_name="Pago por",
+    )
+
+    class Meta:
+        verbose_name = "Conta a Pagar"
+        verbose_name_plural = "Contas a Pagar"
+        ordering = ['data_vencimento']
+
+    def __str__(self):
+        return f"{self.descricao} — R$ {self.valor} ({self.data_vencimento})"
+
+    @property
+    def vencida(self):
+        from datetime import date
+        return self.status == 'pendente' and self.data_vencimento < date.today()
+
+
+class ContaPagarDocumento(models.Model):
+    conta = models.ForeignKey(
+        ContaPagar,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name="Conta a Pagar",
+    )
+    arquivo = models.FileField(upload_to='contas_pagar/documentos/', verbose_name="Arquivo")
+    nome_original = models.CharField(max_length=255, verbose_name="Nome do arquivo")
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='documentos_contas_pagar',
+        verbose_name="Enviado por",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Documento"
+        verbose_name_plural = "Documentos"
+        ordering = ['criado_em']
+
+    def __str__(self):
+        return self.nome_original
+
+
 class AjusteFechamentoCaixaDiario(models.Model):
     """
     Auditoria de cada edição manual em um FechamentoCaixaDiario.

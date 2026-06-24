@@ -430,6 +430,13 @@ def get_permissions_by_app():
         'caixaadm':                    'Caixa ADM (Malotes)',
         'caixaadmtransferencia':       'Transferência Caixa ADM',
         'despesamalote':               'Despesa do Malote',
+        # contas a pagar / cadastros
+        'contapagar':                  'Conta a Pagar',
+        'contapagardocumento':         'Documento de Conta a Pagar',
+        'planodecontas':               'Plano de Contas',
+        'fornecedor':                  'Fornecedor',
+        'fornecedormaterial':          'Material do Fornecedor',
+        'material':                    'Material',
         # pinpads
         'pinpad':                      'Maquininha (Pinpad)',
         'bandeirapinpad':              'Bandeira de Maquininha',

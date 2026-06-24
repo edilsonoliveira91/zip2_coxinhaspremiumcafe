@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contas a Pagar{% endblock %}
+
+{% block content %}
+<style>
+  .ap {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ap-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #6e6e73; margin: 0;
+  }
+  .ap-card {
+    background: #ffffff; border-radius: 18px;
+    border: 1px solid #d2d2d7; overflow: hidden;
+  }
+  .ap-metric {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+    color: #1d1d1f; line-height: 1; margin: 0;
+  }
+  .ap-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(0,22%) minmax(0,16%) minmax(0,13%) minmax(0,14%) minmax(0,90px);
+    align-items: center;
+    border-bottom: 1px solid #f2f2f7;
+    padding: 0;
+    transition: background .12s;
+  }
+  .ap-row:last-child { border-bottom: none; }
+  .ap-row:hover { background: #f5f5f7; }
+  .ap-cell { padding: 12px 14px; font-size: 14px; color: #1d1d1f; }
+  .ap-head {
+    display: grid;
+    grid-template-columns: 1fr minmax(0,22%) minmax(0,16%) minmax(0,13%) minmax(0,14%) minmax(0,90px);
+    background: #f5f5f7; border-bottom: 1px solid #d2d2d7;
+  }
+  .ap-head-cell {
+    padding: 10px 14px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: #6e6e73;
+  }
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .badge-red    { background: #fff0f0; color: #FF3B30; }
+  .badge-orange { background: #fff8ee; color: #FF9500; }
+  .badge-green  { background: #edfaf3; color: #34C759; }
+  .badge-gray   { background: #f2f2f7; color: #6e6e73; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-bottom: 24px;
+  }
+  .btn-primary {
+    background: #007AFF; color: #fff; border: none; border-radius: 10px;
+    padding: 9px 20px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-primary:hover { background: #0063d1; }
+  .btn-sm {
+    border: none; border-radius: 8px; padding: 5px 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  .btn-green  { background: #edfaf3; color: #34C759; }
+  .btn-green:hover { background: #d4f5e1; }
+  .btn-cancel { background: #fff0f0; color: #FF3B30; }
+  .btn-cancel:hover { background: #ffd6d3; }
+  .tab-btn {
+    padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid transparent; cursor: pointer; transition: all .15s;
+    background: transparent; color: #6e6e73;
+  }
+  .tab-btn.active { background: #007AFF; color: #fff; border-color: #007AFF; }
+  .tab-btn:not(.active):hover { background: #f2f2f7; }
+
+  /* Paperclip badge */
+  .doc-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; font-weight: 600; color: #007AFF;
+    background: #e8f4fd; padding: 2px 7px; border-radius: 20px;
+    margin-top: 4px; cursor: pointer; border: none;
+  }
+  .doc-badge:hover { background: #d0eafb; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 20px; padding: 32px;
+    width: 100%; max-width: 520px; box-shadow: 0 24px 64px rgba(0,0,0,.18);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 20px; font-weight: 700; color: #1d1d1f; margin: 0 0 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: #6e6e73; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+  .form-control {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #d2d2d7;
+    border-radius: 10px; font-size: 14px; color: #1d1d1f;
+    background: #fff; transition: border-color .15s; box-sizing: border-box;
+  }
+  .form-control:focus { outline: none; border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,.12); }
+  select.form-control {
+    -webkit-appearance: none; appearance: none; height: 44px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Upload field */
+  .upload-label {
+    display: flex; align-items: center; gap: 10px; min-height: 44px;
+    padding: 0 14px; border: 1.5px dashed #d2d2d7; border-radius: 12px;
+    cursor: pointer; transition: border-color .15s, background .15s; background: #fafafa;
+  }
+  .upload-label:hover { border-color: #007AFF; background: #f0f7ff; }
+  .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .file-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f5f5f7; border-radius: 8px; padding: 7px 10px;
+    font-size: 13px; color: #1d1d1f;
+  }
+  .file-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 340px; }
+  .file-item-remove { background: none; border: none; cursor: pointer; color: #FF3B30; padding: 2px 4px; font-size: 16px; line-height: 1; flex-shrink: 0; }
+
+  /* Modal Documentos */
+  .doc-list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid #f2f2f7;
+    font-size: 14px;
+  }
+  .doc-list-item:last-child { border-bottom: none; }
+
+  @media (max-width: 800px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .ap-row, .ap-head { grid-template-columns: 1fr minmax(0,20%) minmax(0,14%) minmax(0,80px); }
+    .ap-cell:nth-child(3), .ap-head-cell:nth-child(3),
+    .ap-cell:nth-child(5), .ap-head-cell:nth-child(5) { display: none; }
+    .row2 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="ap">
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;">
+    <div>
+      <p class="ap-label">Financeiro</p>
+      <h1 style="font-size:28px;font-weight:700;color:#1d1d1f;margin:4px 0 0;">Contas a Pagar</h1>
+    </div>
+    <button class="btn-primary" onclick="abrirModal()">+ Nova Conta</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="ap-card" style="padding:20px 24px;">
+      <p class="ap-label">Total Pendente</p>
+      <p class="ap-metric" style="color:#FF9500;margin-top:8px;">R$ {{ total_pendente|floatformat:2 }}</p>
+    </div>
+    <div class="ap-card" style="padding:20px 24px;">
+      <p class="ap-label">Em Atraso</p>
+      <p class="ap-metric" style="color:#FF3B30;margin-top:8px;">R$ {{ total_vencido|floatformat:2 }}</p>
+    </div>
+    <div class="ap-card" style="padding:20px 24px;">
+      <p class="ap-label">Pago (acumulado)</p>
+      <p class="ap-metric" style="color:#34C759;margin-top:8px;">R$ {{ total_pago|floatformat:2 }}</p>
+    </div>
+  </div>
+
+  <!-- Filtros de status -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <a href="?status=pendente"><button class="tab-btn {% if status_filter == 'pendente' %}active{% endif %}">Pendentes</button></a>
+    <a href="?status=pago"><button class="tab-btn {% if status_filter == 'pago' %}active{% endif %}">Pagas</button></a>
+    <a href="?status=cancelado"><button class="tab-btn {% if status_filter == 'cancelado' %}active{% endif %}">Canceladas</button></a>
+  </div>
+
+  <!-- Tabela -->
+  <div class="ap-card">
+    <div class="ap-head">
+      <div class="ap-head-cell">Descrição / Fornecedor</div>
+      <div class="ap-head-cell">Plano de Contas</div>
+      <div class="ap-head-cell" style="text-align:right;">Valor</div>
+      <div class="ap-head-cell">Vencimento</div>
+      <div class="ap-head-cell">Status</div>
+      <div class="ap-head-cell"></div>
+    </div>
+
+    {% for conta in contas %}
+    <div class="ap-row" id="row-{{ conta.pk }}">
+      <div class="ap-cell">
+        <div style="font-weight:600;">{{ conta.descricao }}</div>
+        <div style="font-size:12px;color:#6e6e73;margin-top:2px;">{{ conta.fornecedor.nome }}</div>
+        {% with ndocs=conta.documentos.count %}{% if ndocs %}
+        <button class="doc-badge" onclick="abrirDocs({{ conta.pk }})">
+          <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          {{ ndocs }} doc{% if ndocs > 1 %}s{% endif %}
+        </button>
+        {% endif %}{% endwith %}
+      </div>
+      <div class="ap-cell" style="font-size:13px;color:#6e6e73;">
+        {% if conta.plano_de_conta %}{{ conta.plano_de_conta }}{% else %}—{% endif %}
+      </div>
+      <div class="ap-cell" style="text-align:right;font-weight:700;">R$ {{ conta.valor|floatformat:2 }}</div>
+      <div class="ap-cell" style="font-size:13px;">
+        {{ conta.data_vencimento|date:"d/m/Y" }}
+        {% if conta.vencida %}<br><span class="badge badge-red" style="margin-top:3px;">Atrasada</span>{% endif %}
+      </div>
+      <div class="ap-cell">
+        {% if conta.status == 'pendente' %}
+          <span class="badge badge-orange">Pendente</span>
+        {% elif conta.status == 'pago' %}
+          <span class="badge badge-green">Pago</span>
+          {% if conta.data_pagamento %}<div style="font-size:11px;color:#6e6e73;margin-top:3px;">{{ conta.data_pagamento|date:"d/m/Y" }}</div>{% endif %}
+        {% else %}
+          <span class="badge badge-gray">Cancelada</span>
+        {% endif %}
+      </div>
+      <div class="ap-cell" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-sm" style="background:#f0f7ff;color:#007AFF;" onclick="abrirDocs({{ conta.pk }})">Docs</button>
+        {% if conta.status == 'pendente' %}
+        <button class="btn-sm btn-green" onclick="marcarPago({{ conta.pk }})">Pagar</button>
+        {% if request.user.is_superuser %}
+        <button class="btn-sm btn-cancel" onclick="cancelarConta({{ conta.pk }})">Cancelar</button>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div style="padding:40px;text-align:center;color:#6e6e73;">Nenhuma conta encontrada.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal Nova Conta -->
+<div class="modal-overlay" id="modalNovaConta">
+  <div class="modal-box">
+    <p class="modal-title">Nova Conta a Pagar</p>
+
+    <div class="form-group">
+      <label class="form-label">Fornecedor</label>
+      <select class="form-control" id="sel-fornecedor" onchange="carregarProdutos()">
+        <option value="">Selecione…</option>
+        {% for f in fornecedores %}
+        <option value="{{ f.pk }}">{{ f.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group" id="grupo-produto" style="display:none;">
+      <label class="form-label">Material (opcional)</label>
+      <select class="form-control" id="sel-produto" onchange="preencherPlano()">
+        <option value="">Selecione…</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Plano de Contas</label>
+      <select class="form-control" id="sel-plano">
+        <option value="">Selecione…</option>
+        {% for p in planos %}
+        <option value="{{ p.pk }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-control" id="inp-descricao" placeholder="Ex: Compra de ingredientes">
+    </div>
+
+    <div class="row2">
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input type="text" inputmode="decimal" class="form-control moeda-brl" id="inp-valor"
+               placeholder="0,00" oninput="mascaraMoeda(this)" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vencimento</label>
+        <input type="date" class="form-control" id="inp-vencimento">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observação</label>
+      <textarea class="form-control" id="inp-obs" rows="2" placeholder="Opcional…"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Documentos (opcional)</label>
+      <label for="inp-docs" class="upload-label">
+        <svg style="width:18px;height:18px;color:#8e8e93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        <span id="upload-texto" style="font-size:14px;color:#8e8e93;">Clique para selecionar arquivos (PDF, imagem…)</span>
+      </label>
+      <input type="file" id="inp-docs" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.doc,.docx"
+             style="display:none;" onchange="onFileSelect(event)">
+      <div class="file-list" id="file-list"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="tab-btn" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" id="btn-salvar" onclick="salvarConta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Documentos -->
+<div class="modal-overlay" id="modalDocs">
+  <div class="modal-box">
+    <p class="modal-title" id="docs-modal-titulo">Documentos</p>
+
+    <!-- Upload rápido dentro do modal -->
+    <label for="inp-docs-modal" class="upload-label" style="margin-bottom:16px;">
+      <svg style="width:18px;height:18px;color:#8e8e93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+      <span style="font-size:14px;color:#8e8e93;">Clique para adicionar documentos (PDF, imagem…)</span>
+    </label>
+    <input type="file" id="inp-docs-modal" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.doc,.docx"
+           style="display:none;" onchange="onFileSelectDoc(event)">
+
+    <div id="docs-lista" style="min-height:40px;"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button class="tab-btn" onclick="fecharDocs()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const URL_CRIAR = "{% url 'financials:contas_pagar_criar' %}";
+const URL_PRODUTOS = "{% url 'financials:fornecedor_materiais' 0 %}";
+const URL_UPLOAD_DOC = "{% url 'financials:contas_pagar_upload_doc' 0 %}";
+const URL_DEL_DOC    = "{% url 'financials:contas_pagar_excluir_doc' 0 %}";
+
+// ── Nova Conta ─────────────────────────────────
+
+let arquivosSelecionados = [];
+
+function abrirModal() {
+  arquivosSelecionados = [];
+  renderFileList();
+  document.getElementById('sel-fornecedor').value = '';
+  document.getElementById('sel-produto').innerHTML = '<option value="">Selecione…</option>';
+  document.getElementById('grupo-produto').style.display = 'none';
+  document.getElementById('sel-plano').value = '';
+  document.getElementById('inp-descricao').value = '';
+  document.getElementById('inp-valor').value = '';
+  document.getElementById('inp-vencimento').value = '';
+  document.getElementById('inp-obs').value = '';
+  document.getElementById('modalNovaConta').classList.add('open');
+}
+function fecharModal() {
+  document.getElementById('modalNovaConta').classList.remove('open');
+}
+document.getElementById('modalNovaConta').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+
+async function carregarProdutos() {
+  const fId = document.getElementById('sel-fornecedor').value;
+  const grupo = document.getElementById('grupo-produto');
+  const sel = document.getElementById('sel-produto');
+  if (!fId) { grupo.style.display = 'none'; return; }
+  const url = URL_PRODUTOS.replace('/0/', '/' + fId + '/');
+  const r = await fetch(url);
+  const d = await r.json();
+  sel.innerHTML = '<option value="">Selecione…</option>';
+  d.produtos.forEach(p => {
+    sel.innerHTML += `<option value="${p.id}" data-plano-id="${p.plano_id}" data-plano-nome="${p.plano_nome}">${p.nome}</option>`;
+  });
+  grupo.style.display = d.produtos.length ? 'block' : 'none';
+}
+
+function preencherPlano() {
+  const sel = document.getElementById('sel-produto');
+  const opt = sel.options[sel.selectedIndex];
+  const planoId = opt?.dataset?.planoId;
+  if (planoId) document.getElementById('sel-plano').value = planoId;
+}
+
+// ── File upload (nova conta) ───────────────────
+
+function onFileSelect(e) {
+  Array.from(e.target.files).forEach(f => {
+    if (!arquivosSelecionados.find(x => x.name === f.name && x.size === f.size)) arquivosSelecionados.push(f);
+  });
+  e.target.value = '';
+  renderFileList();
+}
+function removeFile(idx) { arquivosSelecionados.splice(idx, 1); renderFileList(); }
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  const texto = document.getElementById('upload-texto');
+  if (!arquivosSelecionados.length) {
+    el.innerHTML = '';
+    texto.textContent = 'Clique para selecionar arquivos (PDF, imagem…)';
+    return;
+  }
+  texto.textContent = arquivosSelecionados.length + ' arquivo(s) selecionado(s)';
+  el.innerHTML = arquivosSelecionados.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-name">${f.name}</span>
+      <button class="file-item-remove" onclick="removeFile(${i})" type="button">×</button>
+    </div>`).join('');
+}
+
+async function salvarConta() {
+  const fornecedorId = document.getElementById('sel-fornecedor').value;
+  const planoId = document.getElementById('sel-plano').value;
+  const fpId = document.getElementById('sel-produto').value || null;
+  const descricao = document.getElementById('inp-descricao').value.trim();
+  const valor = desmascarar(document.getElementById('inp-valor').value);
+  const vencimento = document.getElementById('inp-vencimento').value;
+
+  if (!fornecedorId || !descricao || !valor || !vencimento) {
+    alert('Preencha Fornecedor, Descrição, Valor e Vencimento.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  try {
+    const r = await fetch(URL_CRIAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        fornecedor_id: fornecedorId,
+        plano_id: planoId || null,
+        fornecedor_material_id: fpId,
+        descricao, valor,
+        data_vencimento: vencimento,
+        observacao: document.getElementById('inp-obs').value,
+      }),
+    });
+    const d = await r.json();
+    if (!d.success) { alert('Erro: ' + d.error); return; }
+
+    if (arquivosSelecionados.length) {
+      const fd = new FormData();
+      arquivosSelecionados.forEach(f => fd.append('documentos', f));
+      const urlUp = URL_UPLOAD_DOC.replace('/0/', '/' + d.id + '/');
+      await fetch(urlUp, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
+    }
+
+    fecharModal();
+    window.location.reload();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+// ── Modal Documentos ───────────────────────────
+
+let docsContaPk = null;
+
+async function abrirDocs(pk) {
+  docsContaPk = pk;
+  document.getElementById('modalDocs').classList.add('open');
+  await carregarDocs();
+}
+function fecharDocs() {
+  document.getElementById('modalDocs').classList.remove('open');
+  docsContaPk = null;
+  window.location.reload();
+}
+document.getElementById('modalDocs').addEventListener('click', function(e) {
+  if (e.target === this) fecharDocs();
+});
+
+async function carregarDocs() {
+  const lista = document.getElementById('docs-lista');
+  lista.innerHTML = '<div style="color:#6e6e73;font-size:13px;padding:8px 0;">Carregando…</div>';
+  const url = `/financials/api/contas-pagar/${docsContaPk}/documentos/lista/`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.documentos.length) {
+    lista.innerHTML = '<div style="color:#6e6e73;font-size:13px;padding:8px 0;">Nenhum documento anexado.</div>';
+    return;
+  }
+  lista.innerHTML = d.documentos.map(doc => `
+    <div class="doc-list-item" id="doc-item-${doc.id}">
+      <a href="${doc.url}" target="_blank" style="color:#007AFF;font-weight:500;font-size:13px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px;">${doc.nome}</a>
+      <button class="btn-sm btn-cancel" onclick="excluirDoc(${doc.id})" style="flex-shrink:0;margin-left:8px;">Excluir</button>
+    </div>`).join('');
+}
+
+function onFileSelectDoc(e) { uploadDocFiles(Array.from(e.target.files)); e.target.value = ''; }
+
+async function uploadDocFiles(files) {
+  if (!docsContaPk || !files.length) return;
+  const fd = new FormData();
+  files.forEach(f => fd.append('documentos', f));
+  const url = URL_UPLOAD_DOC.replace('/0/', '/' + docsContaPk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
+  const d = await r.json();
+  if (d.success) await carregarDocs();
+  else alert('Erro ao enviar: ' + d.error);
+}
+
+async function excluirDoc(docPk) {
+  if (!confirm('Excluir este documento?')) return;
+  const url = URL_DEL_DOC.replace('/0/', '/' + docPk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+  const d = await r.json();
+  if (d.success) document.getElementById('doc-item-' + docPk)?.remove();
+  else alert('Erro: ' + d.error);
+}
+
+// ── Pagar / Cancelar ───────────────────────────
+
+async function marcarPago(pk) {
+  if (!confirm('Confirmar pagamento desta conta?')) return;
+  const url = "{% url 'financials:contas_pagar_pagar' 0 %}".replace('/0/', '/' + pk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  const d = await r.json();
+  if (d.success) window.location.reload();
+  else alert('Erro ao marcar como pago.');
+}
+
+async function cancelarConta(pk) {
+  if (!confirm('Cancelar esta conta a pagar?')) return;
+  const url = "{% url 'financials:contas_pagar_cancelar' 0 %}".replace('/0/', '/' + pk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+  const d = await r.json();
+  if (d.success) window.location.reload();
+  else alert('Erro ao cancelar.');
+}
+</script>
+{% endblock %}

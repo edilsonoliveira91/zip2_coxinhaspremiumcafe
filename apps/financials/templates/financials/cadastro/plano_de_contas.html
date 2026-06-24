@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Plano de Contas{% endblock %}
+
+{% block content %}
+<style>
+  .ap {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7; min-height: 100vh; padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ap-label { font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6e6e73;margin:0; }
+  .ap-card  { background:#fff;border-radius:18px;border:1px solid #d2d2d7;overflow:hidden; }
+  .ap-head  {
+    display:grid;
+    grid-template-columns: minmax(0,48px) 1fr minmax(0,10%) minmax(0,96px);
+    background:#f5f5f7; border-bottom:1px solid #d2d2d7;
+  }
+  .ap-head-cell { padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6e6e73; }
+  .ap-row {
+    display:grid;
+    grid-template-columns: minmax(0,48px) 1fr minmax(0,10%) minmax(0,96px);
+    align-items:center; border-bottom:1px solid #f2f2f7; transition:background .12s;
+  }
+  .ap-row:last-child { border-bottom:none; }
+  .ap-row:hover { background:#f5f5f7; }
+  .ap-cell { padding:13px 16px;font-size:14px;color:#1d1d1f; }
+  .badge-green { display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#edfaf3;color:#34C759; }
+  .badge-gray  { display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#f2f2f7;color:#6e6e73; }
+  .btn-primary { background:#007AFF;color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s; }
+  .btn-primary:hover { background:#0063d1; }
+  .btn-sm { border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s; }
+  .btn-edit  { background:#e8f4fd;color:#007AFF; }
+  .btn-edit:hover { background:#d0eafb; }
+  .btn-del   { background:#fff0f0;color:#FF3B30; }
+  .btn-del:hover { background:#ffd6d3; }
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:#fff;border-radius:20px;padding:32px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.18); }
+  .modal-title { font-size:20px;font-weight:700;color:#1d1d1f;margin:0 0 20px; }
+  .form-group { margin-bottom:16px; }
+  .form-label { display:block;font-size:12px;font-weight:600;color:#6e6e73;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em; }
+  .form-control { width:100%;padding:10px 14px;border:1.5px solid #d2d2d7;border-radius:10px;font-size:14px;color:#1d1d1f;background:#fff;transition:border-color .15s;box-sizing:border-box; }
+  .form-control:focus { outline:none;border-color:#007AFF; }
+  .search-box { padding:10px 14px;border:1.5px solid #d2d2d7;border-radius:10px;font-size:14px;color:#1d1d1f;background:#fff;width:240px;box-sizing:border-box; }
+  .search-box:focus { outline:none;border-color:#007AFF; }
+  .id-chip { font-size:11px;font-weight:700;color:#6e6e73; }
+</style>
+
+<div class="ap">
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:12px;flex-wrap:wrap;">
+    <div>
+      <p class="ap-label">Cadastro</p>
+      <h1 style="font-size:28px;font-weight:700;color:#1d1d1f;margin:4px 0 0;">Plano de Contas</h1>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input type="text" class="search-box" id="searchInput" placeholder="Buscar pelo nome…" oninput="filtrar()">
+      <button class="btn-primary" onclick="abrirModal()">+ Novo</button>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="ap-card">
+    <div class="ap-head">
+      <div class="ap-head-cell">#</div>
+      <div class="ap-head-cell">Nome</div>
+      <div class="ap-head-cell">Status</div>
+      <div class="ap-head-cell"></div>
+    </div>
+
+    <div id="listaPlanos">
+      {% for p in planos %}
+      <div class="ap-row" id="plano-{{ p.pk }}" data-nome="{{ p.nome|lower }}">
+        <div class="ap-cell"><span class="id-chip">#{{ p.pk }}</span></div>
+        <div class="ap-cell" style="font-weight:500;">{{ p.nome }}</div>
+        <div class="ap-cell">
+          {% if p.ativo %}<span class="badge-green">Ativo</span>{% else %}<span class="badge-gray">Inativo</span>{% endif %}
+        </div>
+        <div class="ap-cell" style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="btn-sm btn-edit"
+                  onclick="abrirEditar({{ p.pk }}, '{{ p.nome|escapejs }}', {{ p.ativo|yesno:'true,false' }})">
+            Editar
+          </button>
+          <button class="btn-sm btn-del" onclick="excluir({{ p.pk }})">Excluir</button>
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:40px;text-align:center;color:#6e6e73;">Nenhum plano cadastrado ainda.</div>
+      {% endfor %}
+    </div>
+    <div id="no-results" style="display:none;padding:40px;text-align:center;color:#6e6e73;">Nenhum resultado encontrado.</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalPlano">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-titulo">Novo Plano de Contas</p>
+
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-control" id="inp-nome" placeholder="Ex: Matéria Prima">
+    </div>
+
+    <div class="form-group" id="grupo-ativo" style="display:none;">
+      <label class="form-label">Status</label>
+      <select class="form-control" id="sel-ativo">
+        <option value="true">Ativo</option>
+        <option value="false">Inativo</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn-sm" style="background:#f2f2f7;color:#1d1d1f;padding:9px 18px;" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF       = '{{ csrf_token }}';
+const URL_CRIAR  = "{% url 'financials:plano_de_contas_criar' %}";
+const URL_EDITAR = "{% url 'financials:plano_de_contas_editar' 0 %}";
+const URL_EXCLUIR= "{% url 'financials:plano_de_contas_excluir' 0 %}";
+
+let editandoPk = null;
+
+function abrirModal() {
+  editandoPk = null;
+  document.getElementById('modal-titulo').textContent = 'Novo Plano de Contas';
+  document.getElementById('inp-nome').value = '';
+  document.getElementById('grupo-ativo').style.display = 'none';
+  document.getElementById('modalPlano').classList.add('open');
+}
+
+function abrirEditar(pk, nome, ativo) {
+  editandoPk = pk;
+  document.getElementById('modal-titulo').textContent = 'Editar Plano de Contas';
+  document.getElementById('inp-nome').value = nome;
+  document.getElementById('sel-ativo').value = ativo ? 'true' : 'false';
+  document.getElementById('grupo-ativo').style.display = 'block';
+  document.getElementById('modalPlano').classList.add('open');
+}
+
+function fecharModal() {
+  document.getElementById('modalPlano').classList.remove('open');
+}
+document.getElementById('modalPlano').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+
+async function salvar() {
+  const nome = document.getElementById('inp-nome').value.trim();
+  const ativo = document.getElementById('sel-ativo').value === 'true';
+  if (!nome) { alert('Preencha o nome.'); return; }
+
+  const url  = editandoPk ? URL_EDITAR.replace('/0/', '/' + editandoPk + '/') : URL_CRIAR;
+  const body = { nome };
+  if (editandoPk) body.ativo = ativo;
+
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json();
+  if (d.success) { fecharModal(); window.location.reload(); }
+  else alert('Erro: ' + d.error);
+}
+
+async function excluir(pk) {
+  if (!confirm('Excluir este plano de contas?')) return;
+  const url = URL_EXCLUIR.replace('/0/', '/' + pk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+  const d = await r.json();
+  if (d.success) {
+    if (d.inativado) alert('Este plano possui vínculos e foi inativado em vez de excluído.');
+    window.location.reload();
+  } else alert('Erro: ' + d.error);
+}
+
+function filtrar() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#listaPlanos .ap-row');
+  let visiveis = 0;
+  rows.forEach(row => {
+    const match = !q || row.dataset.nome.includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) visiveis++;
+  });
+  document.getElementById('no-results').style.display = visiveis === 0 && q ? 'block' : 'none';
+}
+</script>
+{% endblock %}

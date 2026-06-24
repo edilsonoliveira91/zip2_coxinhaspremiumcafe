@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fornecedores{% endblock %}
+
+{% block content %}
+<style>
+  .ap {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7; min-height: 100vh; padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ap-label { font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6e6e73;margin:0; }
+  .ap-card  { background:#fff;border-radius:18px;border:1px solid #d2d2d7;overflow:hidden; }
+  .ap-head {
+    display:grid;
+    grid-template-columns: 1fr minmax(0,18%) minmax(0,18%) minmax(0,10%) minmax(0,100px);
+    background:#f5f5f7; border-bottom:1px solid #d2d2d7;
+  }
+  .ap-head-cell { padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6e6e73; }
+  .ap-row {
+    display:grid;
+    grid-template-columns: 1fr minmax(0,18%) minmax(0,18%) minmax(0,10%) minmax(0,100px);
+    align-items:center; border-bottom:1px solid #f2f2f7; transition:background .12s;
+  }
+  .ap-row:last-child { border-bottom:none; }
+  .ap-row:hover { background:#f5f5f7; }
+  .ap-cell { padding:13px 16px;font-size:14px;color:#1d1d1f; }
+  .badge-green { display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#edfaf3;color:#34C759; }
+  .badge-gray  { display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#f2f2f7;color:#6e6e73; }
+  .btn-primary { background:#007AFF;color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s; }
+  .btn-primary:hover { background:#0063d1; }
+  .btn-sm { border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s; }
+  .btn-edit { background:#e8f4fd;color:#007AFF; }
+  .btn-edit:hover { background:#d0eafb; }
+  .btn-del  { background:#fff0f0;color:#FF3B30; }
+  .btn-del:hover  { background:#ffd6d3; }
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:#fff;border-radius:20px;padding:32px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.18); }
+  .search-box { padding:10px 14px;border:1.5px solid #d2d2d7;border-radius:10px;font-size:14px;color:#1d1d1f;background:#fff;width:240px;box-sizing:border-box; }
+  .search-box:focus { outline:none;border-color:#007AFF; }
+  @media(max-width:700px){
+    .ap-head,.ap-row { grid-template-columns: 1fr minmax(0,10%) minmax(0,80px); }
+    .ap-head-cell:nth-child(2),.ap-cell:nth-child(2),
+    .ap-head-cell:nth-child(3),.ap-cell:nth-child(3) { display:none; }
+    .search-box { width:100%; }
+  }
+</style>
+
+<div class="ap">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:12px;flex-wrap:wrap;">
+    <div>
+      <p class="ap-label">Cadastro</p>
+      <h1 style="font-size:28px;font-weight:700;color:#1d1d1f;margin:4px 0 0;">Fornecedores</h1>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input type="text" class="search-box" id="searchInput" placeholder="Buscar por nome…" oninput="filtrar()">
+      <a href="{% url 'financials:fornecedor_novo' %}" class="btn-primary">+ Novo</a>
+    </div>
+  </div>
+
+  <div class="ap-card">
+    <div class="ap-head">
+      <div class="ap-head-cell">Nome</div>
+      <div class="ap-head-cell">CNPJ</div>
+      <div class="ap-head-cell">Telefone</div>
+      <div class="ap-head-cell">Status</div>
+      <div class="ap-head-cell"></div>
+    </div>
+
+    <div id="listaFornecedores">
+      {% for f in fornecedores %}
+      <div class="ap-row" id="forn-{{ f.pk }}" data-nome="{{ f.nome|lower }}">
+        <div class="ap-cell">
+          <div style="font-weight:600;">{{ f.nome }}</div>
+          {% if f.email %}<div style="font-size:12px;color:#6e6e73;margin-top:2px;">{{ f.email }}</div>{% endif %}
+        </div>
+        <div class="ap-cell" style="font-size:13px;color:#6e6e73;">{{ f.cnpj|default:"—" }}</div>
+        <div class="ap-cell" style="font-size:13px;color:#6e6e73;">{{ f.telefone|default:"—" }}</div>
+        <div class="ap-cell">
+          {% if f.ativo %}<span class="badge-green">Ativo</span>{% else %}<span class="badge-gray">Inativo</span>{% endif %}
+        </div>
+        <div class="ap-cell" style="display:flex;gap:6px;justify-content:flex-end;">
+          <a href="{% url 'financials:fornecedor_editar' f.pk %}" class="btn-sm btn-edit">Editar</a>
+          <button class="btn-sm btn-del" onclick="excluir({{ f.pk }}, '{{ f.nome|escapejs }}')">Excluir</button>
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:40px;text-align:center;color:#6e6e73;">Nenhum fornecedor cadastrado ainda.</div>
+      {% endfor %}
+    </div>
+    <div id="no-results" style="display:none;padding:40px;text-align:center;color:#6e6e73;">Nenhum resultado encontrado.</div>
+  </div>
+</div>
+
+<!-- Modal confirmação exclusão -->
+<div class="modal-overlay" id="modalExcluir">
+  <div class="modal-box">
+    <p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 8px;">Excluir Fornecedor</p>
+    <p id="msg-excluir" style="font-size:14px;color:#6e6e73;margin:0 0 24px;"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-sm" style="background:#f2f2f7;color:#1d1d1f;padding:9px 18px;" onclick="fecharExcluir()">Cancelar</button>
+      <button class="btn-sm btn-del" style="padding:9px 18px;" id="btn-confirmar-excluir">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF        = '{{ csrf_token }}';
+const URL_EXCLUIR = "{% url 'financials:fornecedor_excluir' 0 %}";
+let excluindoPk   = null;
+
+function excluir(pk, nome) {
+  excluindoPk = pk;
+  document.getElementById('msg-excluir').textContent = `Deseja excluir o fornecedor "${nome}"?`;
+  document.getElementById('modalExcluir').classList.add('open');
+}
+function fecharExcluir() {
+  document.getElementById('modalExcluir').classList.remove('open');
+}
+document.getElementById('btn-confirmar-excluir').addEventListener('click', async () => {
+  const url = URL_EXCLUIR.replace('/0/', '/' + excluindoPk + '/');
+  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+  const d = await r.json();
+  if (d.success) {
+    if (d.inativado) alert('Fornecedor com contas vinculadas foi inativado em vez de excluído.');
+    window.location.reload();
+  } else alert('Erro: ' + d.error);
+});
+
+function filtrar() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#listaFornecedores .ap-row');
+  let visiveis = 0;
+  rows.forEach(row => {
+    const match = !q || row.dataset.nome.includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) visiveis++;
+  });
+  document.getElementById('no-results').style.display = visiveis === 0 && q ? 'block' : 'none';
+}
+</script>
+{% endblock %}

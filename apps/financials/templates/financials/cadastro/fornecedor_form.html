@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if fornecedor %}Editar Fornecedor{% else %}Novo Fornecedor{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+  .ap {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f7; min-height: 100vh; padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ap-label { font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6e6e73;margin:0; }
+  .ap-card  { background:#fff;border-radius:18px;border:1px solid #d2d2d7;padding:28px 32px;margin-bottom:20px; }
+  .section-title { font-size:17px;font-weight:700;color:#1d1d1f;margin:0 0 20px; }
+  .form-group { margin-bottom:16px; }
+  .form-label { display:block;font-size:12px;font-weight:600;color:#6e6e73;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em; }
+  .form-control { width:100%;padding:11px 14px;border:1.5px solid #d2d2d7;border-radius:10px;font-size:15px;color:#1d1d1f;background:#fff;transition:border-color .15s;box-sizing:border-box; }
+  .form-control:focus { outline:none;border-color:#007AFF;box-shadow:0 0 0 3px rgba(0,122,255,.12); }
+  select.form-control { -webkit-appearance:none;appearance:none;height:47px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px; }
+  .row2 { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+  .row3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px; }
+
+  /* Materiais */
+  .mat-row {
+    display:grid;
+    grid-template-columns: 1fr 1fr minmax(0,44px);
+    gap:16px; align-items:flex-end;
+    padding:16px 0; border-bottom:1px solid #f2f2f7;
+  }
+  .mat-row:first-child { padding-top:0; }
+  .mat-row:last-child { border-bottom:none; }
+  .btn-rem {
+    width:44px;height:44px;border:none;border-radius:10px;background:#fff0f0;
+    color:#FF3B30;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .12s; flex-shrink:0; margin-bottom:0;
+  }
+  .btn-rem:hover { background:#ffd6d3; }
+  .btn-add-prod {
+    display:flex;align-items:center;gap:6px;margin-top:12px;
+    background:none;border:1.5px dashed #d2d2d7;border-radius:10px;
+    padding:10px 16px;font-size:14px;font-weight:600;color:#007AFF;
+    cursor:pointer;width:100%;transition:border-color .15s,background .12s;
+  }
+  .btn-add-prod:hover { border-color:#007AFF;background:#f0f7ff; }
+
+  /* Ações */
+  .btn-primary { background:#007AFF;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s; }
+  .btn-primary:hover { background:#0063d1; }
+  .btn-cancel  { background:#f2f2f7;color:#1d1d1f;border:none;border-radius:10px;padding:11px 24px;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;transition:background .12s; }
+  .btn-cancel:hover { background:#e5e5ea; }
+
+  @media(max-width:700px){
+    .row2,.row3,.mat-row { grid-template-columns:1fr; }
+    .mat-row .form-group:nth-child(2) { display:none; }
+    .btn-rem { width:36px;height:36px; }
+  }
+</style>
+
+<div class="ap">
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:12px;flex-wrap:wrap;">
+    <div>
+      <p class="ap-label">Cadastro › Fornecedores</p>
+      <h1 style="font-size:28px;font-weight:700;color:#1d1d1f;margin:4px 0 0;">
+        {% if fornecedor %}{{ fornecedor.nome }}{% else %}Novo Fornecedor{% endif %}
+      </h1>
+    </div>
+  </div>
+
+  <!-- Dados do fornecedor -->
+  <div class="ap-card">
+    <p class="section-title">Dados do Fornecedor</p>
+
+    <div class="form-group">
+      <label class="form-label">Nome / Razão Social</label>
+      <input type="text" class="form-control" id="inp-nome"
+             value="{{ fornecedor.nome|default:'' }}" placeholder="Nome do fornecedor">
+    </div>
+
+    <div class="row3">
+      <div class="form-group">
+        <label class="form-label">CNPJ</label>
+        <input type="text" class="form-control" id="inp-cnpj"
+               value="{{ fornecedor.cnpj|default:'' }}" placeholder="00.000.000/0000-00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone</label>
+        <input type="text" class="form-control" id="inp-telefone"
+               value="{{ fornecedor.telefone|default:'' }}" placeholder="(00) 00000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-control" id="inp-email"
+               value="{{ fornecedor.email|default:'' }}" placeholder="contato@fornecedor.com.br">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observação</label>
+      <textarea class="form-control" id="inp-obs" rows="2"
+                placeholder="Opcional…">{{ fornecedor.observacao|default:'' }}</textarea>
+    </div>
+
+    {% if fornecedor %}
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-control" id="sel-ativo" style="max-width:200px;">
+        <option value="true" {% if fornecedor.ativo %}selected{% endif %}>Ativo</option>
+        <option value="false" {% if not fornecedor.ativo %}selected{% endif %}>Inativo</option>
+      </select>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Materiais -->
+  <div class="ap-card">
+    <p class="section-title">Materiais deste Fornecedor</p>
+
+    <div id="prod-lista">
+      {% for vm in materiais_vinculados %}
+      <div class="mat-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Material</label>
+          <select class="form-control prod-select-produto">
+            <option value="">Selecione um material…</option>
+            {% for m in materiais %}
+            <option value="{{ m.pk }}" {% if m.pk == vm.material_id %}selected{% endif %}>{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Plano de Contas</label>
+          <select class="form-control prod-select-plano">
+            <option value="">Sem plano de contas</option>
+            {% for pl in planos %}
+            <option value="{{ pl.pk }}" {% if pl.pk == vm.plano_de_conta_id %}selected{% endif %}>{{ pl.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="button" class="btn-rem" onclick="removerLinha(this)" title="Remover">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <button type="button" class="btn-add-prod" onclick="adicionarLinha()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Adicionar Material
+    </button>
+  </div>
+
+  <!-- Ações -->
+  <div style="display:flex;gap:12px;justify-content:flex-end;">
+    <a href="{% url 'financials:fornecedores' %}" class="btn-cancel">Cancelar</a>
+    <button class="btn-primary" onclick="salvar()">Salvar Fornecedor</button>
+  </div>
+</div>
+
+<script>
+const CSRF       = '{{ csrf_token }}';
+const FORNEC_PK  = {{ fornecedor.pk|default:'null' }};
+const URL_SALVAR = FORNEC_PK
+  ? "{% url 'financials:fornecedor_salvar_pk' 0 %}".replace('/0/', '/' + FORNEC_PK + '/')
+  : "{% url 'financials:fornecedor_salvar' %}";
+
+const MATERIAIS_JSON = {{ materiais_json|safe }};
+const PLANOS_JSON    = {{ planos_json|safe }};
+
+function buildProdutoOptions(selectedId) {
+  return '<option value="">Selecione um material…</option>' +
+    MATERIAIS_JSON.map(m =>
+      `<option value="${m.pk}" ${m.pk == selectedId ? 'selected' : ''}>${m.nome}</option>`
+    ).join('');
+}
+
+function buildPlanoOptions(selectedId) {
+  return '<option value="">Sem plano de contas</option>' +
+    PLANOS_JSON.map(p =>
+      `<option value="${p.pk}" ${p.pk == selectedId ? 'selected' : ''}>${p.nome}</option>`
+    ).join('');
+}
+
+function adicionarLinha(matId = null, planoId = null) {
+  const div = document.createElement('div');
+  div.className = 'mat-row';
+  div.innerHTML = `
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Material</label>
+      <select class="form-control prod-select-produto">${buildProdutoOptions(matId)}</select>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Plano de Contas</label>
+      <select class="form-control prod-select-plano">${buildPlanoOptions(planoId)}</select>
+    </div>
+    <button type="button" class="btn-rem" onclick="removerLinha(this)" title="Remover">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </button>
+  `;
+  document.getElementById('prod-lista').appendChild(div);
+}
+
+function removerLinha(btn) {
+  btn.closest('.mat-row').remove();
+}
+
+async function salvar() {
+  const nome = document.getElementById('inp-nome').value.trim();
+  if (!nome) { alert('Preencha o nome do fornecedor.'); return; }
+
+  const linhas = document.querySelectorAll('#prod-lista .mat-row');
+  const materiais = [];
+  for (const linha of linhas) {
+    const matId   = linha.querySelector('.prod-select-produto').value;
+    const planoId = linha.querySelector('.prod-select-plano').value;
+    if (!matId) continue;
+    materiais.push({ material_id: matId, plano_id: planoId || null });
+  }
+
+  const body = {
+    nome,
+    cnpj:       document.getElementById('inp-cnpj').value.trim(),
+    telefone:   document.getElementById('inp-telefone').value.trim(),
+    email:      document.getElementById('inp-email').value.trim(),
+    observacao: document.getElementById('inp-obs').value.trim(),
+    materiais,
+  };
+  const ativoEl = document.getElementById('sel-ativo');
+  if (ativoEl) body.ativo = ativoEl.value === 'true';
+
+  const r = await fetch(URL_SALVAR, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json();
+  if (d.success) window.location.href = d.redirect;
+  else alert('Erro: ' + d.error);
+}
+</script>
+{% endblock %}

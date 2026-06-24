@@ -617,6 +617,7 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         from pinpads.models import Pinpad, BandeiraPinpad
 
         pinpad = Pinpad.objects.filter(is_active=True).first()
+
         bandeiras_rates = {}
         if pinpad:
             for b in BandeiraPinpad.objects.filter(pinpad=pinpad):
@@ -624,6 +625,17 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
                     'credito': b.taxa_credito,
                     'debito':  b.taxa_debito,
                 }
+
+        # Anota cada transação com taxa individual — mesma lógica da tela
+        for tx in transacoes:
+            stored = tx.taxa_tx or Decimal('0')
+            if not stored and tx.is_entrada and tx.metodo_pagamento in ('credito', 'debito'):
+                chave = (tx.bandeira or '').lower()
+                r = bandeiras_rates.get(chave, {})
+                pct = r.get(tx.metodo_pagamento, Decimal('0'))
+                stored = (tx.valor * pct / Decimal('100')).quantize(Decimal('0.01')) if pct else Decimal('0')
+            tx.taxa_tx = stored
+            tx.valor_liquido = tx.valor - stored
 
         def _calc_taxa_pdf(transferencias_qs):
             total = Decimal('0')
@@ -1006,12 +1018,17 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             data_local = timezone.localtime(tx.data)
             sinal  = '+' if tx.is_entrada else '\u2212'
             cor_v  = verde if tx.is_entrada else verm
+            # Usa valor_liquido quando h\u00e1 taxa (igual \u00e0 tela)
+            valor_exibido = tx.valor_liquido if tx.taxa_tx else tx.valor
+            desc_extra = ''
+            if tx.taxa_tx:
+                desc_extra = f'<br/><font size="7" color="#FF9500">bruto {fmt(tx.valor)} \u00b7 taxa -{fmt(tx.taxa_tx)}</font>'
             rows.append([
                 Paragraph(data_local.strftime('%d/%m/%Y\n%H:%M'),
                           ps(f'td_dt{tx.pk}', 8, color=escuro, leading=11)),
-                Paragraph(tx.descricao or '\u2014', td),
+                Paragraph((tx.descricao or '\u2014') + desc_extra, td),
                 Paragraph(tipo_labels.get(tx.tipo, tx.tipo), td_c),
-                Paragraph(f'{sinal}{fmt(tx.valor)}',
+                Paragraph(f'{sinal}{fmt(valor_exibido)}',
                           ps(f'tv{tx.pk}', 8, bold=True, color=cor_v, align=TA_RIGHT)),
             ])
 
