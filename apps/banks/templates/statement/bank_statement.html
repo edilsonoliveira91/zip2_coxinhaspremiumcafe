@@ -228,7 +228,7 @@
                     style="min-height:36px;padding:0 18px;background:#007AFF;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
                 Filtrar
             </button>
-            <a href="{% url 'banks:bank_statement' bank.pk %}"
+            <a href="{% url 'banks:bank_statement' bank.pk %}?data_inicio=&data_fim="
                style="min-height:36px;padding:0 14px;background:#F5F5F7;color:#6E6E73;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
                 Ver tudo
             </a>

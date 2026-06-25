@@ -275,7 +275,7 @@
         <button class="btn-icon btn-icon-blue" title="Editar" onclick="abrirEditar({{ conta.pk }})">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
         </button>
-        <button class="btn-icon btn-icon-green" title="Registrar pagamento" onclick="marcarPago({{ conta.pk }})">
+        <button class="btn-icon btn-icon-green" title="Registrar pagamento" onclick="marcarPago({{ conta.pk }}, '{{ conta.fornecedor.nome|escapejs }}', '{{ conta.descricao|escapejs }}', {{ conta.valor }})">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
         </button>
         {% if request.user.is_superuser %}
@@ -400,6 +400,42 @@
   </div>
 </div>
 
+<!-- Modal Registrar Pagamento -->
+<div class="modal-overlay" id="modalPagar">
+  <div class="modal-box" style="max-width:420px;">
+    <p class="modal-title">Registrar Pagamento</p>
+    <input type="hidden" id="pagar-pk">
+
+    <div style="background:#f5f5f7;border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+      <div style="font-size:15px;font-weight:700;color:#1d1d1f;margin-bottom:2px;" id="pagar-fornecedor"></div>
+      <div style="font-size:12px;color:#6e6e73;margin-bottom:8px;" id="pagar-label"></div>
+      <div style="font-size:22px;font-weight:700;color:#1d1d1f;" id="pagar-valor"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Banco <span style="color:#FF3B30;">*</span></label>
+      <select class="form-control" id="pagar-banco" onchange="atualizarSaldoBanco()">
+        <option value="">Selecione o banco…</option>
+      </select>
+    </div>
+
+    <div id="pagar-saldo-wrap" style="display:none;background:#eaf3ff;border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:11px;color:#6e6e73;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Saldo atual do banco</div>
+      <div style="font-size:18px;font-weight:700;color:#007AFF;margin-top:2px;" id="pagar-saldo-valor"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Data do pagamento</label>
+      <input type="date" class="form-control" id="pagar-data">
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+      <button class="tab-btn" onclick="fecharPagar()">Cancelar</button>
+      <button class="btn-primary" id="btn-confirmar-pagar" onclick="confirmarPagamento()">Confirmar Pagamento</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Detalhe -->
 <div class="modal-overlay" id="modalDetalhe">
   <div class="modal-box" style="max-width:640px;">
@@ -491,6 +527,8 @@ const URL_UPLOAD_DOC = "{% url 'financials:contas_pagar_upload_doc' 0 %}";
 const URL_DEL_DOC    = "{% url 'financials:contas_pagar_excluir_doc' 0 %}";
 const URL_DETALHE    = "{% url 'financials:contas_pagar_detalhe' 0 %}";
 const URL_EDITAR_API = "{% url 'financials:contas_pagar_editar' 0 %}";
+const URL_PAGAR_BANCO = "{% url 'financials:contas_pagar_pagar_banco' 0 %}";
+const BANCOS = {{ bancos_json|safe }};
 
 const UNIDADES = [
   ['un','Unidade'],['kg','Kg'],['g','Gramas'],['l','Litros'],['ml','ml'],
@@ -821,11 +859,14 @@ function fecharDetalhe() {
   detalhePk = null;
 }
 
-async function marcarPagoDetalhe() {
+function marcarPagoDetalhe() {
   if (!detalhePk) return;
-  const pk = detalhePk;
+  const pk         = detalhePk;
+  const fornecedor = document.getElementById('det-fornecedor').textContent;
+  const descricao  = document.getElementById('det-descricao').textContent.replace('—', '').trim();
+  const valorTxt   = document.getElementById('det-total').textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
   fecharDetalhe();
-  await marcarPago(pk);
+  marcarPago(pk, fornecedor, descricao, parseFloat(valorTxt) || 0);
 }
 
 document.getElementById('modalDetalhe').addEventListener('click', function(e) {
@@ -879,15 +920,75 @@ async function salvarEdicao() {
   }
 }
 
-// ── Pagar / Cancelar ───────────────────────────
+// ── Modal Pagar com Banco ──────────────────────
 
-async function marcarPago(pk) {
-  if (!confirm('Confirmar pagamento desta conta?')) return;
-  const url = "{% url 'financials:contas_pagar_pagar' 0 %}".replace('/0/', '/' + pk + '/');
-  const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-  const d = await r.json();
-  if (d.success) window.location.reload();
-  else alert('Erro ao marcar como pago.');
+let pagarPk = null;
+
+function marcarPago(pk, fornecedor, descricao, valor) {
+  pagarPk = pk;
+  document.getElementById('pagar-pk').value = pk;
+  document.getElementById('pagar-fornecedor').textContent = fornecedor || '';
+  document.getElementById('pagar-label').textContent = descricao || '';
+  document.getElementById('pagar-valor').textContent = 'R$ ' + formatarMoeda(parseFloat(valor) || 0);
+
+  // Data padrão = hoje
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('pagar-data').value = hoje;
+
+  // Resetar banco e saldo
+  const sel = document.getElementById('pagar-banco');
+  sel.innerHTML = '<option value="">Selecione o banco…</option>';
+  BANCOS.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.nome;
+    sel.appendChild(opt);
+  });
+  document.getElementById('pagar-saldo-wrap').style.display = 'none';
+  document.getElementById('modalPagar').classList.add('open');
+}
+
+function atualizarSaldoBanco() {
+  const sel = document.getElementById('pagar-banco');
+  const banco = BANCOS.find(b => b.id == sel.value);
+  const wrap = document.getElementById('pagar-saldo-wrap');
+  if (!banco) { wrap.style.display = 'none'; return; }
+  document.getElementById('pagar-saldo-valor').textContent = 'R$ ' + formatarMoeda(banco.saldo);
+  wrap.style.display = '';
+}
+
+function fecharPagar() {
+  document.getElementById('modalPagar').classList.remove('open');
+  pagarPk = null;
+}
+
+document.getElementById('modalPagar').addEventListener('click', function(e) {
+  if (e.target === this) fecharPagar();
+});
+
+async function confirmarPagamento() {
+  const pk    = document.getElementById('pagar-pk').value;
+  const bankId = document.getElementById('pagar-banco').value;
+  const data  = document.getElementById('pagar-data').value;
+  if (!bankId) { alert('Selecione um banco.'); return; }
+  if (!data)   { alert('Informe a data do pagamento.'); return; }
+
+  const btn = document.getElementById('btn-confirmar-pagar');
+  btn.disabled = true; btn.textContent = 'Processando…';
+  try {
+    const url = URL_PAGAR_BANCO.replace('/0/', '/' + pk + '/');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ bank_id: bankId, data_pagamento: data }),
+    });
+    const d = await r.json();
+    if (!d.success) { alert('Erro: ' + d.error); return; }
+    fecharPagar();
+    window.location.reload();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar Pagamento';
+  }
 }
 
 async function cancelarConta(pk) {

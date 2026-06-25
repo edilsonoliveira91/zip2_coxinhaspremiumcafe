@@ -1,5 +1,5 @@
 {% load static %}
-<nav class="fixed top-0 left-0 right-0 bg-white/5 backdrop-blur-sm shadow-lg border-b border-gray-200/50 z-50">
+<nav class="fixed top-0 left-0 right-0 bg-white/5 backdrop-blur-sm shadow-lg border-b border-gray-200/50 z-50" x-data="{ mobileOpen: false }">
     <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="flex items-center h-16">
             <!-- Logo (esquerda) -->
@@ -171,6 +171,14 @@
                                     </svg>
                                     <span>Cancelada / Cortesia</span>
                                 </a>
+                                {% if perms.financials.view_contapagar or request.user.is_superuser %}
+                                <a href="{% url 'financials:relatorio_contas_pagas' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                    </svg>
+                                    <span>Contas Pagas</span>
+                                </a>
+                                {% endif %}
                                 {% if perms.financials.view_financial or request.user.is_superuser %}
                                 <a href="{% url 'financials:extrato' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,6 +372,19 @@
                         </div>
                     </div>
                     {% endif %}
+            </div>
+
+            <!-- Botão hambúrguer (mobile only) -->
+            <div class="flex-shrink-0 ml-auto md:hidden">
+                <button @click="mobileOpen = !mobileOpen"
+                        class="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                    <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Menu do Usuário Desktop (extrema direita) -->
@@ -574,4 +595,182 @@
             </div>
         </div>
     </div>
+
+    <!-- ═══════════════ MENU MOBILE ═══════════════ -->
+    <div x-cloak x-show="mobileOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="md:hidden bg-white border-t border-gray-200 shadow-lg max-h-screen overflow-y-auto">
+        <div class="px-4 py-3 space-y-1">
+
+            <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-orange-700 bg-orange-50" @click="mobileOpen=false">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Início
+            </a>
+
+            {% if perms.orders.view_order or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Comandas</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'accounts:dashboard' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Abertas</a>
+                    <a href="{% url 'orders:closed_orders' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Finalizadas</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if perms.products.view_product or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Produtos</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'products:product_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Produtos</a>
+                    {% if perms.products.change_product %}
+                    <a href="{% url 'products:produtos_ativos' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Produtos Ativos</a>
+                    {% endif %}
+                    <a href="{% url 'products:adicional_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-pink-50 hover:text-pink-600" @click="mobileOpen=false">Adicionais</a>
+                    <a href="{% url 'products:stock_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-yellow-50 hover:text-yellow-600" @click="mobileOpen=false">Estoque</a>
+                    <a href="{% url 'products:nostock_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-yellow-50 hover:text-yellow-600" @click="mobileOpen=false">Sem Estoque</a>
+                    <a href="{% url 'products:rawmaterial_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-yellow-50 hover:text-yellow-600" @click="mobileOpen=false">Matéria Prima</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if perms.orders.view_order or perms.financials.view_financial or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Relatórios</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'reports:nfce_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600" @click="mobileOpen=false">Relatório NFCe</a>
+                    <a href="{% url 'reports:sells_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Produtos Vendidos</a>
+                    <a href="{% url 'reports:canceled_cortesia_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600" @click="mobileOpen=false">Cancelada / Cortesia</a>
+                    {% if perms.financials.view_contapagar or request.user.is_superuser %}
+                    <a href="{% url 'financials:relatorio_contas_pagas' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Contas Pagas</a>
+                    {% endif %}
+                    {% if perms.financials.view_financial or request.user.is_superuser %}
+                    <a href="{% url 'financials:extrato' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Extrato</a>
+                    {% endif %}
+                    <a href="{% url 'reports:cozinha_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Relatório Cozinha</a>
+                    <a href="{% url 'reports:pedidos_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Pedidos</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if perms.financials.view_financial or perms.financials.view_caixaadm or perms.financials.view_fechamentocaixadiario or request.user.is_caixa or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Caixa</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    {% if perms.checkouts.view_checkout or request.user.is_superuser %}
+                    <a href="{% url 'financials:dashboard' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600" @click="mobileOpen=false">Dashboard</a>
+                    {% endif %}
+                    {% if perms.financials.add_sangria or request.user.is_superuser %}
+                    <a href="{% url 'financials:sangria' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600" @click="mobileOpen=false">Sangria</a>
+                    {% endif %}
+                    {% if perms.financials.view_financial or request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
+                    <a href="{% url 'financials:fechamento_diario' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Fechamento de Caixa</a>
+                    {% endif %}
+                    {% if perms.financials.view_caixaadm or request.user.is_superuser %}
+                    <a href="{% url 'financials:caixa_adm' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-600" @click="mobileOpen=false">Caixa ADM</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if perms.financials.view_financial or perms.financials.view_contapagar or user_has_bank_access or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Financeiro</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    {% if perms.financials.view_financial or request.user.is_superuser %}
+                    <a href="{% url 'financials:conferencia_caixa' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600" @click="mobileOpen=false">Conferência Caixa</a>
+                    {% endif %}
+                    {% if perms.financials.view_contapagar or perms.financials.view_financial or request.user.is_superuser %}
+                    <a href="{% url 'financials:contas_pagar' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600" @click="mobileOpen=false">Contas a Pagar</a>
+                    {% endif %}
+                    {% if user_has_bank_access %}
+                    <a href="{% url 'banks:bank_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600" @click="mobileOpen=false">Bancos</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if perms.financials.view_material or perms.financials.view_fornecedor or perms.financials.view_planodecontas or request.user.is_superuser %}
+            <div x-data="{ open: false }">
+                <button @click="open=!open" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <span>Cadastro</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    {% if perms.financials.view_material or request.user.is_superuser %}
+                    <a href="{% url 'financials:materiais' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-amber-50 hover:text-amber-600" @click="mobileOpen=false">Materiais</a>
+                    {% endif %}
+                    {% if perms.financials.view_fornecedor or request.user.is_superuser %}
+                    <a href="{% url 'financials:fornecedores' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-emerald-50 hover:text-emerald-600" @click="mobileOpen=false">Fornecedores</a>
+                    {% endif %}
+                    {% if perms.financials.view_planodecontas or request.user.is_superuser %}
+                    <a href="{% url 'financials:plano_de_contas' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-600" @click="mobileOpen=false">Plano de Contas</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Divisor -->
+            <div class="border-t border-gray-200 my-2"></div>
+
+            <!-- Usuário -->
+            <div class="px-3 py-2">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-9 h-9 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-content:center flex-shrink-0 flex items-center justify-center">
+                        <span class="text-white font-medium text-sm">{{ user.first_name.0|default:user.username.0|upper }}</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="text-xs text-gray-500">{% if user.is_superuser %}Administrador{% else %}Operador{% endif %}</div>
+                    </div>
+                </div>
+
+                {% if request.user.is_superuser %}
+                <a href="{% url 'accounts:user_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-cyan-50 hover:text-cyan-600 mb-1" @click="mobileOpen=false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Gerenciar Usuários
+                </a>
+                <a href="{% url 'pinpads:pinpad_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600 mb-1" @click="mobileOpen=false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Pinpads
+                </a>
+                <a href="{% url 'companys:company_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600 mb-1" @click="mobileOpen=false">Empresas</a>
+                <a href="{% url 'config:time_config' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600 mb-1" @click="mobileOpen=false">Tempo de Espera</a>
+                <a href="{% url 'config:troco_inicial' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600 mb-1" @click="mobileOpen=false">Troco Inicial</a>
+                <a href="{% url 'config:quebra_caixa' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 mb-1" @click="mobileOpen=false">Quebra de Caixa</a>
+                <a href="{% url 'financials:comissao' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 mb-1" @click="mobileOpen=false">Comissão</a>
+                <a href="{% url 'config:cadastro_garcom' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600 mb-1" @click="mobileOpen=false">Cadastro Garçom</a>
+                <a href="{% url 'config:kiosk_pin' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-600 mb-1" @click="mobileOpen=false">PIN do Kiosk</a>
+                <a href="{% url 'kiosk:slide_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 mb-1" @click="mobileOpen=false">Display Mesa</a>
+                <a href="{% url 'orders:cozinha_painel' %}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600 mb-1" @click="mobileOpen=false">Display Cozinha</a>
+                {% endif %}
+
+                <a href="{% url 'accounts:logout' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 mt-1" @click="mobileOpen=false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Sair do Sistema
+                </a>
+            </div>
+
+        </div>
+    </div>
+    <!-- ═══════════════ FIM MENU MOBILE ═══════════════ -->
 </nav>

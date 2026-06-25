@@ -1690,6 +1690,61 @@ class ConferenciaCaixaView(LoginRequiredMixin, PermissionRequiredMixin, Template
 # Contas a Pagar
 # ──────────────────────────────────────────────
 
+class ContasPagasReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'financials/relatorio_contas_pagas.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from datetime import date
+        from banks.models import Bank
+        from banks.views import _accessible_banks
+
+        today = date.today()
+        data_inicio_str = self.request.GET.get('data_inicio', today.replace(day=1).isoformat())
+        data_fim_str    = self.request.GET.get('data_fim',    today.isoformat())
+        fornecedor_id   = self.request.GET.get('fornecedor', '')
+        banco_id        = self.request.GET.get('banco', '')
+
+        try:
+            data_inicio = date.fromisoformat(data_inicio_str)
+        except (ValueError, TypeError):
+            data_inicio = today.replace(day=1)
+        try:
+            data_fim = date.fromisoformat(data_fim_str)
+        except (ValueError, TypeError):
+            data_fim = today
+
+        qs = ContaPagar.objects.filter(
+            status='pago',
+            data_pagamento__gte=data_inicio,
+            data_pagamento__lte=data_fim,
+        ).select_related(
+            'fornecedor', 'banco_pagamento', 'pago_por'
+        ).prefetch_related('itens').order_by('data_pagamento', 'fornecedor__nome')
+
+        if fornecedor_id:
+            qs = qs.filter(fornecedor_id=fornecedor_id)
+        if banco_id:
+            qs = qs.filter(banco_pagamento_id=banco_id)
+
+        total_valor = qs.aggregate(s=Sum('valor'))['s'] or Decimal('0')
+
+        bancos_qs = _accessible_banks(self.request.user)
+        context.update({
+            'contas':          qs,
+            'total_valor':     total_valor,
+            'total_contas':    qs.count(),
+            'data_inicio':     data_inicio_str,
+            'data_fim':        data_fim_str,
+            'fornecedor_sel':  fornecedor_id,
+            'banco_sel':       banco_id,
+            'fornecedores':    Fornecedor.objects.filter(ativo=True).order_by('nome'),
+            'bancos':          bancos_qs,
+        })
+        return context
+
+
 class ContasPagarListView(LoginRequiredMixin, TemplateView):
     template_name = 'financials/contas_pagar.html'
     login_url = reverse_lazy('accounts:login')
@@ -1718,6 +1773,22 @@ class ContasPagarListView(LoginRequiredMixin, TemplateView):
         context['total_pago'] = total_pago
         context['fornecedores'] = Fornecedor.objects.filter(ativo=True).order_by('nome')
         context['planos'] = PlanoDeContas.objects.filter(ativo=True).order_by('nome')
+
+        # Bancos acessíveis com saldo atual para o modal de pagamento
+        from banks.models import Bank
+        from banks.views import _accessible_banks
+        from django.db.models import Sum as _Sum, Q as _Q
+        hoje = date.today()
+        bancos_qs = _accessible_banks(self.request.user).annotate(
+            _ent=_Sum('transactions__valor', filter=_Q(transactions__is_entrada=True, transactions__data__date__lte=hoje)),
+            _sai=_Sum('transactions__valor', filter=_Q(transactions__is_entrada=False, transactions__data__date__lte=hoje)),
+        )
+        bancos_com_saldo = []
+        for b in bancos_qs:
+            vi = b.valor_inicial or Decimal('0')
+            saldo = vi + (b._ent or Decimal('0')) - (b._sai or Decimal('0'))
+            bancos_com_saldo.append({'id': b.pk, 'nome': b.nome, 'saldo': float(saldo)})
+        context['bancos_json'] = bancos_com_saldo
         return context
 
 
@@ -1844,6 +1915,54 @@ class ContasPagarMarcarPagoView(LoginRequiredMixin, View):
         conta.data_pagamento = data.get('data_pagamento') or date.today().isoformat()
         conta.pago_por = request.user
         conta.save(update_fields=['status', 'data_pagamento', 'pago_por'])
+        return JsonResponse({'success': True})
+
+
+class ContasPagarPagarComBancoView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('accounts:login')
+
+    def post(self, request, pk):
+        from banks.models import Bank, BankTransaction
+        from datetime import date as date_type, datetime
+
+        conta = ContaPagar.objects.select_related('fornecedor').filter(pk=pk, status='pendente').first()
+        if not conta:
+            return JsonResponse({'success': False, 'error': 'Conta não encontrada ou já processada.'}, status=404)
+
+        payload = json.loads(request.body)
+        bank_id = payload.get('bank_id')
+        data_pagamento_str = payload.get('data_pagamento') or date_type.today().isoformat()
+
+        if not bank_id:
+            return JsonResponse({'success': False, 'error': 'Selecione um banco.'}, status=400)
+
+        try:
+            bank = Bank.objects.get(pk=bank_id)
+        except Bank.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Banco não encontrado.'}, status=404)
+
+        try:
+            dt = timezone.make_aware(datetime.strptime(data_pagamento_str, '%Y-%m-%d'))
+        except (ValueError, TypeError):
+            dt = timezone.now()
+
+        obs_partes = [p for p in [conta.descricao, conta.observacao] if p]
+        BankTransaction.objects.create(
+            bank=bank,
+            tipo='pagamento',
+            descricao=conta.fornecedor.nome,
+            valor=conta.valor,
+            is_entrada=False,
+            data=dt,
+            observacao=' — '.join(obs_partes),
+            criado_por=request.user,
+        )
+
+        conta.status = 'pago'
+        conta.data_pagamento = data_pagamento_str
+        conta.pago_por = request.user
+        conta.banco_pagamento = bank
+        conta.save(update_fields=['status', 'data_pagamento', 'pago_por', 'banco_pagamento'])
         return JsonResponse({'success': True})
 
 

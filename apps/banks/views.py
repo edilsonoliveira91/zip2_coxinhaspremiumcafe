@@ -67,28 +67,50 @@ class BankListView(LoginRequiredMixin, ListView):
     context_object_name = 'banks'
 
     def get_queryset(self):
-        from django.db.models import Sum, Q
-        hoje = timezone.localdate()
-        return _accessible_banks(self.request.user).annotate(
-            _entradas=Sum(
-                'transactions__valor',
-                filter=Q(transactions__is_entrada=True, transactions__data__date__lte=hoje),
-            ),
-            _saidas=Sum(
-                'transactions__valor',
-                filter=Q(transactions__is_entrada=False, transactions__data__date__lte=hoje),
-            ),
-        )
+        return _accessible_banks(self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        from financials.models import CaixaAdmTransferencia
+        from collections import defaultdict
+
+        hoje = timezone.localdate()
+        banks = list(ctx['banks'])
+
+        # Busca todas as transferências pendentes de uma vez para todos os bancos
+        pendentes = CaixaAdmTransferencia.objects.filter(
+            conciliado=False,
+            cancelada=False,
+            banco_destino__in=[b.pk for b in banks],
+        ).values('banco_destino_id', 'valor', 'descricao')
+
+        pendentes_por_banco = defaultdict(list)
+        for p in pendentes:
+            pendentes_por_banco[p['banco_destino_id']].append(p)
+
         total_geral = Decimal('0.00')
-        for bank in ctx['banks']:
-            vi       = bank.valor_inicial or Decimal('0.00')
-            entradas = bank._entradas     or Decimal('0.00')
-            saidas   = bank._saidas       or Decimal('0.00')
+        for bank in banks:
+            # IDs a excluir: transações que ainda não foram conciliadas
+            excluir_ids = set()
+            for p in pendentes_por_banco.get(bank.pk, []):
+                ids = bank.transactions.filter(
+                    is_entrada=True,
+                    valor=p['valor'],
+                    descricao=p['descricao'],
+                ).values_list('id', flat=True)
+                excluir_ids.update(ids)
+
+            settled = bank.transactions.filter(
+                data__date__lte=hoje
+            ).exclude(id__in=excluir_ids)
+
+            vi       = bank.valor_inicial or Decimal('0')
+            entradas = settled.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+            saidas   = settled.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             bank.saldo_atual = vi + entradas - saidas
             total_geral += bank.saldo_atual
+
+        ctx['banks']       = banks
         ctx['total_geral'] = total_geral
         return ctx
 
@@ -866,12 +888,20 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
                 colWidths=[card_w3, gap, card_w3, gap, card_w3],
             )
         else:
-            # ── 4 cards: Saldo | Entradas | Saídas | Taxas ───────────────────
+            # ── 4 cards: Saldo Anterior | Entradas | Saídas | Saldo Atual ────
+            if data_inicio:
+                before_4 = settled_txs.filter(data__date__lt=data_inicio)
+                saldo_ant_4 = valor_inicial + calc_saldo(before_4)
+                label_ant_4 = f'Antes de {data_inicio.strftime("%d/%m/%y")}'
+            else:
+                saldo_ant_4 = valor_inicial
+                label_ant_4 = 'Saldo de abertura'
+
             card_saldo = RoundCard(card_w, [
-                ('SALDO DISPONIVEL',   6, True,  azul,   10, 2),
-                (fmt(liquido_geral),  14, True,  escuro,  2, 2),
-                ('Liquido apos taxas', 6, False, cinza,   2, 10),
-            ], border_color=bd_azul)
+                ('SALDO ANTERIOR',   6, True,  cinza,  10, 2),
+                (fmt(saldo_ant_4),  14, True,  escuro,  2, 2),
+                (label_ant_4,        6, False, cinza,   2, 10),
+            ], border_color=bd_cinza)
 
             card_entradas = RoundCard(card_w, [
                 ('ENTRADAS DO PERIODO', 6, True,  verde,  10, 2),
@@ -886,10 +916,10 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             ], border_color=bd_verm)
 
             card_taxas = RoundCard(card_w, [
-                ('TAXAS BANDEIRA',        6, True,  escuro,  10, 2),
-                (fmt(taxa_periodo_pdf),  14, True,  escuro,   2, 2),
-                ('Descontado no periodo', 6, False, cinza,    2, 10),
-            ], border_color=bd_cinza)
+                ('SALDO ATUAL',         6, True,  verde,  10, 2),
+                (fmt(saldo_atual),     14, True,  escuro,  2, 2),
+                ('Saldo total do banco', 6, False, cinza,   2, 10),
+            ], border_color=bd_verde)
 
             cards_row = Table(
                 [[card_saldo, '', card_entradas, '', card_saidas, '', card_taxas]],

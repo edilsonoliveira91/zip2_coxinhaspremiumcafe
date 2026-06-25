@@ -33,8 +33,10 @@ urlpatterns = [
 
     # Contas a Pagar
     path('contas-pagar/', views.ContasPagarListView.as_view(), name='contas_pagar'),
+    path('relatorio/contas-pagas/', views.ContasPagasReportView.as_view(), name='relatorio_contas_pagas'),
     path('api/contas-pagar/criar/', views.ContasPagarCreateView.as_view(), name='contas_pagar_criar'),
     path('api/contas-pagar/<int:pk>/pagar/', views.ContasPagarMarcarPagoView.as_view(), name='contas_pagar_pagar'),
+    path('api/contas-pagar/<int:pk>/pagar-banco/', views.ContasPagarPagarComBancoView.as_view(), name='contas_pagar_pagar_banco'),
     path('api/contas-pagar/<int:pk>/cancelar/', views.ContasPagarCancelarView.as_view(), name='contas_pagar_cancelar'),
     path('api/contas-pagar/<int:pk>/detalhe/', views.ContasPagarDetalheView.as_view(), name='contas_pagar_detalhe'),
     path('api/contas-pagar/<int:pk>/editar/', views.ContasPagarUpdateView.as_view(), name='contas_pagar_editar'),

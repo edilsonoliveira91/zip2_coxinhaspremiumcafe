@@ -391,6 +391,13 @@ class ContaPagar(models.Model):
         related_name='contas_pagar_pagas',
         verbose_name="Pago por",
     )
+    banco_pagamento = models.ForeignKey(
+        'banks.Bank',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='contas_pagas',
+        verbose_name="Banco do pagamento",
+    )
 
     class Meta:
         verbose_name = "Conta a Pagar"
