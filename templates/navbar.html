@@ -123,7 +123,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                     </svg>
-                                    <span>Materia Prima</span>
+                                    <span>Matéria Prima</span>
                                 </a>
                             </div>
                         </div>
@@ -678,6 +678,9 @@
                     {% endif %}
                     {% if perms.financials.add_sangria or request.user.is_superuser %}
                     <a href="{% url 'financials:sangria' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600" @click="mobileOpen=false">Sangria</a>
+                    {% endif %}
+                    {% if request.user.is_caixa or request.user.is_superuser %}
+                    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-green-50 hover:text-green-600" @click="mobileOpen=false">Valor Inicial</a>
                     {% endif %}
                     {% if perms.financials.view_financial or request.user.is_caixa or request.user.is_superuser or request.user.is_staff %}
                     <a href="{% url 'financials:fechamento_diario' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600" @click="mobileOpen=false">Fechamento de Caixa</a>
