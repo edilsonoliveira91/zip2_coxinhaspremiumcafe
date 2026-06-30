@@ -2207,17 +2207,33 @@ class FornecedorSalvarView(LoginRequiredMixin, View):
                     observacao=data.get('observacao', '').strip(),
                 )
 
-            # Sincroniza materiais: remove todos e recria
-            f.materiais.all().delete()
-            for item in data.get('materiais', []):
-                material = Material.objects.filter(pk=item.get('material_id')).first()
+            # Sincroniza materiais: atualiza existentes, adiciona novos, remove os não usados
+            incoming = {
+                int(item['material_id']): item
+                for item in data.get('materiais', [])
+                if item.get('material_id')
+            }
+            for fm in f.materiais.all():
+                if fm.material_id in incoming:
+                    item = incoming.pop(fm.material_id)
+                    plano = PlanoDeContas.objects.filter(pk=item.get('plano_id')).first()
+                    if fm.plano_de_conta_id != (plano.pk if plano else None):
+                        fm.plano_de_conta = plano
+                        fm.save(update_fields=['plano_de_conta'])
+                else:
+                    try:
+                        fm.delete()
+                    except Exception:
+                        pass
+            for material_id, item in incoming.items():
+                material = Material.objects.filter(pk=material_id).first()
                 if not material:
                     continue
                 plano = PlanoDeContas.objects.filter(pk=item.get('plano_id')).first()
-                FornecedorMaterial.objects.create(
+                FornecedorMaterial.objects.get_or_create(
                     fornecedor=f,
                     material=material,
-                    plano_de_conta=plano,
+                    defaults={'plano_de_conta': plano},
                 )
 
             return JsonResponse({'success': True, 'redirect': '/financials/cadastro/fornecedores/'})
