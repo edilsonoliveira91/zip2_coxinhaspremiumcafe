@@ -610,7 +610,7 @@ function adicionarItem(fmId, qtd, un, vUnit) {
          value="${qtd || ''}" placeholder="0" oninput="mascaraQtd(this);recalcItem(this)"></td>
     <td><select class="fc-sm item-un">${buildSelectUnidade(un)}</select></td>
     <td><input type="text" inputmode="decimal" class="fc-sm item-vunit moeda-brl" style="text-align:right;"
-         value="${vUnit ? formatarMoeda(vUnit) : ''}" placeholder="0,00" oninput="mascaraMoeda(this);recalcItem(this)"></td>
+         value="${vUnit ? formatarMoeda(vUnit, 4) : ''}" placeholder="0,0000" oninput="mascaraMoeda(this,4);recalcItem(this)"></td>
     <td style="text-align:right;"><span class="item-vtotal" style="font-size:13px;font-weight:700;color:#1d1d1f;">—</span></td>
     <td><button type="button" class="btn-rem-item" onclick="removerItem(this)">×</button></td>
   `;
@@ -832,7 +832,7 @@ async function abrirDetalhe(pk) {
       <td>${it.material}</td>
       <td style="text-align:center;">${it.quantidade}</td>
       <td style="text-align:center;">${it.unidade}</td>
-      <td style="text-align:right;">R$ ${formatarMoeda(parseFloat(it.valor_unitario))}</td>
+      <td style="text-align:right;">R$ ${formatarMoeda(parseFloat(it.valor_unitario), 4)}</td>
       <td style="text-align:right;">R$ ${formatarMoeda(tot)}</td>
     </tr>`;
   }).join('');
