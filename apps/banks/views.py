@@ -711,7 +711,11 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         saldo_anterior_pdf = None
         if filtrado_pdf and data_inicio:
             before_qs = settled_txs.filter(data__date__lt=data_inicio)
-            saldo_anterior_pdf = valor_inicial + calc_saldo(before_qs)
+            bruto_anterior_pdf = valor_inicial + calc_saldo(before_qs)
+            taxa_anterior_pdf  = _calc_taxa_pdf(
+                all_conciliadas.filter(conciliado_em__date__lt=data_inicio)
+            )
+            saldo_anterior_pdf = bruto_anterior_pdf - taxa_anterior_pdf
 
         # Breakdown crédito / débito (acumulado, todas as conciliadas)
 
@@ -908,8 +912,12 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         else:
             # ── 4 cards: Saldo Anterior | Entradas | Saídas | Saldo Atual ────
             if data_inicio:
-                before_4 = settled_txs.filter(data__date__lt=data_inicio)
-                saldo_ant_4 = valor_inicial + calc_saldo(before_4)
+                before_4    = settled_txs.filter(data__date__lt=data_inicio)
+                bruto_ant_4 = valor_inicial + calc_saldo(before_4)
+                taxa_ant_4  = _calc_taxa_pdf(
+                    all_conciliadas.filter(conciliado_em__date__lt=data_inicio)
+                )
+                saldo_ant_4 = bruto_ant_4 - taxa_ant_4
                 label_ant_4 = f'Antes de {data_inicio.strftime("%d/%m/%y")}'
             else:
                 saldo_ant_4 = valor_inicial
