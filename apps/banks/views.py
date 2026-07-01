@@ -637,12 +637,10 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             saidas   = qs.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             return entradas - saidas
 
-        pendente_ids = set()
-        for p in CaixaAdmTransferencia.objects.filter(banco_destino=bank, conciliado=False, cancelada=False):
-            pendente_ids.update(
-                bank.transactions.filter(is_entrada=True, valor=p.valor, descricao=p.descricao)
-                .values_list('id', flat=True)
-            )
+        a_receber_pdf = CaixaAdmTransferencia.objects.filter(
+            banco_destino=bank, conciliado=False, cancelada=False
+        )
+        pendente_ids = _build_excluir_ids(bank, a_receber_pdf)
 
         settled_txs = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=pendente_ids)
         saldo_atual = valor_inicial + calc_saldo(settled_txs)
@@ -692,9 +690,10 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
         all_conciliadas = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank, conciliado=True, cancelada=False
         )
-        bruto_geral   = all_conciliadas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        # Mesmo cálculo da tela: valor_inicial + entradas_settled - saidas_settled
+        bruto_geral   = saldo_atual
         total_taxa    = _calc_taxa_pdf(all_conciliadas)
-        liquido_geral = bruto_geral - total_taxa
+        liquido_geral = saldo_atual - total_taxa
 
         # Fees específicas do período
         filtrado_pdf = bool(data_inicio and data_fim and data_inicio != data_fim)
