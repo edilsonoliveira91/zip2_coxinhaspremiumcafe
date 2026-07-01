@@ -205,6 +205,14 @@ class CaixaAdmTransferencia(models.Model):
     )
     descricao = models.CharField(max_length=200, verbose_name="Descrição", blank=True)
     observacao = models.TextField(blank=True, verbose_name="Observação")
+    bank_transaction = models.OneToOneField(
+        'banks.BankTransaction',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='caixa_transferencia',
+        verbose_name="BankTransaction vinculada",
+    )
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

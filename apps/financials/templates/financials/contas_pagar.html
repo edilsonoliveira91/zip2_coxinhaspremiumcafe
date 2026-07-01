@@ -340,15 +340,73 @@
       Nenhum material cadastrado para este fornecedor. Cadastre os materiais primeiro em <strong>Cadastro → Fornecedores</strong>.
     </div>
 
-    <!-- Descrição e Vencimento -->
-    <div class="row2">
-      <div class="form-group">
-        <label class="form-label">Descrição</label>
-        <input type="text" class="form-control" id="inp-descricao" placeholder="Ex: NF 1234">
+    <!-- Descrição -->
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-control" id="inp-descricao" placeholder="Ex: NF 1234">
+    </div>
+
+    <!-- Tipo de pagamento -->
+    <div class="form-group">
+      <label class="form-label">Tipo de Pagamento</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="tab-btn active" id="btn-avista" onclick="setTipoPagamento('avista')">À Vista</button>
+        <button type="button" class="tab-btn" id="btn-parcelado" onclick="setTipoPagamento('parcelado')">Parcelado</button>
       </div>
+    </div>
+
+    <!-- À Vista: vencimento único -->
+    <div id="grupo-avista">
       <div class="form-group">
         <label class="form-label">Vencimento</label>
         <input type="date" class="form-control" id="inp-vencimento">
+      </div>
+    </div>
+
+    <!-- Parcelado -->
+    <div id="grupo-parcelado" style="display:none;">
+      <div style="display:grid;grid-template-columns:140px 1fr 140px;gap:12px;align-items:flex-end;margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Nº de Parcelas</label>
+          <input type="number" class="form-control" id="inp-num-parcelas" min="2" max="99"
+                 placeholder="Ex: 5" oninput="gerarParcelas()">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Primeiro Vencimento</label>
+          <input type="date" class="form-control" id="inp-primeiro-venc" onchange="aplicarIntervaloDias()">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Intervalo (dias)</label>
+          <input type="number" class="form-control" id="inp-intervalo-dias" min="1" max="365"
+                 placeholder="Ex: 30" oninput="aplicarIntervaloDias()">
+        </div>
+      </div>
+      <div id="parcelas-wrap" style="display:none;">
+        <!-- Card resumo distribuição -->
+        <div style="background:#f5f5f7;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6e6e73;margin-bottom:4px;">Total da Nota</div>
+            <div id="resumo-total" style="font-size:15px;font-weight:700;color:#1d1d1f;">R$ 0,00</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6e6e73;margin-bottom:4px;">Distribuído</div>
+            <div id="resumo-distribuido" style="font-size:15px;font-weight:700;color:#007AFF;">R$ 0,00</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6e6e73;margin-bottom:4px;">Restante</div>
+            <div id="resumo-restante" style="font-size:15px;font-weight:700;color:#FF9500;">R$ 0,00</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span class="form-label" style="margin:0;">Parcelas</span>
+          <button type="button" onclick="dividirIgual()"
+                  style="background:#eaf3ff;color:#007AFF;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .12s;"
+                  onmouseover="this.style.background='#d0eafb'" onmouseout="this.style.background='#eaf3ff'">
+            ÷ Dividir Restante por Igual
+          </button>
+        </div>
+        <div id="parcelas-body"></div>
       </div>
     </div>
 
@@ -427,6 +485,19 @@
     <div class="form-group">
       <label class="form-label">Data do pagamento</label>
       <input type="date" class="form-control" id="pagar-data">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Documentos (opcional)</label>
+      <label for="inp-docs-pagar" class="upload-label">
+        <svg style="width:18px;height:18px;color:#8e8e93;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        <span id="pagar-upload-texto" style="font-size:14px;color:#8e8e93;">Clique para selecionar arquivos (PDF, imagem…)</span>
+      </label>
+      <input type="file" id="inp-docs-pagar" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.doc,.docx"
+             style="display:none;" onchange="onFileSelectPagar(event)">
+      <div class="file-list" id="pagar-file-list"></div>
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
@@ -538,6 +609,121 @@ const UNIDADES = [
 
 let materiaisCarregados = [];
 let arquivosSelecionados = [];
+let tipoPagamento = 'avista';
+
+// ── Tipo de pagamento ───────────────────────────
+
+function setTipoPagamento(tipo) {
+  tipoPagamento = tipo;
+  document.getElementById('btn-avista').classList.toggle('active', tipo === 'avista');
+  document.getElementById('btn-parcelado').classList.toggle('active', tipo === 'parcelado');
+  document.getElementById('grupo-avista').style.display    = tipo === 'avista'    ? '' : 'none';
+  document.getElementById('grupo-parcelado').style.display = tipo === 'parcelado' ? '' : 'none';
+}
+
+function gerarParcelas() {
+  const n    = parseInt(document.getElementById('inp-num-parcelas').value) || 0;
+  const wrap = document.getElementById('parcelas-wrap');
+  const body = document.getElementById('parcelas-body');
+  if (n < 1) { wrap.style.display = 'none'; body.innerHTML = ''; return; }
+  wrap.style.display = '';
+  body.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const row = document.createElement('div');
+    row.className = 'parcela-row';
+    row.style.cssText = 'display:grid;grid-template-columns:48px 1fr 1fr;gap:10px;align-items:flex-end;margin-bottom:10px;';
+    row.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#6e6e73;padding-bottom:12px;text-align:center;">${i}/${n}</div>
+      <div>
+        <label class="form-label">Valor</label>
+        <input type="text" inputmode="decimal" class="form-control parcela-valor" placeholder="0,00"
+               oninput="mascaraMoeda(this);atualizarResumoParcelado()">
+      </div>
+      <div>
+        <label class="form-label">Vencimento</label>
+        <input type="date" class="form-control parcela-venc">
+      </div>
+    `;
+    body.appendChild(row);
+  }
+  atualizarResumoParcelado();
+  aplicarIntervaloDias();
+}
+
+function totalDaNota() {
+  let t = 0;
+  document.querySelectorAll('#itens-body tr').forEach(tr => {
+    const qtd   = parseFloat(tr.querySelector('.item-qtd')?.value.replace(',', '.')) || 0;
+    const vunit = parseFloat(desmascarar(tr.querySelector('.item-vunit')?.value || '')) || 0;
+    t += qtd * vunit;
+  });
+  return t;
+}
+
+function atualizarResumoParcelado() {
+  const total = totalDaNota();
+  let distribuido = 0;
+  document.querySelectorAll('.parcela-valor').forEach(inp => {
+    distribuido += parseFloat(desmascarar(inp.value)) || 0;
+  });
+  const restante = total - distribuido;
+
+  document.getElementById('resumo-total').textContent       = 'R$ ' + formatarMoeda(total);
+  document.getElementById('resumo-distribuido').textContent = 'R$ ' + formatarMoeda(distribuido);
+
+  const el = document.getElementById('resumo-restante');
+  if (restante < -0.005) {
+    el.textContent  = '−R$ ' + formatarMoeda(Math.abs(restante));
+    el.style.color  = '#FF3B30';
+  } else if (restante < 0.005) {
+    el.textContent  = 'R$ 0,00';
+    el.style.color  = '#34C759';
+  } else {
+    el.textContent  = 'R$ ' + formatarMoeda(restante);
+    el.style.color  = '#FF9500';
+  }
+}
+
+function aplicarIntervaloDias() {
+  const primeiroVenc = document.getElementById('inp-primeiro-venc').value;
+  const dias         = parseInt(document.getElementById('inp-intervalo-dias').value) || 0;
+  if (!primeiroVenc || dias < 1) return;
+
+  const rows = document.querySelectorAll('.parcela-row');
+  if (!rows.length) return;
+
+  const base = new Date(primeiroVenc + 'T00:00:00');
+  rows.forEach((row, i) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * dias);
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    row.querySelector('.parcela-venc').value = `${yyyy}-${mm}-${dd}`;
+  });
+}
+
+function dividirIgual() {
+  const total = totalDaNota();
+  const rows  = document.querySelectorAll('.parcela-row');
+  if (!rows.length) return;
+
+  let somaPreenchida = 0;
+  const vazias = [];
+  rows.forEach(row => {
+    const inp = row.querySelector('.parcela-valor');
+    const val = parseFloat(desmascarar(inp.value)) || 0;
+    if (val > 0) somaPreenchida += val;
+    else         vazias.push(inp);
+  });
+
+  if (!vazias.length) return;
+  const restante = total - somaPreenchida;
+  if (restante <= 0) return;
+  const valorCada = restante / vazias.length;
+  vazias.forEach(inp => { inp.value = formatarMoeda(valorCada); });
+  atualizarResumoParcelado();
+}
 
 // ── Modal ───────────────────────────────────────
 
@@ -552,6 +738,12 @@ function abrirModal() {
   document.getElementById('inp-descricao').value = '';
   document.getElementById('inp-vencimento').value = '';
   document.getElementById('inp-obs').value = '';
+  document.getElementById('inp-num-parcelas').value = '';
+  document.getElementById('inp-primeiro-venc').value = '';
+  document.getElementById('inp-intervalo-dias').value = '';
+  document.getElementById('parcelas-body').innerHTML = '';
+  document.getElementById('parcelas-wrap').style.display = 'none';
+  setTipoPagamento('avista');
   atualizarTotal();
   document.getElementById('modalNovaConta').classList.add('open');
 }
@@ -645,6 +837,7 @@ function atualizarTotal() {
     soma += qtd * vunit;
   });
   document.getElementById('total-nota').textContent = 'R$ ' + formatarMoeda(soma);
+  if (tipoPagamento === 'parcelado') atualizarResumoParcelado();
 }
 
 // ── Salvar ─────────────────────────────────────
@@ -652,10 +845,8 @@ function atualizarTotal() {
 async function salvarConta() {
   const fornecedorId = document.getElementById('sel-fornecedor').value;
   const descricao    = document.getElementById('inp-descricao').value.trim();
-  const vencimento   = document.getElementById('inp-vencimento').value;
 
   if (!fornecedorId) { alert('Selecione o fornecedor.'); return; }
-  if (!vencimento)   { alert('Informe o vencimento.'); return; }
 
   const rows = document.querySelectorAll('#itens-body tr');
   if (!rows.length) { alert('Adicione ao menos um item.'); return; }
@@ -676,6 +867,33 @@ async function salvarConta() {
     });
   }
 
+  const body = {
+    fornecedor_id:  fornecedorId,
+    descricao,
+    itens,
+    tipo_pagamento: tipoPagamento,
+    observacao:     document.getElementById('inp-obs').value,
+  };
+
+  if (tipoPagamento === 'avista') {
+    const vencimento = document.getElementById('inp-vencimento').value;
+    if (!vencimento) { alert('Informe o vencimento.'); return; }
+    body.data_vencimento = vencimento;
+  } else {
+    const parcelaRows = document.querySelectorAll('.parcela-row');
+    if (!parcelaRows.length) { alert('Informe o número de parcelas.'); return; }
+    const parcelas = [];
+    let idx = 1;
+    for (const row of parcelaRows) {
+      const valor = parseFloat(desmascarar(row.querySelector('.parcela-valor').value));
+      const venc  = row.querySelector('.parcela-venc').value;
+      if (!valor || !venc) { alert(`Preencha valor e vencimento da parcela ${idx}.`); return; }
+      parcelas.push({ valor, data_vencimento: venc });
+      idx++;
+    }
+    body.parcelas = parcelas;
+  }
+
   const btn = document.getElementById('btn-salvar');
   btn.disabled = true; btn.textContent = 'Salvando…';
 
@@ -683,12 +901,7 @@ async function salvarConta() {
     const r = await fetch(URL_CRIAR, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-      body: JSON.stringify({
-        fornecedor_id: fornecedorId,
-        descricao, itens,
-        data_vencimento: vencimento,
-        observacao: document.getElementById('inp-obs').value,
-      }),
+      body: JSON.stringify(body),
     });
     const d = await r.json();
     if (!d.success) { alert('Erro: ' + d.error); return; }
@@ -923,19 +1136,44 @@ async function salvarEdicao() {
 // ── Modal Pagar com Banco ──────────────────────
 
 let pagarPk = null;
+let arquivosPagar = [];
+
+function onFileSelectPagar(e) {
+  Array.from(e.target.files).forEach(f => {
+    if (!arquivosPagar.find(x => x.name === f.name && x.size === f.size)) arquivosPagar.push(f);
+  });
+  e.target.value = '';
+  renderFileListPagar();
+}
+function removeFilePagar(idx) { arquivosPagar.splice(idx, 1); renderFileListPagar(); }
+function renderFileListPagar() {
+  const el    = document.getElementById('pagar-file-list');
+  const texto = document.getElementById('pagar-upload-texto');
+  if (!arquivosPagar.length) {
+    el.innerHTML = '';
+    texto.textContent = 'Clique para selecionar arquivos (PDF, imagem…)';
+    return;
+  }
+  texto.textContent = arquivosPagar.length + ' arquivo(s) selecionado(s)';
+  el.innerHTML = arquivosPagar.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-name">${f.name}</span>
+      <button class="file-item-remove" onclick="removeFilePagar(${i})" type="button">×</button>
+    </div>`).join('');
+}
 
 function marcarPago(pk, fornecedor, descricao, valor) {
   pagarPk = pk;
+  arquivosPagar = [];
+  renderFileListPagar();
   document.getElementById('pagar-pk').value = pk;
   document.getElementById('pagar-fornecedor').textContent = fornecedor || '';
   document.getElementById('pagar-label').textContent = descricao || '';
   document.getElementById('pagar-valor').textContent = 'R$ ' + formatarMoeda(parseFloat(valor) || 0);
 
-  // Data padrão = hoje
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('pagar-data').value = hoje;
 
-  // Resetar banco e saldo
   const sel = document.getElementById('pagar-banco');
   sel.innerHTML = '<option value="">Selecione o banco…</option>';
   BANCOS.forEach(b => {
@@ -958,6 +1196,8 @@ function atualizarSaldoBanco() {
 }
 
 function fecharPagar() {
+  arquivosPagar = [];
+  renderFileListPagar();
   document.getElementById('modalPagar').classList.remove('open');
   pagarPk = null;
 }
@@ -967,9 +1207,9 @@ document.getElementById('modalPagar').addEventListener('click', function(e) {
 });
 
 async function confirmarPagamento() {
-  const pk    = document.getElementById('pagar-pk').value;
+  const pk     = document.getElementById('pagar-pk').value;
   const bankId = document.getElementById('pagar-banco').value;
-  const data  = document.getElementById('pagar-data').value;
+  const data   = document.getElementById('pagar-data').value;
   if (!bankId) { alert('Selecione um banco.'); return; }
   if (!data)   { alert('Informe a data do pagamento.'); return; }
 
@@ -984,6 +1224,12 @@ async function confirmarPagamento() {
     });
     const d = await r.json();
     if (!d.success) { alert('Erro: ' + d.error); return; }
+    if (arquivosPagar.length) {
+      const fd = new FormData();
+      arquivosPagar.forEach(f => fd.append('documentos', f));
+      const urlUp = URL_UPLOAD_DOC.replace('/0/', '/' + pk + '/');
+      await fetch(urlUp, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
+    }
     fecharPagar();
     window.location.reload();
   } finally {

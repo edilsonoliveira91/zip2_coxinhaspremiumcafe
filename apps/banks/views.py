@@ -12,6 +12,64 @@ from decimal import Decimal
 
 from .models import Bank, BankTransaction, BankTransactionAnexo, UserBankAccess
 from .forms import BankForm, BankEditForm
+from financials.models import CaixaAdmTransferencia
+
+
+# ── Helpers de taxa de bandeira ──────────────────────────────────────────────
+
+def _build_bandeira_rates(pinpad_obj):
+    """Retorna dict {nome_bandeira: {credito: pct, debito: pct}} para um pinpad."""
+    from pinpads.models import BandeiraPinpad
+    rates = {}
+    if pinpad_obj:
+        for b in BandeiraPinpad.objects.filter(pinpad=pinpad_obj):
+            rates[b.nome.lower()] = {
+                'credito': b.taxa_credito,
+                'debito':  b.taxa_debito,
+            }
+    return rates
+
+
+def _calc_taxa_transferencias(transferencias_qs, rates_map):
+    """Calcula o total de taxas de um queryset de CaixaAdmTransferencia."""
+    total = Decimal('0')
+    for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira', 'taxa_aplicada'):
+        pct = t.get('taxa_aplicada') or Decimal('0')
+        if not pct and t['metodo_pagamento'] in ('credito', 'debito'):
+            chave = (t['bandeira'] or '').lower()
+            r = rates_map.get(chave, {})
+            pct = r.get(t['metodo_pagamento'], Decimal('0'))
+        total += t['valor'] * pct / Decimal('100')
+    return total
+
+
+def _build_excluir_ids(bank, a_receber_qs):
+    """
+    Retorna o set de IDs de BankTransaction a excluir do saldo (são "A Receber").
+
+    Usa o FK direto (bank_transaction_id) para registros novos — sem ambiguidade.
+    Para registros antigos sem FK, faz fallback por valor+descricao tomando apenas
+    UM resultado por pendência (evita over-exclusão quando existem dois iguais).
+    """
+    excluir_ids = set()
+    used_ids = set()
+
+    # Registros com FK direto — O(1) por registro, sem ambiguidade
+    for bt_id in a_receber_qs.filter(bank_transaction__isnull=False).values_list('bank_transaction_id', flat=True):
+        excluir_ids.add(bt_id)
+        used_ids.add(bt_id)
+
+    # Registros antigos sem FK — fallback por valor+descricao, um BT por pendência
+    for p in a_receber_qs.filter(bank_transaction__isnull=True).values('valor', 'descricao'):
+        qs = bank.transactions.filter(is_entrada=True, valor=p['valor']).exclude(id__in=used_ids)
+        if p['descricao']:
+            qs = qs.filter(descricao=p['descricao'])
+        bt_id = qs.order_by('id').values_list('id', flat=True).first()
+        if bt_id:
+            excluir_ids.add(bt_id)
+            used_ids.add(bt_id)
+
+    return excluir_ids
 
 
 # ── Helpers de acesso ────────────────────────────────────────────────────────
@@ -71,43 +129,34 @@ class BankListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from financials.models import CaixaAdmTransferencia
-        from collections import defaultdict
 
-        hoje = timezone.localdate()
-        banks = list(ctx['banks'])
-
-        # Busca todas as transferências pendentes de uma vez para todos os bancos
-        pendentes = CaixaAdmTransferencia.objects.filter(
-            conciliado=False,
-            cancelada=False,
-            banco_destino__in=[b.pk for b in banks],
-        ).values('banco_destino_id', 'valor', 'descricao')
-
-        pendentes_por_banco = defaultdict(list)
-        for p in pendentes:
-            pendentes_por_banco[p['banco_destino_id']].append(p)
+        from pinpads.models import Pinpad
+        hoje   = timezone.localdate()
+        banks  = list(ctx['banks'])
+        pinpad = Pinpad.objects.filter(is_active=True).first()
+        rates  = _build_bandeira_rates(pinpad)
 
         total_geral = Decimal('0.00')
         for bank in banks:
-            # IDs a excluir: transações que ainda não foram conciliadas
-            excluir_ids = set()
-            for p in pendentes_por_banco.get(bank.pk, []):
-                ids = bank.transactions.filter(
-                    is_entrada=True,
-                    valor=p['valor'],
-                    descricao=p['descricao'],
-                ).values_list('id', flat=True)
-                excluir_ids.update(ids)
-
-            settled = bank.transactions.filter(
-                data__date__lte=hoje
-            ).exclude(id__in=excluir_ids)
-
+            a_receber_qs = CaixaAdmTransferencia.objects.filter(
+                banco_destino=bank,
+                conciliado=False,
+                cancelada=False,
+            )
+            excluir_ids = _build_excluir_ids(bank, a_receber_qs)
+            settled  = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=excluir_ids)
             vi       = bank.valor_inicial or Decimal('0')
             entradas = settled.filter(is_entrada=True).aggregate(t=Sum('valor'))['t'] or Decimal('0')
             saidas   = settled.filter(is_entrada=False).aggregate(t=Sum('valor'))['t'] or Decimal('0')
-            bank.saldo_atual = vi + entradas - saidas
+            saldo_bruto = vi + entradas - saidas
+
+            # Deduz taxas (mesmo cálculo do card "Saldo disponível" do extrato)
+            all_conciliadas = CaixaAdmTransferencia.objects.filter(
+                banco_destino=bank, conciliado=True, cancelada=False
+            )
+            total_taxa = _calc_taxa_transferencias(all_conciliadas, rates)
+
+            bank.saldo_atual = saldo_bruto - total_taxa
             total_geral += bank.saldo_atual
 
         ctx['banks']       = banks
@@ -248,7 +297,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         total_a_receber = a_receber_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
         # Calcula data de liquidação dinamicamente pelo pinpad ativo
-        from pinpads.models import Pinpad
+        from pinpads.models import Pinpad, BandeiraPinpad
         pinpad = Pinpad.objects.filter(is_active=True).first()
         dias_map = {
             'credito':  pinpad.dias_credito if pinpad else 30,
@@ -264,13 +313,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
 
         # Mesmo que o prazo já tenha chegado, a entrada só conta no saldo
         # quando o usuário conciliar manualmente.
-        pendente_tx_ids = set()
-        for p in a_receber_detalhe:
-            pendente_tx_ids.update(
-                bank.transactions.filter(
-                    is_entrada=True, valor=p.valor, descricao=p.descricao,
-                ).values_list('id', flat=True)
-            )
+        pendente_tx_ids = _build_excluir_ids(bank, a_receber_qs)
 
         settled_txs = bank.transactions.filter(data__date__lte=hoje).exclude(id__in=pendente_tx_ids)
         saldo_atual = valor_inicial + calc_saldo(settled_txs)
@@ -305,31 +348,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             saldo_anterior = valor_inicial + calc_saldo(before_qs)
             total_periodo = calc_saldo(period_qs)
 
-        # Cálculo de taxas via CaixaAdmTransferencia (fonte confiável de metodo+bandeira)
-        from pinpads.models import BandeiraPinpad
-
-        def _build_rates(pinpad_obj):
-            rates = {}
-            if pinpad_obj:
-                for b in BandeiraPinpad.objects.filter(pinpad=pinpad_obj):
-                    rates[b.nome.lower()] = {
-                        'credito': b.taxa_credito,
-                        'debito':  b.taxa_debito,
-                    }
-            return rates
-
-        def _calc_taxa(transferencias_qs, rates_map):
-            total = Decimal('0')
-            for t in transferencias_qs.values('valor', 'metodo_pagamento', 'bandeira', 'taxa_aplicada'):
-                pct = t.get('taxa_aplicada') or Decimal('0')
-                if not pct and t['metodo_pagamento'] in ('credito', 'debito'):
-                    chave = t['bandeira'].lower() if t['bandeira'] else ''
-                    r = rates_map.get(chave, {})
-                    pct = r.get(t['metodo_pagamento'], Decimal('0'))
-                total += t['valor'] * pct / Decimal('100')
-            return total
-
-        bandeiras_rates = _build_rates(pinpad)
+        bandeiras_rates = _build_bandeira_rates(pinpad)
 
         # Anotar cada transação com taxa individual e valor líquido
         # Usa taxa_tx gravada no DB (set na conciliação); fallback dinâmico para registros antigos
@@ -350,7 +369,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
         all_conciliadas = CaixaAdmTransferencia.objects.filter(
             banco_destino=bank, conciliado=True, cancelada=False
         )
-        total_taxa    = _calc_taxa(all_conciliadas, bandeiras_rates)
+        total_taxa    = _calc_taxa_transferencias(all_conciliadas, bandeiras_rates)
         # saldo_atual já inclui pagamentos feitos no banco (is_entrada=False)
         # bruto_geral = saldo real antes de descontar taxas de bandeira
         bruto_geral   = saldo_atual
@@ -362,7 +381,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
                 conciliado_em__date__gte=data_inicio,
                 conciliado_em__date__lte=data_fim,
             )
-            taxa_periodo    = _calc_taxa(periodo_conciliadas, bandeiras_rates)
+            taxa_periodo    = _calc_taxa_transferencias(periodo_conciliadas, bandeiras_rates)
             # bruto_periodo = saldo líquido das transações do período (entradas - saídas)
             bruto_periodo   = calc_saldo(period_qs)
             liquido_periodo = bruto_periodo - taxa_periodo
@@ -372,7 +391,7 @@ class BankStatementView(LoginRequiredMixin, BaseView):
             liquido_periodo = liquido_geral
 
         # A Receber: bruto/taxa/líquido das transferências pendentes
-        taxa_a_receber = _calc_taxa(a_receber_qs, bandeiras_rates)
+        taxa_a_receber = _calc_taxa_transferencias(a_receber_qs, bandeiras_rates)
         liquido_a_receber = total_a_receber - taxa_a_receber
 
         return render(request, self.template_name, {

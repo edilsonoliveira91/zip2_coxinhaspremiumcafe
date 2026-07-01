@@ -1295,7 +1295,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
         if bandeira:
             descricao += f" ({bandeira})"
 
-        BankTransaction.objects.create(
+        bt = BankTransaction.objects.create(
             bank=banco,
             tipo='deposito',
             descricao=descricao,
@@ -1319,6 +1319,7 @@ class TransferirCaixaAdmParaBancoView(LoginRequiredMixin, View):
             descricao=descricao,
             observacao=observacao,
             criado_por=request.user,
+            bank_transaction=bt,
         )
 
         return JsonResponse({
@@ -1402,7 +1403,7 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
             ).update(**update_fields_bt)
 
             # 2. Cria nova BankTransaction pendente para o restante
-            BankTransaction.objects.create(
+            novo_bt = BankTransaction.objects.create(
                 bank=transferencia.banco_destino,
                 tipo='deposito',
                 descricao=transferencia.descricao,
@@ -1425,7 +1426,7 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
                 'valor', 'conciliado', 'conciliado_em', 'conciliado_por', 'observacao'
             ])
 
-            # 4. Cria nova CaixaAdmTransferencia pendente para o restante
+            # 4. Cria nova CaixaAdmTransferencia pendente para o restante, ligada ao novo BT
             CaixaAdmTransferencia.objects.create(
                 banco_destino=transferencia.banco_destino,
                 valor=resto,
@@ -1437,6 +1438,7 @@ class ConciliarTransferenciaView(LoginRequiredMixin, View):
                 descricao=transferencia.descricao,
                 observacao=transferencia.observacao,
                 criado_por=request.user,
+                bank_transaction=novo_bt,
             )
 
         else:
@@ -1505,12 +1507,22 @@ class CancelarTransferenciaView(LoginRequiredMixin, View):
             return JsonResponse({'ok': False, 'error': 'Transferência já conciliada, não pode ser cancelada.'}, status=400)
 
         # Remove a BankTransaction pendente associada
-        BankTransaction.objects.filter(
-            bank=transferencia.banco_destino,
-            is_entrada=True,
-            valor=transferencia.valor,
-            descricao=transferencia.descricao,
-        ).delete()
+        if transferencia.bank_transaction_id:
+            # Registros novos: FK direto — preciso e sem risco de deletar o errado
+            try:
+                transferencia.bank_transaction.delete()
+            except Exception:
+                pass
+        else:
+            # Registros antigos sem FK: apaga apenas UM (o mais antigo) pelo par valor+descricao
+            bt_pk = BankTransaction.objects.filter(
+                bank=transferencia.banco_destino,
+                is_entrada=True,
+                valor=transferencia.valor,
+                descricao=transferencia.descricao,
+            ).order_by('id').values_list('pk', flat=True).first()
+            if bt_pk:
+                BankTransaction.objects.filter(pk=bt_pk).delete()
 
         agora = timezone.now()
         transferencia.cancelada = True
@@ -1775,7 +1787,6 @@ class ContasPagarListView(LoginRequiredMixin, TemplateView):
         context['planos'] = PlanoDeContas.objects.filter(ativo=True).order_by('nome')
 
         # Bancos acessíveis com saldo atual para o modal de pagamento
-        from banks.models import Bank
         from banks.views import _accessible_banks
         from django.db.models import Sum as _Sum, Q as _Q
         hoje = date.today()
@@ -1825,24 +1836,64 @@ class ContasPagarCreateView(LoginRequiredMixin, View):
                     'valor_total': v_total,
                 })
 
-            conta = ContaPagar.objects.create(
-                fornecedor=fornecedor,
-                descricao=data['descricao'],
-                valor=total,
-                data_vencimento=data['data_vencimento'],
-                observacao=data.get('observacao', ''),
-                criado_por=request.user,
-            )
-            for item in itens_validos:
-                ContaPagarItem.objects.create(
-                    conta=conta,
-                    fornecedor_material=item['fm'],
-                    quantidade=item['quantidade'],
-                    unidade_medida=item['unidade_medida'],
-                    valor_unitario=item['valor_unitario'],
-                    valor_total=item['valor_total'],
+            descricao_base = data.get('descricao', '')
+            observacao     = data.get('observacao', '')
+            tipo           = data.get('tipo_pagamento', 'avista')
+
+            if tipo == 'parcelado':
+                parcelas_data = data.get('parcelas', [])
+                if not parcelas_data:
+                    return JsonResponse({'success': False, 'error': 'Informe as parcelas.'}, status=400)
+                n = len(parcelas_data)
+                primeira_pk = None
+                for i, p in enumerate(parcelas_data):
+                    valor_parcela = Decimal(str(p.get('valor', 0)))
+                    venc = p.get('data_vencimento')
+                    if valor_parcela <= 0 or not venc:
+                        return JsonResponse({'success': False, 'error': f'Parcela {i+1}: valor e vencimento são obrigatórios.'}, status=400)
+                    desc = f"{descricao_base} ({i+1}/{n})" if descricao_base else f"Parcela {i+1}/{n}"
+                    conta = ContaPagar.objects.create(
+                        fornecedor=fornecedor,
+                        descricao=desc,
+                        valor=valor_parcela,
+                        data_vencimento=venc,
+                        observacao=observacao,
+                        criado_por=request.user,
+                    )
+                    if i == 0:
+                        primeira_pk = conta.pk
+                        for item in itens_validos:
+                            ContaPagarItem.objects.create(
+                                conta=conta,
+                                fornecedor_material=item['fm'],
+                                quantidade=item['quantidade'],
+                                unidade_medida=item['unidade_medida'],
+                                valor_unitario=item['valor_unitario'],
+                                valor_total=item['valor_total'],
+                            )
+                return JsonResponse({'success': True, 'id': primeira_pk})
+            else:
+                vencimento = data.get('data_vencimento')
+                if not vencimento:
+                    return JsonResponse({'success': False, 'error': 'Informe o vencimento.'}, status=400)
+                conta = ContaPagar.objects.create(
+                    fornecedor=fornecedor,
+                    descricao=descricao_base,
+                    valor=total,
+                    data_vencimento=vencimento,
+                    observacao=observacao,
+                    criado_por=request.user,
                 )
-            return JsonResponse({'success': True, 'id': conta.pk})
+                for item in itens_validos:
+                    ContaPagarItem.objects.create(
+                        conta=conta,
+                        fornecedor_material=item['fm'],
+                        quantidade=item['quantidade'],
+                        unidade_medida=item['unidade_medida'],
+                        valor_unitario=item['valor_unitario'],
+                        valor_total=item['valor_total'],
+                    )
+                return JsonResponse({'success': True, 'id': conta.pk})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
