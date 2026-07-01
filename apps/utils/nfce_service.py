@@ -903,12 +903,15 @@ class NFCeService:
                     etree.SubElement(icms_rn, 'orig').text = '0'
                     etree.SubElement(icms_rn, 'CST').text = '00'
                     etree.SubElement(icms_rn, 'modBC').text = '3'
-                    _vbc00 = Decimal(str(v_prod)).quantize(Decimal('0.01'))
-                    _vicms00 = (_vbc00 * Decimal('12') / Decimal('100')).quantize(Decimal('0.01'))
+                    _prod_obj00  = getattr(item, 'product', None)
+                    _bc_perc00   = Decimal(str(getattr(_prod_obj00, 'base_calculo_icms', 100) or 100)) / Decimal('100')
+                    _aliq_icms00 = Decimal(str(getattr(_prod_obj00, 'aliq_icms', 0) or 0))
+                    _vbc00  = (Decimal(str(v_prod)) * _bc_perc00).quantize(Decimal('0.01'))
+                    _vicms00 = (_vbc00 * _aliq_icms00 / Decimal('100')).quantize(Decimal('0.01'))
                     total_vbc_icms += _vbc00
-                    total_vicms += _vicms00
-                    etree.SubElement(icms_rn, 'vBC').text = f'{_vbc00:.2f}'
-                    etree.SubElement(icms_rn, 'pICMS').text = '12.00'
+                    total_vicms   += _vicms00
+                    etree.SubElement(icms_rn, 'vBC').text   = f'{_vbc00:.2f}'
+                    etree.SubElement(icms_rn, 'pICMS').text = f'{_aliq_icms00:.2f}'
                     etree.SubElement(icms_rn, 'vICMS').text = f'{_vicms00:.2f}'
                 elif cst_icms_item in ('40', '41'):
                     icms_rn = etree.SubElement(icms, 'ICMS40')
