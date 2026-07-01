@@ -891,12 +891,12 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             ], border_color=bd_cinza)
 
             c_periodo = RoundCard(card_w3, [
-                ('NO PERIODO',                        6, True,  azul,   10, 2),
-                (fmt(bruto_periodo_pdf),             13, True,  escuro,  2, 2),
-                (f'Entradas: {fmt(entradas_p)}',      6, False, verde,   3, 1),
-                (f'Saidas:   {fmt(saidas_p)}',        6, False, verm,    1, 1),
-                (f'Taxas:   -{fmt(taxa_periodo_pdf)}', 6, False, laranja, 1, 1),
-                (f'Liquido:  {fmt(liquido_periodo_pdf)}', 6, True, verde, 2, 8),
+                ('NO PERIODO',                            6, True,  azul,    10, 2),
+                (fmt(liquido_periodo_pdf),               13, True,  escuro,   2, 2),
+                (f'Bruto:  {fmt(bruto_periodo_pdf)}',    6, False, cinza,    3, 1),
+                (f'Entradas: {fmt(entradas_p)}',          6, False, verde,    1, 1),
+                (f'Saidas:   {fmt(saidas_p)}',            6, False, verm,     1, 1),
+                (f'Taxas:  -{fmt(taxa_periodo_pdf)}',     6, False, laranja,  1, 8),
             ], border_color=bd_azul)
 
             c_atual = RoundCard(card_w3, [
