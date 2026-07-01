@@ -896,9 +896,9 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
             ], border_color=bd_azul)
 
             c_atual = RoundCard(card_w3, [
-                ('SALDO ATUAL',         6, True,  verde,  10, 2),
-                (fmt(saldo_atual),     14, True,  escuro,  2, 2),
-                ('Saldo total do banco', 6, False, cinza,   2, 10),
+                ('SALDO ATUAL',              6, True,  verde,  10, 2),
+                (fmt(liquido_geral),        14, True,  escuro,  2, 2),
+                ('Liquido apos taxas',       6, False, cinza,   2, 10),
             ], border_color=bd_verde)
 
             cards_row = Table(
@@ -935,8 +935,8 @@ class BankStatementPDFView(LoginRequiredMixin, BaseView):
 
             card_taxas = RoundCard(card_w, [
                 ('SALDO ATUAL',         6, True,  verde,  10, 2),
-                (fmt(saldo_atual),     14, True,  escuro,  2, 2),
-                ('Saldo total do banco', 6, False, cinza,   2, 10),
+                (fmt(liquido_geral),   14, True,  escuro,  2, 2),
+                ('Liquido apos taxas',  6, False, cinza,   2, 10),
             ], border_color=bd_verde)
 
             cards_row = Table(
